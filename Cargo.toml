@@ -1,7 +1,7 @@
 [package]
 name = "prototty"
 description = "Library for rapid prototyping of terminal UIs"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -10,3 +10,10 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty"
 
 [dependencies]
+libc = "0.2"
+term = "0.4"
+cgmath = "0.15"
+
+[[example]]
+name = "hello_world"
+path = "examples/hello_world.rs"
