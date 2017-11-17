@@ -21,10 +21,19 @@ fn main() {
         .. mid
     };
 
-    terminal.set_foreground(colours::GREEN).unwrap();
-    terminal.set_background(colours::RED).unwrap();
+    terminal.set_foreground(colours::GREEN);
+    terminal.set_background(colours::RED);
     terminal.set_cursor(start).unwrap();
-    writeln!(&mut terminal, "{}", hello_world).unwrap();
+    terminal.set_bold();
+    write!(&mut terminal, "Hello").unwrap();
+    terminal.reset();
+    write!(&mut terminal, ", ").unwrap();
+    terminal.set_foreground(colours::MAGENTA);
+    terminal.set_background(colours::BRIGHT_YELLOW);
+    write!(&mut terminal, "World").unwrap();
+    terminal.reset();
+    terminal.set_underline();
+    write!(&mut terminal, "!").unwrap();
     terminal.flush().unwrap();
 
     thread::sleep(Duration::from_millis(1000));

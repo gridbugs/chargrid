@@ -40,7 +40,7 @@ impl Terminal {
         self.flush().map_err(Into::into)
     }
 
-    fn reset(&mut self) -> Result<()> {
+    fn teardown(&mut self) -> Result<()> {
         self.buffer.extend_from_slice(&self.ti_cache.exit_ca);
         self.buffer.extend_from_slice(&self.ti_cache.exit_xmit);
         self.buffer.extend_from_slice(&self.ti_cache.show_cursor);
@@ -60,13 +60,24 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn set_foreground(&mut self, colour: Colour) -> Result<()> {
+    pub fn set_foreground(&mut self, colour: Colour) {
         self.buffer.extend_from_slice(self.ti_cache.fg_colour(colour));
-        Ok(())
     }
-    pub fn set_background(&mut self, colour: Colour) -> Result<()> {
+
+    pub fn set_background(&mut self, colour: Colour) {
         self.buffer.extend_from_slice(self.ti_cache.bg_colour(colour));
-        Ok(())
+    }
+
+    pub fn set_bold(&mut self) {
+        self.buffer.extend_from_slice(&self.ti_cache.bold);
+    }
+
+    pub fn set_underline(&mut self) {
+        self.buffer.extend_from_slice(&self.ti_cache.underline);
+    }
+
+    pub fn reset(&mut self) {
+        self.buffer.extend_from_slice(&self.ti_cache.reset);
     }
 }
 
@@ -85,6 +96,6 @@ impl Write for Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        self.reset().expect("Failed to reset terminal to original settings");
+        self.teardown().expect("Failed to reset terminal to original settings");
     }
 }
