@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use term::terminfo::TermInfo;
 use term::terminfo::parm::{self, Param, Variables};
 use terminal_colour::{Colour, AllColours};
 use error::{Error, Result};
+use input::Input;
 
 pub struct TermInfoCache {
     pub enter_ca: Vec<u8>,
@@ -18,6 +20,7 @@ pub struct TermInfoCache {
     pub fg_colours: Vec<Vec<u8>>,
     pub bg_colours: Vec<Vec<u8>>,
     pub vars: Variables,
+    pub escape_sequences: HashMap<Vec<u8>, Input>,
 }
 
 impl TermInfoCache {
@@ -45,6 +48,37 @@ impl TermInfoCache {
             bg_colours.push(parm::expand(&setbg, params, &mut vars)?);
         }
 
+        let escseq = |name: &'static str, input: Input| {
+            term_info.strings.get(name).cloned()
+                .ok_or_else(|| {
+                    Error::MissingCap(name.to_string())
+                }).map(|seq| (seq, input))
+        };
+
+        let escape_sequences: HashMap<_, _> = [
+            escseq("kf1", Input::Function(1))?,
+            escseq("kf2", Input::Function(2))?,
+            escseq("kf3", Input::Function(3))?,
+            escseq("kf4", Input::Function(4))?,
+            escseq("kf5", Input::Function(5))?,
+            escseq("kf6", Input::Function(6))?,
+            escseq("kf7", Input::Function(7))?,
+            escseq("kf8", Input::Function(8))?,
+            escseq("kf9", Input::Function(9))?,
+            escseq("kf10", Input::Function(10))?,
+            escseq("kf11", Input::Function(11))?,
+            escseq("kf12", Input::Function(12))?,
+            escseq("kcuu1", Input::Up)?,
+            escseq("kcud1", Input::Down)?,
+            escseq("kcuf1", Input::Right)?,
+            escseq("kcub1", Input::Left)?,
+            escseq("kpp", Input::PageUp)?,
+            escseq("knp", Input::PageDown)?,
+            escseq("khome", Input::Home)?,
+            escseq("kend", Input::End)?,
+            escseq("kdch1", Input::Delete)?,
+        ].iter().cloned().collect();
+
         Ok(Self {
             enter_ca: cap("smcup")?,
             exit_ca: cap("rmcup")?,
@@ -60,6 +94,7 @@ impl TermInfoCache {
             fg_colours,
             bg_colours,
             vars,
+            escape_sequences,
         })
     }
 

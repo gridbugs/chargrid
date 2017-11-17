@@ -1,4 +1,5 @@
 use std::io::Error as IoError;
+use std::str::Utf8Error;
 use term::Error as TermError;
 use term::terminfo::parm::Error as ParamError;
 
@@ -7,7 +8,9 @@ pub enum Error {
     IoError(IoError),
     TermError(TermError),
     MissingCap(String),
+    UnrecognizedEscapeSequence(Vec<u8>),
     ParamError(ParamError),
+    Utf8Error(Utf8Error),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -33,5 +36,11 @@ impl From<TermError> for Error {
 impl From<ParamError> for Error {
     fn from(e: ParamError) -> Self {
         Error::ParamError(e)
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(e: Utf8Error) -> Self {
+        Error::Utf8Error(e)
     }
 }

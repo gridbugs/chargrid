@@ -10,6 +10,8 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty"
 
 [dependencies]
+serde = "1.0"
+serde_derive = "1.0"
 libc = "0.2"
 term = "0.4"
 cgmath = "0.15"
@@ -18,3 +20,7 @@ terminal_colour = "0.2"
 [[example]]
 name = "hello_world"
 path = "examples/hello_world.rs"
+
+[[example]]
+name = "echo"
+path = "examples/echo.rs"

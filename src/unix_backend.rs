@@ -1,6 +1,6 @@
 use std::mem;
 use std::fs::{File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Write, Read};
 use std::os::unix::io::{RawFd, AsRawFd};
 use libc;
 use cgmath::Vector2;
@@ -80,7 +80,12 @@ impl UnixBackend {
         self.tty_file.write_all(data)
     }
 
-    fn reset(&mut self) -> Result<()> {
+    pub fn read_polling(&mut self, buf: &mut Vec<u8>) -> Result<()> {
+        self.tty_file.read_to_end(buf)?;
+        Ok(())
+    }
+
+    fn teardown(&mut self) -> Result<()> {
         let res = unsafe {
             libc::tcsetattr(self.tty_fd, libc::TCSAFLUSH, &self.original_termios)
         };
@@ -95,6 +100,6 @@ impl UnixBackend {
 
 impl Drop for UnixBackend {
     fn drop(&mut self) {
-        self.reset().expect("Failed to reset terminal to original settings");
+        self.teardown().expect("Failed to reset terminal to original settings");
     }
 }

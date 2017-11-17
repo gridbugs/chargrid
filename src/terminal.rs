@@ -4,25 +4,33 @@ use terminal_colour::Colour;
 use unix_backend::UnixBackend;
 use term_info_cache::TermInfoCache;
 use term::terminfo::parm::{self, Param};
-use error::Result;
+use error::{Result, Error};
+use input::Input;
 
-const BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
+const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
+const INPUT_BUFFER_INITIAL_CAPACITY: usize = 32;
+
+const ESCAPE: u8 = 0x1b;
+const ESCAPE_CHAR: char = '\u{1b}';
 
 pub struct Terminal {
     backend: UnixBackend,
-    buffer: Vec<u8>,
+    output_buffer: Vec<u8>,
+    input_buffer: Vec<u8>,
     ti_cache: TermInfoCache,
 }
 
 impl Terminal {
     pub fn new() -> Result<Self> {
         let backend = UnixBackend::new()?;
-        let buffer = Vec::with_capacity(BUFFER_INITIAL_CAPACITY);
+        let output_buffer = Vec::with_capacity(OUTPUT_BUFFER_INITIAL_CAPACITY);
+        let input_buffer = Vec::with_capacity(INPUT_BUFFER_INITIAL_CAPACITY);
         let ti_cache = TermInfoCache::new()?;
 
         let mut terminal = Self {
             backend,
-            buffer,
+            output_buffer,
+            input_buffer,
             ti_cache,
         };
 
@@ -32,19 +40,19 @@ impl Terminal {
     }
 
     fn init(&mut self) -> Result<()> {
-        self.buffer.extend_from_slice(&self.ti_cache.enter_ca);
-        self.buffer.extend_from_slice(&self.ti_cache.enter_xmit);
-        self.buffer.extend_from_slice(&self.ti_cache.hide_cursor);
-        self.buffer.extend_from_slice(&self.ti_cache.clear);
+        self.output_buffer.extend_from_slice(&self.ti_cache.enter_ca);
+        self.output_buffer.extend_from_slice(&self.ti_cache.enter_xmit);
+        self.output_buffer.extend_from_slice(&self.ti_cache.hide_cursor);
+        self.output_buffer.extend_from_slice(&self.ti_cache.clear);
 
         self.flush().map_err(Into::into)
     }
 
     fn teardown(&mut self) -> Result<()> {
-        self.buffer.extend_from_slice(&self.ti_cache.exit_ca);
-        self.buffer.extend_from_slice(&self.ti_cache.exit_xmit);
-        self.buffer.extend_from_slice(&self.ti_cache.show_cursor);
-        self.buffer.extend_from_slice(&self.ti_cache.reset);
+        self.output_buffer.extend_from_slice(&self.ti_cache.exit_ca);
+        self.output_buffer.extend_from_slice(&self.ti_cache.exit_xmit);
+        self.output_buffer.extend_from_slice(&self.ti_cache.show_cursor);
+        self.output_buffer.extend_from_slice(&self.ti_cache.reset);
 
         self.flush().map_err(Into::into)
     }
@@ -56,40 +64,75 @@ impl Terminal {
     pub fn set_cursor(&mut self, coord: Vector2<u16>) -> Result<()> {
         let params = &[Param::Number(coord.y as i32), Param::Number(coord.x as i32)];
         let command = parm::expand(&self.ti_cache.set_cursor, params, &mut self.ti_cache.vars)?;
-        self.buffer.extend_from_slice(&command);
+        self.output_buffer.extend_from_slice(&command);
         Ok(())
     }
 
     pub fn set_foreground(&mut self, colour: Colour) {
-        self.buffer.extend_from_slice(self.ti_cache.fg_colour(colour));
+        self.output_buffer.extend_from_slice(self.ti_cache.fg_colour(colour));
     }
 
     pub fn set_background(&mut self, colour: Colour) {
-        self.buffer.extend_from_slice(self.ti_cache.bg_colour(colour));
+        self.output_buffer.extend_from_slice(self.ti_cache.bg_colour(colour));
     }
 
     pub fn set_bold(&mut self) {
-        self.buffer.extend_from_slice(&self.ti_cache.bold);
+        self.output_buffer.extend_from_slice(&self.ti_cache.bold);
     }
 
     pub fn set_underline(&mut self) {
-        self.buffer.extend_from_slice(&self.ti_cache.underline);
+        self.output_buffer.extend_from_slice(&self.ti_cache.underline);
     }
 
     pub fn reset(&mut self) {
-        self.buffer.extend_from_slice(&self.ti_cache.reset);
+        self.output_buffer.extend_from_slice(&self.ti_cache.reset);
+    }
+
+    pub fn poll(&mut self) -> Result<Option<Input>> {
+        self.backend.read_polling(&mut self.input_buffer)?;
+        let input = self.input_in_buffer()?;
+        self.input_buffer.clear();
+        Ok(input)
+    }
+
+    fn input_in_buffer(&self) -> Result<Option<Input>> {
+        if let Some(first) = self.input_buffer.first() {
+            if *first == ESCAPE {
+                if self.input_buffer.len() == 1 {
+                    // buffer contains literal escape character
+                    Ok(Some(Input::Char(ESCAPE_CHAR)))
+                } else {
+                    // assume buffer contains escape sequence
+                    let input = self.ti_cache.escape_sequences
+                        .get(&self.input_buffer);
+                    if input.is_none() {
+                        Err(Error::UnrecognizedEscapeSequence(self.input_buffer.clone()))
+                    } else {
+                        Ok(input.cloned())
+                    }
+                }
+            } else {
+                // buffer contains characters - return the first,
+                // ignoring the rest
+                let s = ::std::str::from_utf8(&self.input_buffer)?;
+                Ok(s.chars().next().map(Input::Char))
+            }
+        } else {
+            // buffer is empty
+            Ok(None)
+        }
     }
 }
 
 impl Write for Terminal {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.buffer.extend_from_slice(buf);
+        self.output_buffer.extend_from_slice(buf);
         Ok(buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.backend.send(&self.buffer)?;
-        self.buffer.clear();
+        self.backend.send(&self.output_buffer)?;
+        self.output_buffer.clear();
         Ok(())
     }
 }
