@@ -1,10 +1,12 @@
 extern crate prototty;
 extern crate cgmath;
+extern crate terminal_colour;
 
 use std::io::Write;
 use std::time::Duration;
 use std::thread;
 use cgmath::Vector2;
+use terminal_colour::colours;
 use prototty::Terminal;
 
 fn main() {
@@ -19,7 +21,9 @@ fn main() {
         .. mid
     };
 
-    terminal.move_cursor(start).unwrap();
+    terminal.set_foreground(colours::GREEN).unwrap();
+    terminal.set_background(colours::RED).unwrap();
+    terminal.set_cursor(start).unwrap();
     writeln!(&mut terminal, "{}", hello_world).unwrap();
     terminal.flush().unwrap();
 

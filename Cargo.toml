@@ -13,6 +13,7 @@ documentation = "https://docs.rs/prototty"
 libc = "0.2"
 term = "0.4"
 cgmath = "0.15"
+terminal_colour = "0.2"
 
 [[example]]
 name = "hello_world"
