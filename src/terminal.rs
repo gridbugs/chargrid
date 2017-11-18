@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::time::Duration;
 use cgmath::Vector2;
 use terminal_colour::Colour;
 use unix_backend::UnixBackend;
@@ -88,8 +89,17 @@ impl Terminal {
         self.output_buffer.extend_from_slice(&self.ti_cache.reset);
     }
 
-    pub fn poll(&mut self) -> Result<Option<Input>> {
+    pub fn poll_input(&mut self) -> Result<Option<Input>> {
         self.backend.read_polling(&mut self.input_buffer)?;
+        self.drain_input()
+    }
+
+    pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
+        self.backend.read_timeout(&mut self.input_buffer, timeout)?;
+        self.drain_input()
+    }
+
+    fn drain_input(&mut self) -> Result<Option<Input>> {
         let input = self.input_in_buffer()?;
         self.input_buffer.clear();
         Ok(input)

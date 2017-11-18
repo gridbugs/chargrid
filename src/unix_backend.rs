@@ -1,7 +1,9 @@
 use std::mem;
+use std::ptr;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write, Read};
 use std::os::unix::io::{RawFd, AsRawFd};
+use std::time::Duration;
 use libc;
 use cgmath::Vector2;
 use error::{Error, Result};
@@ -83,6 +85,43 @@ impl UnixBackend {
     pub fn read_polling(&mut self, buf: &mut Vec<u8>) -> Result<()> {
         self.tty_file.read_to_end(buf)?;
         Ok(())
+    }
+
+    pub fn read_timeout(&mut self, buf: &mut Vec<u8>, timeout: Duration) -> Result<()> {
+
+        let mut timeout = libc::timespec {
+            tv_sec: timeout.as_secs() as libc::time_t,
+            tv_nsec: timeout.subsec_nanos() as libc::c_long,
+        };
+
+        let mut rfds: libc::fd_set = unsafe { mem::zeroed() };
+        unsafe {
+            libc::FD_ZERO(&mut rfds);
+            libc::FD_SET(self.tty_fd, &mut rfds);
+        }
+
+        let num_events = loop {
+            let res = unsafe {
+                libc::pselect(self.tty_fd + 1, &mut rfds, ptr::null_mut(), ptr::null_mut(), &mut timeout, ptr::null_mut())
+            };
+
+            if res == -1 {
+                let err = io::Error::last_os_error();
+                if err.kind() == io::ErrorKind::Interrupted {
+                    continue;
+                } else {
+                    return Err(Error::IoError(err));
+                }
+            } else {
+                break res;
+            }
+        };
+
+        if num_events > 0 {
+            self.read_polling(buf)
+        } else {
+            Ok(())
+        }
     }
 
     fn teardown(&mut self) -> Result<()> {
