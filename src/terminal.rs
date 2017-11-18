@@ -101,6 +101,22 @@ impl Terminal {
         Ok(self.input_ring.pop_front())
     }
 
+    pub fn wait_input(&mut self) -> Result<Input> {
+        let input = loop {
+            // This loop is for good measure. If for some reason
+            // read_waiting returns without a new input becoming
+            // available, this will ensure we don't return without
+            // an input.
+            self.backend.read_waiting(&mut self.input_buffer)?;
+            self.drain_input_into_ring()?;
+            if let Some(input) = self.input_ring.pop_front() {
+                break input;
+            }
+        };
+
+        Ok(input)
+    }
+
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
         if let Some(input) = self.input_ring.pop_front() {
             return Ok(Some(input));

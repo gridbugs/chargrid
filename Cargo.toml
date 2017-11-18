@@ -22,5 +22,13 @@ name = "hello_world"
 path = "examples/hello_world.rs"
 
 [[example]]
-name = "echo"
-path = "examples/echo.rs"
+name = "echo_timeout"
+path = "examples/echo_timeout.rs"
+
+[[example]]
+name = "echo_poll"
+path = "examples/echo_poll.rs"
+
+[[example]]
+name = "echo_wait"
+path = "examples/echo_wait.rs"
