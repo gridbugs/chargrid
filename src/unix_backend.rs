@@ -96,32 +96,23 @@ impl UnixBackend {
 
         let mut rfds: libc::fd_set = unsafe { mem::zeroed() };
         unsafe {
-            libc::FD_ZERO(&mut rfds);
             libc::FD_SET(self.tty_fd, &mut rfds);
         }
 
-        let num_events = loop {
-            let res = unsafe {
-                libc::pselect(self.tty_fd + 1, &mut rfds, ptr::null_mut(), ptr::null_mut(), &mut timeout, ptr::null_mut())
-            };
+        let res = unsafe {
+            libc::pselect(self.tty_fd + 1, &mut rfds, ptr::null_mut(), ptr::null_mut(), &mut timeout, ptr::null_mut())
+        };
 
-            if res == -1 {
-                let err = io::Error::last_os_error();
-                if err.kind() == io::ErrorKind::Interrupted {
-                    continue;
-                } else {
-                    return Err(Error::IoError(err));
-                }
-            } else {
-                break res;
-            }
+        let num_events = if res == -1 {
+            return Err(Error::last_os_error());
+        } else {
+            res
         };
 
         if num_events > 0 {
-            self.read_polling(buf)
-        } else {
-            Ok(())
+            self.read_polling(buf)?;
         }
+        Ok(())
     }
 
     fn teardown(&mut self) -> Result<()> {

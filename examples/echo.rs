@@ -11,7 +11,7 @@ fn main() {
         let mut terminal = Terminal::new().unwrap();
 
         loop {
-           let input = match terminal.wait_input_timeout(Duration::from_millis(1000)) {
+            let input = match terminal.wait_input_timeout(Duration::from_millis(1000)) {
                 Ok(Some(input)) => input,
                 Ok(None) => {
                     writeln!(&mut terminal, "\rtimeout").unwrap();

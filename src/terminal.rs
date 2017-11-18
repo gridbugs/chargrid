@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::io::{self, Write};
 use std::time::Duration;
 use cgmath::Vector2;
@@ -5,20 +6,20 @@ use terminal_colour::Colour;
 use unix_backend::UnixBackend;
 use term_info_cache::TermInfoCache;
 use term::terminfo::parm::{self, Param};
-use error::{Result, Error};
+use error::Result;
 use input::Input;
+use byte_prefix_tree::{BytePrefixTree, Found};
 
 const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
 const INPUT_BUFFER_INITIAL_CAPACITY: usize = 32;
-
-const ESCAPE: u8 = 0x1b;
-const ESCAPE_CHAR: char = '\u{1b}';
+const INPUT_RING_INITIAL_CAPACITY: usize = 32;
 
 pub struct Terminal {
     backend: UnixBackend,
     output_buffer: Vec<u8>,
     input_buffer: Vec<u8>,
     ti_cache: TermInfoCache,
+    input_ring: VecDeque<Input>,
 }
 
 impl Terminal {
@@ -27,12 +28,14 @@ impl Terminal {
         let output_buffer = Vec::with_capacity(OUTPUT_BUFFER_INITIAL_CAPACITY);
         let input_buffer = Vec::with_capacity(INPUT_BUFFER_INITIAL_CAPACITY);
         let ti_cache = TermInfoCache::new()?;
+        let input_ring = VecDeque::with_capacity(INPUT_RING_INITIAL_CAPACITY);
 
         let mut terminal = Self {
             backend,
             output_buffer,
             input_buffer,
             ti_cache,
+            input_ring,
         };
 
         terminal.init()?;
@@ -90,47 +93,69 @@ impl Terminal {
     }
 
     pub fn poll_input(&mut self) -> Result<Option<Input>> {
+        if let Some(input) = self.input_ring.pop_front() {
+            return Ok(Some(input));
+        }
         self.backend.read_polling(&mut self.input_buffer)?;
-        self.drain_input()
+        self.drain_input_into_ring()?;
+        Ok(self.input_ring.pop_front())
     }
 
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
-        self.backend.read_timeout(&mut self.input_buffer, timeout)?;
-        self.drain_input()
-    }
-
-    fn drain_input(&mut self) -> Result<Option<Input>> {
-        let input = self.input_in_buffer()?;
-        self.input_buffer.clear();
-        Ok(input)
-    }
-
-    fn input_in_buffer(&self) -> Result<Option<Input>> {
-        if let Some(first) = self.input_buffer.first() {
-            if *first == ESCAPE {
-                if self.input_buffer.len() == 1 {
-                    // buffer contains literal escape character
-                    Ok(Some(Input::Char(ESCAPE_CHAR)))
-                } else {
-                    // assume buffer contains escape sequence
-                    let input = self.ti_cache.escape_sequences
-                        .get(&self.input_buffer);
-                    if input.is_none() {
-                        Err(Error::UnrecognizedEscapeSequence(self.input_buffer.clone()))
-                    } else {
-                        Ok(input.cloned())
-                    }
-                }
-            } else {
-                // buffer contains characters - return the first,
-                // ignoring the rest
-                let s = ::std::str::from_utf8(&self.input_buffer)?;
-                Ok(s.chars().next().map(Input::Char))
-            }
-        } else {
-            // buffer is empty
-            Ok(None)
+        if let Some(input) = self.input_ring.pop_front() {
+            return Ok(Some(input));
         }
+        self.backend.read_timeout(&mut self.input_buffer, timeout)?;
+        self.drain_input_into_ring()?;
+        Ok(self.input_ring.pop_front())
+    }
+
+    fn drain_input_into_ring(&mut self) -> Result<()> {
+        Self::populate_input_ring(&mut self.input_ring,
+                                  &self.ti_cache.escape_sequence_prefix_tree,
+                                  &self.input_buffer)?;
+        self.input_buffer.clear();
+        Ok(())
+    }
+
+    fn chip_char(s: &str) -> Option<(char, &str)> {
+        let mut chars = s.chars();
+        if let Some(first) = chars.next() {
+            Some((first, chars.as_str()))
+        } else {
+            None
+        }
+    }
+
+    fn populate_input_ring(input_ring: &mut VecDeque<Input>,
+                           prefix_tree: &BytePrefixTree<Input>,
+                           slice: &[u8]) -> Result<()> {
+        let rest = match prefix_tree.get_longest(slice) {
+            None => {
+                // slice does not begin with an escape sequence - chip off the start and try again
+                let s = ::std::str::from_utf8(&slice)?;
+                if let Some((ch, rest)) = Self::chip_char(s) {
+                    input_ring.push_back(Input::Char(ch));
+                    Some(rest.as_bytes())
+                } else {
+                    None
+                }
+            }
+            Some(Found::Exact(input)) => {
+                input_ring.push_back(*input);
+                None
+            }
+            Some(Found::WithRemaining(input, remaining)) => {
+                input_ring.push_back(*input);
+                Some(remaining)
+            }
+        };
+
+        if let Some(rest) = rest {
+            Self::populate_input_ring(input_ring, prefix_tree, rest)?;
+        }
+
+        Ok(())
     }
 }
 

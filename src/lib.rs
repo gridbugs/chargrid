@@ -9,6 +9,7 @@ mod unix_backend;
 mod terminal;
 mod error;
 mod term_info_cache;
+mod byte_prefix_tree;
 mod input;
 
 pub use self::error::{Result, Error};

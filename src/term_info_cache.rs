@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use term::terminfo::TermInfo;
 use term::terminfo::parm::{self, Param, Variables};
 use terminal_colour::{Colour, AllColours};
 use error::{Error, Result};
 use input::Input;
+use byte_prefix_tree::BytePrefixTree;
 
 pub struct TermInfoCache {
     pub enter_ca: Vec<u8>,
@@ -20,7 +20,7 @@ pub struct TermInfoCache {
     pub fg_colours: Vec<Vec<u8>>,
     pub bg_colours: Vec<Vec<u8>>,
     pub vars: Variables,
-    pub escape_sequences: HashMap<Vec<u8>, Input>,
+    pub escape_sequence_prefix_tree: BytePrefixTree<Input>,
 }
 
 impl TermInfoCache {
@@ -55,7 +55,7 @@ impl TermInfoCache {
                 }).map(|seq| (seq, input))
         };
 
-        let escape_sequences: HashMap<_, _> = [
+        let inputs_to_escape = [
             escseq("kf1", Input::Function(1))?,
             escseq("kf2", Input::Function(2))?,
             escseq("kf3", Input::Function(3))?,
@@ -77,7 +77,12 @@ impl TermInfoCache {
             escseq("khome", Input::Home)?,
             escseq("kend", Input::End)?,
             escseq("kdch1", Input::Delete)?,
-        ].iter().cloned().collect();
+        ];
+
+        let mut escape_sequence_prefix_tree = BytePrefixTree::new();
+        for &(ref seq, input) in inputs_to_escape.iter() {
+            escape_sequence_prefix_tree.insert(seq, input);
+        }
 
         Ok(Self {
             enter_ca: cap("smcup")?,
@@ -94,7 +99,7 @@ impl TermInfoCache {
             fg_colours,
             bg_colours,
             vars,
-            escape_sequences,
+            escape_sequence_prefix_tree,
         })
     }
 
