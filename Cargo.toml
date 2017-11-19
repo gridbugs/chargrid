@@ -36,3 +36,7 @@ path = "examples/echo_wait.rs"
 [[example]]
 name = "basic_context"
 path = "examples/basic_context.rs"
+
+[[example]]
+name = "context_bench"
+path = "examples/context_bench.rs"

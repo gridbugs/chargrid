@@ -173,6 +173,20 @@ impl Terminal {
 
         Ok(())
     }
+
+    pub fn add_byte_to_buffer(&mut self, byte: u8) {
+        self.output_buffer.push(byte);
+    }
+
+    pub fn add_bytes_to_buffer(&mut self, bytes: &[u8]) {
+        self.output_buffer.extend_from_slice(bytes);
+    }
+
+    pub fn flush_buffer(&mut self) -> Result<()> {
+        self.backend.send(&self.output_buffer)?;
+        self.output_buffer.clear();
+        Ok(())
+    }
 }
 
 impl Write for Terminal {
