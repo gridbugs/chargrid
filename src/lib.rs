@@ -11,7 +11,9 @@ mod error;
 mod term_info_cache;
 mod byte_prefix_tree;
 mod input;
+mod context;
 
 pub use self::error::{Result, Error};
 pub use self::terminal::Terminal;
 pub use self::input::Input;
+pub use self::context::*;
