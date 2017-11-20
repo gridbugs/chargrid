@@ -21,15 +21,15 @@ fn main() {
         .. mid
     };
 
-    terminal.set_foreground(colours::GREEN);
-    terminal.set_background(colours::RED);
+    terminal.set_foreground_colour(colours::GREEN);
+    terminal.set_background_colour(colours::RED);
     terminal.set_cursor(start).unwrap();
     terminal.set_bold();
     write!(&mut terminal, "\u{2764}Hello").unwrap();
     terminal.reset();
     write!(&mut terminal, ", ").unwrap();
-    terminal.set_foreground(colours::MAGENTA);
-    terminal.set_background(colours::BRIGHT_YELLOW);
+    terminal.set_foreground_colour(colours::MAGENTA);
+    terminal.set_background_colour(colours::BRIGHT_YELLOW);
     write!(&mut terminal, "World").unwrap();
     terminal.reset();
     terminal.set_underline();

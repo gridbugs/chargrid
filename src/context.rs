@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use std::ops::Deref;
 use std::mem;
 use cgmath::Vector2;
+use terminal_colour::{Colour, colours};
 use terminal::Terminal;
 use input::Input;
 use error::Result;
@@ -14,6 +15,10 @@ struct Cell {
     seq: u64,
     ch: char,
     z_index: i16,
+    fg: Colour,
+    bg: Colour,
+    bold: bool,
+    underline: bool,
 }
 
 impl Default for Cell {
@@ -22,6 +27,10 @@ impl Default for Cell {
             seq: 0,
             ch: ' ',
             z_index: 0,
+            fg: colours::WHITE,
+            bg: colours::BLACK,
+            bold: false,
+            underline: false,
         }
     }
 }
@@ -32,6 +41,17 @@ impl Cell {
             self.seq = seq;
             self.ch = ch;
             self.z_index = z_index;
+        }
+    }
+    fn update_with_style(&mut self, seq: u64, ch: char, z_index: i16, fg: Colour, bg: Colour, bold: bool, underline: bool) {
+        if seq > self.seq || (seq == self.seq && z_index >= self.z_index) {
+            self.seq = seq;
+            self.ch = ch;
+            self.z_index = z_index;
+            self.fg = fg;
+            self.bg = bg;
+            self.bold = bold;
+            self.underline = underline;
         }
     }
 }
@@ -76,6 +96,7 @@ impl Grid {
         match element {
             &ElementHandle::AbsDiv(ref div) => self.render_abs_div(seq, offset, z_index, (*div.0).borrow().deref()),
             &ElementHandle::Text(ref text) => self.render_text(seq, offset, z_index, (*text.0).borrow().deref()),
+            &ElementHandle::Canvas(ref text) => self.render_canvas(seq, offset, z_index, (*text.0).borrow().deref()),
         }
     }
 
@@ -112,6 +133,22 @@ impl Grid {
                             break;
                         }
                     }
+                }
+            }
+        }
+    }
+
+    fn render_canvas(&mut self, seq: u64, offset: Vector2<i16>, z_index: i16, canvas: &Canvas) {
+        for j in 0..canvas.size.y {
+            for i in 0..canvas.size.x {
+                let canvas_cell = canvas.cells[(j * canvas.size.x + i) as usize];
+                let coord = offset + Vector2::new(i, j).cast();
+                if let Some(terminal_cell) = self.get_mut(coord) {
+                    terminal_cell.update_with_style(seq, canvas_cell.character, z_index,
+                                                    canvas_cell.foreground_colour,
+                                                    canvas_cell.background_colour,
+                                                    canvas_cell.bold,
+                                                    canvas_cell.underline);
                 }
             }
         }
@@ -161,7 +198,24 @@ impl Context {
     }
 
     fn send_grid_contents(&mut self) {
+
+        let mut fg = colours::WHITE;
+        let mut bg = colours::BLACK;
+        self.terminal.set_foreground_colour(fg);
+        self.terminal.set_background_colour(bg);
+
         for cell in self.grid.cells.iter() {
+
+            if cell.fg != fg {
+                self.terminal.set_foreground_colour(cell.fg);
+                fg = cell.fg;
+            }
+
+            if cell.bg != bg {
+                self.terminal.set_background_colour(cell.bg);
+                bg = cell.bg;
+            }
+
             self.terminal.add_char_to_buffer(cell.ch);
         }
     }
@@ -175,6 +229,7 @@ impl Context {
 pub enum ElementHandle {
     AbsDiv(AbsDivHandle),
     Text(TextHandle),
+    Canvas(CanvasHandle),
 }
 
 impl ElementHandle {
@@ -187,6 +242,13 @@ impl ElementHandle {
     }
     pub fn text(&self) -> Option<&TextHandle> {
         if let &ElementHandle::Text(ref e) = self {
+            Some(e)
+        } else {
+            None
+        }
+    }
+    pub fn canvas(&self) -> Option<&CanvasHandle> {
+        if let &ElementHandle::Canvas(ref e) = self {
             Some(e)
         } else {
             None
@@ -378,6 +440,138 @@ impl From<Text> for ElementHandle {
 }
 impl From<Text> for TextHandle {
     fn from(e: Text) -> Self {
+        e.into_handle()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CanvasCell {
+    pub character: char,
+    pub foreground_colour: Colour,
+    pub background_colour: Colour,
+    pub bold: bool,
+    pub underline: bool,
+}
+
+impl Default for CanvasCell {
+    fn default() -> Self {
+        Self {
+            character: ' ',
+            foreground_colour: colours::WHITE,
+            background_colour: colours::BLACK,
+            bold: false,
+            underline: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CanvasBuffer {
+    size: Vector2<u16>,
+    cells: Vec<CanvasCell>,
+}
+
+impl CanvasBuffer {
+    fn new(size: Vector2<u16>) -> Self {
+        let capacity = (size.x * size.y) as usize;
+        let mut cells = Vec::with_capacity(capacity);
+        cells.resize(capacity, Default::default());
+        Self {
+            size,
+            cells,
+        }
+    }
+    pub fn size(&self) -> Vector2<u16> { self.size }
+    pub fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut CanvasCell> {
+        if coord.x < 0 || coord.y < 0 {
+            return None;
+        }
+        let coord: Vector2<u16> = coord.cast();
+        if coord.x >= self.size.x || coord.y >= self.size.y {
+            return None;
+        }
+        Some(&mut self.cells[(coord.y * self.size.x + coord.x) as usize])
+    }
+
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CanvasError {
+    DifferentBufferSizes {
+        current: Vector2<u16>,
+        new: Vector2<u16>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct Canvas {
+    size: Vector2<u16>,
+    cells: Vec<CanvasCell>,
+}
+
+impl Canvas {
+    pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
+        let size = size.into();
+        let capacity = (size.x * size.y) as usize;
+        let mut cells = Vec::with_capacity(capacity);
+        cells.resize(capacity, Default::default());
+        Self {
+            size,
+            cells,
+        }
+    }
+    pub fn set_size<D: Into<Vector2<u16>>>(&mut self, size: D) {
+        self.size = size.into();
+    }
+    pub fn make_buffer(&self) -> CanvasBuffer {
+        CanvasBuffer::new(self.size)
+    }
+    pub fn swap_buffer(&mut self, buffer: &mut CanvasBuffer)
+        -> ::std::result::Result<(), CanvasError>
+    {
+        if self.size != buffer.size {
+            return Err(CanvasError::DifferentBufferSizes {
+                current: self.size,
+                new: buffer.size,
+            });
+        }
+
+        mem::swap(&mut self.cells, &mut buffer.cells);
+
+        Ok(())
+    }
+    pub fn into_handle(self) -> CanvasHandle { CanvasHandle(Rc::new(RefCell::new(self))) }
+}
+
+#[derive(Debug, Clone)]
+pub struct CanvasHandle(Rc<RefCell<Canvas>>);
+
+impl CanvasHandle {
+    pub fn set_size<D: Into<Vector2<u16>>>(&self, size: D) {
+        self.0.borrow_mut().set_size(size);
+    }
+    pub fn make_buffer(&self) -> CanvasBuffer {
+        (*self.0).borrow().make_buffer()
+    }
+    pub fn swap_buffer(&self, buffer: &mut CanvasBuffer)
+        -> ::std::result::Result<(), CanvasError>
+    {
+        self.0.borrow_mut().swap_buffer(buffer)
+    }
+}
+
+impl From<CanvasHandle> for ElementHandle {
+    fn from(e: CanvasHandle) -> Self {
+        ElementHandle::Canvas(e)
+    }
+}
+impl From<Canvas> for ElementHandle {
+    fn from(e: Canvas) -> Self {
+        ElementHandle::Canvas(e.into())
+    }
+}
+impl From<Canvas> for CanvasHandle {
+    fn from(e: Canvas) -> Self {
         e.into_handle()
     }
 }

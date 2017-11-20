@@ -40,3 +40,7 @@ path = "examples/basic_context.rs"
 [[example]]
 name = "context_bench"
 path = "examples/context_bench.rs"
+
+[[example]]
+name = "canvas"
+path = "examples/canvas.rs"

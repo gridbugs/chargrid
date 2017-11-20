@@ -73,11 +73,11 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn set_foreground(&mut self, colour: Colour) {
+    pub fn set_foreground_colour(&mut self, colour: Colour) {
         self.output_buffer.push_str(self.ti_cache.fg_colour(colour));
     }
 
-    pub fn set_background(&mut self, colour: Colour) {
+    pub fn set_background_colour(&mut self, colour: Colour) {
         self.output_buffer.push_str(self.ti_cache.bg_colour(colour));
     }
 
