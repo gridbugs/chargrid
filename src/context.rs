@@ -12,7 +12,7 @@ use error::Result;
 #[derive(Debug, Clone)]
 struct Cell {
     seq: u64,
-    byte: u8,
+    ch: char,
     z_index: i16,
 }
 
@@ -20,17 +20,17 @@ impl Default for Cell {
     fn default() -> Self {
         Cell {
             seq: 0,
-            byte: b' ',
+            ch: ' ',
             z_index: 0,
         }
     }
 }
 
 impl Cell {
-    fn update(&mut self, seq: u64, byte: u8, z_index: i16) {
+    fn update(&mut self, seq: u64, ch: char, z_index: i16) {
         if seq > self.seq || (seq == self.seq && z_index >= self.z_index) {
             self.seq = seq;
-            self.byte = byte;
+            self.ch = ch;
             self.z_index = z_index;
         }
     }
@@ -88,21 +88,21 @@ impl Grid {
     fn render_text(&mut self, seq: u64, offset: Vector2<i16>, z_index: i16, text: &Text) {
         let bottom_right_abs = offset + text.size.cast();
         let mut coord = offset;
-        for byte in text.string.as_str().as_bytes().iter().cloned() {
-            match byte {
-                b'\n' => {
+        for ch in text.string.chars() {
+            match ch {
+                '\n' => {
                     coord.x = offset.x;
                     coord.y += 1;
                     if coord.y == bottom_right_abs.y {
                         break;
                     }
                 }
-                b'\r' => {
+                '\r' => {
                     coord.x = offset.x;
                 }
                 _ => {
                     if let Some(cell) = self.get_mut(coord) {
-                        cell.update(seq, byte, z_index);
+                        cell.update(seq, ch, z_index);
                     }
                     coord.x += 1;
                     if coord.x == bottom_right_abs.x {
@@ -162,7 +162,7 @@ impl Context {
 
     fn send_grid_contents(&mut self) {
         for cell in self.grid.cells.iter() {
-            self.terminal.add_byte_to_buffer(cell.byte);
+            self.terminal.add_char_to_buffer(cell.ch);
         }
     }
 

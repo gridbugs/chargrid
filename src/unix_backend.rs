@@ -78,8 +78,8 @@ impl UnixBackend {
         }
     }
 
-    pub fn send(&mut self, data: &[u8]) -> io::Result<()> {
-        self.tty_file.write_all(data)
+    pub fn send(&mut self, data: &str) -> io::Result<()> {
+        self.tty_file.write_all(data.as_bytes())
     }
 
     pub fn read_polling(&mut self, buf: &mut Vec<u8>) -> Result<()> {

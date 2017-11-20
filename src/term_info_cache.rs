@@ -6,19 +6,19 @@ use input::Input;
 use byte_prefix_tree::BytePrefixTree;
 
 pub struct TermInfoCache {
-    pub enter_ca: Vec<u8>,
-    pub exit_ca: Vec<u8>,
-    pub enter_xmit: Vec<u8>,
-    pub exit_xmit: Vec<u8>,
-    pub show_cursor: Vec<u8>,
-    pub hide_cursor: Vec<u8>,
-    pub clear: Vec<u8>,
-    pub reset: Vec<u8>,
-    pub set_cursor: Vec<u8>,
-    pub bold: Vec<u8>,
-    pub underline: Vec<u8>,
-    pub fg_colours: Vec<Vec<u8>>,
-    pub bg_colours: Vec<Vec<u8>>,
+    pub enter_ca: String,
+    pub exit_ca: String,
+    pub enter_xmit: String,
+    pub exit_xmit: String,
+    pub show_cursor: String,
+    pub hide_cursor: String,
+    pub clear: String,
+    pub reset: String,
+    pub set_cursor: String,
+    pub bold: String,
+    pub underline: String,
+    pub fg_colours: Vec<String>,
+    pub bg_colours: Vec<String>,
     pub vars: Variables,
     pub escape_sequence_prefix_tree: BytePrefixTree<Input>,
 }
@@ -29,8 +29,12 @@ impl TermInfoCache {
         let term_info = TermInfo::from_env()?;
 
         let cap = |name: &'static str| {
-            term_info.strings.get(name).cloned().ok_or_else(|| {
+            term_info.strings.get(name).ok_or_else(|| {
                 Error::MissingCap(name.to_string())
+            }).and_then(|bytes| {
+                ::std::str::from_utf8(bytes)
+                    .map(|s| s.to_string())
+                    .map_err(Error::Utf8Error)
             })
         };
 
@@ -44,8 +48,8 @@ impl TermInfoCache {
         for colour in AllColours {
             let code = colour.code() as i32;
             let params = &[Param::Number(code)];
-            fg_colours.push(parm::expand(&setfg, params, &mut vars)?);
-            bg_colours.push(parm::expand(&setbg, params, &mut vars)?);
+            fg_colours.push(::std::str::from_utf8(&parm::expand(setfg.as_bytes(), params, &mut vars)?)?.to_string());
+            bg_colours.push(::std::str::from_utf8(&parm::expand(setbg.as_bytes(), params, &mut vars)?)?.to_string());
         }
 
         let escseq = |name: &'static str, input: Input| {
@@ -103,11 +107,11 @@ impl TermInfoCache {
         })
     }
 
-    pub fn fg_colour(&self, colour: Colour) -> &[u8] {
-        &self.fg_colours[colour.code() as usize]
+    pub fn fg_colour(&self, colour: Colour) -> &str {
+        self.fg_colours[colour.code() as usize].as_str()
     }
 
-    pub fn bg_colour(&self, colour: Colour) -> &[u8] {
-        &self.bg_colours[colour.code() as usize]
+    pub fn bg_colour(&self, colour: Colour) -> &str {
+        self.bg_colours[colour.code() as usize].as_str()
     }
 }

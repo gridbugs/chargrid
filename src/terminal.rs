@@ -16,7 +16,7 @@ const INPUT_RING_INITIAL_CAPACITY: usize = 32;
 
 pub struct Terminal {
     backend: UnixBackend,
-    output_buffer: Vec<u8>,
+    output_buffer: String,
     input_buffer: Vec<u8>,
     ti_cache: TermInfoCache,
     input_ring: VecDeque<Input>,
@@ -25,7 +25,7 @@ pub struct Terminal {
 impl Terminal {
     pub fn new() -> Result<Self> {
         let backend = UnixBackend::new()?;
-        let output_buffer = Vec::with_capacity(OUTPUT_BUFFER_INITIAL_CAPACITY);
+        let output_buffer = String::with_capacity(OUTPUT_BUFFER_INITIAL_CAPACITY);
         let input_buffer = Vec::with_capacity(INPUT_BUFFER_INITIAL_CAPACITY);
         let ti_cache = TermInfoCache::new()?;
         let input_ring = VecDeque::with_capacity(INPUT_RING_INITIAL_CAPACITY);
@@ -44,19 +44,19 @@ impl Terminal {
     }
 
     fn init(&mut self) -> Result<()> {
-        self.output_buffer.extend_from_slice(&self.ti_cache.enter_ca);
-        self.output_buffer.extend_from_slice(&self.ti_cache.enter_xmit);
-        self.output_buffer.extend_from_slice(&self.ti_cache.hide_cursor);
-        self.output_buffer.extend_from_slice(&self.ti_cache.clear);
+        self.output_buffer.push_str(&self.ti_cache.enter_ca);
+        self.output_buffer.push_str(&self.ti_cache.enter_xmit);
+        self.output_buffer.push_str(&self.ti_cache.hide_cursor);
+        self.output_buffer.push_str(&self.ti_cache.clear);
 
         self.flush().map_err(Into::into)
     }
 
     fn teardown(&mut self) -> Result<()> {
-        self.output_buffer.extend_from_slice(&self.ti_cache.exit_ca);
-        self.output_buffer.extend_from_slice(&self.ti_cache.exit_xmit);
-        self.output_buffer.extend_from_slice(&self.ti_cache.show_cursor);
-        self.output_buffer.extend_from_slice(&self.ti_cache.reset);
+        self.output_buffer.push_str(&self.ti_cache.exit_ca);
+        self.output_buffer.push_str(&self.ti_cache.exit_xmit);
+        self.output_buffer.push_str(&self.ti_cache.show_cursor);
+        self.output_buffer.push_str(&self.ti_cache.reset);
 
         self.flush().map_err(Into::into)
     }
@@ -67,29 +67,30 @@ impl Terminal {
 
     pub fn set_cursor(&mut self, coord: Vector2<u16>) -> Result<()> {
         let params = &[Param::Number(coord.y as i32), Param::Number(coord.x as i32)];
-        let command = parm::expand(&self.ti_cache.set_cursor, params, &mut self.ti_cache.vars)?;
-        self.output_buffer.extend_from_slice(&command);
+        let command = parm::expand(self.ti_cache.set_cursor.as_bytes(), params, &mut self.ti_cache.vars)?;
+        let command_slice = ::std::str::from_utf8(&command)?;
+        self.output_buffer.push_str(command_slice);
         Ok(())
     }
 
     pub fn set_foreground(&mut self, colour: Colour) {
-        self.output_buffer.extend_from_slice(self.ti_cache.fg_colour(colour));
+        self.output_buffer.push_str(self.ti_cache.fg_colour(colour));
     }
 
     pub fn set_background(&mut self, colour: Colour) {
-        self.output_buffer.extend_from_slice(self.ti_cache.bg_colour(colour));
+        self.output_buffer.push_str(self.ti_cache.bg_colour(colour));
     }
 
     pub fn set_bold(&mut self) {
-        self.output_buffer.extend_from_slice(&self.ti_cache.bold);
+        self.output_buffer.push_str(&self.ti_cache.bold);
     }
 
     pub fn set_underline(&mut self) {
-        self.output_buffer.extend_from_slice(&self.ti_cache.underline);
+        self.output_buffer.push_str(&self.ti_cache.underline);
     }
 
     pub fn reset(&mut self) {
-        self.output_buffer.extend_from_slice(&self.ti_cache.reset);
+        self.output_buffer.push_str(&self.ti_cache.reset);
     }
 
     pub fn poll_input(&mut self) -> Result<Option<Input>> {
@@ -174,12 +175,12 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn add_byte_to_buffer(&mut self, byte: u8) {
-        self.output_buffer.push(byte);
+    pub fn add_char_to_buffer(&mut self, ch: char) {
+        self.output_buffer.push(ch);
     }
 
-    pub fn add_bytes_to_buffer(&mut self, bytes: &[u8]) {
-        self.output_buffer.extend_from_slice(bytes);
+    pub fn add_str_to_buffer(&mut self, s: &str) {
+        self.output_buffer.push_str(s);
     }
 
     pub fn flush_buffer(&mut self) -> Result<()> {
@@ -191,7 +192,7 @@ impl Terminal {
 
 impl Write for Terminal {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.output_buffer.extend_from_slice(buf);
+        self.output_buffer.push_str(::std::str::from_utf8(buf).unwrap());
         Ok(buf.len())
     }
 
