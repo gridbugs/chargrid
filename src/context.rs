@@ -4,6 +4,8 @@ use std::rc::Rc;
 use std::collections::BTreeMap;
 use std::ops::Deref;
 use std::mem;
+use std::time::Duration;
+use std::slice;
 use cgmath::Vector2;
 use terminal_colour::{Colour, colours};
 use terminal::Terminal;
@@ -81,6 +83,12 @@ impl Grid {
         self.size = size;
     }
 
+    fn clear(&mut self) {
+        for cell in self.cells.iter_mut() {
+            *cell = Default::default();
+        }
+    }
+
     fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut Cell> {
         if coord.x < 0 || coord.y < 0 {
             return None;
@@ -139,17 +147,14 @@ impl Grid {
     }
 
     fn render_canvas(&mut self, seq: u64, offset: Vector2<i16>, z_index: i16, canvas: &Canvas) {
-        for j in 0..canvas.size.y {
-            for i in 0..canvas.size.x {
-                let canvas_cell = canvas.cells[(j * canvas.size.x + i) as usize];
-                let coord = offset + Vector2::new(i, j).cast();
-                if let Some(terminal_cell) = self.get_mut(coord) {
-                    terminal_cell.update_with_style(seq, canvas_cell.character, z_index,
-                                                    canvas_cell.foreground_colour,
-                                                    canvas_cell.background_colour,
-                                                    canvas_cell.bold,
-                                                    canvas_cell.underline);
-                }
+        for (coord, canvas_cell) in izip!(CoordIter::new(canvas.size), canvas.cells.iter()) {
+            let coord = offset + coord;
+            if let Some(terminal_cell) = self.get_mut(coord) {
+                terminal_cell.update_with_style(seq, canvas_cell.character, z_index,
+                                                canvas_cell.foreground_colour,
+                                                canvas_cell.background_colour,
+                                                canvas_cell.bold,
+                                                canvas_cell.underline);
             }
         }
     }
@@ -190,6 +195,7 @@ impl Context {
         self.resize_if_necessary()?;
         self.seq += 1;
 
+        self.grid.clear();
         self.grid.render(self.seq, Vector2::new(0, 0), 0, &root);
         self.send_grid_contents();
         self.terminal.flush_buffer()?;
@@ -222,6 +228,9 @@ impl Context {
 
     pub fn wait_input(&mut self) -> Result<Input> {
         self.terminal.wait_input()
+    }
+    pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
+        self.terminal.wait_input_timeout(timeout)
     }
 }
 
@@ -344,13 +353,13 @@ impl AbsDivHandle {
     {
         self.0.borrow_mut().insert(key, element, coord, z_index)
     }
-    pub fn remove<K>(&mut self, key: &K) -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
+    pub fn remove<K>(&self, key: &K) -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
         where String: Borrow<K>,
-              K: Ord,
+              K: Ord + ?Sized,
     {
         self.0.borrow_mut().remove(key)
     }
-    pub fn update_coord<K, C>(&mut self, key: &K, coord: C) -> Option<Vector2<i16>>
+    pub fn update_coord<K, C>(&self, key: &K, coord: C) -> Option<Vector2<i16>>
         where String: Borrow<K>,
               K: Ord + ?Sized,
               C: Into<Vector2<i16>>,
@@ -492,7 +501,27 @@ impl CanvasBuffer {
         }
         Some(&mut self.cells[(coord.y * self.size.x + coord.x) as usize])
     }
-
+    pub fn coords(&self) -> CoordIter {
+        CoordIter::new(self.size)
+    }
+    pub fn iter(&self) -> slice::Iter<CanvasCell> {
+        self.cells.iter()
+    }
+    pub fn iter_mut(&mut self) -> slice::IterMut<CanvasCell> {
+        self.cells.iter_mut()
+    }
+    pub fn enumerate(&self) -> CoordEnumerate<CanvasCell> {
+        CoordEnumerate {
+            coords: self.coords(),
+            iter: self.iter(),
+        }
+    }
+    pub fn enumerate_mut(&mut self) -> CoordEnumerateMut<CanvasCell> {
+        CoordEnumerateMut {
+            coords: self.coords(),
+            iter: self.iter_mut(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -573,5 +602,66 @@ impl From<Canvas> for ElementHandle {
 impl From<Canvas> for CanvasHandle {
     fn from(e: Canvas) -> Self {
         e.into_handle()
+    }
+}
+
+pub struct CoordIter {
+    size: Vector2<i16>,
+    coord: Vector2<i16>,
+}
+
+impl CoordIter {
+    fn new(size: Vector2<u16>) -> Self {
+        Self {
+            size: size.cast(),
+            coord: Vector2::new(0, 0),
+        }
+    }
+}
+
+impl Iterator for CoordIter {
+    type Item = Vector2<i16>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.coord.y == self.size.y {
+            return None;
+        }
+
+        let coord = self.coord;
+
+        self.coord.x += 1;
+        if self.coord.x == self.size.x {
+            self.coord.x = 0;
+            self.coord.y += 1;
+        }
+
+        Some(coord)
+    }
+}
+
+pub struct CoordEnumerate<'a, T: 'a> {
+    coords: CoordIter,
+    iter: slice::Iter<'a, T>,
+}
+
+impl<'a, T> Iterator for CoordEnumerate<'a, T> {
+    type Item = (Vector2<i16>, &'a T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.coords.next().and_then(|c| {
+            self.iter.next().map(|t| (c, t))
+        })
+    }
+}
+
+pub struct CoordEnumerateMut<'a, T: 'a> {
+    coords: CoordIter,
+    iter: slice::IterMut<'a, T>,
+}
+
+impl<'a, T> Iterator for CoordEnumerateMut<'a, T> {
+    type Item = (Vector2<i16>, &'a mut T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.coords.next().and_then(|c| {
+            self.iter.next().map(|t| (c, t))
+        })
     }
 }

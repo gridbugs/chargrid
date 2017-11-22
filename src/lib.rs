@@ -4,6 +4,7 @@ extern crate libc;
 extern crate term;
 extern crate cgmath;
 extern crate terminal_colour;
+#[macro_use] extern crate itertools;
 
 mod unix_backend;
 mod terminal;
