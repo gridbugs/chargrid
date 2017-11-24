@@ -3,6 +3,7 @@ extern crate cgmath;
 extern crate terminal_colour;
 extern crate rand;
 
+use std::mem;
 use std::thread;
 use std::time::{Duration, Instant};
 use rand::Rng;
@@ -11,10 +12,12 @@ use prototty::*;
 use terminal_colour::{Colour, colours};
 
 const BLANK_COLOUR: Colour = colours::DARK_GREY;
+const FOREGROUND_COLOUR: Colour = colours::DARK_GREY;
+const BLOCK_CHAR: char = '▯';
 
 const PIECE_SIZE: usize = 4;
 
-const WIDTH: u16 = 9;
+const WIDTH: u16 = 10;
 const HEIGHT: u16 = 12;
 
 const STEP_MILLIS: u64 = 500;
@@ -59,7 +62,7 @@ impl Piece {
         let offset = match self.typ {
             // don't rotate squares
             Square => return self.clone(),
-            _ => self.coords[1],
+            _ => self.coords[2],
         };
 
         Self {
@@ -122,6 +125,10 @@ const PIECE_TYPES: &[PieceType] = &[
 
 fn random_piece_type<R: Rng>(rng: &mut R) -> PieceType {
     PIECE_TYPES[rng.gen::<usize>() % PIECE_TYPES.len()]
+}
+
+fn random_piece<R: Rng>(rng: &mut R) -> Piece {
+    random_piece_type(rng).piece()
 }
 
 #[derive(Clone, Copy, Default)]
@@ -188,8 +195,10 @@ impl Board {
 
     fn connects(&self, piece: &Piece) -> bool {
         piece.coords.iter().any(|c| {
-            if c.y == 0 { return true; }
-            self.get(c - Vector2::new(0, 1))
+            if c.y == self.size.y - 1 {
+                return true;
+            }
+            self.get(c + Vector2::new(0, 1))
                 .map(|c| c.colour.is_some())
                 .unwrap_or(false)
         })
@@ -197,11 +206,11 @@ impl Board {
 
     fn collides(&self, piece: &Piece) -> bool {
         piece.coords.iter().any(|c| {
+            c.x < 0 || c.x >= self.size.x ||
+            c.y >= self.size.y ||
             self.get(*c)
                 .map(|c| c.colour.is_some())
                 .unwrap_or(false)
-                ||
-                (c.x < 0 || c.x >= self.size.x)
         })
     }
 
@@ -220,12 +229,16 @@ impl Board {
                 self.rows_swap.push(row);
             }
         }
-        for row in self.rows_swap.drain(..) {
-            self.rows.push(row);
-        }
         for row in self.empty_swap.drain(..) {
             self.rows.push(row);
         }
+        for row in self.rows_swap.drain(..) {
+            self.rows.push(row);
+        }
+    }
+
+    fn move_to_top(&self, piece: Piece) -> Piece {
+        piece.translate(Vector2::new(self.size.x as i16 / 2 - 1, 0))
     }
 }
 
@@ -236,103 +249,87 @@ enum StepResolution {
 
 struct Game {
     board: Board,
-    piece: Option<Piece>,
+    piece: Piece,
+    next_piece: Piece,
 }
 
 impl Game {
-    fn new(width: u16, height: u16) -> Self {
+    fn new<R: Rng>(width: u16, height: u16, rng: &mut R) -> Self {
+        let board = Board::new(width, height);
         Self {
-            board: Board::new(width, height),
-            piece: None,
+            piece: board.move_to_top(random_piece(rng)),
+            next_piece: random_piece(rng),
+            board,
         }
     }
 
     fn step<R: Rng>(&mut self, rng: &mut R) -> StepResolution {
-        let (new_piece, resolution) = if let Some(piece) = self.piece.take() {
 
-            if self.board.connects(&piece) {
-
-                self.board.add_piece(piece);
-                self.board.strip_full();
-
-                (None, StepResolution::Continue)
-            } else {
-                let new_piece = piece.translate(Vector2::new(0, -1));
-                (Some(new_piece), StepResolution::Continue)
-            }
-        } else {
-            let mut piece = random_piece_type(rng).piece().translate((self.board.size.x / 2 - 1, 0).into());
-            for coord in piece.coords.iter_mut() {
-                coord.y = self.board.size.y - 1 - coord.y;
-            }
+        if self.board.connects(&self.piece) {
+            self.store_piece(rng);
+            self.board.strip_full();
 
             let mut game_over = false;
-            while self.board.collides(&piece) {
+            while self.board.collides(&self.piece) {
                 game_over = true;
-                piece = piece.translate(Vector2::new(0, 1));
+                self.piece = self.piece.translate(Vector2::new(0, -1));
             }
 
             if game_over {
-                (Some(piece), StepResolution::GameOver)
-            } else {
-                (Some(piece), StepResolution::Continue)
+                return StepResolution::GameOver;
             }
-        };
 
-        self.piece = new_piece;
-        resolution
+        } else {
+            self.piece = self.piece.translate(Vector2::new(0, 1));
+        }
+
+        StepResolution::Continue
     }
 
     fn try_move(&mut self, v: Vector2<i16>) {
-        if let Some(piece) = self.piece.as_mut() {
-            let new_piece = piece.translate(v);
-            if !self.board.collides(&new_piece) {
-                *piece = new_piece;
-            }
+        let new_piece = self.piece.translate(v);
+        if !self.board.collides(&new_piece) {
+            self.piece = new_piece;
         }
     }
 
     fn try_rotate(&mut self) {
-        if let Some(piece) = self.piece.as_mut() {
-            let new_piece = piece.rotate();
-            if !self.board.collides(&new_piece) {
-                *piece = new_piece;
-            }
+        let new_piece = self.piece.rotate();
+        if !self.board.collides(&new_piece) {
+            self.piece = new_piece;
         }
     }
 
-    fn drop(&mut self) {
-        if let Some(mut piece) = self.piece.take() {
-            while !self.board.connects(&piece) {
-                piece = piece.translate(Vector2::new(0, -1));
-            }
-            self.board.add_piece(piece);
-            self.board.strip_full();
-        }
+    fn store_piece<R: Rng>(&mut self, rng: &mut R) {
+        let next_piece = mem::replace(&mut self.next_piece, random_piece(rng));
+        let piece = mem::replace(&mut self.piece, self.board.move_to_top(next_piece));
+        self.board.add_piece(piece);
     }
 
     fn render(&self, buffer: &mut CanvasBuffer) {
         for (mut coord, canvas_cell) in buffer.enumerate_mut() {
-            coord.y = self.board.size.y - 1 - coord.y;
             let board_cell = self.board.get(coord).unwrap();
             if let Some(colour) = board_cell.colour {
                 canvas_cell.background_colour = colour;
+                canvas_cell.character = BLOCK_CHAR;
+                canvas_cell.foreground_colour = FOREGROUND_COLOUR;
             } else {
+                canvas_cell.character = ' ';
                 canvas_cell.background_colour = BLANK_COLOUR;
             }
         }
-        if let Some(piece) = self.piece.as_ref() {
-            for mut coord in piece.coords.iter().cloned() {
-                coord.y = self.board.size.y - 1 - coord.y;
-                if let Some(buffer_cell) = buffer.get_mut(coord) {
-                    buffer_cell.background_colour = piece.colour;
-                }
+        for mut coord in self.piece.coords.iter().cloned() {
+            if let Some(buffer_cell) = buffer.get_mut(coord) {
+                buffer_cell.background_colour = self.piece.colour;
+                buffer_cell.foreground_colour = FOREGROUND_COLOUR;
+                buffer_cell.character = BLOCK_CHAR;
             }
         }
     }
 }
 
 struct Frontend {
+    context: Context,
     end_text: TextHandle,
     canvas: CanvasHandle,
     buffer: CanvasBuffer,
@@ -342,6 +339,7 @@ struct Frontend {
 
 impl Frontend {
     fn new(width: u16, height: u16) -> Self {
+        let context = Context::new().unwrap();
         let container = AbsDiv::new((width + 2, height + 2)).into_handle();
         let root = ElementHandle::from(container.clone());
 
@@ -351,23 +349,31 @@ impl Frontend {
 
         let end_text = Text::new("YOU DIED", (8, 1)).into_handle();
 
-        Self { end_text, canvas, buffer, root, container }
+        Self {
+            context,
+            end_text,
+            canvas,
+            buffer,
+            root,
+            container
+        }
     }
-    fn swap(&mut self) {
-        self.canvas.swap_buffer(&mut self.buffer).unwrap();
-    }
-    fn display_end_text(&self) {
+    fn display_end_text(&mut self) {
         self.container.remove("canvas");
         self.container.insert("end_text", self.end_text.clone(), (1, 1), None);
+        self.context.render(&self.root).unwrap();
+    }
+    fn render(&mut self, game: &Game) {
+        game.render(&mut self.buffer);
+        self.canvas.swap_buffer(&mut self.buffer).unwrap();
+        self.context.render(&self.root).unwrap();
     }
 }
 
 fn main() {
     let mut frontend = Frontend::new(WIDTH, HEIGHT);
-    let mut context = Context::new().unwrap();
     let mut rng = rand::thread_rng();
-    let mut game = Game::new(WIDTH, HEIGHT);
-    game.step(&mut rng);
+    let mut game = Game::new(WIDTH, HEIGHT, &mut rng);
 
     let step_duration = Duration::from_millis(STEP_MILLIS);
 
@@ -375,22 +381,17 @@ fn main() {
     let mut remaining_time = step_duration;
 
     loop {
-        game.render(&mut frontend.buffer);
-        frontend.swap();
-        context.render(&frontend.root).unwrap();
+        frontend.render(&game);
 
-        let input = match context.wait_input_timeout(remaining_time).unwrap() {
+        let input = match frontend.context.wait_input_timeout(remaining_time).unwrap() {
             None => {
                 match game.step(&mut rng) {
                     StepResolution::Continue => (),
                     StepResolution::GameOver => {
-                        game.render(&mut frontend.buffer);
-                        frontend.swap();
-                        context.render(&frontend.root).unwrap();
+                        frontend.render(&game);
                         thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS));
 
                         frontend.display_end_text();
-                        context.render(&frontend.root).unwrap();
                         thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS));
 
                         break;
@@ -416,7 +417,7 @@ fn main() {
             Input::Left => game.try_move(Vector2::new(-1, 0)),
             Input::Right => game.try_move(Vector2::new(1, 0)),
             Input::Up => game.try_rotate(),
-            Input::Down => game.drop(),
+            Input::Down => game.try_move(Vector2::new(0, 1)),
             _ => (),
         }
     }
