@@ -307,7 +307,7 @@ impl Game {
     }
 
     fn render(&self, buffer: &mut CanvasBuffer) {
-        for (mut coord, canvas_cell) in buffer.enumerate_mut() {
+        for (coord, canvas_cell) in buffer.enumerate_mut() {
             let board_cell = self.board.get(coord).unwrap();
             if let Some(colour) = board_cell.colour {
                 canvas_cell.background_colour = colour;
@@ -318,7 +318,7 @@ impl Game {
                 canvas_cell.background_colour = BLANK_COLOUR;
             }
         }
-        for mut coord in self.piece.coords.iter().cloned() {
+        for coord in self.piece.coords.iter().cloned() {
             if let Some(buffer_cell) = buffer.get_mut(coord) {
                 buffer_cell.background_colour = self.piece.colour;
                 buffer_cell.foreground_colour = FOREGROUND_COLOUR;
