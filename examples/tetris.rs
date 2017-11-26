@@ -13,6 +13,8 @@ use ansi_colour::{Colour, colours};
 
 const BLANK_COLOUR: Colour = colours::DARK_GREY;
 const FOREGROUND_COLOUR: Colour = colours::DARK_GREY;
+const BORDER_COLOUR: Colour = colours::WHITE;
+const BORDER_BACKGROUND: Colour = colours::BLACK;
 const BLOCK_CHAR: char = '▯';
 
 const PIECE_SIZE: usize = 4;
@@ -326,6 +328,21 @@ impl Game {
             }
         }
     }
+
+    fn render_next(&self, buffer: &mut CanvasBuffer) {
+        for cell in buffer.iter_mut() {
+            cell.character = ' ';
+            cell.foreground_colour = BLANK_COLOUR;
+            cell.background_colour = BLANK_COLOUR;
+        }
+        for coord in self.next_piece.coords.iter().cloned() {
+            if let Some(cell) = buffer.get_mut(coord + Vector2::new(1, 0)) {
+                cell.character = BLOCK_CHAR;
+                cell.foreground_colour = FOREGROUND_COLOUR;
+                cell.background_colour = self.next_piece.colour;
+            }
+        }
+    }
 }
 
 struct Frontend {
@@ -333,6 +350,8 @@ struct Frontend {
     end_text: Text,
     canvas: Canvas,
     buffer: CanvasBuffer,
+    next_piece_canvas: Canvas,
+    next_piece_buffer: CanvasBuffer,
     root: ElementHandle,
     container: AbsDiv,
 }
@@ -345,8 +364,19 @@ impl Frontend {
 
         let canvas = Canvas::new((width, height));
         let border = BorderContainer::new(canvas.clone());
+        border.set_foreground(BORDER_COLOUR);
+        border.set_background(BORDER_BACKGROUND);
         container.insert("canvas", border.clone(), (1, 1), None);
         let buffer = canvas.make_buffer();
+
+        let next_piece_canvas = Canvas::new((6, 4));
+        let next_piece_canvas_border = BorderContainer::new(next_piece_canvas.clone());
+        container.insert("next", next_piece_canvas_border.clone(),
+                         Vector2::new(border.size().x + 2, 1).cast(), None);
+        next_piece_canvas_border.set_foreground(BORDER_COLOUR);
+        next_piece_canvas_border.set_background(BORDER_BACKGROUND);
+        next_piece_canvas_border.set_title("Next");
+        let next_piece_buffer = next_piece_canvas.make_buffer();
 
         let end_text = Text::new("YOU DIED", (8, 1));
 
@@ -355,6 +385,8 @@ impl Frontend {
             end_text,
             canvas,
             buffer,
+            next_piece_canvas,
+            next_piece_buffer,
             root,
             container
         }
@@ -367,6 +399,8 @@ impl Frontend {
     fn render(&mut self, game: &Game) {
         game.render(&mut self.buffer);
         self.canvas.swap_buffer(&mut self.buffer).unwrap();
+        game.render_next(&mut self.next_piece_buffer);
+        self.next_piece_canvas.swap_buffer(&mut self.next_piece_buffer).unwrap();
         self.context.render(&self.root).unwrap();
     }
 }

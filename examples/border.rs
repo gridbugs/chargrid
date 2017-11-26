@@ -5,7 +5,6 @@ use prototty::*;
 
 fn main() {
 
-
     let text = Text::new("abcdefghijklnmopqrstuvwxyz", (7, 3));
     let border = BorderContainer::new(text.clone());
     let root_element = ElementHandle::from(border.clone());

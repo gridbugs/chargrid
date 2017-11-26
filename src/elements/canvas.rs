@@ -140,7 +140,7 @@ impl Canvas {
     pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
         Canvas(element_cell(CanvasInner::new(size)))
     }
-    pub(crate) fn size(&self) -> Vector2<u16> {
+    pub fn size(&self) -> Vector2<u16> {
         (*self.0).borrow().size
     }
     pub fn set_size<D: Into<Vector2<u16>>>(&self, size: D) {

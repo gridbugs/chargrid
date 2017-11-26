@@ -72,6 +72,15 @@ impl Cell {
             self.depth = depth;
         }
     }
+    pub fn update_with_colour(&mut self, seq: u64, ch: char, depth: i16, fg: Colour, bg: Colour) {
+        if seq > self.seq || (seq == self.seq && depth >= self.depth) {
+            self.seq = seq;
+            self.ch = ch;
+            self.depth = depth;
+            self.fg = fg;
+            self.bg = bg;
+        }
+    }
     pub fn update_with_style(&mut self, seq: u64, ch: char, depth: i16, fg: Colour, bg: Colour, bold: bool, underline: bool) {
         if seq > self.seq || (seq == self.seq && depth >= self.depth) {
             self.seq = seq;
