@@ -12,6 +12,44 @@ use terminal::Terminal;
 use input::Input;
 use error::Result;
 
+const DEFAULT_CH: char = ' ';
+const DEFAULT_FG: Colour = colours::WHITE;
+const DEFAULT_BG: Colour = colours::BLACK;
+
+#[derive(Debug, Clone)]
+struct OutputCell {
+    dirty: bool,
+    ch: char,
+    fg: Colour,
+    bg: Colour,
+}
+
+impl Default for OutputCell {
+    fn default() -> Self {
+        Self {
+            dirty: true,
+            ch: DEFAULT_CH,
+            fg: DEFAULT_FG,
+            bg: DEFAULT_BG,
+        }
+    }
+}
+
+impl OutputCell {
+    fn matches(&self, cell: &Cell) -> bool {
+        !self.dirty &&
+        self.ch == cell.ch &&
+            self.fg == cell.fg &&
+            self.bg == cell.bg
+    }
+    fn copy_fields(&mut self, cell: &Cell) {
+        self.dirty = false;
+        self.ch = cell.ch;
+        self.fg = cell.fg;
+        self.bg = cell.bg;
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Cell {
     seq: u64,
@@ -27,10 +65,10 @@ impl Default for Cell {
     fn default() -> Self {
         Cell {
             seq: 0,
-            ch: ' ',
+            ch: DEFAULT_CH,
             z_index: 0,
-            fg: colours::WHITE,
-            bg: colours::BLACK,
+            fg: DEFAULT_FG,
+            bg: DEFAULT_BG,
             bold: false,
             underline: false,
         }
@@ -59,12 +97,12 @@ impl Cell {
 }
 
 #[derive(Debug, Clone)]
-struct Grid {
+struct Grid<C> {
     size: Vector2<u16>,
-    cells: Vec<Cell>,
+    cells: Vec<C>,
 }
 
-impl Grid {
+impl<C: Default + Clone> Grid<C> {
     fn new(size: Vector2<u16>) -> Self {
 
         let num_cells = (size.x * size.y) as usize;
@@ -89,7 +127,7 @@ impl Grid {
         }
     }
 
-    fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut Cell> {
+    fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut C> {
         if coord.x < 0 || coord.y < 0 {
             return None;
         }
@@ -100,11 +138,26 @@ impl Grid {
         Some(&mut self.cells[(coord.y * self.size.x + coord.x) as usize])
     }
 
+    fn enumerate(&self) -> CoordEnumerate<C> {
+        CoordEnumerate {
+            coords: CoordIter::new(self.size),
+            iter: self.cells.iter(),
+        }
+    }
+}
+
+impl Grid<Cell> {
     fn render(&mut self, seq: u64, offset: Vector2<i16>, z_index: i16, element: &ElementHandle) {
         match element {
-            &ElementHandle::AbsDiv(ref div) => self.render_abs_div(seq, offset, z_index, (*div.0).borrow().deref()),
-            &ElementHandle::Text(ref text) => self.render_text(seq, offset, z_index, (*text.0).borrow().deref()),
-            &ElementHandle::Canvas(ref text) => self.render_canvas(seq, offset, z_index, (*text.0).borrow().deref()),
+            &ElementHandle::AbsDiv(ref div) => {
+                self.render_abs_div(seq, offset, z_index, (*div.0).borrow().deref());
+            }
+            &ElementHandle::Text(ref text) => {
+                self.render_text(seq, offset, z_index, (*text.0).borrow().deref());
+            }
+            &ElementHandle::Canvas(ref text) => {
+                self.render_canvas(seq, offset, z_index, (*text.0).borrow().deref());
+            }
         }
     }
 
@@ -163,7 +216,8 @@ impl Grid {
 pub struct Context {
     terminal: Terminal,
     seq: u64,
-    grid: Grid,
+    grid: Grid<Cell>,
+    output_grid: Grid<OutputCell>,
 }
 
 impl Context {
@@ -173,10 +227,13 @@ impl Context {
 
     pub fn from_terminal(terminal: Terminal) -> Result<Self> {
 
-        let grid = Grid::new(terminal.size()?);
+        let size = terminal.size()?;
+        let grid = Grid::new(size);
+        let output_grid = Grid::new(size);
 
         Ok(Self {
             terminal,
+            output_grid,
             grid,
             seq: 0,
         })
@@ -186,6 +243,7 @@ impl Context {
         let size = self.terminal.size()?;
         if size != self.grid.size {
             self.grid.resize(size);
+            self.output_grid.resize(size);
         }
 
         Ok(())
@@ -197,20 +255,34 @@ impl Context {
 
         self.grid.clear();
         self.grid.render(self.seq, Vector2::new(0, 0), 0, &root);
-        self.send_grid_contents();
+        self.send_grid_contents()?;
         self.terminal.flush_buffer()?;
 
         Ok(())
     }
 
-    fn send_grid_contents(&mut self) {
+    fn send_grid_contents(&mut self) -> Result<()> {
 
-        let mut fg = colours::WHITE;
-        let mut bg = colours::BLACK;
+        let mut fg = DEFAULT_FG;
+        let mut bg = DEFAULT_BG;
         self.terminal.set_foreground_colour(fg);
         self.terminal.set_background_colour(bg);
 
-        for cell in self.grid.cells.iter() {
+        let mut must_move_cursor = false;
+
+        for ((coord, cell), output_cell) in
+            izip!(self.grid.enumerate(), self.output_grid.cells.iter_mut())
+        {
+
+            if output_cell.matches(cell) {
+                must_move_cursor = true;
+                continue;
+            }
+
+            if must_move_cursor {
+                self.terminal.set_cursor(coord.cast())?;
+                must_move_cursor = false;
+            }
 
             if cell.fg != fg {
                 self.terminal.set_foreground_colour(cell.fg);
@@ -222,8 +294,11 @@ impl Context {
                 bg = cell.bg;
             }
 
+            output_cell.copy_fields(cell);
             self.terminal.add_char_to_buffer(cell.ch);
         }
+
+        Ok(())
     }
 
     pub fn wait_input(&mut self) -> Result<Input> {
@@ -465,9 +540,9 @@ pub struct CanvasCell {
 impl Default for CanvasCell {
     fn default() -> Self {
         Self {
-            character: ' ',
-            foreground_colour: colours::WHITE,
-            background_colour: colours::BLACK,
+            character: DEFAULT_CH,
+            foreground_colour: DEFAULT_FG,
+            background_colour: DEFAULT_BG,
             bold: false,
             underline: false,
         }
