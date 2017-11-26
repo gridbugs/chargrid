@@ -330,24 +330,24 @@ impl Game {
 
 struct Frontend {
     context: Context,
-    end_text: TextHandle,
-    canvas: CanvasHandle,
+    end_text: Text,
+    canvas: Canvas,
     buffer: CanvasBuffer,
     root: ElementHandle,
-    container: AbsDivHandle,
+    container: AbsDiv,
 }
 
 impl Frontend {
     fn new(width: u16, height: u16) -> Self {
         let context = Context::new().unwrap();
-        let container = AbsDiv::new((width + 2, height + 2)).into_handle();
+        let container = AbsDiv::new((width + 2, height + 2));
         let root = ElementHandle::from(container.clone());
 
-        let canvas = Canvas::new((width, height)).into_handle();
+        let canvas = Canvas::new((width, height));
         container.insert("canvas", canvas.clone(), (1, 1), None);
         let buffer = canvas.make_buffer();
 
-        let end_text = Text::new("YOU DIED", (8, 1)).into_handle();
+        let end_text = Text::new("YOU DIED", (8, 1));
 
         Self {
             context,

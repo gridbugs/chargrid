@@ -112,27 +112,27 @@ pub(crate) fn element_cell<T>(t: T) -> ElementCell<T> {
 
 #[derive(Debug, Clone)]
 pub enum ElementHandle {
-    AbsDiv(AbsDivHandle),
-    Text(TextHandle),
-    Canvas(CanvasHandle),
+    AbsDiv(AbsDiv),
+    Text(Text),
+    Canvas(Canvas),
 }
 
 impl ElementHandle {
-    pub fn abs_div(&self) -> Option<&AbsDivHandle> {
+    pub fn abs_div(&self) -> Option<&AbsDiv> {
         if let &ElementHandle::AbsDiv(ref e) = self {
             Some(e)
         } else {
             None
         }
     }
-    pub fn text(&self) -> Option<&TextHandle> {
+    pub fn text(&self) -> Option<&Text> {
         if let &ElementHandle::Text(ref e) = self {
             Some(e)
         } else {
             None
         }
     }
-    pub fn canvas(&self) -> Option<&CanvasHandle> {
+    pub fn canvas(&self) -> Option<&Canvas> {
         if let &ElementHandle::Canvas(ref e) = self {
             Some(e)
         } else {
@@ -145,5 +145,21 @@ impl ElementHandle {
             &ElementHandle::Text(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::Canvas(ref e) => e.render(grid, seq, offset, depth),
         }
+    }
+}
+
+impl From<AbsDiv> for ElementHandle {
+    fn from(e: AbsDiv) -> Self {
+        ElementHandle::AbsDiv(e)
+    }
+}
+impl From<Text> for ElementHandle {
+    fn from(e: Text) -> Self {
+        ElementHandle::Text(e)
+    }
+}
+impl From<Canvas> for ElementHandle {
+    fn from(e: Canvas) -> Self {
+        ElementHandle::Canvas(e)
     }
 }

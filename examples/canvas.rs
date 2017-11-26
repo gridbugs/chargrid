@@ -13,15 +13,15 @@ const HEIGHT: u16 = 10;
 
 fn main() {
 
-    let root_div = AbsDiv::new((20, 10)).into_handle();
+    let root_div = AbsDiv::new((20, 10));
     let root = ElementHandle::from(root_div.clone());
 
-    let container = AbsDiv::new((18, 8)).into_handle();
+    let container = AbsDiv::new((18, 8));
     root_div.insert("container", container.clone(), (1, 1), None);
 
     container.insert("title", Text::new("Title", (6, 1)), (0, 0), None);
 
-    let canvas = Canvas::new((WIDTH, HEIGHT)).into_handle();
+    let canvas = Canvas::new((WIDTH, HEIGHT));
     container.insert("canvas", canvas.clone(), (0, 1), None);
 
     let mut buffer = canvas.make_buffer();

@@ -6,7 +6,7 @@ use context::*;
 use grid::*;
 
 #[derive(Debug, Clone)]
-pub struct AbsDiv {
+struct AbsDivInner {
     size: Vector2<u16>,
     children: BTreeMap<String, ElementWithAbsCoord>,
 }
@@ -21,17 +21,17 @@ impl From<ElementWithAbsCoord> for (ElementHandle, Vector2<i16>, Option<i16>) {
         (e.element, e.coord, e.depth)
     }
 }
-impl AbsDiv {
-    pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
+impl AbsDivInner {
+    fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
         Self {
             size: size.into(),
             children: BTreeMap::new(),
         }
     }
-    pub fn set_size<D: Into<Vector2<u16>>>(&mut self, size: D) {
+    fn set_size<D: Into<Vector2<u16>>>(&mut self, size: D) {
         self.size = size.into();
     }
-    pub fn insert<K, E, C>(&mut self, key: K, element: E, coord: C, depth: Option<i16>)
+    fn insert<K, E, C>(&mut self, key: K, element: E, coord: C, depth: Option<i16>)
         -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
         where K: Into<String>,
               E: Into<ElementHandle>,
@@ -43,13 +43,13 @@ impl AbsDiv {
             depth,
         }).map(Into::into)
     }
-    pub fn remove<K>(&mut self, key: &K) -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
+    fn remove<K>(&mut self, key: &K) -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
         where String: Borrow<K>,
               K: Ord + ?Sized,
     {
         self.children.remove(key).map(Into::into)
     }
-    pub fn update_coord<K, C>(&mut self, key: &K, coord: C) -> Option<Vector2<i16>>
+    fn update_coord<K, C>(&mut self, key: &K, coord: C) -> Option<Vector2<i16>>
         where String: Borrow<K>,
               K: Ord + ?Sized,
               C: Into<Vector2<i16>>,
@@ -60,7 +60,7 @@ impl AbsDiv {
             None
         }
     }
-    pub fn update_depth<K>(&mut self, key: &K, depth: Option<i16>) -> Option<Option<i16>>
+    fn update_depth<K>(&mut self, key: &K, depth: Option<i16>) -> Option<Option<i16>>
         where String: Borrow<K>,
               K: Ord + ?Sized,
     {
@@ -70,14 +70,13 @@ impl AbsDiv {
             None
         }
     }
-    pub fn get<K>(&self, key: &K) -> Option<&ElementHandle>
+    fn get<K>(&self, key: &K) -> Option<&ElementHandle>
         where String: Borrow<K>,
               K: Ord + ?Sized,
     {
         self.children.get(key).map(|e| &e.element)
     }
-    pub fn into_handle(self) -> AbsDivHandle { AbsDivHandle(element_cell(self)) }
-    pub(crate) fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
+    fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
         for child in self.children.values() {
             child.element.render(grid, seq, offset + child.coord, child.depth.unwrap_or(depth));
         }
@@ -85,8 +84,12 @@ impl AbsDiv {
 }
 
 #[derive(Debug, Clone)]
-pub struct AbsDivHandle(ElementCell<AbsDiv>);
-impl AbsDivHandle {
+pub struct AbsDiv(ElementCell<AbsDivInner>);
+
+impl AbsDiv {
+    pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
+        AbsDiv(element_cell(AbsDivInner::new(size)))
+    }
     pub fn set_size<D: Into<Vector2<u16>>>(&self, size: D) {
         self.0.borrow_mut().set_size(size);
     }
@@ -125,21 +128,5 @@ impl AbsDivHandle {
     }
     pub(crate) fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
         (*self.0).borrow().render(grid, seq, offset, depth);
-    }
-}
-
-impl From<AbsDivHandle> for ElementHandle {
-    fn from(e: AbsDivHandle) -> Self {
-        ElementHandle::AbsDiv(e)
-    }
-}
-impl From<AbsDiv> for AbsDivHandle {
-    fn from(e: AbsDiv) -> Self {
-        e.into_handle()
-    }
-}
-impl From<AbsDiv> for ElementHandle {
-    fn from(e: AbsDiv) -> Self {
-        ElementHandle::AbsDiv(e.into())
     }
 }

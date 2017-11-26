@@ -9,10 +9,10 @@ const NUM_FRAMES: u32 = 4000;
 
 fn main() {
 
-    let div = AbsDiv::new((20, 10)).into_handle();
+    let div = AbsDiv::new((20, 10));
     let root_element = ElementHandle::from(div.clone());
 
-    let counter = Text::new("", (10, 1)).into_handle();
+    let counter = Text::new("", (10, 1));
     div.insert("counter", counter.clone(), (0, 0), None);
 
     let duration = {

@@ -81,13 +81,13 @@ pub enum CanvasError {
 }
 
 #[derive(Debug, Clone)]
-pub struct Canvas {
+struct CanvasInner {
     size: Vector2<u16>,
     cells: Vec<CanvasCell>,
 }
 
-impl Canvas {
-    pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
+impl CanvasInner {
+    fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
         let size = size.into();
         let capacity = (size.x * size.y) as usize;
         let mut cells = Vec::with_capacity(capacity);
@@ -97,13 +97,13 @@ impl Canvas {
             cells,
         }
     }
-    pub fn set_size<D: Into<Vector2<u16>>>(&mut self, size: D) {
+    fn set_size<D: Into<Vector2<u16>>>(&mut self, size: D) {
         self.size = size.into();
     }
-    pub fn make_buffer(&self) -> CanvasBuffer {
+    fn make_buffer(&self) -> CanvasBuffer {
         CanvasBuffer::new(self.size)
     }
-    pub fn swap_buffer(&mut self, buffer: &mut CanvasBuffer)
+    fn swap_buffer(&mut self, buffer: &mut CanvasBuffer)
         -> ::std::result::Result<(), CanvasError>
     {
         if self.size != buffer.size {
@@ -117,8 +117,7 @@ impl Canvas {
 
         Ok(())
     }
-    pub fn into_handle(self) -> CanvasHandle { CanvasHandle(element_cell(self)) }
-    pub(crate) fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
+    fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
         for (coord, canvas_cell) in izip!(CoordIter::new(self.size), self.cells.iter()) {
             let coord = offset + coord;
             if let Some(terminal_cell) = grid.get_mut(coord) {
@@ -133,9 +132,12 @@ impl Canvas {
 }
 
 #[derive(Debug, Clone)]
-pub struct CanvasHandle(ElementCell<Canvas>);
+pub struct Canvas(ElementCell<CanvasInner>);
 
-impl CanvasHandle {
+impl Canvas {
+    pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
+        Canvas(element_cell(CanvasInner::new(size)))
+    }
     pub fn set_size<D: Into<Vector2<u16>>>(&self, size: D) {
         self.0.borrow_mut().set_size(size);
     }
@@ -149,21 +151,5 @@ impl CanvasHandle {
     }
     pub(crate) fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
         (*self.0).borrow().render(grid, seq, offset, depth);
-    }
-}
-
-impl From<CanvasHandle> for ElementHandle {
-    fn from(e: CanvasHandle) -> Self {
-        ElementHandle::Canvas(e)
-    }
-}
-impl From<Canvas> for ElementHandle {
-    fn from(e: Canvas) -> Self {
-        ElementHandle::Canvas(e.into())
-    }
-}
-impl From<Canvas> for CanvasHandle {
-    fn from(e: Canvas) -> Self {
-        e.into_handle()
     }
 }
