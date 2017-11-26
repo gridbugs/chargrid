@@ -1,6 +1,6 @@
 extern crate prototty;
 extern crate cgmath;
-extern crate terminal_colour;
+extern crate ansi_colour;
 extern crate rand;
 
 use std::mem;
@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use rand::Rng;
 use cgmath::Vector2;
 use prototty::*;
-use terminal_colour::{Colour, colours};
+use ansi_colour::{Colour, colours};
 
 const BLANK_COLOUR: Colour = colours::DARK_GREY;
 const FOREGROUND_COLOUR: Colour = colours::DARK_GREY;

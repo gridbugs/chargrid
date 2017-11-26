@@ -1,5 +1,5 @@
 use std::slice;
-use terminal_colour::Colour;
+use ansi_colour::Colour;
 use cgmath::Vector2;
 
 use iterators::*;

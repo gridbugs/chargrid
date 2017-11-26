@@ -1,10 +1,10 @@
 extern crate prototty;
 extern crate cgmath;
-extern crate terminal_colour;
+extern crate ansi_colour;
 
 use cgmath::Vector2;
 use prototty::*;
-use terminal_colour::colours;
+use ansi_colour::colours;
 
 const ESCAPE: char = '\u{1b}';
 const ETX: char = '\u{3}';

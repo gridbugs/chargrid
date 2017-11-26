@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use std::time::Duration;
 use cgmath::Vector2;
 use term::terminfo::parm::{self, Param};
-use terminal_colour::Colour;
+use ansi_colour::Colour;
 use core::unix_backend::UnixBackend;
 use core::term_info_cache::TermInfoCache;
 use core::byte_prefix_tree::{BytePrefixTree, Found};

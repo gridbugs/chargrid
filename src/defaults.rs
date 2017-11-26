@@ -1,4 +1,4 @@
-use terminal_colour::{Colour, colours};
+use ansi_colour::{Colour, colours};
 
 pub const DEFAULT_CH: char = ' ';
 pub const DEFAULT_FG: Colour = colours::WHITE;

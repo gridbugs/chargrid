@@ -3,7 +3,7 @@ extern crate serde;
 extern crate libc;
 extern crate term;
 extern crate cgmath;
-extern crate terminal_colour;
+extern crate ansi_colour;
 #[macro_use] extern crate itertools;
 
 mod core;

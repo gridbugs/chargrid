@@ -1,6 +1,6 @@
 use term::terminfo::TermInfo;
 use term::terminfo::parm::{self, Param, Variables};
-use terminal_colour::{Colour, AllColours};
+use ansi_colour::{Colour, AllColours};
 use error::{Error, Result};
 use input::Input;
 use core::byte_prefix_tree::BytePrefixTree;

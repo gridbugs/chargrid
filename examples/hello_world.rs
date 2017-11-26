@@ -1,12 +1,12 @@
 extern crate prototty;
 extern crate cgmath;
-extern crate terminal_colour;
+extern crate ansi_colour;
 
 use std::io::Write;
 use std::time::Duration;
 use std::thread;
 use cgmath::Vector2;
-use terminal_colour::colours;
+use ansi_colour::colours;
 use prototty::Terminal;
 
 fn main() {
