@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::borrow::Borrow;
 use std::rc::Rc;
 use std::collections::BTreeMap;
-use std::ops::Deref;
 use std::mem;
 use std::time::Duration;
 use std::slice;
@@ -54,7 +53,7 @@ impl OutputCell {
 struct Cell {
     seq: u64,
     ch: char,
-    z_index: i16,
+    depth: i16,
     fg: Colour,
     bg: Colour,
     bold: bool,
@@ -66,7 +65,7 @@ impl Default for Cell {
         Cell {
             seq: 0,
             ch: DEFAULT_CH,
-            z_index: 0,
+            depth: 0,
             fg: DEFAULT_FG,
             bg: DEFAULT_BG,
             bold: false,
@@ -76,18 +75,18 @@ impl Default for Cell {
 }
 
 impl Cell {
-    fn update(&mut self, seq: u64, ch: char, z_index: i16) {
-        if seq > self.seq || (seq == self.seq && z_index >= self.z_index) {
+    fn update(&mut self, seq: u64, ch: char, depth: i16) {
+        if seq > self.seq || (seq == self.seq && depth >= self.depth) {
             self.seq = seq;
             self.ch = ch;
-            self.z_index = z_index;
+            self.depth = depth;
         }
     }
-    fn update_with_style(&mut self, seq: u64, ch: char, z_index: i16, fg: Colour, bg: Colour, bold: bool, underline: bool) {
-        if seq > self.seq || (seq == self.seq && z_index >= self.z_index) {
+    fn update_with_style(&mut self, seq: u64, ch: char, depth: i16, fg: Colour, bg: Colour, bold: bool, underline: bool) {
+        if seq > self.seq || (seq == self.seq && depth >= self.depth) {
             self.seq = seq;
             self.ch = ch;
-            self.z_index = z_index;
+            self.depth = depth;
             self.fg = fg;
             self.bg = bg;
             self.bold = bold;
@@ -146,73 +145,6 @@ impl<C: Default + Clone> Grid<C> {
     }
 }
 
-impl Grid<Cell> {
-    fn render(&mut self, seq: u64, offset: Vector2<i16>, z_index: i16, element: &ElementHandle) {
-        match element {
-            &ElementHandle::AbsDiv(ref div) => {
-                self.render_abs_div(seq, offset, z_index, (*div.0).borrow().deref());
-            }
-            &ElementHandle::Text(ref text) => {
-                self.render_text(seq, offset, z_index, (*text.0).borrow().deref());
-            }
-            &ElementHandle::Canvas(ref text) => {
-                self.render_canvas(seq, offset, z_index, (*text.0).borrow().deref());
-            }
-        }
-    }
-
-    fn render_abs_div(&mut self, seq: u64, offset: Vector2<i16>, z_index: i16, abs_div: &AbsDiv) {
-        for child in abs_div.children.values() {
-            self.render(seq, offset + child.coord, child.z_index.unwrap_or(z_index), &child.element);
-        }
-    }
-
-    fn render_text(&mut self, seq: u64, offset: Vector2<i16>, z_index: i16, text: &Text) {
-        let bottom_right_abs = offset + text.size.cast();
-        let mut coord = offset;
-        for ch in text.string.chars() {
-            match ch {
-                '\n' => {
-                    coord.x = offset.x;
-                    coord.y += 1;
-                    if coord.y == bottom_right_abs.y {
-                        break;
-                    }
-                }
-                '\r' => {
-                    coord.x = offset.x;
-                }
-                _ => {
-                    if let Some(cell) = self.get_mut(coord) {
-                        cell.update(seq, ch, z_index);
-                    }
-                    coord.x += 1;
-                    if coord.x == bottom_right_abs.x {
-                        coord.x = offset.x;
-                        coord.y += 1;
-                        if coord.y == bottom_right_abs.y {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fn render_canvas(&mut self, seq: u64, offset: Vector2<i16>, z_index: i16, canvas: &Canvas) {
-        for (coord, canvas_cell) in izip!(CoordIter::new(canvas.size), canvas.cells.iter()) {
-            let coord = offset + coord;
-            if let Some(terminal_cell) = self.get_mut(coord) {
-                terminal_cell.update_with_style(seq, canvas_cell.character, z_index,
-                                                canvas_cell.foreground_colour,
-                                                canvas_cell.background_colour,
-                                                canvas_cell.bold,
-                                                canvas_cell.underline);
-            }
-        }
-    }
-}
-
 pub struct Context {
     terminal: Terminal,
     seq: u64,
@@ -254,7 +186,7 @@ impl Context {
         self.seq += 1;
 
         self.grid.clear();
-        self.grid.render(self.seq, Vector2::new(0, 0), 0, &root);
+        root.render(&mut self.grid, self.seq, Vector2::new(0, 0), 0);
         self.send_grid_contents()?;
         self.terminal.flush_buffer()?;
 
@@ -338,6 +270,13 @@ impl ElementHandle {
             None
         }
     }
+    fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
+        match self {
+            &ElementHandle::AbsDiv(ref e) => (*e.0).borrow().render(grid, seq, offset, depth),
+            &ElementHandle::Text(ref e) => (*e.0).borrow().render(grid, seq, offset, depth),
+            &ElementHandle::Canvas(ref e) => (*e.0).borrow().render(grid, seq, offset, depth),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -349,11 +288,11 @@ pub struct AbsDiv {
 struct ElementWithAbsCoord {
     element: ElementHandle,
     coord: Vector2<i16>,
-    z_index: Option<i16>,
+    depth: Option<i16>,
 }
 impl From<ElementWithAbsCoord> for (ElementHandle, Vector2<i16>, Option<i16>) {
     fn from(e: ElementWithAbsCoord) -> Self {
-        (e.element, e.coord, e.z_index)
+        (e.element, e.coord, e.depth)
     }
 }
 impl AbsDiv {
@@ -366,7 +305,7 @@ impl AbsDiv {
     pub fn set_size<D: Into<Vector2<u16>>>(&mut self, size: D) {
         self.size = size.into();
     }
-    pub fn insert<K, E, C>(&mut self, key: K, element: E, coord: C, z_index: Option<i16>)
+    pub fn insert<K, E, C>(&mut self, key: K, element: E, coord: C, depth: Option<i16>)
         -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
         where K: Into<String>,
               E: Into<ElementHandle>,
@@ -375,7 +314,7 @@ impl AbsDiv {
         self.children.insert(key.into(), ElementWithAbsCoord {
             element: element.into(),
             coord: coord.into(),
-            z_index,
+            depth,
         }).map(Into::into)
     }
     pub fn remove<K>(&mut self, key: &K) -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
@@ -395,12 +334,12 @@ impl AbsDiv {
             None
         }
     }
-    pub fn update_z_index<K>(&mut self, key: &K, z_index: Option<i16>) -> Option<Option<i16>>
+    pub fn update_depth<K>(&mut self, key: &K, depth: Option<i16>) -> Option<Option<i16>>
         where String: Borrow<K>,
               K: Ord + ?Sized,
     {
         if let Some(child) = self.children.get_mut(key) {
-            Some(mem::replace(&mut child.z_index, z_index))
+            Some(mem::replace(&mut child.depth, depth))
         } else {
             None
         }
@@ -412,6 +351,11 @@ impl AbsDiv {
         self.children.get(key).map(|e| &e.element)
     }
     pub fn into_handle(self) -> AbsDivHandle { AbsDivHandle(Rc::new(RefCell::new(self))) }
+    fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
+        for child in self.children.values() {
+            child.element.render(grid, seq, offset + child.coord, child.depth.unwrap_or(depth));
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -420,13 +364,13 @@ impl AbsDivHandle {
     pub fn set_size<D: Into<Vector2<u16>>>(&self, size: D) {
         self.0.borrow_mut().set_size(size);
     }
-    pub fn insert<K, E, C>(&self, key: K, element: E, coord: C, z_index: Option<i16>)
+    pub fn insert<K, E, C>(&self, key: K, element: E, coord: C, depth: Option<i16>)
         -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
         where K: Into<String>,
               E: Into<ElementHandle>,
               C: Into<Vector2<i16>>,
     {
-        self.0.borrow_mut().insert(key, element, coord, z_index)
+        self.0.borrow_mut().insert(key, element, coord, depth)
     }
     pub fn remove<K>(&self, key: &K) -> Option<(ElementHandle, Vector2<i16>, Option<i16>)>
         where String: Borrow<K>,
@@ -441,11 +385,11 @@ impl AbsDivHandle {
     {
         self.0.borrow_mut().update_coord(key, coord)
     }
-    pub fn update_z_index<K>(&mut self, key: &K, z_index: Option<i16>) -> Option<Option<i16>>
+    pub fn update_depth<K>(&mut self, key: &K, depth: Option<i16>) -> Option<Option<i16>>
         where String: Borrow<K>,
               K: Ord + ?Sized,
     {
-        self.0.borrow_mut().update_z_index(key, z_index)
+        self.0.borrow_mut().update_depth(key, depth)
     }
     pub fn get<K>(&self, key: &K) -> Option<ElementHandle>
         where String: Borrow<K>,
@@ -495,6 +439,37 @@ impl Text {
         &self.string
     }
     pub fn into_handle(self) -> TextHandle { TextHandle(Rc::new(RefCell::new(self))) }
+    fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
+        let bottom_right_abs = offset + self.size.cast();
+        let mut coord = offset;
+        for ch in self.string.chars() {
+            match ch {
+                '\n' => {
+                    coord.x = offset.x;
+                    coord.y += 1;
+                    if coord.y == bottom_right_abs.y {
+                        break;
+                    }
+                }
+                '\r' => {
+                    coord.x = offset.x;
+                }
+                _ => {
+                    if let Some(cell) = grid.get_mut(coord) {
+                        cell.update(seq, ch, depth);
+                    }
+                    coord.x += 1;
+                    if coord.x == bottom_right_abs.x {
+                        coord.x = offset.x;
+                        coord.y += 1;
+                        if coord.y == bottom_right_abs.y {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -645,6 +620,18 @@ impl Canvas {
         Ok(())
     }
     pub fn into_handle(self) -> CanvasHandle { CanvasHandle(Rc::new(RefCell::new(self))) }
+    fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
+        for (coord, canvas_cell) in izip!(CoordIter::new(self.size), self.cells.iter()) {
+            let coord = offset + coord;
+            if let Some(terminal_cell) = grid.get_mut(coord) {
+                terminal_cell.update_with_style(seq, canvas_cell.character, depth,
+                                                canvas_cell.foreground_colour,
+                                                canvas_cell.background_colour,
+                                                canvas_cell.bold,
+                                                canvas_cell.underline);
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

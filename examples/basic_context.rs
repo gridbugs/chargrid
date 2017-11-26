@@ -5,7 +5,7 @@ use prototty::*;
 
 fn main() {
 
-    let mut div = AbsDiv::new((20, 10)).into_handle();
+    let div = AbsDiv::new((20, 10)).into_handle();
     let root_element = ElementHandle::from(div.clone());
 
     let text = Text::new("blah", (7, 3)).into_handle();
