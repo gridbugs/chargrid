@@ -6,15 +6,18 @@ extern crate cgmath;
 extern crate terminal_colour;
 #[macro_use] extern crate itertools;
 
-mod unix_backend;
-mod terminal;
+mod core;
+mod iterators;
+mod defaults;
+mod grid;
 mod error;
-mod term_info_cache;
-mod byte_prefix_tree;
 mod input;
+mod elements;
 mod context;
 
 pub use self::error::{Result, Error};
-pub use self::terminal::Terminal;
+pub use self::core::terminal::Terminal;
 pub use self::input::Input;
 pub use self::context::*;
+pub use self::iterators::*;
+pub use self::elements::*;

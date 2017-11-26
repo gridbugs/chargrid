@@ -2,13 +2,13 @@ use std::collections::VecDeque;
 use std::io::{self, Write};
 use std::time::Duration;
 use cgmath::Vector2;
-use terminal_colour::Colour;
-use unix_backend::UnixBackend;
-use term_info_cache::TermInfoCache;
 use term::terminfo::parm::{self, Param};
+use terminal_colour::Colour;
+use core::unix_backend::UnixBackend;
+use core::term_info_cache::TermInfoCache;
+use core::byte_prefix_tree::{BytePrefixTree, Found};
 use error::Result;
 use input::Input;
-use byte_prefix_tree::{BytePrefixTree, Found};
 
 const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
 const INPUT_BUFFER_INITIAL_CAPACITY: usize = 32;

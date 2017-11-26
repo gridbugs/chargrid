@@ -3,7 +3,7 @@ use term::terminfo::parm::{self, Param, Variables};
 use terminal_colour::{Colour, AllColours};
 use error::{Error, Result};
 use input::Input;
-use byte_prefix_tree::BytePrefixTree;
+use core::byte_prefix_tree::BytePrefixTree;
 
 pub struct TermInfoCache {
     pub enter_ca: String,
