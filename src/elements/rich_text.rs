@@ -51,12 +51,12 @@ struct RichTextInner {
 }
 
 impl RichTextInner {
-    fn new<D: Into<Vector2<u16>>>(parts: &[(&str, TextInfo)], size: D) -> Self {
+    fn new<D: Into<Vector2<u16>>>(parts: &[(String, TextInfo)], size: D) -> Self {
         Self {
             size: size.into(),
             parts: parts.iter().map(|&(ref s, ref i)| {
                 RichTextPart {
-                    text: s.to_string(),
+                    text: s.clone(),
                     info: i.clone(),
                 }
             }).collect(),
@@ -105,7 +105,7 @@ impl RichTextInner {
 pub struct RichText(ElementCell<RichTextInner>);
 
 impl RichText {
-    pub fn new<D: Into<Vector2<u16>>>(parts: &[(&str, TextInfo)], size: D) -> Self {
+    pub fn new<D: Into<Vector2<u16>>>(parts: &[(String, TextInfo)], size: D) -> Self {
         RichText(element_cell(RichTextInner::new(parts, size)))
     }
     pub fn size(&self) -> Vector2<u16> {

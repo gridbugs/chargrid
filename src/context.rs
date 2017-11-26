@@ -4,10 +4,14 @@ use std::time::Duration;
 use cgmath::Vector2;
 use core::terminal::Terminal;
 use input::Input;
-use error::Result;
+use error::{Error, Result};
 use grid::*;
 use defaults::*;
 use elements::*;
+
+const ESCAPE: char = '\u{1b}';
+const ETX: char = '\u{3}';
+const RETURN: char = '\u{d}';
 
 pub struct Context {
     terminal: Terminal,
@@ -123,17 +127,95 @@ impl Context {
         Ok(())
     }
 
+    pub fn run_menu<'a, T>(&mut self, place_name: &str, choices: &'a MenuChoices<T>, root: &ElementHandle) -> Result<MenuSelection<'a, T>> {
+        let menu = if let Some(menu) = root.find_menu_place(place_name) {
+            menu
+        } else {
+            return Err(Error::NoSuchMenuPlace(place_name.to_string()));
+        };
+
+        let mut index = 0;
+
+        let selection = loop {
+            menu.set_menu(choices.strings(), index);
+            self.render(root)?;
+            match self.wait_input()? {
+                Input::Char(ETX) => break MenuSelection::Etx,
+                Input::Char(ESCAPE) => break MenuSelection::Escape,
+                Input::Char(RETURN) => {
+                    break MenuSelection::Selection(&choices.choices[index].value);
+                }
+                Input::Up => {
+                    index = index.saturating_sub(1);
+                }
+                Input::Down => {
+                    if index + 1 < choices.choices.len() {
+                        index += 1;
+                    }
+                }
+                _ => {}
+            }
+        };
+
+        menu.clear_menu();
+        Ok(selection)
+    }
+
     pub fn wait_input(&mut self) -> Result<Input> {
         self.terminal.wait_input()
     }
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
         self.terminal.wait_input_timeout(timeout)
     }
+    pub fn poll_input(&mut self) -> Result<Option<Input>> {
+        self.terminal.poll_input()
+    }
 }
 
 pub(crate) type ElementCell<T> = Rc<RefCell<T>>;
 pub(crate) fn element_cell<T>(t: T) -> ElementCell<T> {
     Rc::new(RefCell::new(t))
+}
+
+pub enum MenuSelection<'a, T: 'a> {
+    Selection(&'a T),
+    Escape,
+    Etx,
+}
+
+impl<'a, T> MenuSelection<'a, T> {
+    pub fn selection(&self) -> Option<&T> {
+        match self {
+            &MenuSelection::Selection(t) => Some(t),
+            _ => None,
+        }
+    }
+}
+
+struct MenuChoice<T> {
+    text: String,
+    value: T,
+}
+
+pub struct MenuChoices<T> {
+    choices: Vec<MenuChoice<T>>,
+}
+
+impl<T> MenuChoices<T> {
+    pub fn new<S: Into<String>>(mut choices: Vec<(S, T)>) -> Self {
+        Self {
+            choices: choices.drain(..).map(|(s, t)| {
+                MenuChoice {
+                    text: s.into(),
+                    value: t,
+                }
+            }).collect(),
+        }
+    }
+
+    fn strings(&self) -> Vec<String> {
+        self.choices.iter().map(|c| c.text.clone()).collect()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -144,6 +226,7 @@ pub enum ElementHandle {
     Canvas(Canvas),
     BorderContainer(BorderContainer),
     Mono(Mono),
+    MenuPlace(MenuPlace),
 }
 
 impl ElementHandle {
@@ -176,6 +259,7 @@ impl ElementHandle {
             &ElementHandle::BorderContainer(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::RichText(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::Mono(ref e) => e.render(grid, seq, offset, depth),
+            &ElementHandle::MenuPlace(ref e) => e.render(grid, seq, offset, depth),
         }
     }
     pub(crate) fn size(&self) -> Vector2<u16> {
@@ -186,7 +270,28 @@ impl ElementHandle {
             &ElementHandle::BorderContainer(ref e) => e.size(),
             &ElementHandle::RichText(ref e) => e.size(),
             &ElementHandle::Mono(ref e) => e.size(),
+            &ElementHandle::MenuPlace(ref e) => e.size(),
         }
+    }
+    pub(crate) fn find_menu_place(&self, name: &str) -> Option<MenuPlace> {
+        match self {
+            &ElementHandle::MenuPlace(ref e) => {
+                if e.name_matches(name) {
+                    return Some(e.clone());
+                }
+            }
+            &ElementHandle::Mono(ref e) => {
+                return e.find_menu_place(name);
+            }
+            &ElementHandle::BorderContainer(ref e) => {
+                return e.find_menu_place(name);
+            }
+            &ElementHandle::AbsDiv(ref e) => {
+                return e.find_menu_place(name);
+            }
+            _ => {}
+        }
+        None
     }
 }
 
@@ -218,5 +323,10 @@ impl From<RichText> for ElementHandle {
 impl From<Mono> for ElementHandle {
     fn from(e: Mono) -> Self {
         ElementHandle::Mono(e)
+    }
+}
+impl From<MenuPlace> for ElementHandle {
+    fn from(e: MenuPlace) -> Self {
+        ElementHandle::MenuPlace(e)
     }
 }

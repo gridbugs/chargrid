@@ -8,10 +8,10 @@ use prototty::*;
 fn main() {
 
     let text = RichText::new(&[
-        ("This text is red. ", TextInfo::default().foreground_colour(colours::RED)),
-        ("This text is underlined. ", TextInfo::default().underline()),
-        ("This text is bold. ", TextInfo::default().bold()),
-        ("This text is blue and underlined. ", TextInfo::default().foreground_colour(colours::BLUE).underline()),
+        ("This text is red. ".to_string(), TextInfo::default().foreground_colour(colours::RED)),
+        ("This text is underlined. ".to_string(), TextInfo::default().underline()),
+        ("This text is bold. ".to_string(), TextInfo::default().bold()),
+        ("This text is blue and underlined. ".to_string(), TextInfo::default().foreground_colour(colours::BLUE).underline()),
     ], (14, 6));
     let root_element = ElementHandle::from(text.clone());
 

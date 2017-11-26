@@ -2,6 +2,8 @@ use std::mem;
 use cgmath::Vector2;
 use context::*;
 use grid::*;
+use elements::MenuPlace;
+
 
 #[derive(Debug, Clone)]
 struct MonoInner {
@@ -33,6 +35,9 @@ impl Mono {
     }
     pub(crate) fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
         (*self.0).borrow().render(grid, seq, offset, depth);
+    }
+    pub(crate) fn find_menu_place(&self, name: &str) -> Option<MenuPlace> {
+        (*self.0).borrow().child.find_menu_place(name)
     }
     pub fn size(&self) -> Vector2<u16> {
         (*self.0).borrow().child.size()

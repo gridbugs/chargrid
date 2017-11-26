@@ -11,6 +11,7 @@ pub enum Error {
     UnrecognizedEscapeSequence(Vec<u8>),
     ParamError(ParamError),
     Utf8Error(Utf8Error),
+    NoSuchMenuPlace(String),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;

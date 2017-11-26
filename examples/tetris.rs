@@ -345,15 +345,24 @@ impl Game {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum MainMenuChoice {
+    Play,
+    Quit,
+}
+
 struct Frontend {
     context: Context,
     end_text: RichText,
+    container: AbsDiv,
     canvas: Canvas,
     buffer: CanvasBuffer,
     next_piece_canvas: Canvas,
     next_piece_buffer: CanvasBuffer,
     root: ElementHandle,
     mono: Mono,
+    menu: MenuChoices<MainMenuChoice>,
+    menu_place: BorderContainer,
 }
 
 impl Frontend {
@@ -380,11 +389,20 @@ impl Frontend {
         let next_piece_buffer = next_piece_canvas.make_buffer();
 
         let end_text = RichText::new(&[
-            ("YOU DIED", TextInfo::default().foreground_colour(colours::RED).bold()),
+            ("YOU DIED".to_string(), TextInfo::default().foreground_colour(colours::RED).bold()),
         ], (8, 1));
+
+        let menu = MenuChoices::new(vec![
+            ("Play", MainMenuChoice::Play),
+            ("Quit", MainMenuChoice::Quit),
+        ]);
+
+        let menu_place = BorderContainer::new(MenuPlace::new((8, 2), "main_menu"));
+        menu_place.set_title("Tetris");
 
         Self {
             context,
+            container,
             end_text,
             canvas,
             buffer,
@@ -392,6 +410,8 @@ impl Frontend {
             next_piece_buffer,
             root,
             mono,
+            menu,
+            menu_place,
         }
     }
     fn display_end_text(&mut self) {
@@ -405,57 +425,76 @@ impl Frontend {
         self.next_piece_canvas.swap_buffer(&mut self.next_piece_buffer).unwrap();
         self.context.render(&self.root).unwrap();
     }
+    fn main_menu(&mut self) -> MainMenuChoice {
+        self.mono.replace(self.menu_place.clone());
+
+        let choice = match self.context.run_menu("main_menu", &self.menu, &self.root).unwrap().selection() {
+            Some(c) => *c,
+            None => MainMenuChoice::Quit,
+        };
+
+        self.mono.replace(self.container.clone());
+
+        choice
+    }
 }
 
 fn main() {
     let mut frontend = Frontend::new(WIDTH, HEIGHT);
     let mut rng = rand::thread_rng();
-    let mut game = Game::new(WIDTH, HEIGHT, &mut rng);
-
-    let step_duration = Duration::from_millis(STEP_MILLIS);
-
-    let mut step_start = Instant::now();
-    let mut remaining_time = step_duration;
-
     loop {
-        frontend.render(&game);
+        match frontend.main_menu() {
+            MainMenuChoice::Quit => break,
+            MainMenuChoice::Play => (),
+        }
 
-        let input = match frontend.context.wait_input_timeout(remaining_time).unwrap() {
-            None => {
-                match game.step(&mut rng) {
-                    StepResolution::Continue => (),
-                    StepResolution::GameOver => {
-                        frontend.render(&game);
-                        thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS));
+        let mut game = Game::new(WIDTH, HEIGHT, &mut rng);
 
-                        frontend.display_end_text();
-                        thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS * 2));
+        let step_duration = Duration::from_millis(STEP_MILLIS);
 
-                        break;
+        let mut step_start = Instant::now();
+        let mut remaining_time = step_duration;
+
+        loop {
+            frontend.render(&game);
+
+            let input = match frontend.context.wait_input_timeout(remaining_time).unwrap() {
+                None => {
+                    match game.step(&mut rng) {
+                        StepResolution::Continue => (),
+                        StepResolution::GameOver => {
+                            frontend.render(&game);
+                            thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS));
+
+                            frontend.display_end_text();
+                            thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS * 2));
+
+                            break;
+                        }
                     }
+                    step_start = Instant::now();
+                    remaining_time = step_duration;
+                    continue;
                 }
-                step_start = Instant::now();
-                remaining_time = step_duration;
+                Some(input) => input,
+            };
+
+            let now = Instant::now();
+            let time_since_step_start = now - step_start;
+            if time_since_step_start >= step_duration {
+                remaining_time = Duration::from_millis(0);
                 continue;
             }
-            Some(input) => input,
-        };
+            remaining_time = step_duration - time_since_step_start;
 
-        let now = Instant::now();
-        let time_since_step_start = now - step_start;
-        if time_since_step_start >= step_duration {
-            remaining_time = Duration::from_millis(0);
-            continue;
-        }
-        remaining_time = step_duration - time_since_step_start;
-
-        match input {
-            Input::Char(ESCAPE) | Input::Char(ETX) => break,
-            Input::Left => game.try_move(Vector2::new(-1, 0)),
-            Input::Right => game.try_move(Vector2::new(1, 0)),
-            Input::Up => game.try_rotate(),
-            Input::Down => game.try_move(Vector2::new(0, 1)),
-            _ => (),
+            match input {
+                Input::Char(ESCAPE) | Input::Char(ETX) => break,
+                Input::Left => game.try_move(Vector2::new(-1, 0)),
+                Input::Right => game.try_move(Vector2::new(1, 0)),
+                Input::Up => game.try_rotate(),
+                Input::Down => game.try_move(Vector2::new(0, 1)),
+                _ => (),
+            }
         }
     }
 }
