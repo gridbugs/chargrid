@@ -59,6 +59,8 @@ impl Context {
 
     fn send_grid_contents(&mut self) -> Result<()> {
 
+        self.terminal.set_cursor(Vector2::new(0, 0))?;
+
         let mut bold = false;
         let mut underline = false;
         let mut fg = DEFAULT_FG;
@@ -141,6 +143,7 @@ pub enum ElementHandle {
     RichText(RichText),
     Canvas(Canvas),
     BorderContainer(BorderContainer),
+    Mono(Mono),
 }
 
 impl ElementHandle {
@@ -172,6 +175,7 @@ impl ElementHandle {
             &ElementHandle::Canvas(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::BorderContainer(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::RichText(ref e) => e.render(grid, seq, offset, depth),
+            &ElementHandle::Mono(ref e) => e.render(grid, seq, offset, depth),
         }
     }
     pub(crate) fn size(&self) -> Vector2<u16> {
@@ -181,6 +185,7 @@ impl ElementHandle {
             &ElementHandle::Canvas(ref e) => e.size(),
             &ElementHandle::BorderContainer(ref e) => e.size(),
             &ElementHandle::RichText(ref e) => e.size(),
+            &ElementHandle::Mono(ref e) => e.size(),
         }
     }
 }
@@ -208,5 +213,10 @@ impl From<BorderContainer> for ElementHandle {
 impl From<RichText> for ElementHandle {
     fn from(e: RichText) -> Self {
         ElementHandle::RichText(e)
+    }
+}
+impl From<Mono> for ElementHandle {
+    fn from(e: Mono) -> Self {
+        ElementHandle::Mono(e)
     }
 }

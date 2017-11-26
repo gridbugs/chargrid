@@ -353,14 +353,15 @@ struct Frontend {
     next_piece_canvas: Canvas,
     next_piece_buffer: CanvasBuffer,
     root: ElementHandle,
-    container: AbsDiv,
+    mono: Mono,
 }
 
 impl Frontend {
     fn new(width: u16, height: u16) -> Self {
         let context = Context::new().unwrap();
         let container = AbsDiv::new((width + 2, height + 2));
-        let root = ElementHandle::from(container.clone());
+        let mono = Mono::new(container.clone());
+        let root = ElementHandle::from(mono.clone());
 
         let canvas = Canvas::new((width, height));
         let border = BorderContainer::new(canvas.clone());
@@ -390,12 +391,11 @@ impl Frontend {
             next_piece_canvas,
             next_piece_buffer,
             root,
-            container
+            mono,
         }
     }
     fn display_end_text(&mut self) {
-        self.container.remove("canvas");
-        self.container.insert("end_text", self.end_text.clone(), (1, 1), None);
+        self.mono.replace(self.end_text.clone());
         self.context.render(&self.root).unwrap();
     }
     fn render(&mut self, game: &Game) {
@@ -429,7 +429,7 @@ fn main() {
                         thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS));
 
                         frontend.display_end_text();
-                        thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS));
+                        thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS * 2));
 
                         break;
                     }
