@@ -89,6 +89,10 @@ impl Terminal {
         self.output_buffer.push_str(&self.ti_cache.underline);
     }
 
+    pub fn clear_underline(&mut self) {
+        self.output_buffer.push_str(&self.ti_cache.no_underline);
+    }
+
     pub fn reset(&mut self) {
         self.output_buffer.push_str(&self.ti_cache.reset);
     }

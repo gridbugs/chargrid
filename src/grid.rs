@@ -11,6 +11,8 @@ pub struct OutputCell {
     ch: char,
     fg: Colour,
     bg: Colour,
+    bold: bool,
+    underline: bool,
 }
 
 impl Default for OutputCell {
@@ -20,6 +22,8 @@ impl Default for OutputCell {
             ch: DEFAULT_CH,
             fg: DEFAULT_FG,
             bg: DEFAULT_BG,
+            bold: false,
+            underline: false,
         }
     }
 }
@@ -29,13 +33,17 @@ impl OutputCell {
         !self.dirty &&
         self.ch == cell.ch &&
             self.fg == cell.fg &&
-            self.bg == cell.bg
+            self.bg == cell.bg &&
+            self.bold == cell.bold &&
+            self.underline == cell.underline
     }
     pub fn copy_fields(&mut self, cell: &Cell) {
         self.dirty = false;
         self.ch = cell.ch;
         self.fg = cell.fg;
         self.bg = cell.bg;
+        self.bold = cell.bold;
+        self.underline = cell.underline;
     }
 }
 
@@ -46,8 +54,8 @@ pub struct Cell {
     depth: i16,
     pub fg: Colour,
     pub bg: Colour,
-    bold: bool,
-    underline: bool,
+    pub bold: bool,
+    pub underline: bool,
 }
 
 impl Default for Cell {

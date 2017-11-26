@@ -54,3 +54,7 @@ path = "examples/tetris.rs"
 [[example]]
 name = "border"
 path = "examples/border.rs"
+
+[[example]]
+name = "rich_text"
+path = "examples/rich_text.rs"

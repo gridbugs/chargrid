@@ -347,7 +347,7 @@ impl Game {
 
 struct Frontend {
     context: Context,
-    end_text: Text,
+    end_text: RichText,
     canvas: Canvas,
     buffer: CanvasBuffer,
     next_piece_canvas: Canvas,
@@ -378,7 +378,9 @@ impl Frontend {
         next_piece_canvas_border.set_title("Next");
         let next_piece_buffer = next_piece_canvas.make_buffer();
 
-        let end_text = Text::new("YOU DIED", (8, 1));
+        let end_text = RichText::new(&[
+            ("YOU DIED", TextInfo::default().foreground_colour(colours::RED).bold()),
+        ], (8, 1));
 
         Self {
             context,

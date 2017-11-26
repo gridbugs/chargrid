@@ -59,6 +59,8 @@ impl Context {
 
     fn send_grid_contents(&mut self) -> Result<()> {
 
+        let mut bold = false;
+        let mut underline = false;
         let mut fg = DEFAULT_FG;
         let mut bg = DEFAULT_BG;
         self.terminal.set_foreground_colour(fg);
@@ -69,25 +71,47 @@ impl Context {
         for ((coord, cell), output_cell) in
             izip!(self.grid.enumerate(), self.output_grid.iter_mut())
         {
-
             if output_cell.matches(cell) {
                 must_move_cursor = true;
                 continue;
             }
 
-            if must_move_cursor {
-                self.terminal.set_cursor(coord.cast())?;
-                must_move_cursor = false;
-            }
+            let reset = if cell.bold != bold {
+                if cell.bold {
+                    self.terminal.set_bold();
+                    bold = true;
+                    false
+                } else {
+                    self.terminal.reset();
+                    bold = false;
+                    true
+                }
+            } else {
+                false
+            };
 
-            if cell.fg != fg {
+            if reset || cell.fg != fg {
                 self.terminal.set_foreground_colour(cell.fg);
                 fg = cell.fg;
             }
 
-            if cell.bg != bg {
+            if reset || cell.bg != bg {
                 self.terminal.set_background_colour(cell.bg);
                 bg = cell.bg;
+            }
+
+            if reset || (cell.underline != underline) {
+                if cell.underline {
+                    self.terminal.set_underline();
+                } else {
+                    self.terminal.clear_underline();
+                }
+                underline = cell.underline;
+            }
+
+            if must_move_cursor {
+                self.terminal.set_cursor(coord.cast())?;
+                must_move_cursor = false;
             }
 
             output_cell.copy_fields(cell);
@@ -114,6 +138,7 @@ pub(crate) fn element_cell<T>(t: T) -> ElementCell<T> {
 pub enum ElementHandle {
     AbsDiv(AbsDiv),
     Text(Text),
+    RichText(RichText),
     Canvas(Canvas),
     BorderContainer(BorderContainer),
 }
@@ -146,6 +171,7 @@ impl ElementHandle {
             &ElementHandle::Text(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::Canvas(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::BorderContainer(ref e) => e.render(grid, seq, offset, depth),
+            &ElementHandle::RichText(ref e) => e.render(grid, seq, offset, depth),
         }
     }
     pub(crate) fn size(&self) -> Vector2<u16> {
@@ -154,6 +180,7 @@ impl ElementHandle {
             &ElementHandle::Text(ref e) => e.size(),
             &ElementHandle::Canvas(ref e) => e.size(),
             &ElementHandle::BorderContainer(ref e) => e.size(),
+            &ElementHandle::RichText(ref e) => e.size(),
         }
     }
 }
@@ -176,5 +203,10 @@ impl From<Canvas> for ElementHandle {
 impl From<BorderContainer> for ElementHandle {
     fn from(e: BorderContainer) -> Self {
         ElementHandle::BorderContainer(e)
+    }
+}
+impl From<RichText> for ElementHandle {
+    fn from(e: RichText) -> Self {
+        ElementHandle::RichText(e)
     }
 }
