@@ -2,6 +2,7 @@ extern crate prototty;
 extern crate cgmath;
 
 use prototty::*;
+use prototty::elements::*;
 
 fn main() {
 

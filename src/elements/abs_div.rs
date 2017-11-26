@@ -71,12 +71,6 @@ impl AbsDivInner {
             None
         }
     }
-    fn get<K>(&self, key: &K) -> Option<&ElementHandle>
-        where String: Borrow<K>,
-              K: Ord + ?Sized,
-    {
-        self.children.get(key).map(|e| &e.element)
-    }
     fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
         for child in self.children.values() {
             child.element.render(grid, seq, offset + child.coord, child.depth.unwrap_or(depth));
@@ -123,12 +117,6 @@ impl AbsDiv {
               K: Ord + ?Sized,
     {
         self.0.borrow_mut().update_depth(key, depth)
-    }
-    pub fn get<K>(&self, key: &K) -> Option<ElementHandle>
-        where String: Borrow<K>,
-              K: Ord + ?Sized,
-    {
-        (*self.0).borrow().get(key).cloned()
     }
     pub(crate) fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
         (*self.0).borrow().render(grid, seq, offset, depth);

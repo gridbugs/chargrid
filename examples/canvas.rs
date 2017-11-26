@@ -4,6 +4,7 @@ extern crate ansi_colour;
 
 use cgmath::Vector2;
 use prototty::*;
+use prototty::elements::*;
 use ansi_colour::colours;
 
 const ESCAPE: char = '\u{1b}';

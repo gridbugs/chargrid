@@ -4,6 +4,7 @@ extern crate cgmath;
 use std::thread;
 use std::time::{Instant, Duration};
 use prototty::*;
+use prototty::elements::*;
 
 const NUM_FRAMES: u32 = 4000;
 

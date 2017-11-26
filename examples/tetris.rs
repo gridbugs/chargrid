@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use rand::Rng;
 use cgmath::Vector2;
 use prototty::*;
+use prototty::elements::*;
 use ansi_colour::{Colour, colours};
 
 const BLANK_COLOUR: Colour = colours::DARK_GREY;
@@ -23,7 +24,6 @@ const WIDTH: u16 = 10;
 const HEIGHT: u16 = 12;
 
 const STEP_MILLIS: u64 = 500;
-const ANIMATION_DELAY_MILLIS: u64 = 1000;
 
 const ESCAPE: char = '\u{1b}';
 const ETX: char = '\u{3}';
@@ -464,10 +464,9 @@ fn main() {
                         StepResolution::Continue => (),
                         StepResolution::GameOver => {
                             frontend.render(&game);
-                            thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS));
-
+                            thread::sleep(Duration::from_millis(500));
                             frontend.display_end_text();
-                            thread::sleep(Duration::from_millis(ANIMATION_DELAY_MILLIS * 2));
+                            thread::sleep(Duration::from_millis(1000));
 
                             break;
                         }

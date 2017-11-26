@@ -230,27 +230,6 @@ pub enum ElementHandle {
 }
 
 impl ElementHandle {
-    pub fn abs_div(&self) -> Option<&AbsDiv> {
-        if let &ElementHandle::AbsDiv(ref e) = self {
-            Some(e)
-        } else {
-            None
-        }
-    }
-    pub fn text(&self) -> Option<&Text> {
-        if let &ElementHandle::Text(ref e) = self {
-            Some(e)
-        } else {
-            None
-        }
-    }
-    pub fn canvas(&self) -> Option<&Canvas> {
-        if let &ElementHandle::Canvas(ref e) = self {
-            Some(e)
-        } else {
-            None
-        }
-    }
     pub(crate) fn render(&self, grid: &mut Grid<Cell>, seq: u64, offset: Vector2<i16>, depth: i16) {
         match self {
             &ElementHandle::AbsDiv(ref e) => e.render(grid, seq, offset, depth),

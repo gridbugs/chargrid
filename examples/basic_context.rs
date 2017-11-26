@@ -2,6 +2,7 @@ extern crate prototty;
 extern crate cgmath;
 
 use prototty::*;
+use prototty::elements::*;
 
 fn main() {
 
@@ -11,7 +12,7 @@ fn main() {
     let text = Text::new("blah", (7, 3));
 
     div.insert("a", text.clone(), (0, 0), None);
-    div.get("a").unwrap().text().unwrap().set("abcdefghijklnmopqrstuvwxyz");
+    text.set("abcdefghijklnmopqrstuvwxyz");
     div.update_coord("a", (2, 2)).unwrap();
 
     div.insert("b", Text::new("HELLO\nWORLD", (8, 3)), (5, 4), Some(-1));
