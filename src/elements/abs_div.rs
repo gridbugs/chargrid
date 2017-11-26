@@ -90,6 +90,9 @@ impl AbsDiv {
     pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
         AbsDiv(element_cell(AbsDivInner::new(size)))
     }
+    pub(crate) fn size(&self) -> Vector2<u16> {
+        (*self.0).borrow().size
+    }
     pub fn set_size<D: Into<Vector2<u16>>>(&self, size: D) {
         self.0.borrow_mut().set_size(size);
     }

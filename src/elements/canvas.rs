@@ -44,7 +44,9 @@ impl CanvasBuffer {
             cells,
         }
     }
-    pub fn size(&self) -> Vector2<u16> { self.size }
+    pub fn size(&self) -> Vector2<u16> {
+        self.size
+    }
     pub fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut CanvasCell> {
         if coord.x < 0 || coord.y < 0 {
             return None;
@@ -137,6 +139,9 @@ pub struct Canvas(ElementCell<CanvasInner>);
 impl Canvas {
     pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
         Canvas(element_cell(CanvasInner::new(size)))
+    }
+    pub(crate) fn size(&self) -> Vector2<u16> {
+        (*self.0).borrow().size
     }
     pub fn set_size<D: Into<Vector2<u16>>>(&self, size: D) {
         self.0.borrow_mut().set_size(size);

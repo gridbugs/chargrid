@@ -115,6 +115,7 @@ pub enum ElementHandle {
     AbsDiv(AbsDiv),
     Text(Text),
     Canvas(Canvas),
+    BorderContainer(BorderContainer),
 }
 
 impl ElementHandle {
@@ -144,6 +145,15 @@ impl ElementHandle {
             &ElementHandle::AbsDiv(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::Text(ref e) => e.render(grid, seq, offset, depth),
             &ElementHandle::Canvas(ref e) => e.render(grid, seq, offset, depth),
+            &ElementHandle::BorderContainer(ref e) => e.render(grid, seq, offset, depth),
+        }
+    }
+    pub(crate) fn size(&self) -> Vector2<u16> {
+        match self {
+            &ElementHandle::AbsDiv(ref e) => e.size(),
+            &ElementHandle::Text(ref e) => e.size(),
+            &ElementHandle::Canvas(ref e) => e.size(),
+            &ElementHandle::BorderContainer(ref e) => e.size(),
         }
     }
 }
@@ -161,5 +171,10 @@ impl From<Text> for ElementHandle {
 impl From<Canvas> for ElementHandle {
     fn from(e: Canvas) -> Self {
         ElementHandle::Canvas(e)
+    }
+}
+impl From<BorderContainer> for ElementHandle {
+    fn from(e: BorderContainer) -> Self {
+        ElementHandle::BorderContainer(e)
     }
 }

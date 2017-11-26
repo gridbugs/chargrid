@@ -65,6 +65,9 @@ impl Text {
     pub fn new<D: Into<Vector2<u16>>, S: Into<String>>(string: S, size: D) -> Self {
         Text(element_cell(TextInner::new(string, size)))
     }
+    pub(crate) fn size(&self) -> Vector2<u16> {
+        (*self.0).borrow().size
+    }
     pub fn set_size<D: Into<Vector2<u16>>>(&self, size: D) {
         self.0.borrow_mut().set_size(size);
     }

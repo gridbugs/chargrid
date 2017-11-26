@@ -344,7 +344,8 @@ impl Frontend {
         let root = ElementHandle::from(container.clone());
 
         let canvas = Canvas::new((width, height));
-        container.insert("canvas", canvas.clone(), (1, 1), None);
+        let border = BorderContainer::new(canvas.clone());
+        container.insert("canvas", border.clone(), (1, 1), None);
         let buffer = canvas.make_buffer();
 
         let end_text = Text::new("YOU DIED", (8, 1));
