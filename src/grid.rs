@@ -1,9 +1,9 @@
 use std::slice;
 use ansi_colour::Colour;
 use cgmath::Vector2;
-
 use iterators::*;
 use defaults::*;
+use view::*;
 
 #[derive(Debug, Clone)]
 pub struct OutputCell {
@@ -49,7 +49,6 @@ impl OutputCell {
 
 #[derive(Debug, Clone)]
 pub struct Cell {
-    seq: u64,
     pub ch: char,
     depth: i16,
     pub fg: Colour,
@@ -61,7 +60,6 @@ pub struct Cell {
 impl Default for Cell {
     fn default() -> Self {
         Cell {
-            seq: 0,
             ch: DEFAULT_CH,
             depth: 0,
             fg: DEFAULT_FG,
@@ -72,26 +70,23 @@ impl Default for Cell {
     }
 }
 
-impl Cell {
-    pub fn update(&mut self, seq: u64, ch: char, depth: i16) {
-        if seq > self.seq || (seq == self.seq && depth >= self.depth) {
-            self.seq = seq;
+impl ViewCell for Cell {
+    fn update(&mut self, ch: char, depth: i16) {
+        if depth >= self.depth {
             self.ch = ch;
             self.depth = depth;
         }
     }
-    pub fn update_with_colour(&mut self, seq: u64, ch: char, depth: i16, fg: Colour, bg: Colour) {
-        if seq > self.seq || (seq == self.seq && depth >= self.depth) {
-            self.seq = seq;
+    fn update_with_colour(&mut self, ch: char, depth: i16, fg: Colour, bg: Colour) {
+        if depth >= self.depth {
             self.ch = ch;
             self.depth = depth;
             self.fg = fg;
             self.bg = bg;
         }
     }
-    pub fn update_with_style(&mut self, seq: u64, ch: char, depth: i16, fg: Colour, bg: Colour, bold: bool, underline: bool) {
-        if seq > self.seq || (seq == self.seq && depth >= self.depth) {
-            self.seq = seq;
+    fn update_with_style(&mut self, ch: char, depth: i16, fg: Colour, bg: Colour, bold: bool, underline: bool) {
+        if depth >= self.depth {
             self.ch = ch;
             self.depth = depth;
             self.fg = fg;
@@ -137,7 +132,18 @@ impl<C: Default + Clone> Grid<C> {
         }
     }
 
-    pub fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut C> {
+    pub fn enumerate(&self) -> CoordEnumerate<C> {
+        CoordEnumerate::new(CoordIter::new(self.size), self.cells.iter())
+    }
+
+    pub fn iter_mut(&mut self) -> slice::IterMut<C> {
+        self.cells.iter_mut()
+    }
+}
+
+impl ViewGrid for Grid<Cell> {
+    type Cell = Cell;
+    fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut Self::Cell> {
         if coord.x < 0 || coord.y < 0 {
             return None;
         }
@@ -146,13 +152,5 @@ impl<C: Default + Clone> Grid<C> {
             return None;
         }
         Some(&mut self.cells[(coord.y * self.size.x + coord.x) as usize])
-    }
-
-    pub fn enumerate(&self) -> CoordEnumerate<C> {
-        CoordEnumerate::new(CoordIter::new(self.size), self.cells.iter())
-    }
-
-    pub fn iter_mut(&mut self) -> slice::IterMut<C> {
-        self.cells.iter_mut()
     }
 }

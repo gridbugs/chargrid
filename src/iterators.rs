@@ -53,23 +53,3 @@ impl<'a, T> Iterator for CoordEnumerate<'a, T> {
         })
     }
 }
-
-pub struct CoordEnumerateMut<'a, T: 'a> {
-    coords: CoordIter,
-    iter: slice::IterMut<'a, T>,
-}
-
-impl<'a, T> CoordEnumerateMut<'a, T> {
-    pub(crate) fn new(coords: CoordIter, iter: slice::IterMut<'a, T>) -> Self {
-        Self { coords, iter }
-    }
-}
-
-impl<'a, T> Iterator for CoordEnumerateMut<'a, T> {
-    type Item = (Vector2<i16>, &'a mut T);
-    fn next(&mut self) -> Option<Self::Item> {
-        self.coords.next().and_then(|c| {
-            self.iter.next().map(|t| (c, t))
-        })
-    }
-}

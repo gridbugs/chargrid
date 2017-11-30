@@ -34,27 +34,3 @@ path = "examples/echo_poll.rs"
 [[example]]
 name = "echo_wait"
 path = "examples/echo_wait.rs"
-
-[[example]]
-name = "basic_context"
-path = "examples/basic_context.rs"
-
-[[example]]
-name = "context_bench"
-path = "examples/context_bench.rs"
-
-[[example]]
-name = "canvas"
-path = "examples/canvas.rs"
-
-[[example]]
-name = "tetris"
-path = "examples/tetris.rs"
-
-[[example]]
-name = "border"
-path = "examples/border.rs"
-
-[[example]]
-name = "rich_text"
-path = "examples/rich_text.rs"
