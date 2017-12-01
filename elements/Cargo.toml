@@ -11,10 +11,6 @@ ansi_colour = "0.1"
 prototty = { path = ".." }
 
 [[example]]
-name = "view"
-path = "examples/view.rs"
-
-[[example]]
 name = "text"
 path = "examples/text.rs"
 
@@ -29,3 +25,11 @@ path = "examples/rich_text.rs"
 [[example]]
 name = "canvas"
 path = "examples/canvas.rs"
+
+[[example]]
+name = "menu"
+path = "examples/menu.rs"
+
+[[example]]
+name = "tetris"
+path = "examples/tetris.rs"

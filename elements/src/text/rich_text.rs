@@ -1,41 +1,6 @@
 use prototty::*;
 use cgmath::Vector2;
-use ansi_colour::Colour;
-use defaults::*;
-
-#[derive(Debug, Clone, Copy)]
-pub struct TextInfo {
-    pub foreground_colour: Colour,
-    pub backrgound_colour: Colour,
-    pub underline: bool,
-    pub bold: bool,
-}
-
-impl Default for TextInfo {
-    fn default() -> Self {
-        Self {
-            foreground_colour: DEFAULT_FG,
-            backrgound_colour: DEFAULT_BG,
-            underline: false,
-            bold: false,
-        }
-    }
-}
-
-impl TextInfo {
-    pub fn foreground_colour(self, colour: Colour) -> Self {
-        Self { foreground_colour: colour, .. self }
-    }
-    pub fn backrgound_colour(self, colour: Colour) -> Self {
-        Self { backrgound_colour: colour, .. self }
-    }
-    pub fn underline(self) -> Self {
-        Self { underline: true, .. self }
-    }
-    pub fn bold(self) -> Self {
-        Self { bold: true, .. self }
-    }
-}
+use text_info::*;
 
 #[derive(Debug, Clone)]
 pub struct RichTextPart {
@@ -66,6 +31,16 @@ impl RichText {
         Self {
             parts: parts.drain(..).map(Into::into).collect(),
             size: size.into(),
+        }
+    }
+    pub fn one_line<S>(mut parts: Vec<(S, TextInfo)>) -> Self
+        where S: Into<String>,
+    {
+        let parts: Vec<RichTextPart> = parts.drain(..).map(Into::into).collect();
+        let length = parts.iter().fold(0, |acc, part| acc + part.string.len());
+        Self {
+            parts,
+            size: Vector2::new(length as u16, 1),
         }
     }
 }

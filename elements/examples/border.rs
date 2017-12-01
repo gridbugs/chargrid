@@ -4,8 +4,7 @@ extern crate ansi_colour;
 extern crate cgmath;
 
 use prototty::*;
-use prototty_elements::text::*;
-use prototty_elements::border::*;
+use prototty_elements::*;
 use ansi_colour::colours;
 use cgmath::Vector2;
 

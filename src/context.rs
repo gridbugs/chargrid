@@ -73,6 +73,8 @@ impl Context {
         let mut underline = false;
         let mut fg = self.default_fg;
         let mut bg = self.default_bg;
+        self.terminal.reset();
+        self.terminal.clear_underline();
         self.terminal.set_foreground_colour(fg);
         self.terminal.set_background_colour(bg);
 

@@ -16,6 +16,15 @@ impl Text {
             size: size.into(),
         }
     }
+    pub fn one_line<S>(string: S) -> Self
+        where S: Into<String>,
+    {
+        let string = string.into();
+        Self {
+            size: Vector2::new(string.len() as u16, 1),
+            string,
+        }
+    }
 }
 
 impl View for Text {

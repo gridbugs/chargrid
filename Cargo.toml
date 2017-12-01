@@ -33,3 +33,7 @@ path = "examples/echo_poll.rs"
 [[example]]
 name = "echo_wait"
 path = "examples/echo_wait.rs"
+
+[[example]]
+name = "view"
+path = "examples/view.rs"
