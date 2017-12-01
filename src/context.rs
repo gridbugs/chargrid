@@ -1,6 +1,5 @@
 use std::time::Duration;
 use cgmath::Vector2;
-use ansi_colour::Colour;
 use core::terminal::Terminal;
 use input::Input;
 use error::Result;
@@ -8,20 +7,24 @@ use defaults::*;
 use grid::*;
 use view::*;
 
+/**
+ * An interface to a terminal for rendering `View`s, and getting input.
+ */
 pub struct Context {
     terminal: Terminal,
     grid: Grid<Cell>,
     output_grid: Grid<OutputCell>,
-    default_fg: Colour,
-    default_bg: Colour,
 }
 
 impl Context {
+    /**
+     * Initialise a new context using the current terminal.
+     */
     pub fn new() -> Result<Self> {
         Terminal::new().and_then(Self::from_terminal)
     }
 
-    pub fn from_terminal(terminal: Terminal) -> Result<Self> {
+    fn from_terminal(terminal: Terminal) -> Result<Self> {
 
         let size = terminal.size()?;
         let grid = Grid::new(size);
@@ -31,17 +34,7 @@ impl Context {
             terminal,
             output_grid,
             grid,
-            default_fg: DEFAULT_FG,
-            default_bg: DEFAULT_BG,
         })
-    }
-
-    pub fn set_default_foreground_colour(&mut self, colour: Colour) {
-        self.default_fg = colour;
-    }
-
-    pub fn set_default_background_colour(&mut self, colour: Colour) {
-        self.default_bg = colour;
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
@@ -54,6 +47,9 @@ impl Context {
         Ok(())
     }
 
+    /**
+     * Clear the screen, and render the given `View` starting in the top-left corner.
+     */
     pub fn render<V: View>(&mut self, view: &V) -> Result<()> {
         self.resize_if_necessary()?;
 
@@ -71,8 +67,8 @@ impl Context {
 
         let mut bold = false;
         let mut underline = false;
-        let mut fg = self.default_fg;
-        let mut bg = self.default_bg;
+        let mut fg = DEFAULT_FG;
+        let mut bg = DEFAULT_BG;
         self.terminal.reset();
         self.terminal.clear_underline();
         self.terminal.set_foreground_colour(fg);
@@ -133,13 +129,28 @@ impl Context {
         Ok(())
     }
 
+    /**
+     * Gets an input event from the terminal if one is present,
+     * returning immediately.
+     */
+    pub fn poll_input(&mut self) -> Result<Option<Input>> {
+        self.terminal.poll_input()
+    }
+
+    /**
+     * Gets an input event from the terminal, waiting until
+     * an event occurs.
+     */
     pub fn wait_input(&mut self) -> Result<Input> {
         self.terminal.wait_input()
     }
+
+    /**
+     * Gets an input event from the terminal, waiting until
+     * either an event occurs, or the timeout expires, in which
+     * case this method returns `None`.
+     */
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
         self.terminal.wait_input_timeout(timeout)
-    }
-    pub fn poll_input(&mut self) -> Result<Option<Input>> {
-        self.terminal.poll_input()
     }
 }

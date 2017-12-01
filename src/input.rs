@@ -1,3 +1,4 @@
+/** An input event */
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum Input {
     Char(char),

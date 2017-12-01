@@ -14,7 +14,7 @@ rand = "0.3"
 itertools = "0.7"
 cgmath = "0.15"
 ansi_colour = "0.1"
-prototty = "0.3"
+prototty = { path = ".." }
 
 [[example]]
 name = "text"
@@ -39,3 +39,7 @@ path = "examples/menu.rs"
 [[example]]
 name = "tetris"
 path = "examples/tetris.rs"
+
+[[example]]
+name = "mixed_text"
+path = "examples/mixed_text.rs"
