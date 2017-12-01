@@ -15,4 +15,5 @@ pub trait ViewGrid {
 
 pub trait View {
     fn view<G: ViewGrid>(&self, offset: Vector2<i16>, depth: i16, grid: &mut G);
+    fn size(&self) -> Vector2<u16>;
 }

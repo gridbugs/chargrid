@@ -16,7 +16,6 @@ libc = "0.2"
 term = "0.4"
 cgmath = "0.15"
 ansi_colour = "0.1"
-rand = "0.3"
 itertools = "0.7"
 
 [[example]]
