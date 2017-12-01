@@ -1,14 +1,20 @@
 [package]
 name = "prototty_elements"
+description = "Collection of ui elements for use with prototty"
 version = "0.3.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_elements"
 
 [dependencies]
 rand = "0.3"
 itertools = "0.7"
 cgmath = "0.15"
 ansi_colour = "0.1"
-prototty = { path = ".." }
+prototty = "0.3"
 
 [[example]]
 name = "text"
