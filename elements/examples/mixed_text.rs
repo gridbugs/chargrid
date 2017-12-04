@@ -18,9 +18,6 @@ impl View for Model {
         self.rich_text.view(offset, depth, grid);
         self.plain_text.view(offset + Vector2::new(20, 0), depth, grid);
     }
-    fn size(&self) -> Vector2<u16> {
-        Vector2::new(40, 1)
-    }
 }
 
 fn main() {

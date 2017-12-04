@@ -117,6 +117,9 @@ impl<T: Copy> View for MenuInstance<T> {
             }
         }
     }
+}
+
+impl<T: Copy> ViewSize for MenuInstance<T> {
     fn size(&self) -> Vector2<u16> {
         self.menu.size
     }

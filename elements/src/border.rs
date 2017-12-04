@@ -41,7 +41,7 @@ pub struct BorderPadding {
     pub right: u16,
 }
 
-pub struct Border<V: View> {
+pub struct Border<V: View + ViewSize> {
     pub child: V,
     pub title: Option<String>,
     pub padding: BorderPadding,
@@ -54,7 +54,7 @@ pub struct Border<V: View> {
     pub bold_border: bool,
 }
 
-impl<V: View> Border<V> {
+impl<V: View + ViewSize> Border<V> {
     pub fn new(child: V) -> Self {
         Self {
             child,
@@ -97,7 +97,7 @@ impl<V: View> Border<V> {
     }
 }
 
-impl<V: View> View for Border<V> {
+impl<V: View + ViewSize> View for Border<V> {
     fn view<G: ViewGrid>(&self, offset: Vector2<i16>, depth: i16, grid: &mut G) {
         self.child.view(offset + self.child_offset(), depth, grid);
 
@@ -166,6 +166,9 @@ impl<V: View> View for Border<V> {
             }
         }
     }
+}
+
+impl<V: View + ViewSize>  ViewSize for Border<V> {
     fn size(&self) -> Vector2<u16> {
         self.child.size() + Vector2 {
             x: self.padding.left + self.padding.right + 2,

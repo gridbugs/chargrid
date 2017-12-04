@@ -363,12 +363,6 @@ impl View for Model {
         let piece_offset = Vector2::new(self.game_canvas.size().x + 1, 1).cast();
         self.piece_canvas.view(offset + piece_offset, depth, grid);
     }
-    fn size(&self) -> Vector2<u16> {
-        Vector2 {
-            x: self.game_canvas.size().x + self.piece_canvas.size().x + 2,
-            y: self.game_canvas.size().y + self.piece_canvas.size().y + 2,
-        }
-    }
 }
 
 struct Frontend {

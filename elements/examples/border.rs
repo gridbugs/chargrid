@@ -19,6 +19,8 @@ impl View for App {
         self.a.view(offset + Vector2::new(1, 1), depth, grid);
         self.b.view(offset + Vector2::new(self.a.size().x as i16 + 6, 1), depth, grid);
     }
+}
+impl ViewSize for App {
     fn size(&self) -> Vector2<u16> {
         Vector2::new(30, 20)
     }

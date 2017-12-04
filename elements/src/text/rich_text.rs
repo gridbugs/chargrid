@@ -83,5 +83,8 @@ impl View for RichText {
             }
         }
     }
+}
+
+impl ViewSize for RichText {
     fn size(&self) -> Vector2<u16> { self.size }
 }

@@ -31,7 +31,9 @@ pub trait View {
      * the `view` methed of lower level components which make up the ui.
      */
     fn view<G: ViewGrid>(&self, offset: Vector2<i16>, depth: i16, grid: &mut G);
+}
 
+pub trait ViewSize {
     /**
      * Returns the size in cells of the rectangle containing a ui element.
      * This allows for the implementation of decorator ui components that

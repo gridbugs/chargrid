@@ -135,5 +135,8 @@ impl View for Canvas {
             }
         }
     }
+}
+
+impl ViewSize for Canvas {
     fn size(&self) -> Vector2<u16> { self.size }
 }

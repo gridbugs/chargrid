@@ -59,5 +59,8 @@ impl View for Text {
             }
         }
     }
+}
+
+impl ViewSize for Text {
     fn size(&self) -> Vector2<u16> { self.size }
 }
