@@ -13,7 +13,6 @@ impl View for Model {
             grid.get_mut(coord).map(|cell| cell.update(c, depth));
         }
     }
-    fn size(&self) -> Vector2<u16> { Vector2::new(10, 10) }
 }
 
 fn main() {

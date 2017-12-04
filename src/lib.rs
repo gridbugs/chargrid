@@ -16,7 +16,6 @@ mod view;
 mod iterators;
 
 pub use self::error::{Result, Error};
-pub use self::core::terminal::Terminal;
 pub use self::input::Input;
 pub use self::context::*;
 pub use self::view::*;

@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::io::{self, Write};
 use std::time::Duration;
 use cgmath::Vector2;
 use term::terminfo::parm::{self, Param};
@@ -14,12 +13,6 @@ const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
 const INPUT_BUFFER_INITIAL_CAPACITY: usize = 32;
 const INPUT_RING_INITIAL_CAPACITY: usize = 32;
 
-/**
- * A low-level interface to a terminal.
- *
- * All operations are buffered in memory,
- * and are only applied to the terminal when `flush` is called.
- */
 pub struct Terminal {
     backend: UnixBackend,
     output_buffer: String,
@@ -29,11 +22,6 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    /**
-     * Create a Terminal representing the current terminal session. This will fail
-     * if the file "/dev/tty" doesn't exist, or the terminal doesn't have a required
-     * capability.
-     */
     pub fn new() -> Result<Self> {
         let backend = UnixBackend::new()?;
         let output_buffer = String::with_capacity(OUTPUT_BUFFER_INITIAL_CAPACITY);
@@ -60,7 +48,7 @@ impl Terminal {
         self.output_buffer.push_str(&self.ti_cache.hide_cursor);
         self.output_buffer.push_str(&self.ti_cache.clear);
 
-        self.flush().map_err(Into::into)
+        self.flush_buffer().map_err(Into::into)
     }
 
     fn teardown(&mut self) -> Result<()> {
@@ -69,19 +57,13 @@ impl Terminal {
         self.output_buffer.push_str(&self.ti_cache.show_cursor);
         self.output_buffer.push_str(&self.ti_cache.reset);
 
-        self.flush().map_err(Into::into)
+        self.flush_buffer().map_err(Into::into)
     }
 
-    /**
-     * Returns the size of the terimnal in cells.
-     */
     pub fn size(&self) -> Result<Vector2<u16>> {
         self.backend.size()
     }
 
-    /**
-     * Move the cursor to a coordinate.
-     */
     pub fn set_cursor(&mut self, coord: Vector2<u16>) -> Result<()> {
         let params = &[Param::Number(coord.y as i32), Param::Number(coord.x as i32)];
         let command = parm::expand(self.ti_cache.set_cursor.as_bytes(), params, &mut self.ti_cache.vars)?;
@@ -90,57 +72,30 @@ impl Terminal {
         Ok(())
     }
 
-    /**
-     * Set the colour of text. All writes to the terminal will use the
-     * most-recently-set foreground colour.
-     */
     pub fn set_foreground_colour(&mut self, colour: Colour) {
         self.output_buffer.push_str(self.ti_cache.fg_colour(colour));
     }
 
-    /**
-     * Set the background colour of text. All writes to the terminal
-     * will use the most-recently-set background colour.
-     */
     pub fn set_background_colour(&mut self, colour: Colour) {
         self.output_buffer.push_str(self.ti_cache.bg_colour(colour));
     }
 
-    /**
-     * Set bold mode. All characters written after this method is
-     * called will appear in bold. Frustratingly, there is no way to
-     * just unset bold mode. To unset bold mode, one must call the
-     * `reset` method, which also clears underline mode.
-     */
     pub fn set_bold(&mut self) {
         self.output_buffer.push_str(&self.ti_cache.bold);
     }
 
-    /**
-     * Enter underline mode.
-     */
     pub fn set_underline(&mut self) {
         self.output_buffer.push_str(&self.ti_cache.underline);
     }
 
-    /**
-     * Exit underline mode.
-     */
     pub fn clear_underline(&mut self) {
         self.output_buffer.push_str(&self.ti_cache.no_underline);
     }
 
-    /**
-     * Reset formatting modes (bold and underline).
-     */
     pub fn reset(&mut self) {
         self.output_buffer.push_str(&self.ti_cache.reset);
     }
 
-    /**
-     * Gets an input event from the terminal if one is present,
-     * returning immediately.
-     */
     pub fn poll_input(&mut self) -> Result<Option<Input>> {
         if let Some(input) = self.input_ring.pop_front() {
             return Ok(Some(input));
@@ -150,10 +105,6 @@ impl Terminal {
         Ok(self.input_ring.pop_front())
     }
 
-    /**
-     * Gets an input event from the terminal, waiting until
-     * an event occurs.
-     */
     pub fn wait_input(&mut self) -> Result<Input> {
         let input = loop {
             // This loop is for good measure. If for some reason
@@ -170,11 +121,6 @@ impl Terminal {
         Ok(input)
     }
 
-    /**
-     * Gets an input event from the terminal, waiting until
-     * either an event occurs, or the timeout expires, in which
-     * case this method returns `None`.
-     */
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
         if let Some(input) = self.input_ring.pop_front() {
             return Ok(Some(input));
@@ -232,37 +178,11 @@ impl Terminal {
         Ok(())
     }
 
-    /**
-     * Buffer a single character.
-     */
     pub fn add_char_to_buffer(&mut self, ch: char) {
         self.output_buffer.push(ch);
     }
 
-    /**
-     * Buffer a string.
-     */
-    pub fn add_str_to_buffer(&mut self, s: &str) {
-        self.output_buffer.push_str(s);
-    }
-
-    /**
-     * Drain the entire buffer, writing its contents to the terminal.
-     */
     pub fn flush_buffer(&mut self) -> Result<()> {
-        self.backend.send(&self.output_buffer)?;
-        self.output_buffer.clear();
-        Ok(())
-    }
-}
-
-impl Write for Terminal {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.output_buffer.push_str(::std::str::from_utf8(buf).unwrap());
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
         self.backend.send(&self.output_buffer)?;
         self.output_buffer.clear();
         Ok(())

@@ -19,10 +19,6 @@ ansi_colour = "0.1"
 itertools = "0.7"
 
 [[example]]
-name = "hello_world"
-path = "examples/hello_world.rs"
-
-[[example]]
 name = "echo_timeout"
 path = "examples/echo_timeout.rs"
 

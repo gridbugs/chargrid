@@ -1,21 +1,19 @@
 extern crate prototty;
-use std::io::Write;
 use std::time::Duration;
-use prototty::{Terminal, Input};
+use prototty::{Context, Input};
 
 const ESCAPE: char = '\u{1b}';
 const ETX: char = '\u{3}';
 
 fn main() {
     let error = {
-        let mut terminal = Terminal::new().unwrap();
+        let mut context = Context::new().unwrap();
 
         loop {
-            let input = match terminal.wait_input_timeout(Duration::from_millis(1000)) {
+            let input = match context.wait_input_timeout(Duration::from_millis(1000)) {
                 Ok(Some(input)) => input,
                 Ok(None) => {
-                    writeln!(&mut terminal, "\rtimeout").unwrap();
-                    terminal.flush().unwrap();
+                    println!("timeout\r");
                     continue;
                 }
                 Err(e) => break Some(e),
@@ -24,8 +22,7 @@ fn main() {
             if input == Input::Char(ESCAPE) || input == Input::Char(ETX) {
                 break None;
             } else {
-                writeln!(&mut terminal, "\r{:?}", input).unwrap();
-                terminal.flush().unwrap();
+                println!("{:?}\r", input);
             }
         }
     };
