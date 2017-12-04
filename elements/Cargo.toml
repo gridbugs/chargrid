@@ -1,7 +1,7 @@
 [package]
 name = "prototty_elements"
 description = "Collection of ui elements for use with prototty"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
