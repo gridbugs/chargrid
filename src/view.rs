@@ -33,6 +33,9 @@ pub trait View {
     fn view<G: ViewGrid>(&self, offset: Vector2<i16>, depth: i16, grid: &mut G);
 }
 
+/**
+ * Allows a ui element to report its size.
+ */
 pub trait ViewSize {
     /**
      * Returns the size in cells of the rectangle containing a ui element.
