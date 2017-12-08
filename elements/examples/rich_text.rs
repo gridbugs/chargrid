@@ -5,7 +5,8 @@ extern crate ansi_colour;
 
 use ansi_colour::colours;
 use prototty::*;
-use prototty_elements::*;
+use prototty_elements::elements::*;
+use prototty_elements::common::*;
 
 fn main() {
 

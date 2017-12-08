@@ -3,6 +3,9 @@ use cgmath::Vector2;
 use ansi_colour::Colour;
 use defaults::*;
 
+/// The characters comprising a border. By default, borders are made of unicode
+/// box-drawing characters, but they can be changed to arbitrary characters via
+/// this struct.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BorderChars {
     pub top: char,
@@ -34,6 +37,8 @@ impl Default for BorderChars {
     }
 }
 
+/// The space in cells between the edge of the bordered area
+/// and the element inside.
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct BorderPadding {
     pub top: u16,
@@ -42,6 +47,11 @@ pub struct BorderPadding {
     pub right: u16,
 }
 
+/// Decorate another element with a border.
+/// The child element must implement `View` and `ViewSize`,
+/// and can be accessed via the `child` field.
+/// It's possible to give the border a title, in which case
+/// the text appears in the top-left corner.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Border<V: View + ViewSize> {
     pub child: V,

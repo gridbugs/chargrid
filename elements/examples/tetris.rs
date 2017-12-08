@@ -10,7 +10,10 @@ use std::time::{Duration, Instant};
 use rand::Rng;
 use cgmath::Vector2;
 use prototty::*;
-use prototty_elements::*;
+use prototty_elements::elements::*;
+use prototty_elements::common::*;
+use prototty_elements::menu::*;
+use prototty_elements::canvas::*;
 use ansi_colour::{Colour, colours};
 
 const BLANK_COLOUR: Colour = colours::DARK_GREY;
@@ -410,10 +413,10 @@ impl Frontend {
         let mut menu = Border::new(MenuInstance::new(Menu::smallest(vec![
             ("Play", MainMenuChoice::Play),
             ("Quit", MainMenuChoice::Quit),
-        ])));
+        ])).unwrap());
 
         match self.context.run_menu(&mut menu, |b| &mut b.child).unwrap() {
-            MenuAction::Select(x) => x,
+            MenuChoice::Finalise(x) => x,
             _ => MainMenuChoice::Quit,
         }
     }

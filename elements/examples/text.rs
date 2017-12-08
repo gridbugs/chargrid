@@ -2,7 +2,7 @@ extern crate prototty;
 extern crate prototty_elements;
 
 use prototty::*;
-use prototty_elements::*;
+use prototty_elements::elements::*;
 
 fn main() {
     let mut context = Context::new().unwrap();

@@ -8,6 +8,14 @@ use super::iterators::*;
 
 const BLANK: char = ' ';
 
+/// Iterator over cells in a `CanvasBuffer`.
+pub type Iter<'a> = slice::Iter<'a, CanvasCell>;
+
+/// Iterator over cells in a `CanvasBuffer`
+/// allowing modification.
+pub type IterMut<'a> = slice::IterMut<'a, CanvasCell>;
+
+/// A single cell of a `CanvasBuffer`.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CanvasCell {
     pub character: char,
@@ -29,6 +37,7 @@ impl Default for CanvasCell {
     }
 }
 
+/// Grid of cells used to update a canvas.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CanvasBuffer {
     size: Vector2<u16>,
@@ -36,7 +45,7 @@ pub struct CanvasBuffer {
 }
 
 impl CanvasBuffer {
-    pub fn new(size: Vector2<u16>) -> Self {
+    fn new(size: Vector2<u16>) -> Self {
         let capacity = (size.x * size.y) as usize;
         let mut cells = Vec::with_capacity(capacity);
         cells.resize(capacity, Default::default());
@@ -45,6 +54,8 @@ impl CanvasBuffer {
             cells,
         }
     }
+
+    /// Returns a mutable reference to a cell at the given coordinate.
     pub fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut CanvasCell> {
         if coord.x < 0 || coord.y < 0 {
             return None;
@@ -55,18 +66,41 @@ impl CanvasBuffer {
         }
         Some(&mut self.cells[(coord.y * self.size.x + coord.x) as usize])
     }
+
+    /// Returns a reference to a cell at the given coordinate.
+    pub fn get(&self, coord: Vector2<i16>) -> Option<&CanvasCell> {
+        if coord.x < 0 || coord.y < 0 {
+            return None;
+        }
+        let coord: Vector2<u16> = coord.cast();
+        if coord.x >= self.size.x || coord.y >= self.size.y {
+            return None;
+        }
+        Some(&self.cells[(coord.y * self.size.x + coord.x) as usize])
+    }
+
+    /// Returns an iterator over the coordinates of the buffer.
     pub fn coords(&self) -> CoordIter {
         CoordIter::new(self.size)
     }
-    pub fn iter(&self) -> slice::Iter<CanvasCell> {
+
+    /// Returns an iterator over the cells in the buffer.
+    pub fn iter(&self) -> Iter {
         self.cells.iter()
     }
-    pub fn iter_mut(&mut self) -> slice::IterMut<CanvasCell> {
+
+    /// Returns a iterator that allows modifying each cell.
+    pub fn iter_mut(&mut self) -> IterMut {
         self.cells.iter_mut()
     }
+
+    /// Returns an iterator over pairs of coordinates and cells.
     pub fn enumerate(&self) -> CoordEnumerate<CanvasCell> {
         CoordEnumerate::new(self.coords(), self.iter())
     }
+
+    /// Returns an iterator over pairs of coordinates and cells
+    /// allowing modification of the cells.
     pub fn enumerate_mut(&mut self) -> CoordEnumerateMut<CanvasCell> {
         CoordEnumerateMut::new(self.coords(), self.iter_mut())
     }
@@ -74,12 +108,18 @@ impl CanvasBuffer {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum CanvasError {
+    /// Indicates that there was a mismatch between a canvas size and
+    /// a buffer size.
     DifferentBufferSizes {
         current: Vector2<u16>,
         new: Vector2<u16>,
     },
 }
 
+/// A rectangular drawing element. To draw to the canvas,
+/// create a buffer with `make_buffer`, update the buffer
+/// with the image to draw, and send it to the canvas with
+/// `swap_buffer`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Canvas {
     size: Vector2<u16>,
@@ -97,15 +137,19 @@ impl Canvas {
             cells,
         }
     }
-    pub fn set_size<D: Into<Vector2<u16>>>(&mut self, size: D) {
-        let size = size.into();
-        let capacity = (size.x * size.y) as usize;
-        self.size = size;
-        self.cells = Vec::with_capacity(capacity);
-    }
+
+    /// Make a new `CanvasBuffer` for use with this canvas.
     pub fn make_buffer(&self) -> CanvasBuffer {
         CanvasBuffer::new(self.size)
     }
+
+    /// Update the canvas with the contents of a `CanvasBuffer`.
+    /// No guarantee is made about the contents of the provided buffer
+    /// after calling this method. The provided buffer must be the
+    /// same size as the canvas. This can be guaranteed by only
+    /// swapping buffers created by with `make_buffer` from the same
+    /// canvas. This function returns an error if the provided buffer
+    /// isn't the correct size.
     pub fn swap_buffer(&mut self, buffer: &mut CanvasBuffer)
         -> ::std::result::Result<(), CanvasError>
     {

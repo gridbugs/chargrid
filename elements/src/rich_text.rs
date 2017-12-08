@@ -1,7 +1,8 @@
 use prototty::*;
 use cgmath::Vector2;
-use text_info::*;
+use common::TextInfo;
 
+/// A section of text sharing a common `TextInfo`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RichTextPart {
     pub string: String,
@@ -17,6 +18,9 @@ impl<S: Into<String>> From<(S, TextInfo)> for RichTextPart {
     }
 }
 
+/// A text element, where the style of the text
+/// can be controlled. A single `RichText` element can have
+/// several different parts, each styled differently.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RichText {
     pub parts: Vec<RichTextPart>,
@@ -24,6 +28,7 @@ pub struct RichText {
 }
 
 impl RichText {
+    /// Create a new `RichText` element.
     pub fn new<S, V>(mut parts: Vec<(S, TextInfo)>, size: V) -> Self
         where S: Into<String>,
               V: Into<Vector2<u16>>,
@@ -33,6 +38,9 @@ impl RichText {
             size: size.into(),
         }
     }
+
+    /// Create a new `Text` element of an appropriate
+    /// size for a single line.
     pub fn one_line<S>(mut parts: Vec<(S, TextInfo)>) -> Self
         where S: Into<String>,
     {

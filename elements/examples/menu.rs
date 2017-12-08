@@ -7,7 +7,8 @@ use std::time::Duration;
 use std::thread;
 use ansi_colour::colours;
 use prototty::*;
-use prototty_elements::*;
+use prototty_elements::elements::*;
+use prototty_elements::menu::*;
 
 fn main() {
     let mut ctx = Context::new().unwrap();
@@ -21,13 +22,13 @@ fn main() {
 
     menu.selected_info.foreground_colour = colours::RED;
 
-    let mut menu_instance = Border::new(MenuInstance::new(menu));
+    let mut menu_instance = Border::new(MenuInstance::new(menu).unwrap());
 
     let choice = loop {
         match ctx.run_menu(&mut menu_instance, |v| &mut v.child).unwrap() {
-            MenuAction::Quit => return,
-            MenuAction::Escape => break None,
-            MenuAction::Select(x) => break Some(x),
+            MenuChoice::Quit => return,
+            MenuChoice::Cancel => break None,
+            MenuChoice::Finalise(x) => break Some(x),
         }
     };
 

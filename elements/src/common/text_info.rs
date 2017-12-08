@@ -1,6 +1,7 @@
 use ansi_colour::Colour;
 use defaults::*;
 
+/// Rich text settings
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct TextInfo {
     pub foreground_colour: Colour,

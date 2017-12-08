@@ -7,17 +7,29 @@ extern crate serde;
 
 mod defaults;
 
-mod text_info;
+pub mod common;
 
-mod text;
-mod border;
-mod canvas;
-mod menu;
-mod menu_runner;
+/// Borders around other elements
+pub mod border;
 
-pub use self::text_info::*;
-pub use self::text::*;
-pub use self::border::*;
-pub use self::canvas::*;
-pub use self::menu::*;
-pub use self::menu_runner::*;
+/// Drawing canvas
+pub mod canvas;
+
+/// Graphical menus
+pub mod menu;
+
+/// Rich text
+pub mod rich_text;
+
+/// Plain text
+pub mod text;
+
+pub mod elements {
+    //! Re-exports all elements
+
+    pub use super::border::Border;
+    pub use super::canvas::Canvas;
+    pub use super::menu::MenuInstance;
+    pub use super::rich_text::RichText;
+    pub use super::text::Text;
+}

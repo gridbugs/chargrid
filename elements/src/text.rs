@@ -1,6 +1,8 @@
 use prototty::*;
 use cgmath::Vector2;
 
+/// A plain text element. Text wraps naively.
+/// Text that doesn't fit in `size` is truncated.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Text {
     pub string: String,
@@ -8,6 +10,7 @@ pub struct Text {
 }
 
 impl Text {
+    /// Create a new `Text` element.
     pub fn new<S, V>(string: S, size: V) -> Self
         where S: Into<String>,
               V: Into<Vector2<u16>>,
@@ -17,6 +20,9 @@ impl Text {
             size: size.into(),
         }
     }
+
+    /// Create a new `Text` element of an appropriate
+    /// size for a single line.
     pub fn one_line<S>(string: S) -> Self
         where S: Into<String>,
     {

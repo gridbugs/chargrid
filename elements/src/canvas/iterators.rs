@@ -1,6 +1,7 @@
 use std::slice;
 use cgmath::Vector2;
 
+/// Iterator over coordinates of cells in 2D grid.
 #[derive(Debug, Clone)]
 pub struct CoordIter {
     size: Vector2<i16>,
@@ -8,7 +9,7 @@ pub struct CoordIter {
 }
 
 impl CoordIter {
-    pub fn new(size: Vector2<u16>) -> Self {
+    pub(crate) fn new(size: Vector2<u16>) -> Self {
         Self {
             size: size.cast(),
             coord: Vector2::new(0, 0),
@@ -35,6 +36,7 @@ impl Iterator for CoordIter {
     }
 }
 
+/// Iterator over pairs of coordinates and values.
 #[derive(Debug, Clone)]
 pub struct CoordEnumerate<'a, T: 'a> {
     coords: CoordIter,
@@ -56,6 +58,8 @@ impl<'a, T> Iterator for CoordEnumerate<'a, T> {
     }
 }
 
+/// Iterator over pairs of coordinates and values,
+/// allowing modification of values.
 #[derive(Debug)]
 pub struct CoordEnumerateMut<'a, T: 'a> {
     coords: CoordIter,
