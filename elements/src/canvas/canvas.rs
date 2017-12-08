@@ -8,7 +8,7 @@ use super::iterators::*;
 
 const BLANK: char = ' ';
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CanvasCell {
     pub character: char,
     pub foreground_colour: Colour,
@@ -29,7 +29,7 @@ impl Default for CanvasCell {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CanvasBuffer {
     size: Vector2<u16>,
     cells: Vec<CanvasCell>,
@@ -72,7 +72,7 @@ impl CanvasBuffer {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum CanvasError {
     DifferentBufferSizes {
         current: Vector2<u16>,
@@ -80,7 +80,7 @@ pub enum CanvasError {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Canvas {
     size: Vector2<u16>,
     cells: Vec<CanvasCell>,

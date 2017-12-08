@@ -5,7 +5,7 @@ const ESCAPE: char = '\u{1b}';
 const ETX: char = '\u{3}';
 const RETURN: char = '\u{d}';
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum MenuAction<T> {
     Quit,
     Escape,

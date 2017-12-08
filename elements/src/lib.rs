@@ -2,6 +2,8 @@ extern crate prototty;
 extern crate cgmath;
 extern crate ansi_colour;
 #[macro_use] extern crate itertools;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
 
 mod defaults;
 

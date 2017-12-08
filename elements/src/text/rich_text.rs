@@ -2,7 +2,7 @@ use prototty::*;
 use cgmath::Vector2;
 use text_info::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RichTextPart {
     pub string: String,
     pub info: TextInfo,
@@ -17,7 +17,7 @@ impl<S: Into<String>> From<(S, TextInfo)> for RichTextPart {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RichText {
     pub parts: Vec<RichTextPart>,
     pub size: Vector2<u16>,

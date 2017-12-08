@@ -1,6 +1,7 @@
 use std::slice;
 use cgmath::Vector2;
 
+#[derive(Debug, Clone)]
 pub struct CoordIter {
     size: Vector2<i16>,
     coord: Vector2<i16>,
@@ -34,6 +35,7 @@ impl Iterator for CoordIter {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CoordEnumerate<'a, T: 'a> {
     coords: CoordIter,
     iter: slice::Iter<'a, T>,
@@ -54,6 +56,7 @@ impl<'a, T> Iterator for CoordEnumerate<'a, T> {
     }
 }
 
+#[derive(Debug)]
 pub struct CoordEnumerateMut<'a, T: 'a> {
     coords: CoordIter,
     iter: slice::IterMut<'a, T>,

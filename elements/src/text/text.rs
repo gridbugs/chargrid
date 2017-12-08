@@ -1,6 +1,7 @@
 use prototty::*;
 use cgmath::Vector2;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Text {
     pub string: String,
     pub size: Vector2<u16>,

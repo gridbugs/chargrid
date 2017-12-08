@@ -10,9 +10,11 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_elements"
 
 [dependencies]
+serde = "1.0"
+serde_derive = "1.0"
 rand = "0.3"
 itertools = "0.7"
-cgmath = "0.15"
+cgmath = { version = "0.15", features = ["serde"] }
 ansi_colour = "0.1"
 prototty = { path = "..", version = "0.4" }
 

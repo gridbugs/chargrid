@@ -4,6 +4,7 @@ use prototty::*;
 use text_info::*;
 use defaults::*;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MenuEntry<T: Copy> {
     pub name: String,
     pub value: T,
@@ -18,6 +19,7 @@ impl<T: Copy, S: Into<String>> From<(S, T)> for MenuEntry<T> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Menu<T: Copy> {
     pub entries: Vec<MenuEntry<T>>,
     pub size: Vector2<u16>,
@@ -59,6 +61,7 @@ impl<T: Copy> Menu<T> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MenuInstance<T: Copy> {
     pub menu: Menu<T>,
     index: usize,

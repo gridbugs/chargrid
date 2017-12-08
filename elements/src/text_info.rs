@@ -1,7 +1,7 @@
 use ansi_colour::Colour;
 use defaults::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct TextInfo {
     pub foreground_colour: Colour,
     pub backrgound_colour: Colour,

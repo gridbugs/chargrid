@@ -3,6 +3,7 @@ use cgmath::Vector2;
 use ansi_colour::Colour;
 use defaults::*;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BorderChars {
     pub top: char,
     pub bottom: char,
@@ -33,7 +34,7 @@ impl Default for BorderChars {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct BorderPadding {
     pub top: u16,
     pub bottom: u16,
@@ -41,6 +42,7 @@ pub struct BorderPadding {
     pub right: u16,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Border<V: View + ViewSize> {
     pub child: V,
     pub title: Option<String>,
