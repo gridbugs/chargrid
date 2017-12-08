@@ -14,7 +14,7 @@ rand = "0.3"
 itertools = "0.7"
 cgmath = "0.15"
 ansi_colour = "0.1"
-prototty = { path = "..", version = "0.3" }
+prototty = { path = "..", version = "0.4" }
 
 [[example]]
 name = "text"
