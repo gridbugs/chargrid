@@ -122,7 +122,7 @@ impl<T: Copy> MenuInstance<T> {
     }
 
     /// Create a new `MenuInstance` with the given index selected.
-    /// Returns `None` if `Menu` has fewer than `index - 1` entries.
+    /// Returns `None` if `index >= menu.entries.len()`.
     pub fn with_index(menu: Menu<T>, index: usize) -> Option<Self> {
         if index < menu.entries.len() {
             Some(Self {
@@ -131,6 +131,18 @@ impl<T: Copy> MenuInstance<T> {
             })
         } else {
             None
+        }
+    }
+
+    /// Returns the current index
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    /// Sets the index, if the specified `index < menu.entries.len()`
+    pub fn set_index(&mut self, index: usize) {
+        if index < self.menu.entries.len() {
+            self.index = index;
         }
     }
 
@@ -152,6 +164,11 @@ impl<T: Copy> MenuInstance<T> {
     /// entry's value.
     pub fn selected(&self) -> T {
         self.menu.entries[self.index].value
+    }
+
+    /// Consumes self, returning the menu
+    pub fn into_menu(self) -> Menu<T> {
+        self.menu
     }
 }
 
