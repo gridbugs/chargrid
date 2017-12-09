@@ -1,5 +1,4 @@
 use std::slice;
-use std::mem;
 use prototty::*;
 use cgmath::Vector2;
 use ansi_colour::Colour;
@@ -8,14 +7,14 @@ use super::iterators::*;
 
 const BLANK: char = ' ';
 
-/// Iterator over cells in a `CanvasBuffer`.
+/// Iterator over cells in a `Canvas`.
 pub type Iter<'a> = slice::Iter<'a, CanvasCell>;
 
-/// Iterator over cells in a `CanvasBuffer`
+/// Iterator over cells in a `Canvas`
 /// allowing modification.
 pub type IterMut<'a> = slice::IterMut<'a, CanvasCell>;
 
-/// A single cell of a `CanvasBuffer`.
+/// A single cell of a `Canvas`.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CanvasCell {
     pub character: char,
@@ -37,15 +36,16 @@ impl Default for CanvasCell {
     }
 }
 
-/// Grid of cells used to update a canvas.
+/// A rectangular drawing element.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CanvasBuffer {
+pub struct Canvas {
     size: Vector2<u16>,
     cells: Vec<CanvasCell>,
 }
 
-impl CanvasBuffer {
-    fn new(size: Vector2<u16>) -> Self {
+impl Canvas {
+    pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
+        let size = size.into();
         let capacity = (size.x * size.y) as usize;
         let mut cells = Vec::with_capacity(capacity);
         cells.resize(capacity, Default::default());
@@ -79,12 +79,12 @@ impl CanvasBuffer {
         Some(&self.cells[(coord.y * self.size.x + coord.x) as usize])
     }
 
-    /// Returns an iterator over the coordinates of the buffer.
+    /// Returns an iterator over the coordinates of the canvas.
     pub fn coords(&self) -> CoordIter {
         CoordIter::new(self.size)
     }
 
-    /// Returns an iterator over the cells in the buffer.
+    /// Returns an iterator over the cells in the canvas.
     pub fn iter(&self) -> Iter {
         self.cells.iter()
     }
@@ -103,66 +103,6 @@ impl CanvasBuffer {
     /// allowing modification of the cells.
     pub fn enumerate_mut(&mut self) -> CoordEnumerateMut<CanvasCell> {
         CoordEnumerateMut::new(self.coords(), self.iter_mut())
-    }
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum CanvasError {
-    /// Indicates that there was a mismatch between a canvas size and
-    /// a buffer size.
-    DifferentBufferSizes {
-        current: Vector2<u16>,
-        new: Vector2<u16>,
-    },
-}
-
-/// A rectangular drawing element. To draw to the canvas,
-/// create a buffer with `make_buffer`, update the buffer
-/// with the image to draw, and send it to the canvas with
-/// `swap_buffer`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Canvas {
-    size: Vector2<u16>,
-    cells: Vec<CanvasCell>,
-}
-
-impl Canvas {
-    pub fn new<D: Into<Vector2<u16>>>(size: D) -> Self {
-        let size = size.into();
-        let capacity = (size.x * size.y) as usize;
-        let mut cells = Vec::with_capacity(capacity);
-        cells.resize(capacity, Default::default());
-        Self {
-            size,
-            cells,
-        }
-    }
-
-    /// Make a new `CanvasBuffer` for use with this canvas.
-    pub fn make_buffer(&self) -> CanvasBuffer {
-        CanvasBuffer::new(self.size)
-    }
-
-    /// Update the canvas with the contents of a `CanvasBuffer`.
-    /// No guarantee is made about the contents of the provided buffer
-    /// after calling this method. The provided buffer must be the
-    /// same size as the canvas. This can be guaranteed by only
-    /// swapping buffers created by with `make_buffer` from the same
-    /// canvas. This function returns an error if the provided buffer
-    /// isn't the correct size.
-    pub fn swap_buffer(&mut self, buffer: &mut CanvasBuffer)
-        -> ::std::result::Result<(), CanvasError>
-    {
-        if self.size != buffer.size {
-            return Err(CanvasError::DifferentBufferSizes {
-                current: self.size,
-                new: buffer.size,
-            });
-        }
-
-        mem::swap(&mut self.cells, &mut buffer.cells);
-
-        Ok(())
     }
 }
 

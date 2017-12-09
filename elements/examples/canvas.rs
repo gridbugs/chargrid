@@ -16,26 +16,20 @@ const HEIGHT: u16 = 10;
 fn main() {
 
     let mut canvas = Canvas::new((WIDTH, HEIGHT));
-    let mut buffer = canvas.make_buffer();
     let mut ctx = Context::new().unwrap();
 
-    let mut coord = Vector2::new(0, 0);
+    let mut current_coord = Vector2::new(0, 0);
 
     loop {
 
-        for j in 0..HEIGHT as i16 {
-            for i in 0..WIDTH as i16 {
-                let grid_coord = Vector2::new(i, j);
-                let cell = buffer.get_mut(grid_coord).unwrap();
-                if grid_coord == coord {
-                    cell.background_colour = colours::RED;
-                } else {
-                    cell.background_colour = colours::WHITE;
-                }
+        for (coord, cell) in canvas.enumerate_mut() {
+            if coord == current_coord {
+                cell.background_colour = colours::RED;
+            } else {
+                cell.background_colour = colours::WHITE;
             }
         }
 
-        canvas.swap_buffer(&mut buffer).unwrap();
         ctx.render(&canvas).unwrap();
 
         let direction = match ctx.wait_input().unwrap() {
@@ -47,11 +41,11 @@ fn main() {
             _ => continue,
         };
 
-        let new_coord = coord + direction;
+        let new_coord = current_coord + direction;
         if new_coord.x < 0 || new_coord.y < 0 || new_coord.x >= WIDTH as i16 || new_coord.y >= HEIGHT as i16 {
             continue;
         }
 
-        coord = new_coord;
+        current_coord = new_coord;
     }
 }

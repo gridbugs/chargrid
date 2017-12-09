@@ -13,7 +13,6 @@ use prototty::*;
 use prototty_elements::elements::*;
 use prototty_elements::common::*;
 use prototty_elements::menu::*;
-use prototty_elements::canvas::*;
 use ansi_colour::{Colour, colours};
 
 const BLANK_COLOUR: Colour = colours::DARK_GREY;
@@ -312,8 +311,8 @@ impl Game {
         self.board.add_piece(piece);
     }
 
-    fn render(&self, buffer: &mut CanvasBuffer) {
-        for (coord, canvas_cell) in buffer.enumerate_mut() {
+    fn render(&self, canvas: &mut Canvas) {
+        for (coord, canvas_cell) in canvas.enumerate_mut() {
             let board_cell = self.board.get(coord).unwrap();
             if let Some(colour) = board_cell.colour {
                 canvas_cell.background_colour = colour;
@@ -325,22 +324,22 @@ impl Game {
             }
         }
         for coord in self.piece.coords.iter().cloned() {
-            if let Some(buffer_cell) = buffer.get_mut(coord) {
-                buffer_cell.background_colour = self.piece.colour;
-                buffer_cell.foreground_colour = FOREGROUND_COLOUR;
-                buffer_cell.character = BLOCK_CHAR;
+            if let Some(canvas_cell) = canvas.get_mut(coord) {
+                canvas_cell.background_colour = self.piece.colour;
+                canvas_cell.foreground_colour = FOREGROUND_COLOUR;
+                canvas_cell.character = BLOCK_CHAR;
             }
         }
     }
 
-    fn render_next(&self, buffer: &mut CanvasBuffer) {
-        for cell in buffer.iter_mut() {
+    fn render_next(&self, canvas: &mut Canvas) {
+        for cell in canvas.iter_mut() {
             cell.character = ' ';
             cell.foreground_colour = BLANK_COLOUR;
             cell.background_colour = BLANK_COLOUR;
         }
         for coord in self.next_piece.coords.iter().cloned() {
-            if let Some(cell) = buffer.get_mut(coord + Vector2::new(1, 0)) {
+            if let Some(cell) = canvas.get_mut(coord + Vector2::new(1, 0)) {
                 cell.character = BLOCK_CHAR;
                 cell.foreground_colour = FOREGROUND_COLOUR;
                 cell.background_colour = self.next_piece.colour;
@@ -371,8 +370,6 @@ impl View for Model {
 struct Frontend {
     context: Context,
     model: Model,
-    game_buffer: CanvasBuffer,
-    piece_buffer: CanvasBuffer,
 }
 
 impl Frontend {
@@ -389,13 +386,9 @@ impl Frontend {
         model.game_canvas.foreground_colour = BORDER_COLOUR;
         model.game_canvas.background_colour = BORDER_BACKGROUND;
 
-        let game_buffer = model.game_canvas.child.make_buffer();
-        let piece_buffer = model.piece_canvas.child.make_buffer();
         Self {
             context,
             model,
-            game_buffer,
-            piece_buffer,
         }
     }
     fn display_end_text(&mut self) {
@@ -403,10 +396,8 @@ impl Frontend {
                 vec![("YOU DIED", TextInfo::default().bold().foreground_colour(colours::RED))])).unwrap();
     }
     fn render(&mut self, game: &Game) {
-        game.render(&mut self.game_buffer);
-        self.model.game_canvas.child.swap_buffer(&mut self.game_buffer).unwrap();
-        game.render_next(&mut self.piece_buffer);
-        self.model.piece_canvas.child.swap_buffer(&mut self.piece_buffer).unwrap();
+        game.render(&mut self.model.game_canvas.child);
+        game.render_next(&mut self.model.piece_canvas.child);
         self.context.render(&self.model).unwrap();
     }
     fn main_menu(&mut self) -> MainMenuChoice {
