@@ -56,7 +56,8 @@ impl Canvas {
     }
 
     /// Returns a mutable reference to a cell at the given coordinate.
-    pub fn get_mut(&mut self, coord: Vector2<i16>) -> Option<&mut CanvasCell> {
+    pub fn get_mut<C: Into<Vector2<i16>>>(&mut self, coord: C) -> Option<&mut CanvasCell> {
+        let coord = coord.into();
         if coord.x < 0 || coord.y < 0 {
             return None;
         }
@@ -68,7 +69,8 @@ impl Canvas {
     }
 
     /// Returns a reference to a cell at the given coordinate.
-    pub fn get(&self, coord: Vector2<i16>) -> Option<&CanvasCell> {
+    pub fn get<C: Into<Vector2<i16>>>(&self, coord: C) -> Option<&CanvasCell> {
+        let coord = coord.into();
         if coord.x < 0 || coord.y < 0 {
             return None;
         }
