@@ -1,7 +1,7 @@
 [package]
 name = "prototty"
-description = "Library for rapid prototyping of terminal UIs"
-version = "0.4.0"
+description = "Definition of traits for terminal rendering"
+version = "0.5.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -10,26 +10,13 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty"
 
 [dependencies]
-serde = "1.0"
-serde_derive = "1.0"
-libc = "0.2"
-term = "0.4"
-cgmath = "0.15"
-ansi_colour = "0.1"
-itertools = "0.7"
+prototty_traits = { path = "./traits" }
+prototty_menu = { path = "./menu" }
+prototty_decorator = { path = "./decorator" }
+prototty_text = { path = "./text" }
+prototty_input = { path = "./input" }
+prototty_unix = { path = "./unix" }
 
 [[example]]
-name = "echo_timeout"
-path = "examples/echo_timeout.rs"
-
-[[example]]
-name = "echo_poll"
-path = "examples/echo_poll.rs"
-
-[[example]]
-name = "echo_wait"
-path = "examples/echo_wait.rs"
-
-[[example]]
-name = "view"
-path = "examples/view.rs"
+name = "bordered_menu"
+path = "examples/bordered_menu.rs"

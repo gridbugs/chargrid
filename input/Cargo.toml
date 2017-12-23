@@ -1,0 +1,8 @@
+[package]
+name = "prototty_input"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+serde = "1.0"
+serde_derive = "1.0"

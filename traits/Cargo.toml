@@ -1,0 +1,8 @@
+[package]
+name = "prototty_traits"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+cgmath = { version = "0.15", features = ["serde"] }
+ansi_colour = "0.2"

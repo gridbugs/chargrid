@@ -1,0 +1,10 @@
+[package]
+name = "prototty_text"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+prototty_defaults = { path = "../defaults" }
+ansi_colour = "0.2"
+serde = "1.0"
+serde_derive = "1.0"
