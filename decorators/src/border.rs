@@ -139,6 +139,13 @@ impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Borde
         }
     }
 }
+
+impl<'a, 'b, T, V: View<T> + ViewSize<T>> ViewSize<T> for Decorated<'a, 'b, V, Border> {
+    fn size(&self, data: &T) -> Size {
+        self.view.size(data) + Size::new(2, 2)
+    }
+}
+
 impl Border {
     pub fn new() -> Self {
         Self {
