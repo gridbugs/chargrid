@@ -107,7 +107,7 @@ impl<C: Default + Clone> Grid<C> {
 impl ViewGrid for Grid<Cell> {
     type Cell = Cell;
     fn get_mut(&mut self, coord: Coord) -> Option<&mut Self::Cell> {
-        let coord: Size = coord.cast();
+        let coord: Size = coord.cast().unwrap();
 
         if coord.x >= self.size.x || coord.y >= self.size.y {
             return None;

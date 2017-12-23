@@ -133,7 +133,7 @@ impl Terminal {
             }
 
             if must_move_cursor {
-                self.ansi.set_cursor(coord.cast())?;
+                self.ansi.set_cursor(coord.cast().unwrap())?;
                 must_move_cursor = false;
             }
 

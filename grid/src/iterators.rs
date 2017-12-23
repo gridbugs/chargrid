@@ -9,7 +9,7 @@ pub struct CoordIter {
 impl CoordIter {
     pub fn new(size: Size) -> Self {
         Self {
-            size: size.cast(),
+            size: size.cast().unwrap(),
             coord: Coord::new(0, 0),
         }
     }

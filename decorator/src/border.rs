@@ -69,7 +69,7 @@ impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Borde
 
         self.view.view(value, offset + self.decorator.child_offset(), depth, grid);
 
-        let span = self.decorator.span_offset() + self.view.size(value).cast();
+        let span = self.decorator.span_offset() + self.view.size(value).cast().unwrap();
 
         if let Some(c) = grid.get_mut(offset) {
             c.update_with_style(self.decorator.chars.top_left, depth, self.decorator.foreground_colour, self.decorator.background_colour,
@@ -170,7 +170,7 @@ impl Border {
         Coord {
             x: (self.padding.left + 1) as i16,
             y: (self.padding.top + 1) as i16,
-        }.cast()
+        }
     }
     fn span_offset(&self) -> Coord {
         Coord {
