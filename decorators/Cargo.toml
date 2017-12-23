@@ -1,5 +1,5 @@
 [package]
-name = "prototty_decorator"
+name = "prototty_decorators"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 

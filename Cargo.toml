@@ -12,7 +12,7 @@ documentation = "https://docs.rs/prototty"
 [dependencies]
 prototty_traits = { path = "./traits" }
 prototty_menu = { path = "./menu" }
-prototty_decorator = { path = "./decorator" }
+prototty_decorators = { path = "./decorators" }
 prototty_text = { path = "./text" }
 prototty_input = { path = "./input" }
 prototty_unix = { path = "./unix" }

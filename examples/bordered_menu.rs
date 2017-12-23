@@ -6,7 +6,7 @@ use std::time::Duration;
 use prototty::menu::*;
 use prototty::unix::*;
 use prototty::traits::*;
-use prototty::decorator::*;
+use prototty::decorators::*;
 
 const PERIOD_MILLIS: u64 = 16;
 const DELAY_MILLIS: u64 = 1000;
