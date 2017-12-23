@@ -1,0 +1,10 @@
+[package]
+name = "unix-app"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+#prototty = { git = "https://github.com/stevebob/prototty", rev = "wasm-backend" }
+prototty = { path = "/home/steve/src/prototty" }
+prototty-app = { path = "../prototty-app" }
+rand = "0.4"
