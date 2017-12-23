@@ -99,25 +99,22 @@ pub enum MenuOutput<T> {
 /// When a `MenuInstance` is rendered, the
 /// currently-selected entry is  rendered using
 /// the `Menu`'s `selected_info`.
-///
-/// Borrows the `Menu`, thus one can't
-/// mutate the menu while it's instantiated.
 #[derive(Debug, Clone)]
-pub struct MenuInstance<'a, T: 'a + Copy> {
-    menu: &'a Menu<T>,
+pub struct MenuInstance<T: Copy> {
+    menu: Menu<T>,
     index: usize,
 }
 
-impl<'a, T: Copy> MenuInstance<'a, T> {
+impl<T: Copy> MenuInstance<T> {
     /// Create a new `MenuInstance` with the first entry selected.
     /// Returns `None` if the `Menu` has 0 elements.
-    pub fn new(menu: &'a Menu<T>) -> Option<Self> {
+    pub fn new(menu: Menu<T>) -> Option<Self> {
         Self::with_index(menu, 0)
     }
 
     /// Create a new `MenuInstance` with the given index selected.
     /// Returns `None` if `index >= menu.entries.len()`.
-    pub fn with_index(menu: &'a Menu<T>, index: usize) -> Option<Self> {
+    pub fn with_index(menu: Menu<T>, index: usize) -> Option<Self> {
         if index < menu.entries.len() {
             Some(Self {
                 menu,
@@ -186,8 +183,8 @@ impl<'a, T: Copy> MenuInstance<'a, T> {
 
 pub struct DefaultMenuInstanceView;
 
-impl<'a, T: Copy> View<MenuInstance<'a, T>> for DefaultMenuInstanceView {
-    fn view<G: ViewGrid>(&self, value: &MenuInstance<'a, T>,
+impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
+    fn view<G: ViewGrid>(&self, value: &MenuInstance<T>,
                          offset: Coord, depth: i16, grid: &mut G)
     {
         for (i, entry) in value.menu.entries.iter().enumerate() {
@@ -216,8 +213,8 @@ impl<'a, T: Copy> View<MenuInstance<'a, T>> for DefaultMenuInstanceView {
     }
 }
 
-impl<'a, T: Copy> ViewSize<MenuInstance<'a, T>> for DefaultMenuInstanceView {
-    fn size(&self, data: &MenuInstance<'a, T>) -> Size {
+impl<T: Copy> ViewSize<MenuInstance<T>> for DefaultMenuInstanceView {
+    fn size(&self, data: &MenuInstance<T>) -> Size {
         data.menu.size
     }
 }

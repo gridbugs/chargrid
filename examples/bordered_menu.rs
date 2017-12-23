@@ -40,7 +40,7 @@ fn main() {
         ("Three", 3),
     ]);
 
-    let mut instance = MenuInstance::new(&menu).unwrap();
+    let mut instance = MenuInstance::new(menu).unwrap();
     let border = Border::new();
 
     let mut number = None;
