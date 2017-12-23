@@ -78,8 +78,6 @@ impl Renderer for Context {
 
         self.grid.clear();
         view.view(data, Coord::new(0, 0), 0, &mut self.grid);
-        self.terminal.draw_grid(&self.grid)?;
-
-        Ok(())
+        self.terminal.draw_grid(&self.grid)
     }
 }

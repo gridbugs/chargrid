@@ -6,3 +6,6 @@ pub extern crate prototty_input as input;
 
 #[cfg(unix)]
 pub extern crate prototty_unix as unix;
+
+#[cfg(target_arch = "wasm32")]
+pub extern crate prototty_wasm as wasm;
