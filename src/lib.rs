@@ -3,6 +3,7 @@ pub extern crate prototty_menu as menu;
 pub extern crate prototty_decorator as decorator;
 pub extern crate prototty_text as text;
 pub extern crate prototty_input as input;
+pub extern crate prototty_elements as elements;
 
 #[cfg(unix)]
 pub extern crate prototty_unix as unix;
