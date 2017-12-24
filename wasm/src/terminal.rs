@@ -64,10 +64,6 @@ impl Terminal {
             *fg_colour_entry = cell.fg.code();
             *bg_colour_entry = cell.bg.code();
         }
-
-        unsafe {
-            ffi::render();
-        }
     }
 
     pub fn size(&self) -> Size {
@@ -79,7 +75,6 @@ mod ffi {
     extern "C" {
         pub fn get_width() -> u16;
         pub fn get_height() -> u16;
-        pub fn render();
         pub fn set_bufs(chars: *mut u32, style: *mut u8, fg_colour: *mut u8, bg_colour: *mut u8);
     }
 }
