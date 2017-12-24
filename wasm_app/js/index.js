@@ -90,9 +90,6 @@ const WIDTH = 20;
 const HEIGHT = 20;
 const SIZE = WIDTH * HEIGHT;
 
-const BOLD_BIT = 1 << 0;
-const UNDERLINE_BIT = 1 << 1;
-
 const dynenv = {};
 const env = {
     get_width: () => WIDTH,
