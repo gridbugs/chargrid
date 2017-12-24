@@ -1,12 +1,14 @@
 [package]
-name = "prototty-app"
+name = "wasm_app"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[lib]
+crate-type = ["cdylib"]
 
 [dependencies]
 tetris = { path = ".." }
 #prototty = { git = "https://github.com/stevebob/prototty", rev = "wasm-backend" }
-#prototty_elements = { git = "https://github.com/stevebob/prototty", rev = "wasm-backend" }
 prototty = { path = "/home/steve/src/prototty" }
-ansi_colour = "0.2"
+prototty_app = { path = "../prototty_app" }
 rand = "0.4"

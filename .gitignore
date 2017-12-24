@@ -1,5 +1,5 @@
 **/target/
 **/*.rs.bk
-**/*.swp
+**/*.sw?
 **/*.wasm
 Cargo.lock

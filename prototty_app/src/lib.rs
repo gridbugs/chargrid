@@ -69,6 +69,7 @@ impl ViewSize<Tetris> for TetrisBoardView {
 
 impl View<Tetris> for TetrisNextPieceView {
     fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i16, grid: &mut G) {
+        let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             if let Some(output_cell) = grid.get_mut(offset + coord) {
                 output_cell.update_with_style(BLOCK_CHAR, depth, FOREGROUND_COLOUR, piece_colour(tetris.game_state.next_piece.typ), true, false);
