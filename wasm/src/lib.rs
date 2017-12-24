@@ -1,14 +1,8 @@
-#[macro_use] extern crate cfg_if;
+#[macro_use] extern crate itertools;
+extern crate prototty_traits;
+extern crate prototty_grid;
 
-cfg_if! {
-    if #[cfg(target_arch = "wasm32")] {
-        #[macro_use] extern crate itertools;
-        extern crate prototty_traits;
-        extern crate prototty_grid;
+mod terminal;
+mod context;
 
-        mod terminal;
-        mod context;
-
-        pub use self::context::*;
-    }
-}
+pub use self::context::*;

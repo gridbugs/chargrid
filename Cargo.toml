@@ -16,8 +16,6 @@ prototty_decorators = { path = "./decorators" }
 prototty_text = { path = "./text" }
 prototty_input = { path = "./input" }
 prototty_elements = { path = "./elements" }
-prototty_unix = { path = "./unix" }
-prototty_wasm = { path = "./wasm" }
 
 [[example]]
 name = "bordered_menu"

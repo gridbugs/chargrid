@@ -7,7 +7,6 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 libc = "0.2"
 term = "0.4"
 cgmath = { git = "https://github.com/stevebob/cgmath", rev = "rand-0.4" }
-cfg-if = "0.1"
 ansi_colour = "0.2"
 itertools = "0.7"
 prototty_defaults = { path = "../defaults" }
