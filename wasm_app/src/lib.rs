@@ -1,13 +1,14 @@
-extern crate tetris;
 extern crate prototty;
-extern crate rand;
+extern crate prototty_wasm;
 extern crate prototty_app;
+extern crate rand;
+extern crate tetris;
 
 use std::mem;
 use std::slice;
 use std::time::Duration;
 use rand::{SeedableRng, StdRng};
-use prototty::wasm::*;
+use prototty_wasm::*;
 use prototty::traits::Renderer;
 use prototty::input::{self as prototty_input, Input as ProtottyInput};
 
