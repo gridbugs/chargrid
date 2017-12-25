@@ -6,6 +6,6 @@ module.exports = {
     filename: 'dist/bundle.js'
   },
   plugins: [
-//    new UglifyJsPlugin()
+    new UglifyJsPlugin()
   ],
 };
