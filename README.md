@@ -12,7 +12,7 @@ This runs an app in a file called "wasm\_app.wasm", rendering the output into an
 element called "protottyTerminal", using a grid of 30x20 cells.
 
 ```js
-import prototty from 'prototty-terminal';
+import prototty from 'prototty-terminal-js';
 
 let node = document.getElementById("protottyTerminal");
 prototty.runProtottyApp("wasm_app.wasm", 30, 20, node);
