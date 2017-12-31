@@ -1,13 +1,13 @@
 use std::collections::{vec_deque, VecDeque};
 use std::time::Duration;
-use cgmath::Vector2;
 use term::terminfo::parm::{self, Param};
 use ansi_colour::Colour;
 use super::low_level::LowLevel;
 use super::term_info_cache::TermInfoCache;
 use super::byte_prefix_tree::{BytePrefixTree, Found};
 use error::Result;
-use prototty_input::Input;
+use prototty::input::Input;
+use prototty::coord::*;
 
 const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
 const INPUT_BUFFER_INITIAL_CAPACITY: usize = 32;
@@ -62,12 +62,12 @@ impl AnsiTerminal {
         self.flush_buffer().map_err(Into::into)
     }
 
-    pub fn size(&self) -> Result<Vector2<u16>> {
+    pub fn size(&self) -> Result<Size> {
         self.low_level.size()
     }
 
-    pub fn set_cursor(&mut self, coord: Vector2<u16>) -> Result<()> {
-        let params = &[Param::Number(coord.y as i32), Param::Number(coord.x as i32)];
+    pub fn set_cursor(&mut self, coord: Coord) -> Result<()> {
+        let params = &[Param::Number(coord.y), Param::Number(coord.x)];
         let command = parm::expand(self.ti_cache.set_cursor.as_bytes(), params, &mut self.ti_cache.vars)?;
         let command_slice = ::std::str::from_utf8(&command)?;
         self.output_buffer.push_str(command_slice);

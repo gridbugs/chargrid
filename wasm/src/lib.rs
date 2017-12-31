@@ -1,5 +1,5 @@
 #[macro_use] extern crate itertools;
-extern crate prototty_traits;
+extern crate prototty;
 extern crate prototty_grid;
 
 mod terminal;

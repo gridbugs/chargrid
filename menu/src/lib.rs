@@ -1,12 +1,14 @@
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 extern crate ansi_colour;
+extern crate prototty_coord;
 extern crate prototty_defaults;
 extern crate prototty_traits;
 extern crate prototty_input;
 extern crate prototty_text;
 
 use std::cmp;
+use prototty_coord::*;
 use prototty_traits::*;
 use prototty_defaults::*;
 use prototty_text::*;
@@ -81,7 +83,7 @@ impl<T: Copy> Menu<T> {
         let height = entries.len();
         Self {
             entries,
-            size: Size::new(width as u16, height as u16),
+            size: Size::new(width as u32, height as u32),
             normal_info: Default::default(),
             selected_info: selected_info(),
         }
@@ -185,10 +187,10 @@ pub struct DefaultMenuInstanceView;
 
 impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
     fn view<G: ViewGrid>(&self, value: &MenuInstance<T>,
-                         offset: Coord, depth: i16, grid: &mut G)
+                         offset: Coord, depth: i32, grid: &mut G)
     {
         for (i, entry) in value.menu.entries.iter().enumerate() {
-            if i == value.menu.size.y as usize {
+            if i == value.menu.size.y() as usize {
                 break;
             }
             let info = if i == value.index {
@@ -197,10 +199,10 @@ impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
                 &value.menu.normal_info
             };
             for (j, ch) in entry.name.chars().enumerate() {
-                if j == value.menu.size.x as usize {
+                if j == value.menu.size.x() as usize {
                     break;
                 }
-                let coord = offset + Coord::new(j as i16, i as i16);
+                let coord = offset + Coord::new(j as i32, i as i32);
                 if let Some(cell) = grid.get_mut(coord) {
                     cell.update_with_style(ch, depth,
                                            info.foreground_colour,

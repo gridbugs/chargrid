@@ -1,8 +1,9 @@
 use std::time::Duration;
-use prototty_input::Input;
 use error::*;
 use prototty_grid::*;
-use prototty_traits::*;
+use prototty::input::Input;
+use prototty::traits::*;
+use prototty::coord::*;
 use terminal::*;
 
 /**

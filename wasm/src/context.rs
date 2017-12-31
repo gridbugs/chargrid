@@ -1,4 +1,5 @@
-use prototty_traits::*;
+use prototty::traits::*;
+use prototty::coord::*;
 use prototty_grid::*;
 use terminal::Terminal;
 

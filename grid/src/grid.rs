@@ -2,6 +2,7 @@ use std::slice;
 use iterators::*;
 use prototty_defaults::*;
 use prototty_traits::*;
+use prototty_coord::*;
 
 pub type Iter<'a, C> = slice::Iter<'a, C>;
 pub type IterMut<'a, C> = slice::IterMut<'a, C>;
@@ -9,7 +10,7 @@ pub type IterMut<'a, C> = slice::IterMut<'a, C>;
 #[derive(Debug, Clone)]
 pub struct Cell {
     pub ch: char,
-    depth: i16,
+    depth: i32,
     pub fg: Colour,
     pub bg: Colour,
     pub bold: bool,
@@ -30,13 +31,13 @@ impl Default for Cell {
 }
 
 impl ViewCell for Cell {
-    fn update(&mut self, ch: char, depth: i16) {
+    fn update(&mut self, ch: char, depth: i32) {
         if depth >= self.depth {
             self.ch = ch;
             self.depth = depth;
         }
     }
-    fn update_with_colour(&mut self, ch: char, depth: i16, fg: Colour, bg: Colour) {
+    fn update_with_colour(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour) {
         if depth >= self.depth {
             self.ch = ch;
             self.depth = depth;
@@ -44,7 +45,7 @@ impl ViewCell for Cell {
             self.bg = bg;
         }
     }
-    fn update_with_style(&mut self, ch: char, depth: i16, fg: Colour, bg: Colour, bold: bool, underline: bool) {
+    fn update_with_style(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour, bold: bool, underline: bool) {
         if depth >= self.depth {
             self.ch = ch;
             self.depth = depth;
@@ -65,7 +66,7 @@ pub struct Grid<C> {
 impl<C: Default + Clone> Grid<C> {
     pub fn new(size: Size) -> Self {
 
-        let num_cells = (size.x * size.y) as usize;
+        let num_cells = size.count();
         let mut cells = Vec::with_capacity(num_cells);
         cells.resize(num_cells, Default::default());
 
@@ -80,7 +81,7 @@ impl<C: Default + Clone> Grid<C> {
     }
 
     pub fn resize(&mut self, size: Size) {
-        let num_cells = (size.x * size.y) as usize;
+        let num_cells = size.count();
         self.cells.resize(num_cells, Default::default());
         self.size = size;
     }
@@ -92,7 +93,7 @@ impl<C: Default + Clone> Grid<C> {
     }
 
     pub fn enumerate(&self) -> CoordEnumerate<C> {
-        CoordEnumerate::new(CoordIter::new(self.size), self.cells.iter())
+        CoordEnumerate::new(self.size.coords(), self.cells.iter())
     }
 
     pub fn iter(&self) -> Iter<C> {
@@ -107,15 +108,10 @@ impl<C: Default + Clone> Grid<C> {
 impl ViewGrid for Grid<Cell> {
     type Cell = Cell;
     fn get_mut(&mut self, coord: Coord) -> Option<&mut Self::Cell> {
-        let coord: Size = if let Some(coord) = coord.cast() {
-            coord
+        if let Some(index) = self.size.index(coord) {
+            Some(&mut self.cells[index])
         } else {
-            return None;
-        };
-
-        if coord.x >= self.size.x || coord.y >= self.size.y {
-            return None;
+            None
         }
-        Some(&mut self.cells[(coord.y * self.size.x + coord.x) as usize])
     }
 }

@@ -1,4 +1,4 @@
-use prototty_traits::*;
+use prototty::coord::*;
 use prototty_grid::*;
 
 const BOLD_BIT: u8 = 1 << 0;
@@ -73,8 +73,8 @@ impl Terminal {
 
 mod ffi {
     extern "C" {
-        pub fn get_width() -> u16;
-        pub fn get_height() -> u16;
+        pub fn get_width() -> u32;
+        pub fn get_height() -> u32;
         pub fn set_bufs(chars: *mut u32, style: *mut u8, fg_colour: *mut u8, bg_colour: *mut u8);
     }
 }

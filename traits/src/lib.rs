@@ -1,17 +1,17 @@
-extern crate cgmath;
 extern crate ansi_colour;
+extern crate prototty_coord;
+
+use prototty_coord::{Coord, Size};
 
 pub type Colour = ansi_colour::Colour;
-pub type Coord = cgmath::Vector2<i16>;
-pub type Size = cgmath::Vector2<u16>;
 
 /**
  * A buffered terminal output cell.
  */
 pub trait ViewCell {
-    fn update(&mut self, ch: char, depth: i16);
-    fn update_with_colour(&mut self, ch: char, depth: i16, fg: Colour, bg: Colour);
-    fn update_with_style(&mut self, ch: char, depth: i16, fg: Colour, bg: Colour,
+    fn update(&mut self, ch: char, depth: i32);
+    fn update_with_colour(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour);
+    fn update_with_style(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour,
                          bold: bool, underline: bool);
 }
 
@@ -30,7 +30,7 @@ pub trait View<T> {
     /**
      * Update the cells in `grid` to describe how a type should be rendered.
      */
-    fn view<G: ViewGrid>(&self, data: &T, offset: Coord, depth: i16, grid: &mut G);
+    fn view<G: ViewGrid>(&self, data: &T, offset: Coord, depth: i32, grid: &mut G);
 }
 
 /**

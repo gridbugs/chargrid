@@ -1,5 +1,6 @@
 extern crate serde;
 #[macro_use] extern crate serde_derive;
+extern crate prototty_coord;
 extern crate prototty_traits;
 extern crate prototty_defaults;
 

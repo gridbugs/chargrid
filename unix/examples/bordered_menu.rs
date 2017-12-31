@@ -3,10 +3,11 @@ extern crate prototty_unix;
 
 use std::thread;
 use std::time::Duration;
-use prototty::menu::*;
-use prototty::unix::*;
-use prototty::traits::*;
+use prototty::coord::*;
 use prototty::decorators::*;
+use prototty::menu::*;
+use prototty::traits::*;
+use prototty_unix::*;
 
 const PERIOD_MILLIS: u64 = 16;
 const DELAY_MILLIS: u64 = 1000;
@@ -14,11 +15,11 @@ const DELAY_MILLIS: u64 = 1000;
 struct IntView;
 impl View<i32> for IntView {
     fn view<G: ViewGrid>(&self, value: &i32,
-                         offset: Coord, depth: i16, grid: &mut G)
+                         offset: Coord, depth: i32, grid: &mut G)
     {
         let s = value.to_string();
         for (i, c) in s.chars().enumerate() {
-            grid.get_mut(offset + Coord::new(i as i16, 0)).map(|cell| {
+            grid.get_mut(offset + Coord::new(i as i32, 0)).map(|cell| {
                 cell.update(c, depth);
             });
         }

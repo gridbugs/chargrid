@@ -16,7 +16,4 @@ prototty_decorators = { path = "./decorators" }
 prototty_text = { path = "./text" }
 prototty_input = { path = "./input" }
 prototty_elements = { path = "./elements" }
-
-[[example]]
-name = "bordered_menu"
-path = "examples/bordered_menu.rs"
+prototty_coord = { path = "./coord" }

@@ -6,10 +6,12 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 [dependencies]
 libc = "0.2"
 term = "0.4"
-cgmath = { git = "https://github.com/stevebob/cgmath", rev = "rand-0.4" }
 ansi_colour = "0.2"
 itertools = "0.7"
-prototty_defaults = { path = "../defaults" }
-prototty_input = { path = "../input" }
-prototty_traits = { path = "../traits" }
+prototty = { path = ".." }
 prototty_grid = { path = "../grid" }
+prototty_defaults = { path = "../defaults" }
+
+[[example]]
+name = "bordered_menu"
+path = "examples/bordered_menu.rs"

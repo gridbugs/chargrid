@@ -5,8 +5,8 @@ use std::io::{self, Write, Read};
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::time::Duration;
 use libc;
-use cgmath::Vector2;
 use error::{Error, Result};
+use prototty::coord::*;
 
 struct WinSize {
     ws_row: libc::c_ushort,
@@ -65,7 +65,7 @@ impl LowLevel {
         })
     }
 
-    pub fn size(&self) -> Result<Vector2<u16>> {
+    pub fn size(&self) -> Result<Size> {
         let mut win_size = WinSize { ws_row: 0, ws_col: 0, _ws_xpixel: 0, _ws_ypixel: 0 };
         unsafe {
             libc::ioctl(self.tty_fd, libc::TIOCGWINSZ, &mut win_size);
@@ -74,7 +74,7 @@ impl LowLevel {
         if win_size.ws_row == 0 || win_size.ws_col == 0 {
             Err(Error::last_os_error())
         } else {
-            Ok(Vector2::new(win_size.ws_col as u16, win_size.ws_row as u16))
+            Ok(Size::new(win_size.ws_col as u32, win_size.ws_row as u32))
         }
     }
 

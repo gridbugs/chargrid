@@ -1,10 +1,10 @@
 use std::time::Duration;
-use cgmath::Vector2;
 use ansi_colour::Colour;
 use error::Result;
-use prototty_input::Input;
 use prototty_grid::*;
 use prototty_defaults::*;
+use prototty::input::Input;
+use prototty::coord::*;
 use super::ansi_terminal::AnsiTerminal;
 pub use super::ansi_terminal::DrainInput;
 
@@ -68,7 +68,7 @@ impl Terminal {
         })
     }
 
-    pub fn resize_if_necessary(&mut self) -> Result<Vector2<u16>> {
+    pub fn resize_if_necessary(&mut self) -> Result<Size> {
         let size = self.ansi.size()?;
         if size != self.output_grid.size() {
             self.output_grid.resize(size);
@@ -78,7 +78,7 @@ impl Terminal {
 
     pub fn draw_grid(&mut self, grid: &Grid<Cell>) -> Result<()> {
 
-        self.ansi.set_cursor(Vector2::new(0, 0))?;
+        self.ansi.set_cursor(Coord::new(0, 0))?;
 
         let mut bold = false;
         let mut underline = false;
@@ -133,7 +133,7 @@ impl Terminal {
             }
 
             if must_move_cursor {
-                self.ansi.set_cursor(coord.cast().unwrap())?;
+                self.ansi.set_cursor(coord)?;
                 must_move_cursor = false;
             }
 

@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
+prototty_coord = { path = "../coord" }
 prototty_traits = { path = "../traits" }
 prototty_text = { path = "../text" }
 serde = "1.0"

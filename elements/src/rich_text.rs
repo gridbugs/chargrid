@@ -1,3 +1,4 @@
+use prototty_coord::*;
 use prototty_text::*;
 use prototty_traits::*;
 
@@ -28,13 +29,12 @@ pub struct RichText {
 
 impl RichText {
     /// Create a new `RichText` element.
-    pub fn new<S, V>(mut parts: Vec<(S, TextInfo)>, size: V) -> Self
+    pub fn new<S>(mut parts: Vec<(S, TextInfo)>, size: Size) -> Self
         where S: Into<String>,
-              V: Into<Size>,
     {
         Self {
             parts: parts.drain(..).map(Into::into).collect(),
-            size: size.into(),
+            size,
         }
     }
 
@@ -47,7 +47,7 @@ impl RichText {
         let length = parts.iter().fold(0, |acc, part| acc + part.string.len());
         Self {
             parts,
-            size: Size::new(length as u16, 1),
+            size: Size::new(length as u32, 1),
         }
     }
 }
@@ -55,8 +55,8 @@ impl RichText {
 pub struct DefaultRichTextView;
 
 impl View<RichText> for DefaultRichTextView {
-    fn view<G: ViewGrid>(&self, data: &RichText, offset: Coord, depth: i16, grid: &mut G) {
-        let bottom_right_abs = offset + data.size.cast().unwrap();
+    fn view<G: ViewGrid>(&self, data: &RichText, offset: Coord, depth: i32, grid: &mut G) {
+        let bottom_right_abs = offset + data.size;
         let mut coord = offset;
         'part_loop: for part in data.parts.iter() {
             for ch in part.string.chars() {
