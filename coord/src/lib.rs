@@ -1,6 +1,7 @@
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 
+/// General purpose coordinate for use within prototty crates.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Coord {
     pub x: i32,
@@ -20,6 +21,9 @@ impl<T: Into<[i32; 2]>> From<T> for Coord {
     }
 }
 
+/// Used to describe the size of a prototty view, and of a prototty context, in cells.
+/// A size cannot be created which would contain un-addressable cells.
+/// That is, the maximum size has a width and height of one greater than the maximum `i32`.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Size {
     x: u32,
@@ -27,6 +31,8 @@ pub struct Size {
 }
 
 impl Size {
+    /// Creates a new `Size`.
+    /// Panics if `x` or `y` is greater than `::std::i32::MAX as u32 + 1`.
     pub fn new(x: u32, y: u32) -> Self {
         const SIZE_MAX: u32 = ::std::i32::MAX as u32 + 1;
         if x > SIZE_MAX || y > SIZE_MAX {
@@ -34,11 +40,25 @@ impl Size {
         }
         Self { x, y }
     }
+
+    /// Returns the width.
     pub fn x(&self) -> u32 { self.x }
+
+    /// Returns the height.
     pub fn y(&self) -> u32 { self.y }
+
+    /// Returns an iterator over all the coordinates within
+    /// a rectangle of this size.
     pub fn coords(&self) -> CoordIter {
         CoordIter::new(*self)
     }
+
+    /// Suppose an array is used to implement a 2D grid of this size,
+    /// where traversing the array from start to end is equivalent
+    /// to traversing the 2D grid top to bottom, traversing left
+    /// to right within each row. If a given coordinate is valid
+    /// for such a grid, this function returns the index into the
+    /// array corresponding to that coordinate.
     pub fn index(&self, coord: Coord) -> Option<usize> {
         if coord.x < 0 || coord.y < 0 {
             return None;
@@ -53,6 +73,8 @@ impl Size {
 
         Some((y * self.x + x) as usize)
     }
+
+    /// Return the number of cells in a 2D grid of this size.
     pub fn count(&self) -> usize {
         (self.x * self.y) as usize
     }
@@ -133,6 +155,8 @@ impl ::std::ops::Sub<Coord> for Size {
     }
 }
 
+/// Iterates over all the coordinates in a grid from
+/// top to bottom, and left to right within each row.
 pub struct CoordIter {
     size: Size,
     coord: Coord,
