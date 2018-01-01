@@ -1,9 +1,14 @@
 [package]
 name = "prototty_wasm"
-version = "0.1.0"
+description = "Prototty context for web assembly."
+version = "0.8.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_wasm"
 
 [dependencies]
+prototty = { path = "..", version = "0.8.0" }
+prototty_grid = { path = "../grid", version = "0.8.0" }
 itertools = "0.7"
-prototty = { path = ".." }
-prototty_grid = { path = "../grid" }

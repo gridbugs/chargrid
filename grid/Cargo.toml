@@ -1,9 +1,14 @@
 [package]
 name = "prototty_grid"
-version = "0.1.0"
+description = "Common implementation of prototty_traits::ViewGrid."
+version = "0.8.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_grid"
 
 [dependencies]
-prototty_defaults = { path = "../defaults" }
-prototty_traits = { path = "../traits" }
-prototty_coord = { path = "../coord" }
+prototty_defaults = { path = "../defaults", version = "0.8.0" }
+prototty_traits = { path = "../traits", version = "0.8.0" }
+prototty_coord = { path = "../coord", version = "0.8.0" }

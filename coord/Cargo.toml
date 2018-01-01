@@ -1,7 +1,12 @@
 [package]
 name = "prototty_coord"
-version = "0.1.0"
+description = "Definition of coordinate and size types for use with prototty."
+version = "0.8.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_coord"
 
 [dependencies]
 serde = "1.0"

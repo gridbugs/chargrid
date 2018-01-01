@@ -187,31 +187,3 @@ impl Border {
         }
     }
 }
-
-#[test]
-fn example() {
-    struct DummyCell;
-    impl ViewCell for  DummyCell {
-        fn update(&mut self, _: char, _: i32) {}
-        fn update_with_colour(&mut self, _: char, _: i32, _: Colour, _: Colour) {}
-        fn update_with_style(&mut self, _: char, _: i32, _: Colour, _: Colour,
-                             _: bool, _: bool) {}
-    }
-    struct DummyGrid;
-    impl ViewGrid for DummyGrid {
-        type Cell = DummyCell;
-        fn get_mut(&mut self, _: Coord) -> Option<&mut Self::Cell> { None }
-    }
-
-    struct A;
-    impl View<()> for A {
-        fn view<G: ViewGrid>(&self, _: &(), _: Coord, _: i32, _: &mut G) {}
-    }
-    impl ViewSize<()> for A {
-        fn size(&self, _: &()) -> Size { (0, 0).into() }
-    }
-
-    A.view(&(), Coord::new(0, 0), 0, &mut DummyGrid);
-    let border = Border::new();
-    Decorated::new(&A, &border).view(&(), Coord::new(0, 0), 0, &mut DummyGrid);
-}

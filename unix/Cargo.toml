@@ -1,16 +1,21 @@
 [package]
 name = "prototty_unix"
-version = "0.1.0"
+description = "Prototty context for unix terminals."
+version = "0.8.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_unix"
 
 [dependencies]
+prototty_grid = { path = "../grid", version = "0.8.0" }
+prototty_defaults = { path = "../defaults", version = "0.8.0" }
+prototty = { path = "..", version = "0.8.0" }
 libc = "0.2"
 term = "0.4"
 ansi_colour = "0.2"
 itertools = "0.7"
-prototty = { path = ".." }
-prototty_grid = { path = "../grid" }
-prototty_defaults = { path = "../defaults" }
 
 [[example]]
 name = "bordered_menu"

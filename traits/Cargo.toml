@@ -1,8 +1,13 @@
 [package]
 name = "prototty_traits"
-version = "0.1.0"
+description = "Traits for rendering with prototty."
+version = "0.8.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_traits"
 
 [dependencies]
+prototty_coord = { path = "../coord", version = "0.8.0" }
 ansi_colour = "0.2"
-prototty_coord = { path = "../coord" }
