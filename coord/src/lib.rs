@@ -87,9 +87,10 @@ impl<T: Into<[u32; 2]>> From<T> for Size {
     }
 }
 
-impl ::std::ops::Add for Coord {
+impl<T: Into<Coord>> ::std::ops::Add<T> for Coord {
     type Output = Coord;
-    fn add(self, rhs: Coord) -> Self::Output {
+    fn add(self, rhs: T) -> Self::Output {
+        let rhs = rhs.into();
         Coord {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
@@ -97,9 +98,10 @@ impl ::std::ops::Add for Coord {
     }
 }
 
-impl ::std::ops::Add for Size {
+impl<T: Into<Size>> ::std::ops::Add<T> for Size {
     type Output = Size;
-    fn add(self, rhs: Size) -> Self::Output {
+    fn add(self, rhs: T) -> Self::Output {
+        let rhs = rhs.into();
         Size::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
@@ -121,9 +123,10 @@ impl ::std::ops::Add<Coord> for Size {
     }
 }
 
-impl ::std::ops::Sub for Coord {
+impl<T: Into<Coord>> ::std::ops::Sub<T> for Coord {
     type Output = Coord;
-    fn sub(self, rhs: Coord) -> Self::Output {
+    fn sub(self, rhs: T) -> Self::Output {
+        let rhs = rhs.into();
         Coord {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
@@ -131,9 +134,10 @@ impl ::std::ops::Sub for Coord {
     }
 }
 
-impl ::std::ops::Sub for Size {
+impl<T: Into<Size>> ::std::ops::Sub<T> for Size {
     type Output = Size;
-    fn sub(self, rhs: Size) -> Self::Output {
+    fn sub(self, rhs: T) -> Self::Output {
+        let rhs = rhs.into();
         Size::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
