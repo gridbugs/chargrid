@@ -7,6 +7,7 @@ use std::collections::VecDeque;
 use std::time::Duration;
 use rand::Rng;
 use prototty::traits::*;
+use prototty::coord::*;
 use prototty::menu::*;
 use prototty::text::*;
 use prototty::elements::*;
@@ -22,7 +23,7 @@ const FOREGROUND_COLOUR: Colour = colours::DARK_GREY;
 const BLOCK_CHAR: char = '▯';
 const BLANK_CHAR: char = ' ';
 
-const NEXT_PIECE_SIZE: Size = Size { x: 6, y: 4 };
+const NEXT_PIECE_SIZE: [u32; 2] = [6, 4];
 const DEATH_ANIMATION_MILLIS: u64 = 500;
 const INPUT_BUFFER_SIZE: usize = 8;
 
@@ -42,10 +43,10 @@ fn piece_colour(typ: PieceType) -> Colour {
     }
 }
 impl View<Tetris> for TetrisBoardView {
-    fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i16, grid: &mut G) {
+    fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
-                if let Some(output_cell) = grid.get_mut(offset + Coord::new(j as i16, i as i16)) {
+                if let Some(output_cell) = grid.get_mut(offset + Coord::new(j as i32, i as i32)) {
                     if let Some(typ) = cell.typ {
                         output_cell.update_with_style(BLOCK_CHAR, depth, FOREGROUND_COLOUR, piece_colour(typ), true, false);
                     } else {
@@ -64,11 +65,11 @@ impl View<Tetris> for TetrisBoardView {
 }
 
 impl ViewSize<Tetris> for TetrisBoardView {
-    fn size(&self, tetris: &Tetris) -> Size { tetris.size() }
+    fn size(&self, tetris: &Tetris) -> Size { tetris.size().into() }
 }
 
 impl View<Tetris> for TetrisNextPieceView {
-    fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i16, grid: &mut G) {
+    fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             if let Some(output_cell) = grid.get_mut(offset + coord) {
@@ -79,7 +80,7 @@ impl View<Tetris> for TetrisNextPieceView {
 }
 
 impl ViewSize<Tetris> for TetrisNextPieceView {
-    fn size(&self, _: &Tetris) -> Size { NEXT_PIECE_SIZE }
+    fn size(&self, _: &Tetris) -> Size { NEXT_PIECE_SIZE.into() }
 }
 
 struct Borders {
@@ -233,11 +234,11 @@ impl App {
 
 pub struct AppView;
 impl View<App> for AppView {
-    fn view<G: ViewGrid>(&self, app: &App, offset: Coord, depth: i16, grid: &mut G) {
+    fn view<G: ViewGrid>(&self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
         match app.state {
             AppState::Game | AppState::GameOver => {
                 let board_renderer = Decorated::new(&TetrisBoardView, &app.borders.common);
-                let next_piece_offset_x = board_renderer.size(&app.tetris).x as i16;
+                let next_piece_offset_x = board_renderer.size(&app.tetris).x() as i32;
                 board_renderer.view(&app.tetris, offset, depth, grid);
                 Decorated::new(&TetrisNextPieceView, &app.borders.next_piece)
                     .view(&app.tetris, Coord { x: next_piece_offset_x, ..offset }, depth, grid);

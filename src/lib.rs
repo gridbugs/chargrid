@@ -8,8 +8,8 @@ use cgmath::Vector2;
 
 const STEP_MILLIS: u64 = 500;
 const PIECE_SIZE: usize = 4;
-const WIDTH: u16 = 10;
-const HEIGHT: u16 = 12;
+const WIDTH: u32 = 10;
+const HEIGHT: u32 = 12;
 
 #[derive(Clone, Copy)]
 pub enum PieceType {
@@ -24,12 +24,12 @@ pub enum PieceType {
 
 #[derive(Clone)]
 pub struct Piece {
-    pub coords: [Vector2<i16>; PIECE_SIZE],
+    pub coords: [Vector2<i32>; PIECE_SIZE],
     pub typ: PieceType,
 }
 
 impl Piece {
-    fn new(coords: [(i16, i16); PIECE_SIZE], typ: PieceType) -> Self {
+    fn new(coords: [(i32, i32); PIECE_SIZE], typ: PieceType) -> Self {
         let coords = [
             coords[0].into(),
             coords[1].into(),
@@ -39,7 +39,7 @@ impl Piece {
         Self { coords, typ }
     }
 
-    fn translate(&self, offset: Vector2<i16>) -> Self {
+    fn translate(&self, offset: Vector2<i32>) -> Self {
         Self {
             coords: [
                 self.coords[0] + offset,
@@ -70,7 +70,7 @@ impl Piece {
         }
     }
 
-    fn rotate_about(coord: Vector2<i16>, offset: Vector2<i16>) -> Vector2<i16> {
+    fn rotate_about(coord: Vector2<i32>, offset: Vector2<i32>) -> Vector2<i32> {
         let relative = coord - offset;
         let relative = Vector2 {
             x: relative.y,
@@ -125,7 +125,7 @@ pub struct Row {
 }
 
 impl Row {
-    fn new(width: u16) -> Self {
+    fn new(width: u32) -> Self {
         let mut cells = Vec::with_capacity(width as usize);
         cells.resize(width as usize, Default::default());
         Self { cells }
@@ -139,14 +139,14 @@ impl Row {
 }
 
 pub struct Board {
-    pub size: Vector2<i16>,
+    pub size: Vector2<i32>,
     pub rows: Vec<Row>,
     rows_swap: Vec<Row>,
     empty_swap: Vec<Row>,
 }
 
 impl Board {
-    fn new(width: u16, height: u16) -> Self {
+    fn new(width: u32, height: u32) -> Self {
 
         let mut rows = Vec::with_capacity(height as usize);
         for _ in 0..height {
@@ -161,7 +161,7 @@ impl Board {
         }
     }
 
-    pub fn get(&self, c: Vector2<i16>) -> Option<&Cell> {
+    pub fn get(&self, c: Vector2<i32>) -> Option<&Cell> {
         if c.x < 0 || c.y < 0 {
             return None;
         }
@@ -169,7 +169,7 @@ impl Board {
         self.rows.get(c.y).and_then(|r| r.cells.get(c.x))
     }
 
-    fn get_mut(&mut self, c: Vector2<i16>) -> Option<&mut Cell> {
+    fn get_mut(&mut self, c: Vector2<i32>) -> Option<&mut Cell> {
         if c.x < 0 || c.y < 0 {
             return None;
         }
@@ -222,7 +222,7 @@ impl Board {
     }
 
     fn move_to_top(&self, piece: Piece) -> Piece {
-        piece.translate(Vector2::new(self.size.x as i16 / 2 - 1, 0))
+        piece.translate(Vector2::new(self.size.x as i32 / 2 - 1, 0))
     }
 }
 
@@ -238,7 +238,7 @@ pub struct GameState {
 }
 
 impl GameState {
-    fn new<R: Rng>(width: u16, height: u16, rng: &mut R) -> Self {
+    fn new<R: Rng>(width: u32, height: u32, rng: &mut R) -> Self {
         let board = Board::new(width, height);
         Self {
             piece: board.move_to_top(random_piece(rng)),
@@ -270,7 +270,7 @@ impl GameState {
         StepResolution::Continue
     }
 
-    fn try_move(&mut self, v: Vector2<i16>) {
+    fn try_move(&mut self, v: Vector2<i32>) {
         let new_piece = self.piece.translate(v);
         if !self.board.collides(&new_piece) {
             self.piece = new_piece;
@@ -338,7 +338,7 @@ impl Tetris {
         }
     }
 
-    pub fn size(&self) -> Vector2<u16> {
+    pub fn size(&self) -> Vector2<u32> {
         Vector2::new(WIDTH, HEIGHT)
     }
 
