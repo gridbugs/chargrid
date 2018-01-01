@@ -52,6 +52,7 @@ impl RichText {
     }
 }
 
+/// Default view of a `RichText`.
 pub struct DefaultRichTextView;
 
 impl View<RichText> for DefaultRichTextView {

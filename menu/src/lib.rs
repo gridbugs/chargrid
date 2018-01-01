@@ -183,6 +183,7 @@ impl<T: Copy> MenuInstance<T> {
     }
 }
 
+/// Default view of a `MenuInstance`.
 pub struct DefaultMenuInstanceView;
 
 impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {

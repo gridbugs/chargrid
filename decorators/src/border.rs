@@ -48,8 +48,6 @@ pub struct BorderPadding {
 }
 
 /// Decorate another element with a border.
-/// The child element must implement `View` and `ViewSize`,
-/// and can be accessed via the `child` field.
 /// It's possible to give the border a title, in which case
 /// the text appears in the top-left corner.
 #[derive(Debug, Clone, Serialize, Deserialize)]

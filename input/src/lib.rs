@@ -1,7 +1,7 @@
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 
-/** An input event */
+/// An input event
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum Input {
     Char(char),

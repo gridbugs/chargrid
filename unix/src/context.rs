@@ -6,18 +6,14 @@ use prototty::traits::*;
 use prototty::coord::*;
 use terminal::*;
 
-/**
- * An interface to a terminal for rendering `View`s, and getting input.
- */
+/// An interface to a terminal for rendering `View`s, and getting input.
 pub struct Context {
     terminal: Terminal,
     grid: Grid<Cell>,
 }
 
 impl Context {
-    /**
-     * Initialise a new context using the current terminal.
-     */
+    /// Initialise a new context using the current terminal.
     pub fn new() -> Result<Self> {
         Terminal::new().and_then(Self::from_terminal)
     }
@@ -46,27 +42,21 @@ impl Context {
         self.terminal.drain_input()
     }
 
-    /**
-     * Gets an input event from the terminal if one is present,
-     * returning immediately.
-     */
+    /// Gets an input event from the terminal if one is present,
+    /// returning immediately.
     pub fn poll_input(&mut self) -> Result<Option<Input>> {
         self.terminal.poll_input()
     }
 
-    /**
-     * Gets an input event from the terminal, waiting until
-     * an event occurs.
-     */
+    /// Gets an input event from the terminal, waiting until
+    /// an event occurs.
     pub fn wait_input(&mut self) -> Result<Input> {
         self.terminal.wait_input()
     }
 
-    /**
-     * Gets an input event from the terminal, waiting until
-     * either an event occurs, or the timeout expires, in which
-     * case this method returns `None`.
-     */
+    /// Gets an input event from the terminal, waiting until
+    /// either an event occurs, or the timeout expires, in which
+    /// case this method returns `None`.
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
         self.terminal.wait_input_timeout(timeout)
     }
