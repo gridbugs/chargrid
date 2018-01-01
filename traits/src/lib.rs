@@ -9,6 +9,7 @@ pub type Colour = ansi_colour::Colour;
 pub trait ViewCell {
     fn update(&mut self, ch: char, depth: i32);
     fn update_with_colour(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour);
+    fn update_with_foreground_colour(&mut self, ch: char, depth: i32, fg: Colour);
     fn update_with_style(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour,
                          bold: bool, underline: bool);
 }

@@ -45,6 +45,13 @@ impl ViewCell for Cell {
             self.bg = bg;
         }
     }
+    fn update_with_foreground_colour(&mut self, ch: char, depth: i32, fg: Colour) {
+        if depth >= self.depth {
+            self.ch = ch;
+            self.depth = depth;
+            self.fg = fg;
+        }
+    }
     fn update_with_style(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour, bold: bool, underline: bool) {
         if depth >= self.depth {
             self.ch = ch;
