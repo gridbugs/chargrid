@@ -14,6 +14,10 @@ pub enum Input {
     Delete,
 }
 
-pub const ESCAPE: Input = Input::Char('\u{1b}');
-pub const ETX: Input = Input::Char('\u{3}');
-pub const RETURN: Input = Input::Char('\u{d}');
+pub mod inputs {
+    use super::Input;
+
+    pub const ESCAPE: Input = Input::Char('\u{1b}');
+    pub const ETX: Input = Input::Char('\u{3}');
+    pub const RETURN: Input = Input::Char('\u{d}');
+}
