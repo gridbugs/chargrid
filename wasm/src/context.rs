@@ -1,6 +1,4 @@
-use prototty::traits::*;
-use prototty::coord::*;
-use prototty_grid::*;
+use prototty::*;
 use terminal::Terminal;
 
 pub struct Context {

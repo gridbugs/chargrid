@@ -1,7 +1,7 @@
 [package]
 name = "prototty"
 description = "Utilities for easily and efficiently rendering to a terminal."
-version = "0.8.0"
+version = "0.6.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -10,10 +10,6 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty"
 
 [dependencies]
-prototty_traits = { path = "./traits", version = "0.8.0" }
-prototty_menu = { path = "./menu", version = "0.8.0" }
-prototty_decorators = { path = "./decorators", version = "0.8.0" }
-prototty_text = { path = "./text", version = "0.8.0" }
-prototty_input = { path = "./input", version = "0.8.0" }
-prototty_elements = { path = "./elements", version = "0.8.0" }
-prototty_coord = { path = "./coord", version = "0.8.0" }
+ansi_colour = "0.2"
+serde = "1.0"
+serde_derive = "1.0"

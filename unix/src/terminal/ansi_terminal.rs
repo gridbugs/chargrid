@@ -6,8 +6,7 @@ use super::low_level::LowLevel;
 use super::term_info_cache::TermInfoCache;
 use super::byte_prefix_tree::{BytePrefixTree, Found};
 use error::Result;
-use prototty::input::Input;
-use prototty::coord::*;
+use prototty::*;
 
 const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
 const INPUT_BUFFER_INITIAL_CAPACITY: usize = 32;

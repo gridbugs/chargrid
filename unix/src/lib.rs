@@ -4,8 +4,6 @@ extern crate ansi_colour;
 #[macro_use] extern crate itertools;
 
 extern crate prototty;
-extern crate prototty_grid;
-extern crate prototty_defaults;
 
 mod terminal;
 mod error;

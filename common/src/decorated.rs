@@ -1,9 +1,3 @@
-extern crate serde;
-#[macro_use] extern crate serde_derive;
-extern crate prototty_coord;
-extern crate prototty_traits;
-extern crate prototty_defaults;
-
 /// Represents a particular view `V`, decorated by a decorator `D`.
 pub struct Decorated<'a, 'b, V: 'a, D: 'b> {
     pub view: &'a V,
@@ -14,6 +8,3 @@ impl<'a, 'b, V, D> Decorated<'a, 'b, V, D> {
         Self { view, decorator }
     }
 }
-
-mod border;
-pub use self::border::Border;

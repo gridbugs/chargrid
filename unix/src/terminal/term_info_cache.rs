@@ -2,7 +2,7 @@ use term::terminfo::TermInfo;
 use term::terminfo::parm::{self, Param, Variables};
 use ansi_colour::{Colour, AllColours};
 use error::{Error, Result};
-use prototty::input::Input;
+use prototty::Input;
 use super::byte_prefix_tree::BytePrefixTree;
 
 pub struct TermInfoCache {

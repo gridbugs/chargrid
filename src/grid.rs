@@ -1,18 +1,15 @@
 use std::slice;
-use iterators::*;
-use prototty_defaults::*;
-use prototty_traits::*;
-use prototty_coord::*;
-
-pub type Iter<'a, C> = slice::Iter<'a, C>;
-pub type IterMut<'a, C> = slice::IterMut<'a, C>;
+use ansi_colour::Colour;
+use default::*;
+use view::*;
+use coord::*;
 
 #[derive(Debug, Clone)]
 pub struct Cell {
-    pub ch: char,
     depth: i32,
-    pub fg: Colour,
-    pub bg: Colour,
+    pub character: char,
+    pub foreground_colour: Colour,
+    pub background_colour: Colour,
     pub bold: bool,
     pub underline: bool,
 }
@@ -20,47 +17,35 @@ pub struct Cell {
 impl Default for Cell {
     fn default() -> Self {
         Cell {
-            ch: DEFAULT_CH,
             depth: 0,
-            fg: DEFAULT_FG,
-            bg: DEFAULT_BG,
+            character: DEFAULT_CH,
+            foreground_colour: DEFAULT_FG,
+            background_colour: DEFAULT_BG,
             bold: false,
             underline: false,
         }
     }
 }
+pub type Iter<'a, C> = slice::Iter<'a, C>;
+pub type IterMut<'a, C> = slice::IterMut<'a, C>;
 
-impl ViewCell for Cell {
-    fn update(&mut self, ch: char, depth: i32) {
-        if depth >= self.depth {
-            self.ch = ch;
-            self.depth = depth;
-        }
+pub struct CoordEnumerate<'a, T: 'a> {
+    coords: CoordIter,
+    iter: slice::Iter<'a, T>,
+}
+
+impl<'a, T> CoordEnumerate<'a, T> {
+    fn new(coords: CoordIter, iter: slice::Iter<'a, T>) -> Self {
+        Self { coords, iter }
     }
-    fn update_with_colour(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour) {
-        if depth >= self.depth {
-            self.ch = ch;
-            self.depth = depth;
-            self.fg = fg;
-            self.bg = bg;
-        }
-    }
-    fn update_with_foreground_colour(&mut self, ch: char, depth: i32, fg: Colour) {
-        if depth >= self.depth {
-            self.ch = ch;
-            self.depth = depth;
-            self.fg = fg;
-        }
-    }
-    fn update_with_style(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour, bold: bool, underline: bool) {
-        if depth >= self.depth {
-            self.ch = ch;
-            self.depth = depth;
-            self.fg = fg;
-            self.bg = bg;
-            self.bold = bold;
-            self.underline = underline;
-        }
+}
+
+impl<'a, T> Iterator for CoordEnumerate<'a, T> {
+    type Item = (Coord, &'a T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.coords.next().and_then(|c| {
+            self.iter.next().map(|t| (c, t))
+        })
     }
 }
 
@@ -113,10 +98,15 @@ impl<C: Default + Clone> Grid<C> {
 }
 
 impl ViewGrid for Grid<Cell> {
-    type Cell = Cell;
-    fn get_mut(&mut self, coord: Coord) -> Option<&mut Self::Cell> {
+    fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Cell> {
         if let Some(index) = self.size.index(coord) {
-            Some(&mut self.cells[index])
+            let cell = &mut self.cells[index];
+            if depth >= cell.depth {
+                cell.depth = depth;
+                Some(cell)
+            } else {
+                None
+            }
         } else {
             None
         }

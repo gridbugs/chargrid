@@ -6,7 +6,7 @@ use std::os::unix::io::{RawFd, AsRawFd};
 use std::time::Duration;
 use libc;
 use error::{Error, Result};
-use prototty::coord::*;
+use prototty::*;
 
 struct WinSize {
     ws_row: libc::c_ushort,

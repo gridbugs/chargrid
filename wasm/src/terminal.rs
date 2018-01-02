@@ -1,5 +1,4 @@
-use prototty::coord::*;
-use prototty_grid::*;
+use prototty::*;
 
 const BOLD_BIT: u8 = 1 << 0;
 const UNDERLINE_BIT: u8 = 1 << 1;
@@ -55,14 +54,14 @@ impl Terminal {
                 self.bg_colour.iter_mut(),
             }
         {
-            *chars_entry = cell.ch as u32;
+            *chars_entry = cell.character as u32;
 
             *style_entry =
                 if cell.bold { BOLD_BIT } else { 0 } |
                     if cell.underline { UNDERLINE_BIT } else { 0 };
 
-            *fg_colour_entry = cell.fg.code();
-            *bg_colour_entry = cell.bg.code();
+            *fg_colour_entry = cell.foreground_colour.code();
+            *bg_colour_entry = cell.background_colour.code();
         }
     }
 

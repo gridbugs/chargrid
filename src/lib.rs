@@ -1,7 +1,14 @@
-pub extern crate prototty_traits as traits;
-pub extern crate prototty_menu as menu;
-pub extern crate prototty_decorators as decorators;
-pub extern crate prototty_text as text;
-pub extern crate prototty_input as input;
-pub extern crate prototty_elements as elements;
-pub extern crate prototty_coord as coord;
+extern crate ansi_colour;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
+
+mod coord;
+mod default;
+mod grid;
+mod input;
+mod view;
+
+pub use coord::*;
+pub use grid::*;
+pub use view::*;
+pub use input::*;

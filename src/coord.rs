@@ -1,6 +1,3 @@
-extern crate serde;
-#[macro_use] extern crate serde_derive;
-
 /// General purpose coordinate for use within prototty crates.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Coord {

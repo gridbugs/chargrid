@@ -1,10 +1,6 @@
-extern crate serde;
-#[macro_use] extern crate serde_derive;
-extern crate ansi_colour;
-extern crate prototty_defaults;
-
-use prototty_defaults::*;
 use ansi_colour::Colour;
+use defaults::*;
+use prototty::Cell;
 
 /// Rich text settings
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -38,5 +34,11 @@ impl TextInfo {
     }
     pub fn bold(self) -> Self {
         Self { bold: true, .. self }
+    }
+    pub fn write_cell(&self, cell: &mut Cell) {
+        cell.foreground_colour = self.foreground_colour;
+        cell.background_colour = self.backrgound_colour;
+        cell.bold = self.bold;
+        cell.underline = self.underline;
     }
 }

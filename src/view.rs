@@ -1,23 +1,9 @@
-extern crate ansi_colour;
-extern crate prototty_coord;
+use coord::{Coord, Size};
+use grid::Cell;
 
-use prototty_coord::{Coord, Size};
-
-pub type Colour = ansi_colour::Colour;
-
-/// A buffered terminal output cell.
-pub trait ViewCell {
-    fn update(&mut self, ch: char, depth: i32);
-    fn update_with_colour(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour);
-    fn update_with_foreground_colour(&mut self, ch: char, depth: i32, fg: Colour);
-    fn update_with_style(&mut self, ch: char, depth: i32, fg: Colour, bg: Colour,
-                         bold: bool, underline: bool);
-}
-
-/// A grid of cells which implement `ViewCell`.
+/// A grid of cells
 pub trait ViewGrid {
-    type Cell: ViewCell;
-    fn get_mut(&mut self, coord: Coord) -> Option<&mut Self::Cell>;
+    fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Cell>;
 }
 
 /// Defines a method for rendering a `T` to the terminal.

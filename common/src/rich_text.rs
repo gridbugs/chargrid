@@ -1,6 +1,5 @@
-use prototty_coord::*;
-use prototty_text::*;
-use prototty_traits::*;
+use prototty::*;
+use text_info::*;
 
 /// A section of text sharing a common `TextInfo`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,12 +72,9 @@ impl View<RichText> for DefaultRichTextView {
                         coord.x = offset.x;
                     }
                     _ => {
-                        if let Some(cell) = grid.get_mut(coord) {
-                            cell.update_with_style(ch, depth,
-                                                   part.info.foreground_colour,
-                                                   part.info.backrgound_colour,
-                                                   part.info.bold,
-                                                   part.info.underline);
+                        if let Some(cell) = grid.get_mut(coord, depth) {
+                            cell.character = ch;
+                            part.info.write_cell(cell);
                         }
                         coord.x += 1;
                         if coord.x == bottom_right_abs.x {

@@ -1,12 +1,13 @@
 use std::time::Duration;
-use ansi_colour::Colour;
+use ansi_colour::{Colour, colours};
 use error::Result;
-use prototty_grid::*;
-use prototty_defaults::*;
-use prototty::input::Input;
-use prototty::coord::*;
+use prototty::*;
 use super::ansi_terminal::AnsiTerminal;
 pub use super::ansi_terminal::DrainInput;
+
+pub const DEFAULT_CH: char = ' ';
+pub const DEFAULT_FG: Colour = colours::WHITE;
+pub const DEFAULT_BG: Colour = colours::BLACK;
 
 #[derive(Debug, Clone)]
 pub struct OutputCell {
@@ -34,17 +35,17 @@ impl Default for OutputCell {
 impl OutputCell {
     pub fn matches(&self, cell: &Cell) -> bool {
         !self.dirty &&
-        self.ch == cell.ch &&
-            self.fg == cell.fg &&
-            self.bg == cell.bg &&
+        self.ch == cell.character &&
+            self.fg == cell.foreground_colour &&
+            self.bg == cell.background_colour &&
             self.bold == cell.bold &&
             self.underline == cell.underline
     }
     pub fn copy_fields(&mut self, cell: &Cell) {
         self.dirty = false;
-        self.ch = cell.ch;
-        self.fg = cell.fg;
-        self.bg = cell.bg;
+        self.ch = cell.character;
+        self.fg = cell.foreground_colour;
+        self.bg = cell.background_colour;
         self.bold = cell.bold;
         self.underline = cell.underline;
     }
@@ -113,14 +114,14 @@ impl Terminal {
                 false
             };
 
-            if reset || cell.fg != fg {
-                self.ansi.set_foreground_colour(cell.fg);
-                fg = cell.fg;
+            if reset || cell.foreground_colour != fg {
+                self.ansi.set_foreground_colour(cell.foreground_colour);
+                fg = cell.foreground_colour;
             }
 
-            if reset || cell.bg != bg {
-                self.ansi.set_background_colour(cell.bg);
-                bg = cell.bg;
+            if reset || cell.background_colour != bg {
+                self.ansi.set_background_colour(cell.background_colour);
+                bg = cell.background_colour;
             }
 
             if reset || (cell.underline != underline) {
@@ -138,7 +139,7 @@ impl Terminal {
             }
 
             output_cell.copy_fields(cell);
-            self.ansi.add_char_to_buffer(cell.ch);
+            self.ansi.add_char_to_buffer(cell.character);
         }
 
         self.ansi.flush_buffer()?;

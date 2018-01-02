@@ -1,18 +1,7 @@
-extern crate serde;
-#[macro_use] extern crate serde_derive;
-extern crate ansi_colour;
-extern crate prototty_coord;
-extern crate prototty_defaults;
-extern crate prototty_traits;
-extern crate prototty_input;
-extern crate prototty_text;
-
 use std::cmp;
-use prototty_coord::*;
-use prototty_traits::*;
-use prototty_defaults::*;
-use prototty_text::*;
-use prototty_input::*;
+use prototty::*;
+use text_info::*;
+use defaults::*;
 
 /// A single entry in a menu. It owns the value
 /// which will be yielded if this entry is
@@ -204,12 +193,9 @@ impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
                     break;
                 }
                 let coord = offset + Coord::new(j as i32, i as i32);
-                if let Some(cell) = grid.get_mut(coord) {
-                    cell.update_with_style(ch, depth,
-                                           info.foreground_colour,
-                                           info.backrgound_colour,
-                                           info.bold,
-                                           info.underline);
+                if let Some(cell) = grid.get_mut(coord, depth) {
+                    cell.character = ch;
+                    info.write_cell(cell);
                 }
             }
         }
