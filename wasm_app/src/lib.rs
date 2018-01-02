@@ -9,8 +9,9 @@ use std::slice;
 use std::time::Duration;
 use rand::{SeedableRng, StdRng};
 use prototty_wasm::*;
-use prototty::traits::Renderer;
-use prototty::input::{self as prototty_input, Input as ProtottyInput};
+use prototty::Renderer;
+use prototty::inputs as prototty_inputs;
+use prototty::Input as ProtottyInput;
 
 use prototty_app::{App, AppView};
 
@@ -64,8 +65,8 @@ pub unsafe fn tick(app: *mut WebApp, input_buffer: *const u8, num_inputs: usize,
             &38 => Some(ProtottyInput::Up),
             &39 => Some(ProtottyInput::Right),
             &40 => Some(ProtottyInput::Down),
-            &27 => Some(prototty_input::ESCAPE),
-            &13 => Some(prototty_input::RETURN),
+            &27 => Some(prototty_inputs::ESCAPE),
+            &13 => Some(prototty_inputs::RETURN),
             _ => None,
         }
     });

@@ -5,7 +5,7 @@ extern crate prototty_app;
 
 use std::time::Duration;
 use std::thread;
-use prototty::traits::Renderer;
+use prototty::Renderer;
 use prototty_unix::Context;
 use prototty_app::{App, AppView, ControlFlow};
 

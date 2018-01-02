@@ -1,4 +1,5 @@
 extern crate prototty;
+extern crate prototty_common;
 extern crate tetris;
 extern crate ansi_colour;
 extern crate rand;
@@ -6,16 +7,11 @@ extern crate rand;
 use std::collections::VecDeque;
 use std::time::Duration;
 use rand::Rng;
-use prototty::traits::*;
-use prototty::coord::*;
-use prototty::menu::*;
-use prototty::text::*;
-use prototty::elements::*;
-use prototty::decorators::*;
-use prototty::input::*;
-use prototty::input::Input as ProtottyInput;
-
-use ansi_colour::colours;
+use ansi_colour::*;
+use prototty::*;
+use prototty_common::*;
+use prototty::inputs::*;
+use prototty::Input as ProtottyInput;
 use tetris::{Tetris, PieceType, Input as TetrisInput, Meta};
 
 const BLANK_COLOUR: Colour = colours::DARK_GREY;
@@ -46,19 +42,26 @@ impl View<Tetris> for TetrisBoardView {
     fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
-                if let Some(output_cell) = grid.get_mut(offset + Coord::new(j as i32, i as i32)) {
+                if let Some(output_cell) = grid.get_mut(offset + Coord::new(j as i32, i as i32), depth) {
+                    output_cell.foreground_colour = FOREGROUND_COLOUR;
                     if let Some(typ) = cell.typ {
-                        output_cell.update_with_style(BLOCK_CHAR, depth, FOREGROUND_COLOUR, piece_colour(typ), true, false);
+                        output_cell.character = BLOCK_CHAR;
+                        output_cell.background_colour = piece_colour(typ);
+                        output_cell.bold = true;
                     } else {
-                        output_cell.update_with_colour(BLANK_CHAR, depth, FOREGROUND_COLOUR, BLANK_COLOUR);
+                        output_cell.character = BLANK_CHAR;
+                        output_cell.background_colour = BLANK_COLOUR;
                     }
                 }
             }
         }
 
         for coord in tetris.game_state.piece.coords.iter().cloned() {
-            if let Some(output_cell) = grid.get_mut(offset + coord) {
-                output_cell.update_with_style(BLOCK_CHAR, depth, FOREGROUND_COLOUR, piece_colour(tetris.game_state.piece.typ), true, false);
+            if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
+                output_cell.character = BLOCK_CHAR;
+                output_cell.foreground_colour = FOREGROUND_COLOUR;
+                output_cell.background_colour = piece_colour(tetris.game_state.piece.typ);
+                output_cell.bold = true;
             }
         }
     }
@@ -72,8 +75,11 @@ impl View<Tetris> for TetrisNextPieceView {
     fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
-            if let Some(output_cell) = grid.get_mut(offset + coord) {
-                output_cell.update_with_style(BLOCK_CHAR, depth, FOREGROUND_COLOUR, piece_colour(tetris.game_state.next_piece.typ), true, false);
+            if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
+                output_cell.character = BLOCK_CHAR;
+                output_cell.foreground_colour = FOREGROUND_COLOUR;
+                output_cell.background_colour = piece_colour(tetris.game_state.next_piece.typ);
+                output_cell.bold = true;
             }
         }
     }
