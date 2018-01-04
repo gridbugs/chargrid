@@ -1,13 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+function make_colour(rgb24) {
+    let r = rgb24 & 0xff;
+    let g = (rgb24 >> 8) & 0xff;
+    let b = (rgb24 >> 16) & 0xff;
+    return `rgb(${r},${g},${b})`;
+}
+
 class Terminal extends React.Component {
     constructor(props) {
         super(props);
         this.bufs = props.bufs;
         this.ptrs = props.ptrs;
         this.mod = props.mod;
-        this.colour_table = props.colour_table;
         this.height = props.height;
         this.width = props.width;
         this.children = new Array((this.width + 1) * this.height);
@@ -78,8 +84,8 @@ class Terminal extends React.Component {
 
                 let code_point = this.bufs.chars[index];
                 let style = this.bufs.style[index];
-                let fg_colour = this.colour_table[this.bufs.fg_colour[index]];
-                let bg_colour = this.colour_table[this.bufs.bg_colour[index]];
+                let fg_colour = make_colour(this.bufs.fg_colour[index]);
+                let bg_colour = make_colour(this.bufs.bg_colour[index]);
 
                 let ch = String.fromCodePoint(code_point);
                 if (ch == " ") {
@@ -110,55 +116,9 @@ class Terminal extends React.Component {
     }
 }
 
-function make_ansi_colour_table() {
-    let normal = [
-        [0, 0, 0],          // Black
-        [187, 0, 0],        // Red
-        [0, 187, 0],        // Green
-        [187, 187, 0],      // Yellow
-        [0, 0, 187],        // Blue
-        [187, 0, 187],      // Magenta
-        [0, 187, 187],      // Cyan
-        [187, 187, 187],    // Grey
-    ];
-    let bright = [
-        [85, 85, 85],       // Dark Grey
-        [255, 85, 85],      // Bright Red
-        [0, 255, 0],        // Bright Green
-        [255, 255, 85],     // Bright Yellow
-        [85, 85, 255],      // Bright Blue
-        [255, 85, 255],     // Bright Magenta
-        [85, 255, 255],     // Bright Cyan
-        [255, 255, 255],    // White
-    ];
-
-    let rgb_steps = [0, 51, 102, 153, 204, 255];
-    let rgb = [];
-    for (let r of rgb_steps) {
-        for (let g of rgb_steps) {
-            for (let b of rgb_steps) {
-                rgb.push([r, g, b]);
-            }
-        }
-    }
-
-    let num_grey_scale = 24;
-    let grey_scale = [];
-    for (let i = 0; i < num_grey_scale; i++) {
-        let x = i * (255 / num_grey_scale);
-        grey_scale.push([x, x, x]);
-    }
-
-    let all = normal.concat(bright).concat(rgb).concat(grey_scale);
-    let all_strings = all.map(([r, g, b]) => `rgb(${r},${g},${b})`);
-
-    return all_strings;
-}
-
-const DEFAULT_COLOUR_TABLE = make_ansi_colour_table();
 const DEFAULT_INPUT_BUF_SIZE = 1024;
 
-function runProtottyApp(wasm_path, width, height, node, colour_table=DEFAULT_COLOUR_TABLE, input_buf_size=DEFAULT_INPUT_BUF_SIZE, seed=undefined) {
+function runProtottyApp(wasm_path, width, height, node, input_buf_size=DEFAULT_INPUT_BUF_SIZE, seed=undefined) {
 
     const size = width * height;
 
@@ -192,8 +152,8 @@ function runProtottyApp(wasm_path, width, height, node, colour_table=DEFAULT_COL
 
         bufs.chars = new Uint32Array(mod.memory.buffer, ptrs.chars, size);
         bufs.style = new Uint8Array(mod.memory.buffer, ptrs.style, size);
-        bufs.fg_colour = new Uint8Array(mod.memory.buffer, ptrs.fg_colour, size);
-        bufs.bg_colour = new Uint8Array(mod.memory.buffer, ptrs.bg_colour, size);
+        bufs.fg_colour = new Uint32Array(mod.memory.buffer, ptrs.fg_colour, size);
+        bufs.bg_colour = new Uint32Array(mod.memory.buffer, ptrs.bg_colour, size);
 
         ptrs.input = mod.alloc_buf(input_buf_size);
         bufs.input = new Uint8ClampedArray(mod.memory.buffer, ptrs.input, input_buf_size);
@@ -202,7 +162,6 @@ function runProtottyApp(wasm_path, width, height, node, colour_table=DEFAULT_COL
             bufs,
             ptrs,
             mod,
-            colour_table,
             height,
             width,
             input_buf_size,
@@ -211,4 +170,4 @@ function runProtottyApp(wasm_path, width, height, node, colour_table=DEFAULT_COL
     })
 }
 
-export default { runProtottyApp, DEFAULT_COLOUR_TABLE, DEFAULT_INPUT_BUF_SIZE };
+export default { runProtottyApp, DEFAULT_INPUT_BUF_SIZE };
