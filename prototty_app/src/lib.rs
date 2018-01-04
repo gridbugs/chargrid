@@ -1,21 +1,19 @@
 extern crate prototty;
 extern crate prototty_common;
 extern crate tetris;
-extern crate ansi_colour;
 extern crate rand;
 
 use std::collections::VecDeque;
 use std::time::Duration;
 use rand::Rng;
-use ansi_colour::*;
 use prototty::*;
 use prototty_common::*;
 use prototty::inputs::*;
 use prototty::Input as ProtottyInput;
 use tetris::{Tetris, PieceType, Input as TetrisInput, Meta};
 
-const BLANK_COLOUR: Colour = colours::DARK_GREY;
-const FOREGROUND_COLOUR: Colour = colours::DARK_GREY;
+const BLANK_COLOUR: Rgb24 = colours::BLACK;
+const FOREGROUND_COLOUR: Rgb24 = colours::DARK_GREY;
 const BLOCK_CHAR: char = '▯';
 const BLANK_CHAR: char = ' ';
 
@@ -26,7 +24,7 @@ const INPUT_BUFFER_SIZE: usize = 8;
 struct TetrisBoardView;
 struct TetrisNextPieceView;
 
-fn piece_colour(typ: PieceType) -> Colour {
+fn piece_colour(typ: PieceType) -> Rgb24 {
     use tetris::PieceType::*;
     match typ {
         L => colours::RED,
@@ -43,14 +41,14 @@ impl View<Tetris> for TetrisBoardView {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
                 if let Some(output_cell) = grid.get_mut(offset + Coord::new(j as i32, i as i32), depth) {
-                    output_cell.foreground_colour = FOREGROUND_COLOUR;
+                    output_cell.set_foreground_colour(FOREGROUND_COLOUR);
                     if let Some(typ) = cell.typ {
-                        output_cell.character = BLOCK_CHAR;
-                        output_cell.background_colour = piece_colour(typ);
-                        output_cell.bold = true;
+                        output_cell.set_character(BLOCK_CHAR);
+                        output_cell.set_background_colour(piece_colour(typ));
+                        output_cell.set_bold(true);
                     } else {
-                        output_cell.character = BLANK_CHAR;
-                        output_cell.background_colour = BLANK_COLOUR;
+                        output_cell.set_character(BLANK_CHAR);
+                        output_cell.set_background_colour(BLANK_COLOUR);
                     }
                 }
             }
@@ -58,10 +56,10 @@ impl View<Tetris> for TetrisBoardView {
 
         for coord in tetris.game_state.piece.coords.iter().cloned() {
             if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
-                output_cell.character = BLOCK_CHAR;
-                output_cell.foreground_colour = FOREGROUND_COLOUR;
-                output_cell.background_colour = piece_colour(tetris.game_state.piece.typ);
-                output_cell.bold = true;
+                output_cell.set_character(BLOCK_CHAR);
+                output_cell.set_foreground_colour(FOREGROUND_COLOUR);
+                output_cell.set_background_colour(piece_colour(tetris.game_state.piece.typ));
+                output_cell.set_bold(true);
             }
         }
     }
@@ -76,10 +74,10 @@ impl View<Tetris> for TetrisNextPieceView {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
-                output_cell.character = BLOCK_CHAR;
-                output_cell.foreground_colour = FOREGROUND_COLOUR;
-                output_cell.background_colour = piece_colour(tetris.game_state.next_piece.typ);
-                output_cell.bold = true;
+                output_cell.set_character(BLOCK_CHAR);
+                output_cell.set_foreground_colour(FOREGROUND_COLOUR);
+                output_cell.set_background_colour(piece_colour(tetris.game_state.next_piece.typ));
+                output_cell.set_bold(true);
             }
         }
     }
