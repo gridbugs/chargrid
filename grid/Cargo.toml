@@ -1,6 +1,6 @@
 [package]
 name = "prototty_grid"
-description = "Implementation of prototty::ViewCell and prototty::ViewGrid for use in renderers."
+description = "Implementation of prototty::ViewGrid for use in renderers."
 version = "0.7.1"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
