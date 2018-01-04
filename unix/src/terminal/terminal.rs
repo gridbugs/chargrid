@@ -1,15 +1,13 @@
 use std::time::Duration;
-use ansi_colour::{Colour, colours};
+use ansi_colour::Colour;
 use error::Result;
 use prototty::*;
 use prototty_grid::*;
 use cell::*;
+use defaults::*;
+use colour::*;
 use super::ansi_terminal::AnsiTerminal;
 pub use super::ansi_terminal::DrainInput;
-
-pub const DEFAULT_CH: char = ' ';
-pub const DEFAULT_FG: Colour = colours::WHITE;
-pub const DEFAULT_BG: Colour = colours::BLACK;
 
 #[derive(Debug, Clone)]
 pub struct OutputCell {
@@ -26,8 +24,8 @@ impl Default for OutputCell {
         Self {
             dirty: true,
             ch: DEFAULT_CH,
-            fg: DEFAULT_FG,
-            bg: DEFAULT_BG,
+            fg: rgb24_to_ansi(DEFAULT_FG),
+            bg: rgb24_to_ansi(DEFAULT_BG),
             bold: false,
             underline: false,
         }
@@ -85,8 +83,8 @@ impl Terminal {
 
         let mut bold = false;
         let mut underline = false;
-        let mut fg = DEFAULT_FG;
-        let mut bg = DEFAULT_BG;
+        let mut fg = Colour::from_code(DEFAULT_FG_ANSI_CODE);
+        let mut bg = Colour::from_code(DEFAULT_BG_ANSI_CODE);
         self.ansi.reset();
         self.ansi.clear_underline();
         self.ansi.set_foreground_colour(fg);

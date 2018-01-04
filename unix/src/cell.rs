@@ -1,5 +1,7 @@
 use prototty::{ViewCell, Rgb24};
 use ansi_colour::*;
+use defaults::*;
+use colour::*;
 
 #[derive(Debug, Clone)]
 pub struct Cell {
@@ -13,21 +15,13 @@ pub struct Cell {
 impl Default for Cell {
     fn default() -> Self {
         Cell {
-            character: ' ',
+            character: DEFAULT_CH,
             bold: false,
             underline: false,
-            foreground_colour: colours::WHITE,
-            background_colour: colours::BLACK,
+            foreground_colour: Colour::from_code(DEFAULT_FG_ANSI_CODE),
+            background_colour: Colour::from_code(DEFAULT_BG_ANSI_CODE),
         }
     }
-}
-
-fn rgb24_to_ansi(rgb24: Rgb24) -> Colour {
-    let red = rgb24.red as u32 * NUM_RGB_COLOURS_PER_CHANNEL as u32 / 255;
-    let green = rgb24.green as u32 * NUM_RGB_COLOURS_PER_CHANNEL as u32 / 255;
-    let blue = rgb24.blue as u32 * NUM_RGB_COLOURS_PER_CHANNEL as u32 / 255;
-
-    Colour::rgb(red as u8, green as u8, blue as u8).unwrap()
 }
 
 impl ViewCell for Cell {

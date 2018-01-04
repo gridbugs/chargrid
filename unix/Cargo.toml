@@ -13,5 +13,5 @@ prototty = { path = "..", version = "0.7.0" }
 prototty_grid = { path = "../grid", version = "0.7.0" }
 libc = "0.2"
 term = "0.4"
-ansi_colour = "0.2"
+ansi_colour = "0.3"
 itertools = "0.7"

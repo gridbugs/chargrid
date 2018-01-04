@@ -10,6 +10,8 @@ mod cell;
 mod terminal;
 mod error;
 mod context;
+mod defaults;
+mod colour;
 
 pub use self::context::*;
 pub use self::error::*;
