@@ -1,5 +1,7 @@
 use prototty::*;
+use prototty_grid::*;
 use terminal::Terminal;
+use cell::Cell;
 
 pub struct Context {
     terminal: Terminal,

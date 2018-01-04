@@ -1,14 +1,13 @@
 [package]
-name = "prototty_wasm"
-description = "Prototty context for web assembly."
+name = "prototty_grid"
+description = "Implementation of prototty::ViewCell and prototty::ViewGrid for use in renderers."
 version = "0.7.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
-documentation = "https://docs.rs/prototty_wasm"
+documentation = "https://docs.rs/prototty_grid"
 
 [dependencies]
 prototty = { path = "..", version = "0.7.0" }
-prototty_grid = { path = "../grid", version = "0.7.0" }
 itertools = "0.7"

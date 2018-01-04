@@ -1,31 +1,9 @@
+#[macro_use] extern crate itertools;
+extern crate prototty;
+
 use std::slice;
-use ansi_colour::Colour;
-use default::*;
-use view::*;
-use coord::*;
+use prototty::*;
 
-#[derive(Debug, Clone)]
-pub struct Cell {
-    depth: i32,
-    pub character: char,
-    pub foreground_colour: Colour,
-    pub background_colour: Colour,
-    pub bold: bool,
-    pub underline: bool,
-}
-
-impl Default for Cell {
-    fn default() -> Self {
-        Cell {
-            depth: 0,
-            character: DEFAULT_CH,
-            foreground_colour: DEFAULT_FG,
-            background_colour: DEFAULT_BG,
-            bold: false,
-            underline: false,
-        }
-    }
-}
 pub type Iter<'a, C> = slice::Iter<'a, C>;
 pub type IterMut<'a, C> = slice::IterMut<'a, C>;
 
@@ -50,9 +28,10 @@ impl<'a, T> Iterator for CoordEnumerate<'a, T> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Grid<C> {
+pub struct Grid<C: Default + Clone> {
     size: Size,
     cells: Vec<C>,
+    depth: Vec<i32>,
 }
 
 impl<C: Default + Clone> Grid<C> {
@@ -62,9 +41,13 @@ impl<C: Default + Clone> Grid<C> {
         let mut cells = Vec::with_capacity(num_cells);
         cells.resize(num_cells, Default::default());
 
+        let mut depth = Vec::with_capacity(num_cells);
+        depth.resize(num_cells, 0);
+
         Self {
             size,
             cells,
+            depth,
         }
     }
 
@@ -75,12 +58,14 @@ impl<C: Default + Clone> Grid<C> {
     pub fn resize(&mut self, size: Size) {
         let num_cells = size.count();
         self.cells.resize(num_cells, Default::default());
+        self.depth.resize(num_cells, 0);
         self.size = size;
     }
 
     pub fn clear(&mut self) {
-        for cell in self.cells.iter_mut() {
+        for (cell, depth) in izip!(self.cells.iter_mut(), self.depth.iter_mut()) {
             *cell = Default::default();
+            *depth = 0;
         }
     }
 
@@ -97,13 +82,14 @@ impl<C: Default + Clone> Grid<C> {
     }
 }
 
-impl ViewGrid for Grid<Cell> {
-    fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Cell> {
+impl<C: ViewCell + Default + Clone> ViewGrid for Grid<C> {
+    type Cell = C;
+    fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Self::Cell> {
         if let Some(index) = self.size.index(coord) {
-            let cell = &mut self.cells[index];
-            if depth >= cell.depth {
-                cell.depth = depth;
-                Some(cell)
+            let cell_depth = &mut self.depth[index];
+            if depth >= *cell_depth {
+                *cell_depth = depth;
+                Some(&mut self.cells[index])
             } else {
                 None
             }

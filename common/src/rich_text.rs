@@ -73,7 +73,7 @@ impl View<RichText> for DefaultRichTextView {
                     }
                     _ => {
                         if let Some(cell) = grid.get_mut(coord, depth) {
-                            cell.character = ch;
+                            cell.set_character(ch);
                             part.info.write_cell(cell);
                         }
                         coord.x += 1;

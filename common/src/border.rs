@@ -1,4 +1,3 @@
-use ansi_colour::Colour;
 use prototty::*;
 use decorated::Decorated;
 use defaults::*;
@@ -55,9 +54,9 @@ pub struct Border {
     pub title: Option<String>,
     pub padding: BorderPadding,
     pub chars: BorderChars,
-    pub foreground_colour: Colour,
-    pub background_colour: Colour,
-    pub title_colour: Colour,
+    pub foreground_colour: Rgb24,
+    pub background_colour: Rgb24,
+    pub title_colour: Rgb24,
     pub bold_title: bool,
     pub underline_title: bool,
     pub bold_border: bool,
@@ -71,19 +70,19 @@ impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Borde
         let span = self.decorator.span_offset() + self.view.size(value);
 
         if let Some(c) = grid.get_mut(offset, depth) {
-            c.character = self.decorator.chars.top_left;
+            c.set_character(self.decorator.chars.top_left);
             self.decorator.write_border_style(c);
         }
         if let Some(c) = grid.get_mut(offset + Coord::new(span.x, 0), depth) {
-            c.character = self.decorator.chars.top_right;
+            c.set_character(self.decorator.chars.top_right);
             self.decorator.write_border_style(c);
         }
         if let Some(c) = grid.get_mut(offset + Coord::new(0, span.y), depth) {
-            c.character = self.decorator.chars.bottom_left;
+            c.set_character(self.decorator.chars.bottom_left);
             self.decorator.write_border_style(c);
         }
         if let Some(c) = grid.get_mut(offset + Coord::new(span.x, span.y), depth) {
-            c.character = self.decorator.chars.bottom_right;
+            c.set_character(self.decorator.chars.bottom_right);
             self.decorator.write_border_style(c);
         }
 
@@ -92,22 +91,22 @@ impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Borde
             let after = offset + Coord::new(title.len() as i32 + 2, 0);
 
             if let Some(c) = grid.get_mut(before, depth) {
-                c.character = self.decorator.chars.before_title;
+                c.set_character(self.decorator.chars.before_title);
                 self.decorator.write_border_style(c);
             }
             if let Some(c) = grid.get_mut(after, depth) {
-                c.character = self.decorator.chars.after_title;
+                c.set_character(self.decorator.chars.after_title);
                 self.decorator.write_border_style(c);
             }
 
             for (index, ch) in title.chars().enumerate() {
                 let coord = offset + Coord::new(index as i32 + 2, 0);
                 if let Some(c) = grid.get_mut(coord, depth) {
-                    c.character = ch;
-                    c.foreground_colour = self.decorator.title_colour;
-                    c.background_colour = self.decorator.background_colour;
-                    c.bold = self.decorator.bold_title;
-                    c.underline = self.decorator.underline_title;
+                    c.set_character(ch);
+                    c.set_foreground_colour(self.decorator.title_colour);
+                    c.set_background_colour(self.decorator.background_colour);
+                    c.set_bold(self.decorator.bold_title);
+                    c.set_underline(self.decorator.underline_title);
                 }
             }
 
@@ -118,24 +117,24 @@ impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Borde
 
         for i in (1 + title_offset)..span.x {
             if let Some(c) = grid.get_mut(offset + Coord::new(i, 0), depth) {
-                c.character = self.decorator.chars.top;
+                c.set_character(self.decorator.chars.top);
                 self.decorator.write_border_style(c);
             }
         }
         for i in 1..span.x {
             if let Some(c) = grid.get_mut(offset + Coord::new(i, span.y), depth) {
-                c.character = self.decorator.chars.bottom;
+                c.set_character(self.decorator.chars.bottom);
                 self.decorator.write_border_style(c);
             }
         }
 
         for i in 1..span.y {
             if let Some(c) = grid.get_mut(offset + Coord::new(0, i), depth) {
-                c.character = self.decorator.chars.left;
+                c.set_character(self.decorator.chars.left);
                 self.decorator.write_border_style(c);
             }
             if let Some(c) = grid.get_mut(offset + Coord::new(span.x, i), depth) {
-                c.character = self.decorator.chars.right;
+                c.set_character(self.decorator.chars.right);
                 self.decorator.write_border_style(c);
             }
         }
@@ -187,10 +186,10 @@ impl Border {
             y: (self.padding.top + self.padding.bottom + 1) as i32,
         }
     }
-    fn write_border_style(&self, cell: &mut Cell) {
-        cell.foreground_colour = self.foreground_colour;
-        cell.background_colour = self.background_colour;
-        cell.bold = self.bold_border;
-        cell.underline = false;
+    fn write_border_style<C: ViewCell>(&self, cell: &mut C) {
+        cell.set_foreground_colour(self.foreground_colour);
+        cell.set_background_colour(self.background_colour);
+        cell.set_bold(self.bold_border);
+        cell.set_underline(false);
     }
 }

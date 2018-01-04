@@ -1,4 +1,3 @@
-extern crate ansi_colour;
 extern crate prototty;
 #[macro_use] extern crate serde_derive;
 extern crate serde;

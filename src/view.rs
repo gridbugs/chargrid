@@ -1,9 +1,19 @@
 use coord::{Coord, Size};
-use grid::Cell;
+use rgb24::Rgb24;
+
+/// A cell that a view can write to
+pub trait ViewCell {
+    fn set_character(&mut self, character: char);
+    fn set_bold(&mut self, bold: bool);
+    fn set_underline(&mut self, underline: bool);
+    fn set_foreground_colour(&mut self, colour: Rgb24);
+    fn set_background_colour(&mut self, colour: Rgb24);
+}
 
 /// A grid of cells
 pub trait ViewGrid {
-    fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Cell>;
+    type Cell: ViewCell;
+    fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Self::Cell>;
 }
 
 /// Defines a method for rendering a `T` to the terminal.

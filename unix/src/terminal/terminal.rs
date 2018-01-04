@@ -2,6 +2,8 @@ use std::time::Duration;
 use ansi_colour::{Colour, colours};
 use error::Result;
 use prototty::*;
+use prototty_grid::*;
+use cell::*;
 use super::ansi_terminal::AnsiTerminal;
 pub use super::ansi_terminal::DrainInput;
 
