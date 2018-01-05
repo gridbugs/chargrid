@@ -62,8 +62,8 @@ impl Terminal {
                 if cell.bold { BOLD_BIT } else { 0 } |
                     if cell.underline { UNDERLINE_BIT } else { 0 };
 
-            *fg_colour_entry = cell.foreground_colour;
-            *bg_colour_entry = cell.background_colour;
+            *fg_colour_entry = cell.foreground_colour.0;
+            *bg_colour_entry = cell.background_colour.0;
         }
     }
 

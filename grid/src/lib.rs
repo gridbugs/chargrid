@@ -4,6 +4,61 @@ extern crate prototty;
 use std::slice;
 use prototty::*;
 
+pub trait DefaultForeground {
+    fn default_foreground() -> Self;
+}
+
+pub trait DefaultBackground {
+    fn default_background() -> Self;
+}
+
+#[derive(Debug, Clone)]
+pub struct CommonCell<F, B>
+    where F: From<Rgb24> + DefaultForeground,
+          B: From<Rgb24> + DefaultBackground,
+{
+    pub character: char,
+    pub bold: bool,
+    pub underline: bool,
+    pub foreground_colour: F,
+    pub background_colour: B,
+}
+
+impl<F, B> ViewCell for CommonCell<F, B>
+    where F: From<Rgb24> + DefaultForeground,
+          B: From<Rgb24> + DefaultBackground,
+{
+    fn set_character(&mut self, character: char) {
+        self.character = character;
+    }
+    fn set_bold(&mut self, bold: bool) {
+        self.bold = bold;
+    }
+    fn set_underline(&mut self, underline: bool) {
+        self.underline = underline;
+    }
+    fn set_foreground_colour(&mut self, colour: Rgb24) {
+        self.foreground_colour = colour.into();
+    }
+    fn set_background_colour(&mut self, colour: Rgb24) {
+        self.background_colour = colour.into();
+    }
+}
+
+impl<F, B> Default for CommonCell<F, B>
+    where F: From<Rgb24> + DefaultForeground,
+          B: From<Rgb24> + DefaultBackground,
+{
+    fn default() -> Self {
+        CommonCell {
+            character: ' ',
+            bold: false,
+            underline: false,
+            foreground_colour: F::default_foreground(),
+            background_colour: B::default_background(),
+        }
+    }
+}
 pub type Iter<'a, C> = slice::Iter<'a, C>;
 pub type IterMut<'a, C> = slice::IterMut<'a, C>;
 

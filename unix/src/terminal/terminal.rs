@@ -5,7 +5,6 @@ use prototty::*;
 use prototty_grid::*;
 use cell::*;
 use defaults::*;
-use colour::*;
 use super::ansi_terminal::AnsiTerminal;
 pub use super::ansi_terminal::DrainInput;
 
@@ -24,8 +23,8 @@ impl Default for OutputCell {
         Self {
             dirty: true,
             ch: DEFAULT_CH,
-            fg: rgb24_to_ansi(DEFAULT_FG),
-            bg: rgb24_to_ansi(DEFAULT_BG),
+            fg: Colour::from_code(DEFAULT_FG_ANSI_CODE),
+            bg: Colour::from_code(DEFAULT_BG_ANSI_CODE),
             bold: false,
             underline: false,
         }
@@ -36,16 +35,16 @@ impl OutputCell {
     pub fn matches(&self, cell: &Cell) -> bool {
         !self.dirty &&
         self.ch == cell.character &&
-            self.fg == cell.foreground_colour &&
-            self.bg == cell.background_colour &&
+            self.fg == cell.foreground_colour.0 &&
+            self.bg == cell.background_colour.0 &&
             self.bold == cell.bold &&
             self.underline == cell.underline
     }
     pub fn copy_fields(&mut self, cell: &Cell) {
         self.dirty = false;
         self.ch = cell.character;
-        self.fg = cell.foreground_colour;
-        self.bg = cell.background_colour;
+        self.fg = cell.foreground_colour.0;
+        self.bg = cell.background_colour.0;
         self.bold = cell.bold;
         self.underline = cell.underline;
     }
@@ -114,14 +113,14 @@ impl Terminal {
                 false
             };
 
-            if reset || cell.foreground_colour != fg {
-                self.ansi.set_foreground_colour(cell.foreground_colour);
-                fg = cell.foreground_colour;
+            if reset || cell.foreground_colour.0 != fg {
+                self.ansi.set_foreground_colour(cell.foreground_colour.0);
+                fg = cell.foreground_colour.0;
             }
 
-            if reset || cell.background_colour != bg {
-                self.ansi.set_background_colour(cell.background_colour);
-                bg = cell.background_colour;
+            if reset || cell.background_colour.0 != bg {
+                self.ansi.set_background_colour(cell.background_colour.0);
+                bg = cell.background_colour.0;
             }
 
             if reset || (cell.underline != underline) {

@@ -1,43 +1,31 @@
-use prototty::{ViewCell, Rgb24};
-use ansi_colour::*;
+use prototty::Rgb24;
+use prototty_grid::*;
+use ansi_colour;
 use defaults::*;
-use colour::*;
 
 #[derive(Debug, Clone)]
-pub struct Cell {
-    pub character: char,
-    pub bold: bool,
-    pub underline: bool,
-    pub foreground_colour: Colour,
-    pub background_colour: Colour,
-}
+pub struct Colour(pub ansi_colour::Colour);
 
-impl Default for Cell {
-    fn default() -> Self {
-        Cell {
-            character: DEFAULT_CH,
-            bold: false,
-            underline: false,
-            foreground_colour: Colour::from_code(DEFAULT_FG_ANSI_CODE),
-            background_colour: Colour::from_code(DEFAULT_BG_ANSI_CODE),
-        }
+impl From<Rgb24> for Colour {
+    fn from(rgb24: Rgb24) -> Self {
+        let red = rgb24.red as u32 * ansi_colour::MAX_RGB_CHANNEL as u32 / 255;
+        let green = rgb24.green as u32 * ansi_colour::MAX_RGB_CHANNEL as u32 / 255;
+        let blue = rgb24.blue as u32 * ansi_colour::MAX_RGB_CHANNEL as u32 / 255;
+
+        Colour(ansi_colour::Colour::rgb(red as u8, green as u8, blue as u8).unwrap())
     }
 }
 
-impl ViewCell for Cell {
-    fn set_character(&mut self, character: char) {
-        self.character = character;
-    }
-    fn set_bold(&mut self, bold: bool) {
-        self.bold = bold;
-    }
-    fn set_underline(&mut self, underline: bool) {
-        self.underline = underline;
-    }
-    fn set_foreground_colour(&mut self, colour: Rgb24) {
-        self.foreground_colour = rgb24_to_ansi(colour);
-    }
-    fn set_background_colour(&mut self, colour: Rgb24) {
-        self.background_colour = rgb24_to_ansi(colour);
+impl DefaultForeground for Colour {
+    fn default_foreground() -> Self {
+        Colour(ansi_colour::Colour::from_code(DEFAULT_FG_ANSI_CODE))
     }
 }
+
+impl DefaultBackground for Colour {
+    fn default_background() -> Self {
+        Colour(ansi_colour::Colour::from_code(DEFAULT_BG_ANSI_CODE))
+    }
+}
+
+pub type Cell = CommonCell<Colour, Colour>;
