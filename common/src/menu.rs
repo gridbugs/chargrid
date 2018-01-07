@@ -46,7 +46,7 @@ fn selected_info() -> TextInfo {
     TextInfo::default()
         .bold()
         .foreground_colour(DEFAULT_BG)
-        .backrgound_colour(DEFAULT_FG)
+        .background_colour(DEFAULT_FG)
 }
 
 impl<T: Copy> Menu<T> {

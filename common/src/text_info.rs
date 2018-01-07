@@ -25,7 +25,7 @@ impl TextInfo {
     pub fn foreground_colour(self, colour: Rgb24) -> Self {
         Self { foreground_colour: colour, .. self }
     }
-    pub fn backrgound_colour(self, colour: Rgb24) -> Self {
+    pub fn background_colour(self, colour: Rgb24) -> Self {
         Self { background_colour: colour, .. self }
     }
     pub fn underline(self) -> Self {
