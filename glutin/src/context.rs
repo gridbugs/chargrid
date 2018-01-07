@@ -6,6 +6,7 @@ use gfx_glyph;
 
 use gfx::Device;
 use glutin::{GlContext, Event, WindowEvent, VirtualKeyCode, ElementState};
+use gfx_glyph::GlyphCruncher;
 
 use prototty_grid::*;
 use prototty::*;

@@ -77,7 +77,7 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
             num_instances,
             gfx::buffer::Role::Vertex,
             gfx::memory::Usage::Data,
-            gfx::TRANSFER_DST)
+            gfx::memory::Bind::TRANSFER_DST)
             .expect("Failed to create instance buffer");
 
         let data = pipe::Data {
