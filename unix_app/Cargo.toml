@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
-prototty = "0.7"
-prototty_unix = "0.7"
 prototty_app = { path = "../prototty_app" }
+prototty = "0.8"
+prototty_unix = "0.8"
 rand = "0.4"

@@ -5,4 +5,4 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
 rand = "0.4"
-cgmath = { git = "https://github.com/stevebob/cgmath", rev = "rand-0.4" }
+cgmath = "0.16"

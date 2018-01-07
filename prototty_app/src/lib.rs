@@ -12,10 +12,11 @@ use prototty::inputs::*;
 use prototty::Input as ProtottyInput;
 use tetris::{Tetris, PieceType, Input as TetrisInput, Meta};
 
-const BLANK_COLOUR: Rgb24 = colours::BLACK;
-const FOREGROUND_COLOUR: Rgb24 = colours::DARK_GREY;
-const BLOCK_CHAR: char = '▯';
-const BLANK_CHAR: char = ' ';
+const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24 { red: 24, green: 24, blue: 24 };
+const FOREGROUND_COLOUR: Rgb24 = colours::WHITE;
+const BACKGROUND_COLOUR: Rgb24 = colours::BLACK;
+const BLOCK_CHAR: char = '-';
+const BLANK_CHAR: char = '-';
 
 const NEXT_PIECE_SIZE: [u32; 2] = [6, 4];
 const DEATH_ANIMATION_MILLIS: u64 = 500;
@@ -41,14 +42,15 @@ impl View<Tetris> for TetrisBoardView {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
                 if let Some(output_cell) = grid.get_mut(offset + Coord::new(j as i32, i as i32), depth) {
-                    output_cell.set_foreground_colour(FOREGROUND_COLOUR);
+                    output_cell.set_bold(true);
                     if let Some(typ) = cell.typ {
                         output_cell.set_character(BLOCK_CHAR);
+                        output_cell.set_foreground_colour(FOREGROUND_COLOUR);
                         output_cell.set_background_colour(piece_colour(typ));
-                        output_cell.set_bold(true);
                     } else {
                         output_cell.set_character(BLANK_CHAR);
-                        output_cell.set_background_colour(BLANK_COLOUR);
+                        output_cell.set_foreground_colour(BLANK_FOREGROUND_COLOUR);
+                        output_cell.set_background_colour(BACKGROUND_COLOUR);
                     }
                 }
             }
@@ -56,10 +58,10 @@ impl View<Tetris> for TetrisBoardView {
 
         for coord in tetris.game_state.piece.coords.iter().cloned() {
             if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
+                output_cell.set_bold(true);
                 output_cell.set_character(BLOCK_CHAR);
                 output_cell.set_foreground_colour(FOREGROUND_COLOUR);
                 output_cell.set_background_colour(piece_colour(tetris.game_state.piece.typ));
-                output_cell.set_bold(true);
             }
         }
     }
@@ -74,10 +76,10 @@ impl View<Tetris> for TetrisNextPieceView {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
+                output_cell.set_bold(true);
                 output_cell.set_character(BLOCK_CHAR);
                 output_cell.set_foreground_colour(FOREGROUND_COLOUR);
                 output_cell.set_background_colour(piece_colour(tetris.game_state.next_piece.typ));
-                output_cell.set_bold(true);
             }
         }
     }
@@ -96,8 +98,11 @@ impl Borders {
     fn new() -> Self {
         let mut next_piece = Border::new();
         next_piece.title = Some("next".to_string());
+
+        let common = Border::new();
+
         Self {
-            common: Border::new(),
+            common,
             next_piece,
         }
     }
@@ -157,11 +162,19 @@ pub struct App {
 
 impl App {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
-        let main_menu = MenuInstance::new(Menu::smallest(
+        let mut main_menu = Menu::smallest(
             vec![
             ("Play", MainMenuChoice::Play),
             ("Quit", MainMenuChoice::Quit),
-        ])).unwrap();
+        ]);
+
+        main_menu.selected_info = TextInfo::default()
+            .foreground_colour(colours::BLACK)
+            .background_colour(colours::WHITE)
+            .bold()
+            .underline();
+
+        let main_menu = MenuInstance::new(main_menu).unwrap();
 
         let end_text_info = TextInfo::default().bold().foreground_colour(colours::RED);
         let end_text = RichText::one_line(vec![("YOU DIED", end_text_info)]);
