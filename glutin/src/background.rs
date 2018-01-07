@@ -23,6 +23,8 @@ gfx_vertex_struct!( Instance {
 gfx_constant_struct!( Properties {
     cell_pix_size: [f32; 2] = "u_CellPixSize",
     window_pix_size: [f32; 2] = "u_WindowPixSize",
+    underline_pix_width: f32 = "u_UnderlinePixWidth",
+    underline_pix_pos: f32 = "u_UnderlinePixPos",
 });
 
 gfx_pipeline!( pipe {
@@ -45,6 +47,8 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
         cell_width: u32,
         cell_height: u32,
         size: Size,
+        underline_width: u32,
+        underline_position: u32,
         rtv: gfx::handle::RenderTargetView<R, ColourFormat>,
         factory: &mut F,
         encoder: &mut gfx::Encoder<R, C>) -> Self
@@ -102,6 +106,8 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
         encoder.update_constant_buffer(&data.properties, &Properties {
             cell_pix_size: [cell_width as f32, cell_height as f32],
             window_pix_size: [window_width as f32, window_height as f32],
+            underline_pix_width: underline_width as f32,
+            underline_pix_pos: underline_position as f32,
         });
 
         Self {

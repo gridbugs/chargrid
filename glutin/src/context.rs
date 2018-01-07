@@ -16,8 +16,8 @@ use background::*;
 
 type Resources = gfx_device_gl::Resources;
 
-const UNDERLINE_WIDTH_RATIO: u32 = 20;
-const UNDERLINE_POSITION_RATIO: u32 = 20;
+const UNDERLINE_WIDTH_RATIO: u32 = 15;
+const UNDERLINE_POSITION_RATIO: u32 = 15;
 const FONT_SCALE: gfx_glyph::Scale = gfx_glyph::Scale { x: 16.0, y: 16.0 };
 
 const FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(0);
@@ -39,13 +39,14 @@ pub struct ContextBuilder<'a> {
     font: &'a [u8],
     bold_font: Option<&'a [u8]>,
     font_scale: gfx_glyph::Scale,
-    bold_font_scale: gfx_glyph::Scale,
+    bold_font_scale: Option<gfx_glyph::Scale>,
     window_builder: glutin::WindowBuilder,
     context_builder: glutin::ContextBuilder<'a>,
     cell_dimensions: Option<Size>,
     locked_size: bool,
     underline_width: Option<u32>,
     underline_position: Option<u32>,
+    max_grid_size: Option<Size>,
 }
 
 impl<'a> ContextBuilder<'a> {
@@ -54,13 +55,14 @@ impl<'a> ContextBuilder<'a> {
             font,
             bold_font: None,
             font_scale: FONT_SCALE,
-            bold_font_scale: FONT_SCALE,
+            bold_font_scale: None,
             window_builder: glutin::WindowBuilder::new(),
             context_builder: glutin::ContextBuilder::new(),
             cell_dimensions: None,
             locked_size: false,
             underline_width: None,
             underline_position: None,
+            max_grid_size: None,
         }
     }
 
@@ -122,7 +124,14 @@ impl<'a> ContextBuilder<'a> {
 
     pub fn with_bold_font_scale(self, x: f32, y: f32) -> Self {
         Self {
-            bold_font_scale: gfx_glyph::Scale { x, y },
+            bold_font_scale: Some(gfx_glyph::Scale { x, y }),
+            ..self
+        }
+    }
+
+    pub fn with_max_grid_size(self, width: u32, height: u32) -> Self {
+        Self {
+            max_grid_size: Some(Size::new(width, height)),
             ..self
         }
     }
@@ -158,8 +167,10 @@ impl<'a> ContextBuilder<'a> {
             (rect.width() as u32, rect.height() as u32)
         };
 
-        let width_in_cells = ::std::cmp::min(window_width / cell_width, MAX_WIDTH_IN_CELLS);
-        let height_in_cells = ::std::cmp::min(window_height / cell_height, MAX_HEIGHT_IN_CELLS);
+        let max_grid_size = self.max_grid_size.unwrap_or(Size::new(MAX_WIDTH_IN_CELLS,  MAX_HEIGHT_IN_CELLS));
+
+        let width_in_cells = ::std::cmp::min(window_width / cell_width, max_grid_size.x());
+        let height_in_cells = ::std::cmp::min(window_height / cell_height, max_grid_size.y());
 
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
 
@@ -180,6 +191,8 @@ impl<'a> ContextBuilder<'a> {
             cell_width,
             cell_height,
             window_size_in_cells,
+            underline_width,
+            underline_position,
             rtv.clone(),
             &mut factory,
             &mut encoder);
@@ -198,11 +211,9 @@ impl<'a> ContextBuilder<'a> {
             cell_width,
             cell_height,
             locked_size: self.locked_size,
-            underline_width,
-            underline_position,
             background_renderer,
             font_scale: self.font_scale,
-            bold_font_scale: self.bold_font_scale,
+            bold_font_scale: self.bold_font_scale.unwrap_or(self.font_scale),
         })
     }
 }
@@ -221,8 +232,6 @@ pub struct Context<'a> {
     cell_width: u32,
     cell_height: u32,
     locked_size: bool,
-    underline_width: u32,
-    underline_position: u32,
     background_renderer: BackgroundRenderer<Resources>,
     font_scale: gfx_glyph::Scale,
     bold_font_scale: gfx_glyph::Scale,
