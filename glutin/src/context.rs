@@ -43,7 +43,6 @@ pub struct ContextBuilder<'a> {
     window_builder: glutin::WindowBuilder,
     context_builder: glutin::ContextBuilder<'a>,
     cell_dimensions: Option<Size>,
-    locked_size: bool,
     underline_width: Option<u32>,
     underline_position: Option<u32>,
     max_grid_size: Option<Size>,
@@ -59,7 +58,6 @@ impl<'a> ContextBuilder<'a> {
             window_builder: glutin::WindowBuilder::new(),
             context_builder: glutin::ContextBuilder::new(),
             cell_dimensions: None,
-            locked_size: false,
             underline_width: None,
             underline_position: None,
             max_grid_size: None,
@@ -83,13 +81,6 @@ impl<'a> ContextBuilder<'a> {
     pub fn with_vsync(self, vsync: bool) -> Self {
         Self {
             context_builder: self.context_builder.with_vsync(vsync),
-            ..self
-        }
-    }
-
-    pub fn with_locked_size(self, locked_size: bool) -> Self {
-        Self {
-            locked_size,
             ..self
         }
     }
@@ -210,7 +201,7 @@ impl<'a> ContextBuilder<'a> {
             char_buf,
             cell_width,
             cell_height,
-            locked_size: self.locked_size,
+            max_grid_size,
             background_renderer,
             font_scale: self.font_scale,
             bold_font_scale: self.bold_font_scale.unwrap_or(self.font_scale),
@@ -231,7 +222,7 @@ pub struct Context<'a> {
     char_buf: String,
     cell_width: u32,
     cell_height: u32,
-    locked_size: bool,
+    max_grid_size: Size,
     background_renderer: BackgroundRenderer<Resources>,
     font_scale: gfx_glyph::Scale,
     bold_font_scale: gfx_glyph::Scale,
@@ -239,11 +230,18 @@ pub struct Context<'a> {
 
 impl<'a> Context<'a> {
     pub fn poll_input<F: FnMut(Input)>(&mut self, mut callback: F) {
+
+        let mut resize = None;
+
         self.events_loop.poll_events(|event| {
             let input = match event {
                 Event::WindowEvent { event, .. } => {
                     match event {
                         WindowEvent::Closed => inputs::ETX,
+                        WindowEvent::Resized(width, height) => {
+                            resize = Some((width, height));
+                            return;
+                        }
                         WindowEvent::KeyboardInput { input, .. } => {
                             if let ElementState::Pressed = input.state {
                                 if let Some(virtual_keycode) = input.virtual_keycode {
@@ -271,6 +269,24 @@ impl<'a> Context<'a> {
 
             callback(input);
         });
+
+        if let Some((width, height)) = resize {
+            self.handle_resize(width, height);
+        }
+    }
+
+    fn handle_resize(&mut self, width: u32, height: u32) {
+        let (rtv, dsv) = gfx_window_glutin::new_views(&self.window);
+
+        let width_in_cells = ::std::cmp::min(width / self.cell_width, self.max_grid_size.x());
+        let height_in_cells = ::std::cmp::min(height / self.cell_height, self.max_grid_size.y());
+
+        let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
+
+        self.background_renderer.handle_resize(width, height, window_size_in_cells, rtv.clone(), &mut self.factory, &mut self.encoder);
+
+        self.rtv = rtv;
+        self.dsv = dsv;
     }
 }
 
