@@ -1,0 +1,14 @@
+[package]
+name = "prototty_glutin"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+prototty = { path = "..", version = "0.8.0" }
+prototty_grid = { path = "../grid", version = "0.8.0" }
+glutin = "0.9"
+gfx_window_glutin = "0.17"
+gfx_device_gl = "0.14"
+gfx = "0.16"
+gfx_text = "0.20"
+itertools = "0.7"
