@@ -5,6 +5,7 @@ publish() {
     cargo publish --manifest-path grid/Cargo.toml
     cargo publish --manifest-path unix/Cargo.toml
     cargo publish --manifest-path wasm/Cargo.toml
+    cargo publish --manifest-path glutin/Cargo.toml
     cargo publish --manifest-path common/Cargo.toml
 }
 
