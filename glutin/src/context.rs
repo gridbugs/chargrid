@@ -2,7 +2,7 @@ use gfx;
 use glutin;
 use gfx_device_gl;
 use gfx_window_glutin;
-use gfx_text;
+use gfx_glyph;
 
 use gfx::Device;
 use glutin::{GlContext, Event, WindowEvent, VirtualKeyCode, ElementState};
@@ -17,35 +17,28 @@ type Resources = gfx_device_gl::Resources;
 
 const UNDERLINE_WIDTH_RATIO: u32 = 20;
 const UNDERLINE_POSITION_RATIO: u32 = 20;
+const FONT_SCALE: gfx_glyph::Scale = gfx_glyph::Scale { x: 16.0, y: 16.0 };
+
+const FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(0);
+const BOLD_FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(1);
+
+pub const MAX_WIDTH_IN_CELLS: u32 = 256;
+pub const MAX_HEIGHT_IN_CELLS: u32 = 256;
 
 #[derive(Debug)]
 pub enum Error {
-    GfxText(gfx_text::Error),
+    GfxGlyph(String),
+    GlutinContextError(glutin::ContextError),
     WindowNoLongerExists,
+    FailedToMeasureFont,
 }
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-enum Font<'a> {
-    Path(&'a str),
-    Data(&'a [u8]),
-}
-
-impl<'a> Font<'a> {
-    fn set_builder_font(self, builder: gfx_text::RendererBuilder<'a, Resources, gfx_device_gl::Factory>)
-        -> gfx_text::RendererBuilder<'a, Resources, gfx_device_gl::Factory>
-    {
-        match self {
-            Font::Path(path) => builder.with_font(path),
-            Font::Data(data) => builder.with_font_data(data),
-        }
-    }
-}
-
 pub struct ContextBuilder<'a> {
-    font: Option<Font<'a>>,
-    bold_font: Option<Font<'a>>,
-    font_size: Option<u8>,
-    bold_font_size: Option<u8>,
+    font: &'a [u8],
+    bold_font: Option<&'a [u8]>,
+    font_scale: gfx_glyph::Scale,
+    bold_font_scale: gfx_glyph::Scale,
     window_builder: glutin::WindowBuilder,
     context_builder: glutin::ContextBuilder<'a>,
     cell_dimensions: Option<Size>,
@@ -55,12 +48,12 @@ pub struct ContextBuilder<'a> {
 }
 
 impl<'a> ContextBuilder<'a> {
-    pub fn new() -> Self {
+    pub fn new_with_font(font: &'a [u8]) -> Self {
         Self {
-            font: None,
+            font,
             bold_font: None,
-            font_size: None,
-            bold_font_size: None,
+            font_scale: FONT_SCALE,
+            bold_font_scale: FONT_SCALE,
             window_builder: glutin::WindowBuilder::new(),
             context_builder: glutin::ContextBuilder::new(),
             cell_dimensions: None,
@@ -112,89 +105,60 @@ impl<'a> ContextBuilder<'a> {
         }
     }
 
-    pub fn with_font_path(self, path: &'a str) -> Self {
+    pub fn with_bold_font(self, bold_font: &'a [u8]) -> Self {
         Self {
-            font: Some(Font::Path(path)),
+            bold_font: Some(bold_font),
             ..self
         }
     }
 
-    pub fn with_bold_font_path(self, path: &'a str) -> Self {
+    pub fn with_font_scale(self, x: f32, y: f32) -> Self {
         Self {
-            bold_font: Some(Font::Path(path)),
+            font_scale: gfx_glyph::Scale { x, y },
             ..self
         }
     }
 
-    pub fn with_font_data(self, data: &'a [u8]) -> Self {
+    pub fn with_bold_font_scale(self, x: f32, y: f32) -> Self {
         Self {
-            font: Some(Font::Data(data)),
+            bold_font_scale: gfx_glyph::Scale { x, y },
             ..self
         }
     }
 
-    pub fn with_bold_font_data(self, data: &'a [u8]) -> Self {
-        Self {
-            bold_font: Some(Font::Data(data)),
-            ..self
-        }
-    }
-
-    pub fn with_font_size(self, size: u8) -> Self {
-        Self {
-            font_size: Some(size),
-            ..self
-        }
-    }
-
-    pub fn with_bold_font_size(self, size: u8) -> Self {
-        Self {
-            bold_font_size: Some(size),
-            ..self
-        }
-    }
-
-    pub fn build(self) -> Result<Context> {
+    pub fn build(self) -> Result<Context<'a>> {
 
         let events_loop = glutin::EventsLoop::new();
 
-        let (window, device, mut factory, rtv, _dsv) =
+        let (window, device, mut factory, rtv, dsv) =
             gfx_window_glutin::init::<ColourFormat, DepthFormat>(self.window_builder, self.context_builder, &events_loop);
 
         let mut encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer> =
             factory.create_command_buffer().into();
 
-        let mut renderer_builder = gfx_text::new(factory.clone());
-        let mut bold_renderer_builder = gfx_text::new(factory.clone());
+        let mut glyph_brush_builder = gfx_glyph::GlyphBrushBuilder::using_font_bytes(self.font);
+        let bold_font_id = glyph_brush_builder.add_font_bytes(self.bold_font.unwrap_or(self.font));
+        assert_eq!(bold_font_id, BOLD_FONT_ID);
 
-        if let Some(font) = self.font {
-            renderer_builder = font.set_builder_font(renderer_builder);
-        }
-        if let Some(font) = self.bold_font {
-            bold_renderer_builder = font.set_builder_font(bold_renderer_builder);
-        }
-
-        if let Some(font_size) = self.font_size {
-            renderer_builder = renderer_builder.with_size(font_size);
-        }
-        if let Some(font_size) = self.bold_font_size {
-            bold_renderer_builder = bold_renderer_builder.with_size(font_size);
-        }
-
-        let text_renderer = renderer_builder.build().map_err(Error::GfxText)?;
-        let bold_text_renderer = bold_renderer_builder.build().map_err(Error::GfxText)?;
+        let mut glyph_brush = glyph_brush_builder.build(factory.clone());
 
         let (window_width, window_height) = window.get_outer_size().ok_or(Error::WindowNoLongerExists)?;
 
         let (cell_width, cell_height) = if let Some(cell_dimensions) = self.cell_dimensions {
             (cell_dimensions.x(), cell_dimensions.y())
         } else {
-            let (width, height) = text_renderer.measure("@");
-            (width as u32, height as u32)
+            let section = gfx_glyph::Section {
+                text: "@",
+                scale: self.font_scale,
+                font_id: FONT_ID,
+                ..Default::default()
+            };
+            let rect = glyph_brush.pixel_bounds(section).ok_or(Error::FailedToMeasureFont)?;
+            (rect.width() as u32, rect.height() as u32)
         };
 
-        let width_in_cells = window_width / cell_width;
-        let height_in_cells = window_height / cell_height;
+        let width_in_cells = ::std::cmp::min(window_width / cell_width, MAX_WIDTH_IN_CELLS);
+        let height_in_cells = ::std::cmp::min(window_height / cell_height, MAX_HEIGHT_IN_CELLS);
 
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
 
@@ -225,9 +189,9 @@ impl<'a> ContextBuilder<'a> {
             encoder,
             factory,
             rtv,
+            dsv,
             events_loop,
-            text_renderer,
-            bold_text_renderer,
+            glyph_brush,
             grid,
             char_buf,
             cell_width,
@@ -236,19 +200,21 @@ impl<'a> ContextBuilder<'a> {
             underline_width,
             underline_position,
             background_renderer,
+            font_scale: self.font_scale,
+            bold_font_scale: self.bold_font_scale,
         })
     }
 }
 
-pub struct Context {
+pub struct Context<'a> {
     window: glutin::GlWindow,
     device: gfx_device_gl::Device,
     encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer>,
     factory: gfx_device_gl::Factory,
     rtv: gfx::handle::RenderTargetView<Resources, ColourFormat>,
+    dsv: gfx::handle::DepthStencilView<Resources, DepthFormat>,
     events_loop: glutin::EventsLoop,
-    text_renderer: gfx_text::Renderer<Resources, gfx_device_gl::Factory>,
-    bold_text_renderer: gfx_text::Renderer<Resources, gfx_device_gl::Factory>,
+    glyph_brush: gfx_glyph::GlyphBrush<'a, Resources, gfx_device_gl::Factory>,
     grid: Grid<Cell>,
     char_buf: String,
     cell_width: u32,
@@ -257,9 +223,11 @@ pub struct Context {
     underline_width: u32,
     underline_position: u32,
     background_renderer: BackgroundRenderer<Resources>,
+    font_scale: gfx_glyph::Scale,
+    bold_font_scale: gfx_glyph::Scale,
 }
 
-impl Context {
+impl<'a> Context<'a> {
     pub fn poll_input<F: FnMut(Input)>(&mut self, mut callback: F) {
         self.events_loop.poll_events(|event| {
             let input = match event {
@@ -296,7 +264,7 @@ impl Context {
     }
 }
 
-impl Renderer for Context {
+impl<'a> Renderer for Context<'a> {
     type Error = Error;
     fn render<V: View<T>, T>(&mut self, view: &V, data: &T) -> Result<()> {
 
@@ -310,13 +278,22 @@ impl Renderer for Context {
                 self.char_buf.clear();
                 self.char_buf.push(cell.character);
 
-                if cell.bold {
-                    &mut self.bold_text_renderer
+                let (font_id, scale) = if cell.bold {
+                    (BOLD_FONT_ID, self.bold_font_scale)
                 } else {
-                    &mut self.text_renderer
-                }.add(self.char_buf.as_str(),
-                      [coord.x * self.cell_width as i32, coord.y * self.cell_height as i32],
-                      cell.foreground_colour.0);
+                    (FONT_ID, self.font_scale)
+                };
+
+                let section = gfx_glyph::Section {
+                    text: self.char_buf.as_str(),
+                    screen_position: ((coord.x * self.cell_width as i32) as f32, (coord.y * self.cell_height as i32) as f32),
+                    scale,
+                    font_id,
+                    color: cell.foreground_colour.0,
+                    ..Default::default()
+                };
+
+                self.glyph_brush.queue(section);
 
                 output_cell.foreground_colour = cell.foreground_colour.0;
                 output_cell.background_colour = cell.background_colour.0;
@@ -327,11 +304,11 @@ impl Renderer for Context {
         self.encoder.clear(&self.rtv, [0.0,0.0,0.0,1.0]);
 
         self.background_renderer.draw(&mut self.encoder);
-        self.bold_text_renderer.draw(&mut self.encoder, &self.rtv).unwrap();
-        self.text_renderer.draw(&mut self.encoder, &self.rtv).unwrap();
+
+        self.glyph_brush.draw_queued(&mut self.encoder, &self.rtv, &self.dsv).map_err(Error::GfxGlyph)?;
 
         self.encoder.flush(&mut self.device);
-        self.window.swap_buffers().expect("Failed to swap buffers");
+        self.window.swap_buffers().map_err(Error::GlutinContextError)?;
         self.device.cleanup();
 
         Ok(())

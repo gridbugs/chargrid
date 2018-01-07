@@ -3,7 +3,6 @@ use gfx;
 use prototty::Size;
 use formats::*;
 
-const MAX_NUM_CELLS: usize = 16384;
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
 const QUAD_COORDS: [[f32; 2]; 4] = [[0.0, 0.0],
                                     [0.0, 1.0],
@@ -89,7 +88,7 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
         };
 
         let instance_upload: gfx::handle::Buffer<R, Instance> =
-            factory.create_upload_buffer(MAX_NUM_CELLS).expect("Failed to create instance upload buffer");
+            factory.create_upload_buffer(num_instances).expect("Failed to create instance upload buffer");
 
         for (coord, instance) in izip!(
             size.coords(),
