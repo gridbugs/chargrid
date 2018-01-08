@@ -38,8 +38,8 @@ pub struct BackgroundRenderer<R: gfx::Resources> {
     bundle: gfx::pso::bundle::Bundle<R, pipe::Data<R>>,
     instance_upload: gfx::handle::Buffer<R, Instance>,
     num_instances: usize,
-    cell_width: u32,
-    cell_height: u32,
+    cell_width: f32,
+    cell_height: f32,
     properties: Properties,
 }
 
@@ -47,11 +47,11 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
     pub fn new<F, C>(
         window_width: u32,
         window_height: u32,
-        cell_width: u32,
-        cell_height: u32,
+        cell_width: f32,
+        cell_height: f32,
         size: Size,
-        underline_width: u32,
-        underline_position: u32,
+        underline_width: f32,
+        underline_position: f32,
         rtv: gfx::handle::RenderTargetView<R, ColourFormat>,
         factory: &mut F,
         encoder: &mut gfx::Encoder<R, C>) -> Self
@@ -89,10 +89,10 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
         };
 
         let properties = Properties {
-            cell_pix_size: [cell_width as f32, cell_height as f32],
+            cell_pix_size: [cell_width, cell_height],
             window_pix_size: [window_width as f32, window_height as f32],
-            underline_pix_width: underline_width as f32,
-            underline_pix_pos: underline_position as f32,
+            underline_pix_width: underline_width,
+            underline_pix_pos: underline_position,
         };
 
         encoder.update_constant_buffer(&data.properties, &properties);
@@ -119,7 +119,7 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
         encoder.draw(&self.bundle.slice, &self.bundle.pso, &self.bundle.data);
     }
 
-    fn create_instance_buffer<F>(cell_width: u32, cell_height: u32, size: Size, factory: &mut F)
+    fn create_instance_buffer<F>(cell_width: f32, cell_height: f32, size: Size, factory: &mut F)
         -> (usize, gfx::handle::Buffer<R, Instance>, gfx::handle::Buffer<R, Instance>)
         where F: gfx::Factory<R> + gfx::traits::FactoryExt<R>,
     {
@@ -139,8 +139,8 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
             size.coords(),
             factory.write_mapping(&instance_upload).expect("Failed to map instance upload buffer").iter_mut()
         ) {
-            let x = (coord.x as u32 * cell_width) as f32;
-            let y = (coord.y as u32 * cell_height) as f32;
+            let x = coord.x as f32 * cell_width;
+            let y = coord.y as f32 * cell_height;
             instance.top_left_corner_pix_pos = [x, y];
         }
 
