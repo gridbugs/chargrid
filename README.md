@@ -43,11 +43,12 @@ pub extern "C" fn alloc_buf(size: usize) -> *mut u8 {
 }
 
 #[no_mangle]
-pub fn tick(app: *mut c_void, input_buffer: *const u8, num_inputs: usize, period_millis: f64) {
+pub fn tick(app: *mut c_void, which_buffer: *const u8, key_code_buffer: *const u8, num_inputs: usize, period_millis: f64) {
     // Called by the app harness once per frame.
     // `app` is a pointer to your application's state, returned by `alloc_app`.
-    // `input_buffer` is a buffer containing keycodes of keys pressed since the last frame.
-    // `num_inputs` is the number of keycodes in input_buffer.
+    // `which_buffer` is a buffer containing `event.which` values of keypress events since the last frame.
+    // `key_code_buffer` is a buffer containing `event.keyCode` values of keypress events since the last frame.
+    // `num_inputs` is the number of keycodes in `which_buffer` and `key_code_buffer`.
     // `period_millis` is the number of milliseconds that have passed since the last call to `tick`.
 }
 ```

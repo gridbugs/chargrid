@@ -48,19 +48,20 @@ class Terminal extends React.Component {
 
     componentDidMount() {
         this.animationRequest = requestAnimationFrame(() => this.tick());
-        window.addEventListener("keydown", (e) => this.handleKeyDown(e));
+        window.addEventListener("keypress", (e) => this.handleKeyPress(e));
         document.head.appendChild(this.style_sheet);
     }
 
     componentWillUnmount() {
         cancelAnimationFrame(this.animationRequest);
-        window.removeEventListener("keydown");
+        window.removeEventListener("keypress");
         document.head.removeChild(this.style_sheet);
     }
 
-    handleKeyDown(e) {
+    handleKeyPress(e) {
         if (this.num_inputs < this.input_buf_size) {
-            this.bufs.input[this.num_inputs] = e.keyCode;
+            this.bufs.which_buffer[this.num_inputs] = e.which;
+            this.bufs.key_code_buffer[this.num_inputs] = e.keyCode;
             this.num_inputs += 1;
         }
     }
@@ -69,7 +70,7 @@ class Terminal extends React.Component {
         let now = Date.now();
         let period = now - this.state.previousInstant;
 
-        this.mod.tick(this.ptrs.app, this.ptrs.input, this.num_inputs, period);
+        this.mod.tick(this.ptrs.app, this.ptrs.which_buffer, this.ptrs.key_code_buffer, this.num_inputs, period);
         this.num_inputs = 0;
 
         this.setState(_ => ({ previousInstant: now }));
@@ -155,8 +156,11 @@ function runProtottyApp(wasm_path, width, height, node, input_buf_size=DEFAULT_I
         bufs.fg_colour = new Uint32Array(mod.memory.buffer, ptrs.fg_colour, size);
         bufs.bg_colour = new Uint32Array(mod.memory.buffer, ptrs.bg_colour, size);
 
-        ptrs.input = mod.alloc_buf(input_buf_size);
-        bufs.input = new Uint8ClampedArray(mod.memory.buffer, ptrs.input, input_buf_size);
+        ptrs.which_buffer = mod.alloc_buf(input_buf_size);
+        bufs.which_buffer = new Uint8ClampedArray(mod.memory.buffer, ptrs.which_buffer, input_buf_size);
+
+        ptrs.key_code_buffer = mod.alloc_buf(input_buf_size);
+        bufs.key_code_buffer = new Uint8ClampedArray(mod.memory.buffer, ptrs.key_code_buffer, input_buf_size);
 
         let props = {
             bufs,
