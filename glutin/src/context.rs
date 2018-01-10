@@ -5,7 +5,7 @@ use gfx_window_glutin;
 use gfx_glyph;
 
 use gfx::Device;
-use glutin::{GlContext, Event, WindowEvent, VirtualKeyCode, ElementState};
+use glutin::{GlContext, Event};
 use gfx_glyph::GlyphCruncher;
 
 use prototty_grid::*;
@@ -13,6 +13,7 @@ use prototty::*;
 use cell::*;
 use formats::*;
 use background::*;
+use input::*;
 
 type Resources = gfx_device_gl::Resources;
 
@@ -256,43 +257,18 @@ impl<'a> Context<'a> {
         let mut resize = None;
 
         self.events_loop.poll_events(|event| {
-            let input = match event {
+            match event {
                 Event::WindowEvent { event, .. } => {
-                    match event {
-                        WindowEvent::Closed => {
-                            closing = true;
-                            inputs::ETX
+                    if let Some(event) = convert_event(event) {
+                        match event {
+                            InputEvent::Input(input) => callback(input),
+                            InputEvent::Quit => closing = true,
+                            InputEvent::Resize(width, height) => resize = Some((width, height)),
                         }
-                        WindowEvent::Resized(width, height) => {
-                            resize = Some((width, height));
-                            return;
-                        }
-                        WindowEvent::KeyboardInput { input, .. } => {
-                            if let ElementState::Pressed = input.state {
-                                if let Some(virtual_keycode) = input.virtual_keycode {
-                                    match virtual_keycode {
-                                        VirtualKeyCode::Left => Input::Left,
-                                        VirtualKeyCode::Right => Input::Right,
-                                        VirtualKeyCode::Up => Input::Up,
-                                        VirtualKeyCode::Down => Input::Down,
-                                        VirtualKeyCode::Escape => inputs::ESCAPE,
-                                        VirtualKeyCode::Return => inputs::RETURN,
-                                        _ => return,
-                                    }
-                                } else {
-                                    return;
-                                }
-                            } else {
-                                return;
-                            }
-                        }
-                        _ => return,
                     }
                 }
-                _ => return,
+                _ => (),
             };
-
-            callback(input);
         });
 
         if let Some((width, height)) = resize {

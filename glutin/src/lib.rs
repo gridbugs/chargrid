@@ -11,5 +11,6 @@ mod background;
 mod cell;
 mod context;
 mod formats;
+mod input;
 
 pub use context::*;
