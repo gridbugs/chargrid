@@ -5,5 +5,6 @@ extern crate prototty_grid;
 mod terminal;
 mod context;
 mod cell;
+pub mod input;
 
-pub use self::context::*;
+pub use context::*;
