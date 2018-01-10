@@ -10,7 +10,6 @@ use std::time::Duration;
 use rand::{SeedableRng, StdRng};
 use prototty_wasm::*;
 use prototty::Renderer;
-use prototty::inputs as prototty_inputs;
 use prototty::Input as ProtottyInput;
 
 use prototty_app::{App, AppView};
@@ -56,19 +55,18 @@ pub extern "C" fn alloc_buf(size: usize) -> *mut u8 {
 }
 
 #[no_mangle]
-pub unsafe fn tick(app: *mut WebApp, input_buffer: *const u8, num_inputs: usize, period_millis: f64) {
+pub unsafe fn tick(app: *mut WebApp,
+                   which_buffer: *const u8,
+                   key_code_buffer: *const u8,
+                   num_inputs: usize,
+                   period_millis: f64) {
+
     let period = Duration::from_millis(period_millis as u64);
-    let inputs = slice::from_raw_parts(input_buffer, num_inputs);
-    let prototty_input_iter = inputs.iter().filter_map(|i| {
-        match i {
-            &37 => Some(ProtottyInput::Left),
-            &38 => Some(ProtottyInput::Up),
-            &39 => Some(ProtottyInput::Right),
-            &40 => Some(ProtottyInput::Down),
-            &27 => Some(prototty_inputs::ESCAPE),
-            &13 => Some(prototty_inputs::RETURN),
-            _ => None,
-        }
+    let which = slice::from_raw_parts(which_buffer, num_inputs);
+    let key_code = slice::from_raw_parts(key_code_buffer, num_inputs);
+
+    let prototty_input_iter = which.iter().zip(key_code.iter()).filter_map(|(which, key_code)| {
+        input::from_js_event(*which, *key_code)
     });
     (*app).tick(prototty_input_iter, period);
 }
