@@ -1,7 +1,7 @@
 [package]
 name = "prototty"
 description = "Utilities for easily and efficiently rendering to a terminal."
-version = "0.8.2"
+version = "0.9.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
