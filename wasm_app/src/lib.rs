@@ -56,17 +56,17 @@ pub extern "C" fn alloc_buf(size: usize) -> *mut u8 {
 
 #[no_mangle]
 pub unsafe fn tick(app: *mut WebApp,
-                   which_buffer: *const u8,
                    key_code_buffer: *const u8,
+                   key_mod_buffer: *const u8,
                    num_inputs: usize,
                    period_millis: f64) {
 
     let period = Duration::from_millis(period_millis as u64);
-    let which = slice::from_raw_parts(which_buffer, num_inputs);
     let key_code = slice::from_raw_parts(key_code_buffer, num_inputs);
+    let key_mod = slice::from_raw_parts(key_mod_buffer, num_inputs);
 
-    let prototty_input_iter = which.iter().zip(key_code.iter()).filter_map(|(which, key_code)| {
-        input::from_js_event(*which, *key_code)
+    let prototty_input_iter = key_code.iter().zip(key_mod.iter()).filter_map(|(key_code, key_mod)| {
+        input::from_js_event(*key_code, *key_mod)
     });
     (*app).tick(prototty_input_iter, period);
 }
