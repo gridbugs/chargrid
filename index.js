@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+const MOD_SHIFT = (1 << 0);
+
 function make_colour(rgb24) {
     let r = rgb24 & 0xff;
     let g = (rgb24 >> 8) & 0xff;
@@ -48,20 +50,28 @@ class Terminal extends React.Component {
 
     componentDidMount() {
         this.animationRequest = requestAnimationFrame(() => this.tick());
-        window.addEventListener("keypress", (e) => this.handleKeyPress(e));
+        window.addEventListener("keydown", (e) => this.handleKeyPress(e));
         document.head.appendChild(this.style_sheet);
     }
 
     componentWillUnmount() {
         cancelAnimationFrame(this.animationRequest);
-        window.removeEventListener("keypress");
+        window.removeEventListener("keydown");
         document.head.removeChild(this.style_sheet);
     }
 
     handleKeyPress(e) {
         if (this.num_inputs < this.input_buf_size) {
-            this.bufs.which_buffer[this.num_inputs] = e.which;
             this.bufs.key_code_buffer[this.num_inputs] = e.keyCode;
+
+            let key_mod = 0;
+
+            if (e.shiftKey) {
+                key_mod |= MOD_SHIFT;
+            }
+
+            this.bufs.key_mod_buffer[this.num_inputs] = key_mod;
+
             this.num_inputs += 1;
         }
     }
@@ -70,7 +80,7 @@ class Terminal extends React.Component {
         let now = Date.now();
         let period = now - this.state.previousInstant;
 
-        this.mod.tick(this.ptrs.app, this.ptrs.which_buffer, this.ptrs.key_code_buffer, this.num_inputs, period);
+        this.mod.tick(this.ptrs.app, this.ptrs.key_code_buffer, this.ptrs.key_mod_buffer, this.num_inputs, period);
         this.num_inputs = 0;
 
         this.setState(_ => ({ previousInstant: now }));
@@ -156,8 +166,8 @@ function runProtottyApp(wasm_path, width, height, node, input_buf_size=DEFAULT_I
         bufs.fg_colour = new Uint32Array(mod.memory.buffer, ptrs.fg_colour, size);
         bufs.bg_colour = new Uint32Array(mod.memory.buffer, ptrs.bg_colour, size);
 
-        ptrs.which_buffer = mod.alloc_buf(input_buf_size);
-        bufs.which_buffer = new Uint8ClampedArray(mod.memory.buffer, ptrs.which_buffer, input_buf_size);
+        ptrs.key_mod_buffer = mod.alloc_buf(input_buf_size);
+        bufs.key_mod_buffer = new Uint8ClampedArray(mod.memory.buffer, ptrs.key_mod_buffer, input_buf_size);
 
         ptrs.key_code_buffer = mod.alloc_buf(input_buf_size);
         bufs.key_code_buffer = new Uint8ClampedArray(mod.memory.buffer, ptrs.key_code_buffer, input_buf_size);
