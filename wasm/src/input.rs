@@ -19,6 +19,8 @@ pub fn from_js_event(event_key_code: u8, event_key_modifiers: u8) -> Option<Inpu
         8 => Some(inputs::BACKSPACE),
         9 => Some(inputs::TAB),
 
+        13 => Some(inputs::RETURN),
+
         27 => Some(inputs::ESCAPE),
 
         33 => Some(Input::PageUp),
