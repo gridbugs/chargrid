@@ -10,7 +10,8 @@ use prototty_app::{App, AppView, ControlFlow};
 
 fn main() {
 
-    let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_TandyNew_TV.ttf"))
+    let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
+        .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
         .with_window_dimensions(640, 480)
         .with_font_scale(32.0, 32.0)
         .with_cell_dimensions(32, 32)
