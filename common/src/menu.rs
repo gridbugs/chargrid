@@ -154,7 +154,7 @@ impl<T: Copy> MenuInstance<T> {
     /// menu, attempting to exit the program, or
     /// finalising the selection.
     pub fn tick<I>(&mut self, inputs: I) -> Option<MenuOutput<T>>
-        where I: Iterator<Item=Input>,
+        where I: IntoIterator<Item=Input>,
     {
         for input in inputs {
             match input {
