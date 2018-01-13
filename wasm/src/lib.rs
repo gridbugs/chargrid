@@ -6,5 +6,6 @@ mod terminal;
 mod context;
 mod cell;
 pub mod input;
+pub mod alloc;
 
 pub use context::*;
