@@ -15,7 +15,7 @@ element called "protottyTerminal", using a grid of 30x20 cells.
 import prototty from 'prototty-terminal-js';
 
 let node = document.getElementById("protottyTerminal");
-prototty.runProtottyApp("wasm_app.wasm", 30, 20, node);
+prototty.loadProtottyApp("wasm_app.wasm", 30, 20, node).then(app => app.start());
 ```
 
 ## Big Example
@@ -34,12 +34,6 @@ The app harness expects the following functions to be exposed by the wasm blob:
 pub extern "C" fn alloc_app(rng_seed: usize) -> *mut c_void {
     // Called once during initialisation.
     // Allocate your application's state, and return a raw pointer to it.
-}
-
-#[no_mangle]
-pub extern "C" fn alloc_buf(size: usize) -> *mut u8 {
-    // Called once during initialisation.
-    // Allocate a buffer of `size` bytes, and return a raw pointer to it.
 }
 
 #[no_mangle]
