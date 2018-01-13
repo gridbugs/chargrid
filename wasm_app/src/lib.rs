@@ -4,15 +4,13 @@ extern crate prototty_app;
 extern crate rand;
 extern crate tetris;
 
-use std::mem;
-use std::slice;
 use std::time::Duration;
 use rand::{SeedableRng, StdRng};
 use prototty_wasm::*;
 use prototty::Renderer;
 use prototty::Input as ProtottyInput;
 
-use prototty_app::{App, AppView};
+use prototty_app::{App, AppView, ControlFlow};
 
 pub struct WebApp {
     app: App,
@@ -33,40 +31,34 @@ impl WebApp {
         }
     }
     fn tick<I>(&mut self, inputs: I, period: Duration)
-        where I: Iterator<Item=ProtottyInput>,
+        where I: IntoIterator<Item=ProtottyInput>,
     {
-        self.app.tick(inputs, period, &mut self.rng);
+        if let Some(control_flow) = self.app.tick(inputs, period, &mut self.rng) {
+            match control_flow {
+                ControlFlow::Exit => {
+                    self.context.quit();
+                    return;
+                }
+            }
+        }
         self.context.render(&AppView, &self.app).unwrap();
     }
 }
 
 #[no_mangle]
 pub extern "C" fn alloc_app(seed: usize) -> *mut WebApp {
-    let app = Box::new(WebApp::new(seed));
-    Box::into_raw(app)
-}
-
-#[no_mangle]
-pub extern "C" fn alloc_buf(size: usize) -> *mut u8 {
-    let mut buf: Vec<u8> = Vec::with_capacity(size);
-    let ptr = buf.as_mut_ptr();
-    mem::forget(buf);
-    ptr
+    alloc::into_boxed_raw(WebApp::new(seed))
 }
 
 #[no_mangle]
 pub unsafe fn tick(app: *mut WebApp,
-                   key_code_buffer: *const u8,
-                   key_mod_buffer: *const u8,
+                   key_codes: *const u8,
+                   key_mods: *const u8,
                    num_inputs: usize,
                    period_millis: f64) {
 
     let period = Duration::from_millis(period_millis as u64);
-    let key_code = slice::from_raw_parts(key_code_buffer, num_inputs);
-    let key_mod = slice::from_raw_parts(key_mod_buffer, num_inputs);
 
-    let prototty_input_iter = key_code.iter().zip(key_mod.iter()).filter_map(|(key_code, key_mod)| {
-        input::from_js_event(*key_code, *key_mod)
-    });
-    (*app).tick(prototty_input_iter, period);
+    let input_iter = input::js_event_input_iter(key_codes, key_mods, num_inputs);
+    (*app).tick(input_iter, period);
 }

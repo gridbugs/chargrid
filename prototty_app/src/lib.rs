@@ -191,7 +191,7 @@ impl App {
     }
 
     pub fn tick<I, R>(&mut self, inputs: I, period: Duration, rng: &mut R) -> Option<ControlFlow>
-        where I: Iterator<Item=ProtottyInput>,
+        where I: IntoIterator<Item=ProtottyInput>,
               R: Rng,
     {
         match self.state {
