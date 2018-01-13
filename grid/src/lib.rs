@@ -112,6 +112,8 @@ impl<C: Default + Clone> Grid<C> {
 
     pub fn resize(&mut self, size: Size) {
         let num_cells = size.count();
+        self.cells.clear();
+        self.depth.clear();
         self.cells.resize(num_cells, Default::default());
         self.depth.resize(num_cells, 0);
         self.size = size;
