@@ -1,3 +1,4 @@
+use std::slice;
 use prototty::{inputs, Input};
 
 const MOD_SHIFT: u8 = (1 << 0);
@@ -116,5 +117,40 @@ pub fn from_js_event(event_key_code: u8, event_key_modifiers: u8) -> Option<Inpu
         222 => convert_char_shift!('\'', '"', shift),
 
         _ => None,
+    }
+}
+
+pub unsafe fn js_event_input_iter<'a>(key_codes: *const u8, key_mods: *const u8, num_inputs: usize) -> InputIter<'a> {
+    InputIter::new(key_codes, key_mods, num_inputs)
+}
+
+pub struct InputIter<'a> {
+    key_codes: slice::Iter<'a, u8>,
+    key_mods: slice::Iter<'a, u8>,
+}
+
+impl<'a> InputIter<'a> {
+    pub unsafe fn new(key_codes: *const u8, key_mods: *const u8, num_inputs: usize) -> Self {
+        Self {
+            key_codes: slice::from_raw_parts(key_codes, num_inputs).iter(),
+            key_mods: slice::from_raw_parts(key_mods, num_inputs).iter(),
+        }
+    }
+}
+
+impl<'a> Iterator for InputIter<'a> {
+    type Item = Input;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(key_code) = self.key_codes.next() {
+                if let Some(key_mod) = self.key_mods.next() {
+                    if let Some(input) = from_js_event(*key_code, *key_mod) {
+                        return Some(input);
+                    }
+                }
+            } else {
+                return None;
+            }
+        }
     }
 }
