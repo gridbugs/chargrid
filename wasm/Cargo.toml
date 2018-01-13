@@ -9,6 +9,6 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_wasm"
 
 [dependencies]
-prototty = { path = "..", version = "0.11.2" }
+prototty = { path = "../prototty", version = "0.11.2" }
 prototty_grid = { path = "../grid", version = "0.11.2" }
 itertools = "0.7"

@@ -9,7 +9,7 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_glutin"
 
 [dependencies]
-prototty = { path = "..", version = "0.11.2" }
+prototty = { path = "../prototty", version = "0.11.2" }
 prototty_grid = { path = "../grid", version = "0.11.2" }
 glutin = "0.12"
 gfx_window_glutin = "0.20"
