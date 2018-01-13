@@ -293,6 +293,8 @@ impl<'a> Context<'a> {
 
         self.rtv = rtv;
         self.dsv = dsv;
+
+        self.grid.resize(window_size_in_cells);
     }
 }
 
