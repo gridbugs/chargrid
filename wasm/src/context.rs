@@ -17,6 +17,10 @@ impl Context {
             grid,
         }
     }
+
+    pub fn quit(&self) {
+        self.terminal.quit();
+    }
 }
 
 impl Renderer for Context {

@@ -70,6 +70,10 @@ impl Terminal {
     pub fn size(&self) -> Size {
         unsafe { Size::new(ffi::get_width(), ffi::get_height()) }
     }
+
+    pub fn quit(&self) {
+        unsafe { ffi::quit(); }
+    }
 }
 
 mod ffi {
@@ -77,5 +81,6 @@ mod ffi {
         pub fn get_width() -> u32;
         pub fn get_height() -> u32;
         pub fn set_bufs(chars: *mut u32, style: *mut u8, fg_colour: *mut u32, bg_colour: *mut u32);
+        pub fn quit();
     }
 }
