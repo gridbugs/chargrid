@@ -1,56 +1,30 @@
-# Prototty JS App Harness
+# Prototty
 
-[![Download](https://img.shields.io/npm/v/prototty-terminal-js.svg)](https://www.npmjs.com/package/prototty-terminal-js)
+This repo contains a collection of crates relating to rendering grids of
+characters. Cells in the grid have characters, foreground and background
+colours, and attributes bold and underline.
 
-[Prototty](https://github.com/stevebob/prototty/) is a rust library for
-rendering to a terminal, designed specifically with game prototyping in mind.
-It supports compiling to web assembly. This library
-provides an application harness, that takes a compiled web assembly file, and
-runs it, passing through keyboard input, and rendering the output to the screen.
-
-## Example
-
-This runs an app in a file called "wasm\_app.wasm", rendering the output into an
-element called "protottyTerminal", using a grid of 30x20 cells.
-
-```js
-import prototty from 'prototty-terminal-js';
-
-let node = document.getElementById("protottyTerminal");
-prototty.loadProtottyApp("wasm_app.wasm", 30, 20, node).then(app => app.start());
-```
-
-## Big Example
-
-https://github.com/stevebob/protrotty-tetris
-
-This is an implementation of tetris. There's a unix app that runs in an ansi terminal,
-and a wasm app which runs in a browser using this library.
-
-## Interface
-
-The app harness expects the following functions to be exposed by the wasm blob:
-
-```rust
-#[no_mangle]
-pub extern "C" fn alloc_app(rng_seed: usize) -> *mut c_void {
-    // Called once during initialisation.
-    // Allocate your application's state, and return a raw pointer to it.
-}
-
-#[no_mangle]
-pub fn tick(app: *mut c_void,
-            key_code_buffer: *const u8,
-            key_mod_buffer: *const u8,
-            num_inputs: usize,
-            period_millis: f64) {
-
-    // Called by the app harness once per frame.
-    // `app` is a pointer to your application's state, returned by `alloc_app`.
-    // `key_code_buffer` is a buffer containing `event.keyCode` values of keypress events since the last frame.
-    // `key_mod_buffer` is a buffer of bytes describing modifier keys:
-    //    bit 0 is set <=> shift is pressed
-    // `num_inputs` is the number of keycodes in `which_buffer` and `key_code_buffer`.
-    // `period_millis` is the number of milliseconds that have passed since the last call to `tick`.
-}
-```
+- [prototty](https://github.com/stevebob/prototty/tree/master/prototty) defines
+  some types and traits which allow you to describe how a type should be
+  rendered to a grid of characters. It also defines an input type.
+- [prototty-common](https://github.com/stevebob/prototty/tree/master/common) is
+  a collection of common user interface element types and corresponding views so
+  they may be rendered with prototty.
+- [prototty-unix](https://github.com/stevebob/prototty/tree/master/unix) is a
+  prototty frontend for unix (ansi) terminals. It can render views to a unix
+  terminal, and get input from the terminal, normalized to prototty's input
+  type.
+- [prototty-glutin](https://github.com/stevebob/prototty/tree/master/glutin) is a
+  prototty frontend for opengl. It can create a window, render views to that
+  window, and get input from the window, normalized to prototty's input type.
+- [prototty-wasm](https://github.com/stevebob/prototty/tree/master/wasm) is a
+  prototty frontend for web assembly. It renders views into memory in a format
+  which can be easily unpacked in javascript, and contains functions for
+  normalizing javascript key codes and key mods into prototty's input type. It's
+  intended to be used with [prototty-terminal-js](https://github.com/stevebob/prototty-terminal-js) - a
+  javascript library for unpacking the output of prototty-wasm and drawing it to
+  the screen, and periodically sending input to the wasm program.
+- [prototty-grid](https://github.com/stevebob/prototty/tree/master/grid) defines a
+  data structure for storing a grid of cells, and a common cell representation.
+  It's used by the frontend crates in this repo, and would simplify the
+  implementation of any further frontends.
