@@ -1,0 +1,16 @@
+{
+  "name": "title_wasm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "prototty-terminal-js": "^0.5.0",
+    "webpack": "^3.10.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Stephen Sherratt <sfsherratt@gmail.com> (https://gridbugs.org)",
+  "license": "MIT"
+}

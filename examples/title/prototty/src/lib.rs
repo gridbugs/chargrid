@@ -1,19 +1,3 @@
-# prototty
-
-[![Version](https://img.shields.io/crates/v/prototty.svg)](https://crates.io/crates/prototty)
-[![Documentation](https://docs.rs/prototty/badge.svg)](https://docs.rs/prototty)
-
-Definition of types and traits for describing how to render a type to a grid of
-characters (such as a terminal). Also provides an input type to simplify making
-an application that works with multiple frontends.
-
-## Example
-
-Let's make a title element which renders a single line of text, within
-a fixed width rectangle of height 1. The entire source code for this
-example is in the "examples/title" directory in this repo.
-
-```rust
 extern crate prototty;
 use prototty::*;
 
@@ -65,18 +49,3 @@ impl View<Title> for DemoTitleView {
         CenteredTitleView.view(title, offset + Coord::new(0, 2), depth, grid);
     }
 }
-
-```
-
-We can now render a `Title` with 3 of different views:
- - `TitleView` renders a `Title` left-aligned
- - `CenteredTitleView` renders a `Title` centered within its width
- - `DemoTitleView` renders a `Title` twice, using the other two views
-
-This isn't much use by itself. To actually get something onto a screen, we'll
-need a frontend. Continue this example in:
-- [prototty-unix](https://github.com/stevebob/prototty/tree/master/unix)
-- [prototty-glutin](https://github.com/stevebob/prototty/tree/master/glutin)
-- [prototty-wasm](https://github.com/stevebob/prototty/tree/master/wasm)
-
-Or see how to decorate it with a border in [prototty-common](https://github.com/stevebob/prototty/tree/master/common).

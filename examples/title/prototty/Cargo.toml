@@ -1,0 +1,7 @@
+[package]
+name = "prototty_title"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+prototty = "0.11"

@@ -1,0 +1,12 @@
+[package]
+name = "title_wasm"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+prototty = "0.11"
+prototty_wasm = "0.11"
+prototty_title = { path = "../prototty" }
