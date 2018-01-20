@@ -58,6 +58,6 @@ fn main() {
 }
 ```
 
-Running this will produce the following output:
+Running this will produce the following output in a new window:
 
 ![Example](https://github.com/stevebob/prototty/blob/master/glutin/example.png)

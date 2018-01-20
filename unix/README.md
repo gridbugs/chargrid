@@ -38,6 +38,6 @@ fn main() {
 }
 ```
 
-Running this will produce the following output:
+Running this will produce the following output in your terminal:
 
 ![Example](https://github.com/stevebob/prototty/blob/master/unix/example.png)
