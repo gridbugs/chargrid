@@ -1,5 +1,7 @@
 # Prototty JS App Harness
 
+[![Download](https://img.shields.io/npm/v/prototty-terminal-js.svg)](https://www.npmjs.com/package/prototty-terminal-js)
+
 [Prototty](https://github.com/stevebob/prototty/) is a rust library for
 rendering to a terminal, designed specifically with game prototyping in mind.
 It supports compiling to web assembly. This library
@@ -20,7 +22,7 @@ prototty.loadProtottyApp("wasm_app.wasm", 30, 20, node).then(app => app.start())
 
 ## Big Example
 
-https://github.com/stevebob/tetris
+https://github.com/stevebob/protrotty-tetris
 
 This is an implementation of tetris. There's a unix app that runs in an ansi terminal,
 and a wasm app which runs in a browser using this library.
