@@ -14,7 +14,7 @@ colours, and attributes bold and underline.
   prototty frontend for unix (ansi) terminals. It can render views to a unix
   terminal, and get input from the terminal, normalized to prototty's input
   type.
-- [prototty-glutin](https://github.com/stevebob/prototty/tree/master/unix) is a
+- [prototty-glutin](https://github.com/stevebob/prototty/tree/master/glutin) is a
   prototty frontend for opengl. It can create a window, render views to that
   window, and get input from the window, normalized to prototty's input type.
 - [prototty-wasm](https://github.com/stevebob/prototty/tree/master/wasm) is a
