@@ -25,7 +25,8 @@ use prototty_title::*;
 
 fn main() {
 
-    // Use a builder to configure how text should be rendered
+    // Use a builder to configure how text should be rendered.
+    // This assumes "Hack-Regular.ttf" is in your "src" directory.
     let mut context = prototty_glutin::ContextBuilder::new_with_font(
         include_bytes!("Hack-Regular.ttf"))
         .with_window_dimensions(320, 240)
