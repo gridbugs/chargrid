@@ -28,8 +28,3 @@ colours, and attributes bold and underline.
   data structure for storing a grid of cells, and a common cell representation.
   It's used by the frontend crates in this repo, and would simplify the
   implementation of any further frontends.
-
-## Example
-
-See [prototty-tetris](https://github.com/stevebob/prototty-tetris) for an
-example application built with these libraries.
