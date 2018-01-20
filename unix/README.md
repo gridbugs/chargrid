@@ -39,4 +39,5 @@ fn main() {
 ```
 
 Running this will produce the following output:
+
 ![Example](https://github.com/stevebob/prototty/blob/master/unix/example.png)
