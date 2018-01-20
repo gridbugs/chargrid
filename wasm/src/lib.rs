@@ -1,8 +1,7 @@
 extern crate prototty;
 extern crate prototty_wasm;
-extern crate prototty_app;
+extern crate tetris_prototty;
 extern crate rand;
-extern crate tetris;
 
 use std::time::Duration;
 use rand::{SeedableRng, StdRng};
@@ -10,7 +9,7 @@ use prototty_wasm::*;
 use prototty::Renderer;
 use prototty::Input as ProtottyInput;
 
-use prototty_app::{App, AppView, ControlFlow};
+use tetris_prototty::{App, AppView, ControlFlow};
 
 pub struct WebApp {
     app: App,

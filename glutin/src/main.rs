@@ -1,12 +1,12 @@
 extern crate rand;
 extern crate prototty;
 extern crate prototty_glutin;
-extern crate prototty_app;
+extern crate tetris_prototty;
 
 use std::time::Instant;
 use prototty::Renderer;
 use prototty_glutin::*;
-use prototty_app::{App, AppView, ControlFlow};
+use tetris_prototty::{App, AppView, ControlFlow};
 
 fn main() {
 

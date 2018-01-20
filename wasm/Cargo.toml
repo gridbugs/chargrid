@@ -1,5 +1,5 @@
 [package]
-name = "wasm_app"
+name = "tetris_wasm"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
@@ -7,8 +7,8 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
-tetris = { path = ".." }
-prototty_app = { path = "../prototty_app" }
+tetris = { path = "../tetris" }
+tetris_prototty = { path = "../prototty" }
 prototty = "0.11"
 prototty_wasm ="0.11"
 rand = "0.4"

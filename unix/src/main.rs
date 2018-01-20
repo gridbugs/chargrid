@@ -1,13 +1,13 @@
 extern crate rand;
 extern crate prototty;
 extern crate prototty_unix;
-extern crate prototty_app;
+extern crate tetris_prototty;
 
 use std::time::Duration;
 use std::thread;
 use prototty::Renderer;
 use prototty_unix::Context;
-use prototty_app::{App, AppView, ControlFlow};
+use tetris_prototty::{App, AppView, ControlFlow};
 
 const TICK_MILLIS: u64 = 16;
 

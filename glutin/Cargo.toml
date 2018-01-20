@@ -1,10 +1,10 @@
 [package]
-name = "unix_app"
+name = "tetris_glutin"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
-prototty_app = { path = "../prototty_app" }
+tetris_prototty = { path = "../prototty" }
 prototty = "0.11"
-prototty_unix = "0.11"
+prototty_glutin = "0.11"
 rand = "0.4"
