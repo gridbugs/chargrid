@@ -39,4 +39,4 @@ fn main() {
 ```
 
 Running this will produce the following output:
-![Example](https://github.com/stevebob/prototty/tree/master/prototty_unix/example.png)
+![Example](https://github.com/stevebob/prototty/blob/master/unix/example.png)
