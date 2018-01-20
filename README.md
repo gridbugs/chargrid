@@ -24,6 +24,10 @@ colours, and attributes bold and underline.
   intended to be used with [prototty-terminal-js](https://github.com/stevebob/prototty-terminal-js) - a
   javascript library for unpacking the output of prototty-wasm and drawing it to
   the screen, and periodically sending input to the wasm program.
+- [prototty-grid](https://github.com/stevebob/prototty/tree/master/grid) defines a
+  data structure for storing a grid of cells, and a common cell representation.
+  It's used by the frontend crates in this repo, and would simplify the
+  implementation of any further frontends.
 
 ## Example
 
