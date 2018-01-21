@@ -21,13 +21,13 @@ colours, and attributes bold and underline.
   prototty frontend for web assembly. It renders views into memory in a format
   which can be easily unpacked in javascript, and contains functions for
   normalizing javascript key codes and key mods into prototty's input type. It's
-  intended to be used with [prototty-terminal-js](https://github.com/stevebob/prototty/terminal-js) - a
+  intended to be used with [prototty-terminal-js](https://github.com/stevebob/prototty/tree/master/terminal-js) - a
   javascript library for unpacking the output of prototty-wasm and drawing it to
   the screen, and periodically sending input to the wasm program.
 - [prototty-grid](https://github.com/stevebob/prototty/tree/master/grid) defines a
   data structure for storing a grid of cells, and a common cell representation.
   It's used by the frontend crates in this repo, and would simplify the
   implementation of any further frontends.
-- [prototty-terminal-js](https://github.com/stevebob/prototty/terminal-js) is a
+- [prototty-terminal-js](https://github.com/stevebob/prototty/tree/master/terminal-js) is a
   javascript app harness for the [prototty-wasm](https://github.com/stevebob/prototty/tree/master/wasm)
   frontend.
