@@ -6,7 +6,7 @@
 A prototty frontend for web assembly. It renders views into memory in a format
 which can be easily unpacked in javascript, and contains functions for
 normalizing javascript key codes and key mods into prototty's input type. It's
-intended to be used with [prototty-terminal-js](https://github.com/stevebob/prototty-terminal-js) - a
+intended to be used with [prototty-terminal-js](https://github.com/stevebob/prototty/terminal-js) - a
 javascript library for unpacking the output of prototty-wasm and drawing it to
 the screen, and periodically sending input to the wasm program.
 
@@ -22,7 +22,7 @@ the wasm frontend. Instead, the entire application lives in a library, exposing
 an interface, which will be consumed by some javascript. The library is compiled
 to web assembly, and loaded into page, where it interacts with javascript. All
 the javascript interaction is handled by a library called
-[prototty-terminal-js](https://github.com/stevebob/prototty-terminal-js).
+[prototty-terminal-js](https://github.com/stevebob/prototty/terminal-js).
 
 ### The rust part
 For our title example, the library looks like:
