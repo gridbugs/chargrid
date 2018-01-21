@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cargo test --manifest-path $DIR/tetris/Cargo.toml
