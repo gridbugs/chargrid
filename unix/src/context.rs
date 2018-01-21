@@ -63,11 +63,11 @@ impl Context {
 
 impl Renderer for Context {
     type Error = Error;
-    fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
+    fn render_at<V: View<T>, T>(&mut self, view: &mut V, data: &T, offset: Coord, depth: i32) -> Result<()> {
         self.resize_if_necessary()?;
 
         self.grid.clear();
-        view.view(data, Coord::new(0, 0), 0, &mut self.grid);
+        view.view(data, offset, depth, &mut self.grid);
         self.terminal.draw_grid(&self.grid)
     }
 }
