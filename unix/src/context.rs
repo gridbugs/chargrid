@@ -63,7 +63,7 @@ impl Context {
 
 impl Renderer for Context {
     type Error = Error;
-    fn render<V: View<T>, T>(&mut self, view: &V, data: &T) -> Result<()> {
+    fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
         self.resize_if_necessary()?;
 
         self.grid.clear();

@@ -40,7 +40,7 @@ impl WebApp {
                 }
             }
         }
-        self.context.render(&AppView, &self.app).unwrap();
+        self.context.render(&mut AppView, &self.app).unwrap();
     }
 }
 

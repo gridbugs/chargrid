@@ -42,5 +42,5 @@ pub unsafe fn tick(app: *mut App,
                    _num_inputs: usize,
                    _period_millis: f64) {
 
-    (*app).context.render(&DemoTitleView, &(*app).title).unwrap();
+    (*app).context.render(&mut DemoTitleView, &(*app).title).unwrap();
 }

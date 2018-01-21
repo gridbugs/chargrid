@@ -15,13 +15,13 @@ use prototty_title::*;
 // `View` and `ViewSize` here in this crate.
 struct SizedDemoTitleView;
 impl View<Title> for SizedDemoTitleView {
-    fn view<G: ViewGrid>(&self, title: &Title, coord: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(&mut self, title: &Title, coord: Coord, depth: i32, grid: &mut G) {
         // behave identically to `DemoTitleView`
         DemoTitleView.view(title, coord, depth, grid);
     }
 }
 impl ViewSize<Title> for SizedDemoTitleView {
-    fn size(&self, title: &Title) -> Size {
+    fn size(&mut self, title: &Title) -> Size {
         // 3 high, since the title is rendered on
         // line 0 and 2
         Size::new(title.width, 3)
@@ -43,10 +43,11 @@ fn main() {
     border.underline_title = true;
 
     // create a decorated view
-    let decorated_view = prototty_common::Decorated::new(&SizedDemoTitleView, &border);
+    let mut view = SizedDemoTitleView;
+    let mut decorated_view = prototty_common::Decorated::new(&mut view, &border);
 
     // render the title using the view
-    context.render(&decorated_view, &title).unwrap();
+    context.render(&mut decorated_view, &title).unwrap();
 
     // exit after a key is pressed
     context.wait_input().unwrap();

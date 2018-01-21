@@ -177,7 +177,7 @@ impl<T: Copy> MenuInstance<T> {
 pub struct DefaultMenuInstanceView;
 
 impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
-    fn view<G: ViewGrid>(&self, value: &MenuInstance<T>,
+    fn view<G: ViewGrid>(&mut self, value: &MenuInstance<T>,
                          offset: Coord, depth: i32, grid: &mut G)
     {
         for (i, entry) in value.menu.entries.iter().enumerate() {
@@ -204,7 +204,7 @@ impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
 }
 
 impl<T: Copy> ViewSize<MenuInstance<T>> for DefaultMenuInstanceView {
-    fn size(&self, data: &MenuInstance<T>) -> Size {
+    fn size(&mut self, data: &MenuInstance<T>) -> Size {
         data.menu.size
     }
 }

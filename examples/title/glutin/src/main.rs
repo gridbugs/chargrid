@@ -30,7 +30,7 @@ fn main() {
     while running {
 
         // render the title using the DemoTitleView
-        context.render(&DemoTitleView, &title).unwrap();
+        context.render(&mut DemoTitleView, &title).unwrap();
 
         // exit after the window is closed
         context.poll_input(|input| {

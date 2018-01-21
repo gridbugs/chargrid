@@ -55,7 +55,7 @@ impl RichText {
 pub struct DefaultRichTextView;
 
 impl View<RichText> for DefaultRichTextView {
-    fn view<G: ViewGrid>(&self, data: &RichText, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(&mut self, data: &RichText, offset: Coord, depth: i32, grid: &mut G) {
         let bottom_right_abs = offset + data.size;
         let mut coord = offset;
         'part_loop: for part in data.parts.iter() {
@@ -92,5 +92,5 @@ impl View<RichText> for DefaultRichTextView {
 }
 
 impl ViewSize<RichText> for DefaultRichTextView {
-    fn size(&self, data: &RichText) -> Size { data.size }
+    fn size(&mut self, data: &RichText) -> Size { data.size }
 }

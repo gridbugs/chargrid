@@ -38,7 +38,7 @@ fn piece_colour(typ: PieceType) -> Rgb24 {
     }
 }
 impl View<Tetris> for TetrisBoardView {
-    fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
                 if let Some(output_cell) = grid.get_mut(offset + Coord::new(j as i32, i as i32), depth) {
@@ -68,11 +68,11 @@ impl View<Tetris> for TetrisBoardView {
 }
 
 impl ViewSize<Tetris> for TetrisBoardView {
-    fn size(&self, tetris: &Tetris) -> Size { tetris.size().into() }
+    fn size(&mut self, tetris: &Tetris) -> Size { tetris.size().into() }
 }
 
 impl View<Tetris> for TetrisNextPieceView {
-    fn view<G: ViewGrid>(&self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
@@ -86,7 +86,7 @@ impl View<Tetris> for TetrisNextPieceView {
 }
 
 impl ViewSize<Tetris> for TetrisNextPieceView {
-    fn size(&self, _: &Tetris) -> Size { NEXT_PIECE_SIZE.into() }
+    fn size(&mut self, _: &Tetris) -> Size { NEXT_PIECE_SIZE.into() }
 }
 
 struct Borders {
@@ -251,17 +251,18 @@ impl App {
 
 pub struct AppView;
 impl View<App> for AppView {
-    fn view<G: ViewGrid>(&self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
         match app.state {
             AppState::Game | AppState::GameOver => {
-                let board_renderer = Decorated::new(&TetrisBoardView, &app.borders.common);
+                let mut view = TetrisBoardView;
+                let mut board_renderer = Decorated::new(&mut view, &app.borders.common);
                 let next_piece_offset_x = board_renderer.size(&app.tetris).x() as i32;
                 board_renderer.view(&app.tetris, offset, depth, grid);
-                Decorated::new(&TetrisNextPieceView, &app.borders.next_piece)
+                Decorated::new(&mut TetrisNextPieceView, &app.borders.next_piece)
                     .view(&app.tetris, Coord { x: next_piece_offset_x, ..offset }, depth, grid);
             }
             AppState::Menu => {
-                Decorated::new(&DefaultMenuInstanceView, &app.borders.common)
+                Decorated::new(&mut DefaultMenuInstanceView, &app.borders.common)
                     .view(&app.main_menu, offset, depth, grid);
             }
             AppState::EndText => {

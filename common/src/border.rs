@@ -63,7 +63,7 @@ pub struct Border {
 }
 
 impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Border> {
-    fn view<G: ViewGrid>(&self, value: &T, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(&mut self, value: &T, offset: Coord, depth: i32, grid: &mut G) {
 
         self.view.view(value, offset + self.decorator.child_offset(), depth, grid);
 
@@ -142,7 +142,7 @@ impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Borde
 }
 
 impl<'a, 'b, T, V: View<T> + ViewSize<T>> ViewSize<T> for Decorated<'a, 'b, V, Border> {
-    fn size(&self, data: &T) -> Size {
+    fn size(&mut self, data: &T) -> Size {
         self.view.size(data) + Size::new(2, 2)
     }
 }

@@ -25,7 +25,7 @@ impl Context {
 
 impl Renderer for Context {
     type Error = ();
-    fn render<V: View<T>, T>(&mut self, view: &V, data: &T) -> Result<(), Self::Error> {
+    fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<(), Self::Error> {
         self.grid.clear();
         view.view(data, Coord::new(0, 0), 0, &mut self.grid);
         self.terminal.draw_grid(&self.grid);

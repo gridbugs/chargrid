@@ -29,7 +29,7 @@ fn main() {
     let mut running = true;
 
     loop {
-        context.render(&AppView, &app).unwrap();
+        context.render(&mut AppView, &app).unwrap();
 
         if !running {
             break;

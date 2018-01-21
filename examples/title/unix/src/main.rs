@@ -17,7 +17,7 @@ fn main() {
     };
 
     // render the title using the DemoTitleView
-    context.render(&DemoTitleView, &title).unwrap();
+    context.render(&mut DemoTitleView, &title).unwrap();
 
     // exit after a key is pressed
     context.wait_input().unwrap();

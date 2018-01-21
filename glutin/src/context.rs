@@ -300,7 +300,7 @@ impl<'a> Context<'a> {
 
 impl<'a> Renderer for Context<'a> {
     type Error = Error;
-    fn render<V: View<T>, T>(&mut self, view: &V, data: &T) -> Result<()> {
+    fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
         if self.closing {
             return Ok(());
         }
