@@ -1,3 +1,5 @@
+#!/bin/bash
+
 cargo clean --manifest-path prototty/Cargo.toml
 cargo clean --manifest-path grid/Cargo.toml
 cargo clean --manifest-path unix/Cargo.toml

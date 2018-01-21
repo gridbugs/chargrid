@@ -7,6 +7,6 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
-prototty = "0.11"
-prototty_wasm = "0.11"
+prototty = { path = "../../../prototty", version = "0.11.3" }
+prototty_wasm = { path = "../../../wasm", version = "0.11.3" }
 prototty_title = { path = "../prototty" }
