@@ -90,8 +90,9 @@ impl ViewSize<Tetris> for TetrisNextPieceView {
 }
 
 struct Borders {
-    common: Border,
-    next_piece: Border,
+    common: Decorated<TetrisBoardView, Border>,
+    next_piece: Decorated<TetrisNextPieceView, Border>,
+    menu: Decorated<DefaultMenuInstanceView, Border>,
 }
 
 impl Borders {
@@ -102,8 +103,9 @@ impl Borders {
         let common = Border::new();
 
         Self {
-            common,
-            next_piece,
+            common: Decorated::new(TetrisBoardView, common.clone()),
+            next_piece: Decorated::new(TetrisNextPieceView, next_piece),
+            menu: Decorated::new(DefaultMenuInstanceView, common),
         }
     }
 }
@@ -151,7 +153,6 @@ pub enum ControlFlow {
 }
 
 pub struct App {
-    borders: Borders,
     main_menu: MenuInstance<MainMenuChoice>,
     state: AppState,
     timeout: Timeout,
@@ -180,7 +181,6 @@ impl App {
         let end_text = RichText::one_line(vec![("YOU DIED", end_text_info)]);
 
         Self {
-            borders: Borders::new(),
             main_menu,
             state: AppState::Menu,
             timeout: Timeout::zero(),
@@ -249,21 +249,29 @@ impl App {
     }
 }
 
-pub struct AppView;
+pub struct AppView {
+    borders: Borders,
+}
+
+impl AppView {
+    pub fn new() -> Self {
+        Self {
+            borders: Borders::new(),
+        }
+    }
+}
+
 impl View<App> for AppView {
     fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
         match app.state {
             AppState::Game | AppState::GameOver => {
-                let mut view = TetrisBoardView;
-                let mut board_renderer = Decorated::new(&mut view, &app.borders.common);
-                let next_piece_offset_x = board_renderer.size(&app.tetris).x() as i32;
-                board_renderer.view(&app.tetris, offset, depth, grid);
-                Decorated::new(&mut TetrisNextPieceView, &app.borders.next_piece)
+                let next_piece_offset_x = self.borders.common.size(&app.tetris).x() as i32;
+                self.borders.common.view(&app.tetris, offset, depth, grid);
+                self.borders.next_piece
                     .view(&app.tetris, Coord { x: next_piece_offset_x, ..offset }, depth, grid);
             }
             AppState::Menu => {
-                Decorated::new(&mut DefaultMenuInstanceView, &app.borders.common)
-                    .view(&app.main_menu, offset, depth, grid);
+                self.borders.menu.view(&app.main_menu, offset, depth, grid);
             }
             AppState::EndText => {
                 DefaultRichTextView.view(&app.end_text, offset, depth, grid);

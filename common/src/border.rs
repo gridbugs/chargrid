@@ -62,12 +62,12 @@ pub struct Border {
     pub bold_border: bool,
 }
 
-impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Border> {
-    fn view<G: ViewGrid>(&mut self, value: &T, offset: Coord, depth: i32, grid: &mut G) {
+impl<T, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
+    fn view<G: ViewGrid>(&mut self, data: &T, offset: Coord, depth: i32, grid: &mut G) {
 
-        self.view.view(value, offset + self.decorator.child_offset(), depth, grid);
+        self.view.view(data, offset + self.decorator.child_offset(), depth, grid);
 
-        let span = self.decorator.span_offset() + self.view.size(value);
+        let span = self.decorator.span_offset() + self.view.size(data);
 
         if let Some(c) = grid.get_mut(offset, depth) {
             c.set_character(self.decorator.chars.top_left);
@@ -141,7 +141,7 @@ impl<'a, 'b, T, V: View<T> + ViewSize<T>> View<T> for Decorated<'a, 'b, V, Borde
     }
 }
 
-impl<'a, 'b, T, V: View<T> + ViewSize<T>> ViewSize<T> for Decorated<'a, 'b, V, Border> {
+impl<T, V: View<T> + ViewSize<T>> ViewSize<T> for Decorated<V, Border> {
     fn size(&mut self, data: &T) -> Size {
         self.view.size(data) + Size::new(2, 2)
     }

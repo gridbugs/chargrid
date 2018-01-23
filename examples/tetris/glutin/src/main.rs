@@ -23,13 +23,14 @@ fn main() {
     let mut rng = rand::thread_rng();
     let mut app = App::new(&mut rng);
     let mut input_buffer = Vec::with_capacity(64);
+    let mut app_view = AppView::new();
 
     let mut last_instant = Instant::now();
 
     let mut running = true;
 
     loop {
-        context.render(&mut AppView, &app).unwrap();
+        context.render(&mut app_view, &app).unwrap();
 
         if !running {
             break;

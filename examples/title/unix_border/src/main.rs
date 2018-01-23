@@ -43,8 +43,7 @@ fn main() {
     border.underline_title = true;
 
     // create a decorated view
-    let mut view = SizedDemoTitleView;
-    let mut decorated_view = prototty_common::Decorated::new(&mut view, &border);
+    let mut decorated_view = prototty_common::Decorated::new(SizedDemoTitleView, border);
 
     // render the title using the view
     context.render(&mut decorated_view, &title).unwrap();

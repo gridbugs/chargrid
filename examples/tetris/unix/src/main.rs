@@ -15,9 +15,10 @@ fn main() {
     let mut context = Context::new().unwrap();
     let mut rng = rand::thread_rng();
     let mut app = App::new(&mut rng);
+    let mut app_view = AppView::new();
 
     loop {
-        context.render(&mut AppView, &app).unwrap();
+        context.render(&mut app_view, &app).unwrap();
         thread::sleep(Duration::from_millis(TICK_MILLIS));
 
         if let Some(control_flow) = app.tick(context.drain_input().unwrap(), Duration::from_millis(TICK_MILLIS), &mut rng) {

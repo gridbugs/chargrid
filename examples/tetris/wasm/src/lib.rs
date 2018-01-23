@@ -13,6 +13,7 @@ use tetris_prototty::{App, AppView, ControlFlow};
 
 pub struct WebApp {
     app: App,
+    app_view: AppView,
     rng: StdRng,
     context: Context,
 }
@@ -22,9 +23,11 @@ impl WebApp {
         let mut rng = rand::StdRng::from_seed(&[seed]);
         let app = App::new(&mut rng);
         let context = Context::new();
+        let app_view = AppView::new();
 
         Self {
             app,
+            app_view,
             rng,
             context,
         }
@@ -40,7 +43,7 @@ impl WebApp {
                 }
             }
         }
-        self.context.render(&mut AppView, &self.app).unwrap();
+        self.context.render(&mut self.app_view, &self.app).unwrap();
     }
 }
 
