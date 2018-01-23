@@ -3,6 +3,7 @@ extern crate prototty;
 extern crate serde;
 
 mod border;
+mod alignment;
 mod decorated;
 mod defaults;
 mod menu;
@@ -11,6 +12,7 @@ mod text_info;
 mod string_view;
 
 pub use border::*;
+pub use alignment::*;
 pub use decorated::*;
 pub use menu::*;
 pub use rich_text::*;
