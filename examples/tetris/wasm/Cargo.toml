@@ -9,6 +9,6 @@ crate-type = ["cdylib"]
 [dependencies]
 tetris = { path = "../tetris" }
 tetris_prototty = { path = "../prototty" }
-prototty = { path = "../../../prototty", version = "0.12.0" }
-prototty_wasm = { path = "../../../wasm", version = "0.12.0" }
+prototty = { path = "../../../prototty", version = "0.13.0" }
+prototty_wasm = { path = "../../../wasm", version = "0.13.0" }
 rand = "0.4"
