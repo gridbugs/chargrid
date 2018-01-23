@@ -14,6 +14,13 @@ impl<T: AsRef<str>> View<T> for StringView {
     }
 }
 
+impl<T: AsRef<str>> ViewSize<T> for StringView {
+    fn size(&mut self, string: &T) -> Size {
+        let string = string.as_ref();
+        Size::new(string.len() as u32, 1)
+    }
+}
+
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct RichStringView {
     pub info: TextInfo,
@@ -34,5 +41,12 @@ impl<T: AsRef<str>> View<T> for RichStringView {
                 self.info.write_cell(cell);
             }
         }
+    }
+}
+
+impl<T: AsRef<str>> ViewSize<T> for RichStringView {
+    fn size(&mut self, string: &T) -> Size {
+        let string = string.as_ref();
+        Size::new(string.len() as u32, 1)
     }
 }
