@@ -1,6 +1,6 @@
 "use strict";
 
-import dexie from 'dexie';
+import localforage from 'localforage';
 
 const MOD_SHIFT = (1 << 0);
 
@@ -78,13 +78,24 @@ class Terminal {
     }
 
     make_buffers() {
-        console.log("making buffers");
-        this.bufs.chars = new Uint32Array(this.mod.memory.buffer, this.ptrs.chars, this.size);
-        this.bufs.style = new Uint8Array(this.mod.memory.buffer, this.ptrs.style, this.size);
-        this.bufs.fg_colour = new Uint32Array(this.mod.memory.buffer, this.ptrs.fg_colour, this.size);
-        this.bufs.bg_colour = new Uint32Array(this.mod.memory.buffer, this.ptrs.bg_colour, this.size);
-        this.bufs.key_mod_buffer = new Uint8ClampedArray(this.mod.memory.buffer, this.ptrs.key_mod_buffer, this.input_buf_size);
-        this.bufs.key_code_buffer = new Uint8ClampedArray(this.mod.memory.buffer, this.ptrs.key_code_buffer, this.input_buf_size);
+
+        this.bufs.chars = new Uint32Array(this.mod.memory.buffer,
+            this.ptrs.chars, this.size);
+
+        this.bufs.style = new Uint8Array(this.mod.memory.buffer,
+            this.ptrs.style, this.size);
+
+        this.bufs.fg_colour = new Uint32Array(this.mod.memory.buffer,
+            this.ptrs.fg_colour, this.size);
+
+        this.bufs.bg_colour = new Uint32Array(this.mod.memory.buffer,
+            this.ptrs.bg_colour, this.size);
+
+        this.bufs.key_mod_buffer = new Uint8ClampedArray(this.mod.memory.buffer,
+            this.ptrs.key_mod_buffer, this.input_buf_size);
+
+        this.bufs.key_code_buffer = new Uint8ClampedArray(this.mod.memory.buffer,
+            this.ptrs.key_code_buffer, this.input_buf_size);
     }
 
     maybe_remake_buffers() {
@@ -131,7 +142,9 @@ class Terminal {
         let now = Date.now();
         let period = now - this.previous_instant;
 
-        this.mod.tick(this.ptrs.app, this.ptrs.key_code_buffer, this.ptrs.key_mod_buffer, this.num_inputs, period);
+        this.mod.tick(this.ptrs.app, this.ptrs.key_code_buffer,
+            this.ptrs.key_mod_buffer, this.num_inputs, period);
+
         this.num_inputs = 0;
 
         this.previous_instant = now;
@@ -203,9 +216,11 @@ function init_env_fn(config, name) {
     return loolkup_default(config, name, () => {});
 }
 
-const DB_NAME = "storage";
+const STORAGE_KEY = "storage";
 
-function loadProtottyApp(wasm_path, width, height, node, config={}, input_buf_size=DEFAULT_INPUT_BUF_SIZE, seed=undefined) {
+function loadProtottyApp(wasm_path, width, height, node,
+    config={}, input_buf_size=DEFAULT_INPUT_BUF_SIZE, seed=undefined)
+{
 
     const size = width * height;
 
@@ -229,11 +244,7 @@ function loadProtottyApp(wasm_path, width, height, node, config={}, input_buf_si
         },
         quit: init_env_fn(config, "quit"),
         store: (ptr, size) => {
-            console.log("hi", ptr, size, dynenv.store);
             dynenv.store(ptr, size);
-        },
-        foo: x => {
-            console.log(x);
         },
     };
 
@@ -242,65 +253,55 @@ function loadProtottyApp(wasm_path, width, height, node, config={}, input_buf_si
     let bold_style = loolkup_default(config, "bold_style", { "font-weight": "bold" });
     let underline_style = loolkup_default(config, "underline_style", { "text-decoration": "underline" });
 
-    let db = new dexie.Dexie(DB_NAME);
-
-    db.version(1).stores({
-        storage: '++id,data'
-    });
-
-    return db.open().then(() => {
-        return db.storage.toArray();
-    }).then(array => {
-        if (array.length > 0) {
-            storage.data = array[0].data;
-        } else {
+    return localforage.getItem(STORAGE_KEY).then(data => {
+        if (data === null) {
             storage.data = new Uint8Array();
+        } else {
+            storage.data = data;
         }
-
-        return fetch(wasm_path)
+        return fetch(wasm_path);
     }).then(response => {
-        return response.arrayBuffer()
+        return response.arrayBuffer();
     }).then(bytes => {
-        return WebAssembly.instantiate(bytes, { env })
+        return WebAssembly.instantiate(bytes, { env });
     }).then(results => {
 
         let mod = results.instance.exports;
 
         let TEST_SIZE = 10000000;
         let test = mod.alloc_byte_buffer(TEST_SIZE);
-        console.log("test", test);
 
-        console.log(results);
-
-        let storage_buf;
+        let storage_ptr;
         if (storage.data.length > 0) {
-        //    storage_buf = mod.alloc_byte_buffer(storage.data.length);
+            storage_ptr = mod.alloc_byte_buffer(storage.data.length);
+            let storage_buf = new Uint8Array(mod.memory.buffer, storage_ptr, storage.data.length);
+            for (let i = 0; i < storage.data.length; i++) {
+                storage_buf[i] = storage.data[i];
+            }
         } else {
-            storage_buf = 0;
+            storage_ptr = 0;
         };
 
-        ptrs.app = mod.alloc_app(seed, storage_buf, storage.data.length);
+        ptrs.app = mod.alloc_app(seed, storage_ptr, storage.data.length);
 
         if (storage.data.length > 0) {
-            //mod.free_byte_buffer(storage_buf, storage.data.length);
+            mod.free_byte_buffer(storage_ptr, storage.data.length);
         }
-
 
         ptrs.key_mod_buffer = mod.alloc_byte_buffer(input_buf_size);
         ptrs.key_code_buffer = mod.alloc_byte_buffer(input_buf_size);
 
-        mod.memory.grow(100);
-        console.log(mod.memory.buffer.byteLength);
-
         dynenv.store = (ptr, size) => {
             let buf = new Uint8ClampedArray(mod.memory.buffer, ptr, size);
             storage.data = new Uint8Array(buf);
-            console.log(storage.data);
+            console.log("Storing...");
+            localforage.setItem(STORAGE_KEY, storage.data).then(() => {
+                console.log("Done!", storage.data);
+            });
         };
 
         mod.free_byte_buffer(test, TEST_SIZE);
 
-        console.log(ptrs);
         let props = {
             bufs,
             ptrs,

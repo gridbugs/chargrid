@@ -1,8 +1,6 @@
 #[macro_use] extern crate itertools;
 extern crate prototty;
 extern crate prototty_grid;
-extern crate prototty_memory_storage;
-#[macro_use] extern crate serde_derive;
 extern crate serde;
 extern crate bincode;
 

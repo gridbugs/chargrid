@@ -12,8 +12,6 @@ documentation = "https://docs.rs/prototty_wasm"
 [dependencies]
 prototty = { path = "../prototty", version = "0.13.0" }
 prototty_grid = { path = "../grid", version = "0.13.0" }
-prototty_memory_storage = { path = "../memory-storage", version = "0.1.0" }
 itertools = "0.7"
 serde = "1.0"
-serde_derive = "1.0"
 bincode = "0.9"

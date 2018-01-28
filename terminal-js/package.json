@@ -17,6 +17,7 @@
     "author": "Stephen Sherratt",
     "license": "MIT",
     "dependencies": {
-        "dexie": "^2.0.1"
+        "dexie": "^2.0.1",
+        "localforage": "^1.5.6"
     }
 }

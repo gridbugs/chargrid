@@ -1,13 +1,12 @@
+use std::slice;
 use std::collections::BTreeMap;
 use prototty::*;
-use prototty_memory_storage::*;
 use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
 use bincode;
 
-#[derive(Clone, Serialize, Deserialize)]
 pub struct WasmStorage {
-    table: BTreeMap<String, Vec<u8>>,
+    pub table: BTreeMap<String, Vec<u8>>,
 }
 
 impl WasmStorage {
@@ -17,10 +16,19 @@ impl WasmStorage {
         }
     }
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        bincode::deserialize(bytes).ok()
+        bincode::deserialize(bytes).ok().map(|table| Self { table })
+    }
+    pub unsafe fn from_ptr(ptr: *const u8, size: usize) -> Self {
+        if size == 0 {
+            return Self::new();
+        }
+
+        let slice = slice::from_raw_parts(ptr, size);
+
+        Self::from_bytes(slice).unwrap_or_else(Self::new)
     }
     pub fn to_bytes(&self) -> Vec<u8> {
-        bincode::serialize(self, bincode::Infinite)
+        bincode::serialize(&self.table, bincode::Infinite)
             .expect("Failed to serialize")
     }
 }
@@ -32,56 +40,38 @@ impl Storage for WasmStorage {
         self.table.get(key.as_ref()).cloned().ok_or(LoadError::NoSuchKey)
     }
 
-
     fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreError>
         where K: AsRef<str>,
               V: AsRef<[u8]>
     {
         let slice = value.as_ref();
-        let mut buf = self.table.entry(key.as_ref().to_string()).or_insert_with(Vec::new);
+        let buf = self.table.entry(key.as_ref().to_string()).or_insert_with(Vec::new);
         buf.resize(slice.len(), 0);
         buf.copy_from_slice(slice);
         Ok(())
     }
 
-
     fn load<K, T>(&self, key: K) -> Result<T, LoadError>
         where K: AsRef<str>,
               T: DeserializeOwned
     {
-//        let mut bytes = self.load_raw(key)?;
-        if let Some(bytes) = self.table.get(key.as_ref()) {
-            unsafe {
-                ffi::foo(1111);
-                ffi::foo(bytes.as_ptr() as u32);
-                ffi::foo(bytes.len() as u32);
-            }
-
-            bincode::deserialize(&bytes).map_err(|_| LoadError::InvalidFormat)
-        } else {
-            Err(LoadError::NoSuchKey)
-        }
+        bincode::deserialize(self.load_raw(key)?.as_slice())
+            .map_err(|_| LoadError::InvalidFormat)
     }
 
     fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>
         where K: AsRef<str>,
               T: Serialize
     {
-        let mut bytes = bincode::serialize(value, bincode::Infinite)
+        let bytes = bincode::serialize(value, bincode::Infinite)
             .expect("Failed to serialize data");
 
-        let ptr = bytes.as_mut_ptr();
-        let size = bytes.len();
-
-        self.store_raw(key, bytes);
+        self.store_raw(key, bytes)?;
 
         let mut bytes = self.to_bytes();
+
         unsafe {
-            ffi::store(ptr, size);
-            ffi::foo(33333);
-            ffi::foo(size as u32);
-            ffi::foo(ptr as u32);
-            ffi::foo(4444);
+            ffi::store(bytes.as_mut_ptr(), bytes.len());
         }
 
         Ok(())
@@ -91,6 +81,5 @@ impl Storage for WasmStorage {
 mod ffi {
     extern "C" {
         pub fn store(buf: *mut u8, size: usize);
-        pub fn foo(x: u32);
     }
 }
