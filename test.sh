@@ -12,6 +12,7 @@ cargo test --manifest-path $DIR/unix/Cargo.toml
 cargo test --manifest-path $DIR/wasm/Cargo.toml
 cargo test --manifest-path $DIR/glutin/Cargo.toml
 cargo test --manifest-path $DIR/common/Cargo.toml
+cargo test --manifest-path $DIR/file-storage/Cargo.toml
 
 source examples/tetris/test.sh
 source examples/title/test.sh

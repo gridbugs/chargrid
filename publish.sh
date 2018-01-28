@@ -9,6 +9,7 @@ publish() {
     cargo publish --manifest-path wasm/Cargo.toml
     cargo publish --manifest-path glutin/Cargo.toml
     cargo publish --manifest-path common/Cargo.toml
+    cargo publish --manifest-path file-storage/Cargo.toml
 }
 
 read -r -p "Are you sure? " response
