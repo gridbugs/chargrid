@@ -11,5 +11,3 @@ documentation = "https://docs.rs/prototty_file_storage"
 
 [dependencies]
 prototty = { path = "../prototty", version = "0.14.0" }
-serde = "1.0"
-bincode = "0.9"

@@ -2,7 +2,6 @@ use std::slice;
 use std::collections::BTreeMap;
 use prototty::*;
 use serde::ser::Serialize;
-use serde::de::DeserializeOwned;
 use bincode;
 
 pub struct WasmStorage {
@@ -51,12 +50,20 @@ impl Storage for WasmStorage {
         Ok(())
     }
 
-    fn load<K, T>(&self, key: K) -> Result<T, LoadError>
-        where K: AsRef<str>,
-              T: DeserializeOwned
+    fn remove_raw<K>(&mut self, key: K) -> Result<Vec<u8>, LoadError>
+        where K: AsRef<str>
     {
-        bincode::deserialize(self.load_raw(key)?.as_slice())
-            .map_err(|_| LoadError::InvalidFormat)
+        self.table.remove(key.as_ref()).ok_or(LoadError::NoSuchKey)
+    }
+
+    fn exists<K>(&self, key: K) -> bool
+        where K: AsRef<str>
+    {
+        self.table.contains_key(key.as_ref())
+    }
+
+    fn clear(&mut self) {
+        self.table.clear();
     }
 
     fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>

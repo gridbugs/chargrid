@@ -1,13 +1,9 @@
 extern crate prototty;
-extern crate serde;
-extern crate bincode;
 
 use std::env;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use serde::ser::Serialize;
-use serde::de::DeserializeOwned;
 use prototty::*;
 
 pub struct FileStorage {
@@ -66,21 +62,23 @@ impl Storage for FileStorage {
         Ok(())
     }
 
-
-    fn load<K, T>(&self, key: K) -> Result<T, LoadError>
-        where K: AsRef<str>,
-              T: DeserializeOwned
+    fn remove_raw<K>(&mut self, key: K) -> Result<Vec<u8>, LoadError>
+        where K: AsRef<str>
     {
-        let bytes = self.load_raw(key)?;
-        bincode::deserialize(&bytes).map_err(|_| LoadError::InvalidFormat)
+        let contents = self.load_raw(&key)?;
+        let path = self.full_path(key);
+        fs::remove_file(path).expect("Failed to delete file");
+        Ok(contents)
     }
 
-    fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>
-        where K: AsRef<str>,
-              T: Serialize
+    fn exists<K>(&self, key: K) -> bool
+        where K: AsRef<str>
     {
-        let bytes = bincode::serialize(value, bincode::Infinite)
-            .expect("Failed to serialize data");
-        self.store_raw(key, bytes)
+        self.full_path(key).exists()
+    }
+
+    fn clear(&mut self) {
+        fs::remove_dir_all(&self.base_path).expect("Failed to remove base dir");
+        fs::create_dir_all(&self.base_path).expect("Failed to create base dir");
     }
 }
