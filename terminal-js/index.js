@@ -1,5 +1,7 @@
 "use strict";
 
+import dexie from 'dexie';
+
 const MOD_SHIFT = (1 << 0);
 
 function make_colour(rgb24) {
@@ -11,6 +13,7 @@ function make_colour(rgb24) {
 
 class Terminal {
     constructor(props) {
+        this.memory_size = 0;
         this.node = props.node;
         this.bufs = props.bufs;
         this.ptrs = props.ptrs;
@@ -74,6 +77,23 @@ class Terminal {
         }
     }
 
+    make_buffers() {
+        console.log("making buffers");
+        this.bufs.chars = new Uint32Array(this.mod.memory.buffer, this.ptrs.chars, this.size);
+        this.bufs.style = new Uint8Array(this.mod.memory.buffer, this.ptrs.style, this.size);
+        this.bufs.fg_colour = new Uint32Array(this.mod.memory.buffer, this.ptrs.fg_colour, this.size);
+        this.bufs.bg_colour = new Uint32Array(this.mod.memory.buffer, this.ptrs.bg_colour, this.size);
+        this.bufs.key_mod_buffer = new Uint8ClampedArray(this.mod.memory.buffer, this.ptrs.key_mod_buffer, this.input_buf_size);
+        this.bufs.key_code_buffer = new Uint8ClampedArray(this.mod.memory.buffer, this.ptrs.key_code_buffer, this.input_buf_size);
+    }
+
+    maybe_remake_buffers() {
+        if (this.memory_size != this.mod.memory.buffer.byteLength) {
+            this.memory_size = this.mod.memory.buffer.byteLength;
+            this.make_buffers();
+        }
+    }
+
     start() {
         this.animationRequest = requestAnimationFrame(() => this.tick());
         window.addEventListener("keydown", (e) => this.handleKeyDown(e));
@@ -88,6 +108,8 @@ class Terminal {
     }
 
     handleKeyDown(e) {
+        this.maybe_remake_buffers();
+
         if (this.num_inputs < this.input_buf_size) {
             this.bufs.key_code_buffer[this.num_inputs] = e.keyCode;
 
@@ -104,6 +126,8 @@ class Terminal {
     }
 
     tick() {
+        this.maybe_remake_buffers();
+
         let now = Date.now();
         let period = now - this.previous_instant;
 
@@ -118,6 +142,8 @@ class Terminal {
     }
 
     render() {
+        this.maybe_remake_buffers();
+
         let index = 0;
         for (let i = 0; i < this.height; i++) {
             for (let j = 0; j < this.width; j++) {
@@ -177,6 +203,8 @@ function init_env_fn(config, name) {
     return loolkup_default(config, name, () => {});
 }
 
+const DB_NAME = "storage";
+
 function loadProtottyApp(wasm_path, width, height, node, config={}, input_buf_size=DEFAULT_INPUT_BUF_SIZE, seed=undefined) {
 
     const size = width * height;
@@ -185,6 +213,8 @@ function loadProtottyApp(wasm_path, width, height, node, config={}, input_buf_si
         seed = parseInt(2**32 * Math.random());
     }
 
+    const storage = {};
+    let dynenv = {};
     const bufs = {};
     const ptrs = {};
 
@@ -198,6 +228,13 @@ function loadProtottyApp(wasm_path, width, height, node, config={}, input_buf_si
             ptrs.bg_colour = bg_colour;
         },
         quit: init_env_fn(config, "quit"),
+        store: (ptr, size) => {
+            console.log("hi", ptr, size, dynenv.store);
+            dynenv.store(ptr, size);
+        },
+        foo: x => {
+            console.log(x);
+        },
     };
 
     let style = loolkup_default(config, "style", { "line-height": "1em" });
@@ -205,27 +242,65 @@ function loadProtottyApp(wasm_path, width, height, node, config={}, input_buf_si
     let bold_style = loolkup_default(config, "bold_style", { "font-weight": "bold" });
     let underline_style = loolkup_default(config, "underline_style", { "text-decoration": "underline" });
 
-    return fetch(wasm_path).then(response =>
-        response.arrayBuffer()
-    ).then(bytes =>
-        WebAssembly.instantiate(bytes, { env })
-    ).then(results => {
+    let db = new dexie.Dexie(DB_NAME);
+
+    db.version(1).stores({
+        storage: '++id,data'
+    });
+
+    return db.open().then(() => {
+        return db.storage.toArray();
+    }).then(array => {
+        if (array.length > 0) {
+            storage.data = array[0].data;
+        } else {
+            storage.data = new Uint8Array();
+        }
+
+        return fetch(wasm_path)
+    }).then(response => {
+        return response.arrayBuffer()
+    }).then(bytes => {
+        return WebAssembly.instantiate(bytes, { env })
+    }).then(results => {
 
         let mod = results.instance.exports;
 
-        ptrs.app = mod.alloc_app(seed);
+        let TEST_SIZE = 10000000;
+        let test = mod.alloc_byte_buffer(TEST_SIZE);
+        console.log("test", test);
 
-        bufs.chars = new Uint32Array(mod.memory.buffer, ptrs.chars, size);
-        bufs.style = new Uint8Array(mod.memory.buffer, ptrs.style, size);
-        bufs.fg_colour = new Uint32Array(mod.memory.buffer, ptrs.fg_colour, size);
-        bufs.bg_colour = new Uint32Array(mod.memory.buffer, ptrs.bg_colour, size);
+        console.log(results);
+
+        let storage_buf;
+        if (storage.data.length > 0) {
+        //    storage_buf = mod.alloc_byte_buffer(storage.data.length);
+        } else {
+            storage_buf = 0;
+        };
+
+        ptrs.app = mod.alloc_app(seed, storage_buf, storage.data.length);
+
+        if (storage.data.length > 0) {
+            //mod.free_byte_buffer(storage_buf, storage.data.length);
+        }
+
 
         ptrs.key_mod_buffer = mod.alloc_byte_buffer(input_buf_size);
-        bufs.key_mod_buffer = new Uint8ClampedArray(mod.memory.buffer, ptrs.key_mod_buffer, input_buf_size);
-
         ptrs.key_code_buffer = mod.alloc_byte_buffer(input_buf_size);
-        bufs.key_code_buffer = new Uint8ClampedArray(mod.memory.buffer, ptrs.key_code_buffer, input_buf_size);
 
+        mod.memory.grow(100);
+        console.log(mod.memory.buffer.byteLength);
+
+        dynenv.store = (ptr, size) => {
+            let buf = new Uint8ClampedArray(mod.memory.buffer, ptr, size);
+            storage.data = new Uint8Array(buf);
+            console.log(storage.data);
+        };
+
+        mod.free_byte_buffer(test, TEST_SIZE);
+
+        console.log(ptrs);
         let props = {
             bufs,
             ptrs,

@@ -8,6 +8,11 @@ pub extern "C" fn alloc_byte_buffer(size: usize) -> *mut u8 {
     ptr
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn free_byte_buffer(buf: *mut u8, size: usize) {
+    let _buf = Vec::from_raw_parts(buf, size, size);
+}
+
 pub extern "C" fn into_boxed_raw<T>(t: T) -> *mut T {
     let boxed = Box::new(t);
     Box::into_raw(boxed)

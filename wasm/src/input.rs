@@ -13,8 +13,16 @@ macro_rules! convert_char_shift {
     }
 }
 
+mod ffi {
+    extern "C" {
+        pub fn foo(x: u32);
+    }
+}
+
 pub fn from_js_event(event_key_code: u8, event_key_modifiers: u8) -> Option<Input> {
     let shift = event_key_modifiers & MOD_SHIFT != 0;
+
+    unsafe {ffi::foo(event_key_code as u32 + 1000); }
 
     match event_key_code {
         8 => Some(inputs::BACKSPACE),
