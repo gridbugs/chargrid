@@ -22,7 +22,7 @@ prototty.loadProtottyApp("wasm_app.wasm", 30, 20, node).then(app => app.start())
 
 ## Big Example
 
-https://github.com/stevebob/protrotty-tetris
+https://github.com/stevebob/protrotty/examples/tetris
 
 This is an implementation of tetris. There's a unix app that runs in an ansi terminal,
 and a wasm app which runs in a browser using this library.
@@ -33,8 +33,12 @@ The app harness expects the following functions to be exposed by the wasm blob:
 
 ```rust
 #[no_mangle]
-pub extern "C" fn alloc_app(rng_seed: usize) -> *mut c_void {
+pub extern "C" fn alloc_app(rng_seed: usize, storage_buf: *const u8, storage_len: usize) -> *mut c_void {
     // Called once during initialisation.
+    // `seed` is a random integer created using Math.random(), which can be used
+    // as a seed for an rng.
+    // `storage_buf` and `storage_len` is an address and size suitable for passing to
+    // `prototty_wasm::WasmStorage::from_ptr`.
     // Allocate your application's state, and return a raw pointer to it.
 }
 
