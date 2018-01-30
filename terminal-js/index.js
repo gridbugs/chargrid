@@ -203,7 +203,7 @@ class Terminal {
 
 const DEFAULT_INPUT_BUF_SIZE = 1024;
 
-function loolkup_default(obj, key, def) {
+function lookup_default(obj, key, def) {
     let val = obj[key];
     if (val === undefined) {
         return def;
@@ -213,20 +213,14 @@ function loolkup_default(obj, key, def) {
 }
 
 function init_env_fn(config, name) {
-    return loolkup_default(config, name, () => {});
+    return lookup_default(config, name, () => {});
 }
 
 const STORAGE_KEY = "storage";
 
-function loadProtottyApp(wasm_path, width, height, node,
-    config={}, input_buf_size=DEFAULT_INPUT_BUF_SIZE, seed=undefined)
-{
+function loadProtottyApp(wasm_path, width, height, node, config) {
 
     const size = width * height;
-
-    if (seed == undefined) {
-        seed = parseInt(2**32 * Math.random());
-    }
 
     const storage = {};
     let dynenv = {};
@@ -248,10 +242,14 @@ function loadProtottyApp(wasm_path, width, height, node,
         },
     };
 
-    let style = loolkup_default(config, "style", { "line-height": "1em" });
-    let cell_style = loolkup_default(config, "cell_style", { "font-family": "monospace", "font-size": "16px" });
-    let bold_style = loolkup_default(config, "bold_style", { "font-weight": "bold" });
-    let underline_style = loolkup_default(config, "underline_style", { "text-decoration": "underline" });
+    let style = lookup_default(config, "style", { "line-height": "1em" });
+    let cell_style = lookup_default(config, "cell_style", { "font-family": "monospace", "font-size": "16px" });
+    let bold_style = lookup_default(config, "bold_style", { "font-weight": "bold" });
+    let underline_style = lookup_default(config, "underline_style", { "text-decoration": "underline" });
+    let input_buf_size = lookup_default(config, "input_buf_size", DEFAULT_INPUT_BUF_SIZE);
+    let seed = lookup_default(config, "seed", parseInt(2**32 * Math.random()));
+    let before_store = lookup_default(config, "before_store", () => {});
+    let after_store = lookup_default(config, "after_store", () => {});
 
     return localforage.getItem(STORAGE_KEY).then(data => {
         if (data === null) {
@@ -294,9 +292,11 @@ function loadProtottyApp(wasm_path, width, height, node,
         dynenv.store = (ptr, size) => {
             let buf = new Uint8ClampedArray(mod.memory.buffer, ptr, size);
             storage.data = new Uint8Array(buf);
-            console.log("Storing...");
+
+            before_store(storage.data);
+
             localforage.setItem(STORAGE_KEY, storage.data).then(() => {
-                console.log("Done!", storage.data);
+                after_store(storage.data);
             });
         };
 
