@@ -229,7 +229,7 @@ function loadProtottyApp(wasm_path, width, height, node, config) {
 
     const env = {
         get_width: () => width,
-        get_height: () => width,
+        get_height: () => height,
         set_bufs: (chars, style, fg_colour, bg_colour) => {
             ptrs.chars = chars;
             ptrs.style = style;
