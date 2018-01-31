@@ -17,13 +17,13 @@ pub trait ViewGrid {
 }
 
 /// Defines a method for rendering a `T` to the terminal.
-pub trait View<T> {
+pub trait View<T: ?Sized> {
      /// Update the cells in `grid` to describe how a type should be rendered.
     fn view<G: ViewGrid>(&mut self, data: &T, offset: Coord, depth: i32, grid: &mut G);
 }
 
 /// Report the size of a `T` when rendered.
-pub trait ViewSize<T> {
+pub trait ViewSize<T: ?Sized> {
      /// Returns the size in cells of the rectangle containing a ui element.
      /// This allows for the implementation of decorator ui components that
      /// render a border around some inner element.
