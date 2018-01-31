@@ -26,9 +26,15 @@ impl WasmStorage {
 
         Self::from_bytes(slice).unwrap_or_else(Self::new)
     }
-    pub fn to_bytes(&self) -> Vec<u8> {
+    fn to_bytes(&self) -> Vec<u8> {
         bincode::serialize(&self.table, bincode::Infinite)
             .expect("Failed to serialize")
+    }
+    fn sync(&mut self) {
+        let mut bytes = self.to_bytes();
+        unsafe {
+            ffi::store(bytes.as_mut_ptr(), bytes.len());
+        }
     }
 }
 
@@ -43,17 +49,26 @@ impl Storage for WasmStorage {
         where K: AsRef<str>,
               V: AsRef<[u8]>
     {
-        let slice = value.as_ref();
-        let buf = self.table.entry(key.as_ref().to_string()).or_insert_with(Vec::new);
-        buf.resize(slice.len(), 0);
-        buf.copy_from_slice(slice);
+        {
+            let slice = value.as_ref();
+            let buf = self.table.entry(key.as_ref().to_string()).or_insert_with(Vec::new);
+            buf.resize(slice.len(), 0);
+            buf.copy_from_slice(slice);
+        }
+
+        self.sync();
+
         Ok(())
     }
 
     fn remove_raw<K>(&mut self, key: K) -> Result<Vec<u8>, LoadError>
         where K: AsRef<str>
     {
-        self.table.remove(key.as_ref()).ok_or(LoadError::NoSuchKey)
+        let ret = self.table.remove(key.as_ref()).ok_or(LoadError::NoSuchKey);
+
+        self.sync();
+
+        ret
     }
 
     fn exists<K>(&self, key: K) -> bool
@@ -64,6 +79,7 @@ impl Storage for WasmStorage {
 
     fn clear(&mut self) {
         self.table.clear();
+        self.sync();
     }
 
     fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>
@@ -74,12 +90,6 @@ impl Storage for WasmStorage {
             .expect("Failed to serialize data");
 
         self.store_raw(key, bytes)?;
-
-        let mut bytes = self.to_bytes();
-
-        unsafe {
-            ffi::store(bytes.as_mut_ptr(), bytes.len());
-        }
 
         Ok(())
     }
