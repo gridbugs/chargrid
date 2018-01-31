@@ -31,4 +31,7 @@ impl Renderer for Context {
         self.terminal.draw_grid(&self.grid);
         Ok(())
     }
+    fn size(&self) -> Size {
+        self.terminal.size()
+    }
 }

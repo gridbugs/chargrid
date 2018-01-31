@@ -76,6 +76,10 @@ impl Terminal {
         Ok(size)
     }
 
+    pub fn size(&self) -> Result<Size> {
+        self.ansi.size()
+    }
+
     pub fn draw_grid(&mut self, grid: &Grid<Cell>) -> Result<()> {
 
         self.ansi.set_cursor(Coord::new(0, 0))?;

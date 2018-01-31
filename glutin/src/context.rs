@@ -351,4 +351,7 @@ impl<'a> Renderer for Context<'a> {
 
         Ok(())
     }
+    fn size(&self) -> Size {
+        self.grid.size()
+    }
 }

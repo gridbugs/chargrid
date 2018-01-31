@@ -70,4 +70,7 @@ impl Renderer for Context {
         view.view(data, offset, depth, &mut self.grid);
         self.terminal.draw_grid(&self.grid)
     }
+    fn size(&self) -> Size {
+        self.terminal.size().expect("Failed to get size")
+    }
 }
