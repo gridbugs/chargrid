@@ -1,7 +1,7 @@
 #[macro_use] extern crate itertools;
 extern crate prototty;
+extern crate grid_2d;
 
-use std::slice;
 use prototty::*;
 
 pub trait DefaultForeground {
@@ -59,64 +59,34 @@ impl<F, B> Default for CommonCell<F, B>
         }
     }
 }
-pub type Iter<'a, C> = slice::Iter<'a, C>;
-pub type IterMut<'a, C> = slice::IterMut<'a, C>;
-
-pub struct CoordEnumerate<'a, T: 'a> {
-    coords: CoordIter,
-    iter: slice::Iter<'a, T>,
-}
-
-impl<'a, T> CoordEnumerate<'a, T> {
-    fn new(coords: CoordIter, iter: slice::Iter<'a, T>) -> Self {
-        Self { coords, iter }
-    }
-}
-
-impl<'a, T> Iterator for CoordEnumerate<'a, T> {
-    type Item = (Coord, &'a T);
-    fn next(&mut self) -> Option<Self::Item> {
-        self.coords.next().and_then(|c| {
-            self.iter.next().map(|t| (c, t))
-        })
-    }
-}
+pub type Iter<'a, C> = grid_2d::Iter<'a, C>;
+pub type IterMut<'a, C> = grid_2d::IterMut<'a, C>;
+pub type CoordEnumerate<'a, C> = grid_2d::CoordEnumerate<'a, C>;
 
 #[derive(Debug, Clone)]
 pub struct Grid<C: Default + Clone> {
-    size: Size,
-    cells: Vec<C>,
-    depth: Vec<i32>,
+    cells: grid_2d::Grid<C>,
+    depth: grid_2d::Grid<i32>,
 }
 
 impl<C: Default + Clone> Grid<C> {
     pub fn new(size: Size) -> Self {
-
-        let num_cells = size.count();
-        let mut cells = Vec::with_capacity(num_cells);
-        cells.resize(num_cells, Default::default());
-
-        let mut depth = Vec::with_capacity(num_cells);
-        depth.resize(num_cells, 0);
+        let cells = grid_2d::Grid::new_default(size);
+        let depth = grid_2d::Grid::new_clone(size, 0);
 
         Self {
-            size,
             cells,
             depth,
         }
     }
 
     pub fn size(&self) -> Size {
-        self.size
+        self.cells.size()
     }
 
     pub fn resize(&mut self, size: Size) {
-        let num_cells = size.count();
-        self.cells.clear();
-        self.depth.clear();
-        self.cells.resize(num_cells, Default::default());
-        self.depth.resize(num_cells, 0);
-        self.size = size;
+        self.cells.resize_default(size);
+        self.depth.resize_clone(size, 0);
     }
 
     pub fn clear(&mut self) {
@@ -127,7 +97,7 @@ impl<C: Default + Clone> Grid<C> {
     }
 
     pub fn enumerate(&self) -> CoordEnumerate<C> {
-        CoordEnumerate::new(self.size.coords(), self.cells.iter())
+        self.cells.enumerate()
     }
 
     pub fn iter(&self) -> Iter<C> {
@@ -142,7 +112,7 @@ impl<C: Default + Clone> Grid<C> {
 impl<C: ViewCell + Default + Clone> ViewGrid for Grid<C> {
     type Cell = C;
     fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Self::Cell> {
-        if let Some(index) = self.size.index(coord) {
+        if let Some(index) = self.depth.coord_to_index(coord) {
             let cell_depth = &mut self.depth[index];
             if depth >= *cell_depth {
                 *cell_depth = depth;

@@ -1,4 +1,4 @@
-use coord::{Coord, Size};
+use super::{Coord, Size};
 use view::View;
 
 /// Trait to implement for renderers that take data and a view that knows how

@@ -1,4 +1,4 @@
-use coord::{Coord, Size};
+use super::{Coord, Size};
 use rgb24::Rgb24;
 
 /// A cell that a view can write to
