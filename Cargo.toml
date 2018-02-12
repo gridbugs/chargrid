@@ -1,0 +1,24 @@
+[workspace]
+
+members = [
+    "prototty",
+    "common",
+    "grid",
+    "glutin",
+    "unix",
+    "wasm",
+    "file-storage",
+
+    "examples/title/prototty",
+    "examples/title/glutin",
+    "examples/title/unix",
+    "examples/title/unix_border",
+    "examples/title/wasm",
+
+    "examples/tetris/tetris",
+    "examples/tetris/prototty",
+    "examples/tetris/glutin",
+    "examples/tetris/unix",
+    "examples/tetris/wasm",
+
+]
