@@ -20,6 +20,7 @@ macro_rules! convert_char_shift {
 fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input> {
     let shift = keymod.shift;
     let input = match code {
+        VirtualKeyCode::Space => Input::Char(' '),
         VirtualKeyCode::A => convert_char_shift!('a', 'A', shift),
         VirtualKeyCode::B => convert_char_shift!('b', 'B', shift),
         VirtualKeyCode::C => convert_char_shift!('c', 'C', shift),
