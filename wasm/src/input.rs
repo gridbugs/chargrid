@@ -24,6 +24,7 @@ pub fn from_js_event(event_key_code: u8, event_key_modifiers: u8) -> Option<Inpu
 
         27 => Some(inputs::ESCAPE),
 
+        32 => Some(Input::Char(' ')),
         33 => Some(Input::PageUp),
         34 => Some(Input::PageDown),
         35 => Some(Input::End),
