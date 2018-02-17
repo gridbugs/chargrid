@@ -10,7 +10,6 @@ pub struct BytePrefixTree<T> {
 
 impl<T> BytePrefixTree<T> {
     pub fn new() -> Self {
-
         let mut table: [Option<Box<BytePrefixTree<T>>>; ENTRIES_PER_NODE] =
             unsafe { mem::zeroed() };
 
@@ -18,17 +17,14 @@ impl<T> BytePrefixTree<T> {
             table[i] = None;
         }
 
-        Self {
-            data: None,
-            table,
-        }
+        Self { data: None, table }
     }
 
     pub fn insert(&mut self, key: &[u8], data: T) {
         if let Some((head, tail)) = key.split_first() {
-            self.table[*head as usize].get_or_insert_with(|| {
-                Box::new(Self::new())
-            }).insert(tail, data);
+            self.table[*head as usize]
+                .get_or_insert_with(|| Box::new(Self::new()))
+                .insert(tail, data);
         } else {
             self.data = Some(data);
         }
@@ -78,12 +74,21 @@ mod tests {
 
         assert_eq!(tree.get_longest(b"helloworld"), Some(Found::Exact(&0)));
         assert_eq!(tree.get_longest(b"hello"), Some(Found::Exact(&1)));
-        assert_eq!(tree.get_longest(b"hellowo"), Some(Found::WithRemaining(&1, b"wo")));
-        assert_eq!(tree.get_longest(b"helloworldblah"), Some(Found::WithRemaining(&0, b"blah")));
+        assert_eq!(
+            tree.get_longest(b"hellowo"),
+            Some(Found::WithRemaining(&1, b"wo"))
+        );
+        assert_eq!(
+            tree.get_longest(b"helloworldblah"),
+            Some(Found::WithRemaining(&0, b"blah"))
+        );
         assert_eq!(tree.get_longest(b"world"), Some(Found::Exact(&2)));
         assert_eq!(tree.get_longest(b"worl"), None);
         assert_eq!(tree.get_longest(b""), None);
-        assert_eq!(tree.get_longest(b"worlds"), Some(Found::WithRemaining(&2, b"s")));
+        assert_eq!(
+            tree.get_longest(b"worlds"),
+            Some(Found::WithRemaining(&2, b"s"))
+        );
     }
 
     #[test]
@@ -96,8 +101,14 @@ mod tests {
 
         assert_eq!(tree.get_longest(b""), Some(Found::Exact(&0)));
         assert_eq!(tree.get_longest(b"a"), Some(Found::WithRemaining(&0, b"a")));
-        assert_eq!(tree.get_longest(b"ab"), Some(Found::WithRemaining(&0, b"ab")));
+        assert_eq!(
+            tree.get_longest(b"ab"),
+            Some(Found::WithRemaining(&0, b"ab"))
+        );
         assert_eq!(tree.get_longest(b"abc"), Some(Found::Exact(&1)));
-        assert_eq!(tree.get_longest(b"abcd"), Some(Found::WithRemaining(&1, b"d")));
+        assert_eq!(
+            tree.get_longest(b"abcd"),
+            Some(Found::WithRemaining(&1, b"d"))
+        );
     }
 }

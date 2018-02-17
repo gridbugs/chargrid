@@ -18,14 +18,10 @@ impl Context {
     }
 
     fn from_terminal(mut terminal: Terminal) -> Result<Self> {
-
         let size = terminal.resize_if_necessary()?;
         let grid = Grid::new(size);
 
-        Ok(Self {
-            terminal,
-            grid,
-        })
+        Ok(Self { terminal, grid })
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
@@ -63,7 +59,13 @@ impl Context {
 
 impl Renderer for Context {
     type Error = Error;
-    fn render_at<V: View<T>, T>(&mut self, view: &mut V, data: &T, offset: Coord, depth: i32) -> Result<()> {
+    fn render_at<V: View<T>, T>(
+        &mut self,
+        view: &mut V,
+        data: &T,
+        offset: Coord,
+        depth: i32,
+    ) -> Result<()> {
         self.resize_if_necessary()?;
 
         self.grid.clear();

@@ -27,8 +27,7 @@ impl WasmStorage {
         Self::from_bytes(slice).unwrap_or_else(Self::new)
     }
     fn to_bytes(&self) -> Vec<u8> {
-        bincode::serialize(&self.table)
-            .expect("Failed to serialize")
+        bincode::serialize(&self.table).expect("Failed to serialize")
     }
     fn sync(&mut self) {
         let mut bytes = self.to_bytes();
@@ -40,18 +39,25 @@ impl WasmStorage {
 
 impl Storage for WasmStorage {
     fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadError>
-        where K: AsRef<str>
+    where
+        K: AsRef<str>,
     {
-        self.table.get(key.as_ref()).cloned().ok_or(LoadError::NoSuchKey)
+        self.table
+            .get(key.as_ref())
+            .cloned()
+            .ok_or(LoadError::NoSuchKey)
     }
 
     fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreError>
-        where K: AsRef<str>,
-              V: AsRef<[u8]>
+    where
+        K: AsRef<str>,
+        V: AsRef<[u8]>,
     {
         {
             let slice = value.as_ref();
-            let buf = self.table.entry(key.as_ref().to_string()).or_insert_with(Vec::new);
+            let buf = self.table
+                .entry(key.as_ref().to_string())
+                .or_insert_with(Vec::new);
             buf.resize(slice.len(), 0);
             buf.copy_from_slice(slice);
         }
@@ -62,7 +68,8 @@ impl Storage for WasmStorage {
     }
 
     fn remove_raw<K>(&mut self, key: K) -> Result<Vec<u8>, LoadError>
-        where K: AsRef<str>
+    where
+        K: AsRef<str>,
     {
         let ret = self.table.remove(key.as_ref()).ok_or(LoadError::NoSuchKey);
 
@@ -72,7 +79,8 @@ impl Storage for WasmStorage {
     }
 
     fn exists<K>(&self, key: K) -> bool
-        where K: AsRef<str>
+    where
+        K: AsRef<str>,
     {
         self.table.contains_key(key.as_ref())
     }
@@ -83,11 +91,11 @@ impl Storage for WasmStorage {
     }
 
     fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>
-        where K: AsRef<str>,
-              T: Serialize
+    where
+        K: AsRef<str>,
+        T: Serialize,
     {
-        let bytes = bincode::serialize(value)
-            .expect("Failed to serialize data");
+        let bytes = bincode::serialize(value).expect("Failed to serialize data");
 
         self.store_raw(key, bytes)?;
 

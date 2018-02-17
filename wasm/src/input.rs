@@ -121,7 +121,11 @@ pub fn from_js_event(event_key_code: u8, event_key_modifiers: u8) -> Option<Inpu
     }
 }
 
-pub unsafe fn js_event_input_iter<'a>(key_codes: *const u8, key_mods: *const u8, num_inputs: usize) -> InputIter<'a> {
+pub unsafe fn js_event_input_iter<'a>(
+    key_codes: *const u8,
+    key_mods: *const u8,
+    num_inputs: usize,
+) -> InputIter<'a> {
     InputIter::new(key_codes, key_mods, num_inputs)
 }
 

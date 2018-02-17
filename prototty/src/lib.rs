@@ -1,7 +1,8 @@
-extern crate serde;
-#[macro_use] extern crate serde_derive;
 extern crate bincode;
 extern crate grid_2d;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 mod input;
 mod view;

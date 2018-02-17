@@ -1,6 +1,6 @@
 use term::terminfo::TermInfo;
 use term::terminfo::parm::{self, Param, Variables};
-use ansi_colour::{Colour, AllColours};
+use ansi_colour::{AllColours, Colour};
 use error::{Error, Result};
 use prototty::Input;
 use super::byte_prefix_tree::BytePrefixTree;
@@ -26,17 +26,18 @@ pub struct TermInfoCache {
 
 impl TermInfoCache {
     pub fn new() -> Result<Self> {
-
         let term_info = TermInfo::from_env()?;
 
         let cap = |name: &'static str| {
-            term_info.strings.get(name).ok_or_else(|| {
-                Error::MissingCap(name.to_string())
-            }).and_then(|bytes| {
-                ::std::str::from_utf8(bytes)
-                    .map(|s| s.to_string())
-                    .map_err(Error::Utf8Error)
-            })
+            term_info
+                .strings
+                .get(name)
+                .ok_or_else(|| Error::MissingCap(name.to_string()))
+                .and_then(|bytes| {
+                    ::std::str::from_utf8(bytes)
+                        .map(|s| s.to_string())
+                        .map_err(Error::Utf8Error)
+                })
         };
 
         let mut vars = Variables::new();
@@ -49,15 +50,23 @@ impl TermInfoCache {
         for colour in AllColours {
             let code = colour.code() as i32;
             let params = &[Param::Number(code)];
-            fg_colours.push(::std::str::from_utf8(&parm::expand(setfg.as_bytes(), params, &mut vars)?)?.to_string());
-            bg_colours.push(::std::str::from_utf8(&parm::expand(setbg.as_bytes(), params, &mut vars)?)?.to_string());
+            fg_colours.push(
+                ::std::str::from_utf8(&parm::expand(setfg.as_bytes(), params, &mut vars)?)?
+                    .to_string(),
+            );
+            bg_colours.push(
+                ::std::str::from_utf8(&parm::expand(setbg.as_bytes(), params, &mut vars)?)?
+                    .to_string(),
+            );
         }
 
         let escseq = |name: &'static str, input: Input| {
-            term_info.strings.get(name).cloned()
-                .ok_or_else(|| {
-                    Error::MissingCap(name.to_string())
-                }).map(|seq| (seq, input))
+            term_info
+                .strings
+                .get(name)
+                .cloned()
+                .ok_or_else(|| Error::MissingCap(name.to_string()))
+                .map(|seq| (seq, input))
         };
 
         let inputs_to_escape = [

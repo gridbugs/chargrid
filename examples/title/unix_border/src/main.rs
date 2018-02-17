@@ -1,11 +1,11 @@
 extern crate prototty;
-extern crate prototty_unix;
 extern crate prototty_common;
+extern crate prototty_unix;
 
 // Assuming the title and its views were defined here
 extern crate prototty_title;
 
-use prototty::{Renderer, View, ViewSize, ViewGrid, Coord, Size};
+use prototty::{Coord, Renderer, Size, View, ViewGrid, ViewSize};
 use prototty_title::*;
 
 // The `Border` decorator in prototty_common requires that the
@@ -29,7 +29,6 @@ impl ViewSize<Title> for SizedDemoTitleView {
 }
 
 fn main() {
-
     let mut context = prototty_unix::Context::new().unwrap();
 
     let title = Title {

@@ -33,12 +33,9 @@ impl Default for OutputCell {
 
 impl OutputCell {
     pub fn matches(&self, cell: &Cell) -> bool {
-        !self.dirty &&
-        self.ch == cell.character &&
-            self.fg == cell.foreground_colour.0 &&
-            self.bg == cell.background_colour.0 &&
-            self.bold == cell.bold &&
-            self.underline == cell.underline
+        !self.dirty && self.ch == cell.character && self.fg == cell.foreground_colour.0
+            && self.bg == cell.background_colour.0 && self.bold == cell.bold
+            && self.underline == cell.underline
     }
     pub fn copy_fields(&mut self, cell: &Cell) {
         self.dirty = false;
@@ -62,10 +59,7 @@ impl Terminal {
         let size = ansi.size()?;
         let output_grid = Grid::new(size);
 
-        Ok(Self {
-            ansi,
-            output_grid,
-        })
+        Ok(Self { ansi, output_grid })
     }
 
     pub fn resize_if_necessary(&mut self) -> Result<Size> {
@@ -81,7 +75,6 @@ impl Terminal {
     }
 
     pub fn draw_grid(&mut self, grid: &Grid<Cell>) -> Result<()> {
-
         self.ansi.set_cursor(Coord::new(0, 0))?;
 
         let mut bold = false;
@@ -95,9 +88,7 @@ impl Terminal {
 
         let mut must_move_cursor = false;
 
-        for ((coord, cell), output_cell) in
-            izip!(grid.enumerate(), self.output_grid.iter_mut())
-        {
+        for ((coord, cell), output_cell) in izip!(grid.enumerate(), self.output_grid.iter_mut()) {
             if output_cell.matches(cell) {
                 must_move_cursor = true;
                 continue;
@@ -165,5 +156,4 @@ impl Terminal {
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
         self.ansi.wait_input_timeout(timeout)
     }
-
 }

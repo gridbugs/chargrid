@@ -5,7 +5,7 @@ use gfx_window_glutin;
 use gfx_glyph;
 
 use gfx::Device;
-use glutin::{GlContext, Event};
+use glutin::{Event, GlContext};
 use gfx_glyph::GlyphCruncher;
 
 use prototty_grid::*;
@@ -128,11 +128,14 @@ impl<'a> ContextBuilder<'a> {
     }
 
     pub fn build(self) -> Result<Context<'a>> {
-
         let events_loop = glutin::EventsLoop::new();
 
         let (window, device, mut factory, rtv, dsv) =
-            gfx_window_glutin::init::<ColourFormat, DepthFormat>(self.window_builder, self.context_builder, &events_loop);
+            gfx_window_glutin::init::<ColourFormat, DepthFormat>(
+                self.window_builder,
+                self.context_builder,
+                &events_loop,
+            );
 
         let mut encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer> =
             factory.create_command_buffer().into();
@@ -159,30 +162,39 @@ impl<'a> ContextBuilder<'a> {
                 font_id: FONT_ID,
                 ..Default::default()
             };
-            let rect = glyph_brush.pixel_bounds(section).ok_or(Error::FailedToMeasureFont)?;
+            let rect = glyph_brush
+                .pixel_bounds(section)
+                .ok_or(Error::FailedToMeasureFont)?;
             (rect.width() as u32, rect.height() as u32)
         };
 
         let cell_width = (cell_width as f32) * hidpi;
         let cell_height = (cell_height as f32) * hidpi;
 
-        let max_grid_size = self.max_grid_size.unwrap_or(Size::new(MAX_WIDTH_IN_CELLS,  MAX_HEIGHT_IN_CELLS));
+        let max_grid_size = self.max_grid_size
+            .unwrap_or(Size::new(MAX_WIDTH_IN_CELLS, MAX_HEIGHT_IN_CELLS));
 
-        let width_in_cells = ::std::cmp::min((window_width as f32 / cell_width) as u32, max_grid_size.x());
-        let height_in_cells = ::std::cmp::min((window_height as f32 / cell_height) as u32, max_grid_size.y());
+        let width_in_cells =
+            ::std::cmp::min((window_width as f32 / cell_width) as u32, max_grid_size.x());
+        let height_in_cells = ::std::cmp::min(
+            (window_height as f32 / cell_height) as u32,
+            max_grid_size.y(),
+        );
 
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
 
         let grid = Grid::new(window_size_in_cells);
         let char_buf = String::with_capacity(1);
 
-        let underline_width = self.underline_width.map(|w| hidpi * w as f32).unwrap_or_else(|| {
-            cell_height as f32 / UNDERLINE_WIDTH_RATIO as f32
-        });
+        let underline_width = self.underline_width
+            .map(|w| hidpi * w as f32)
+            .unwrap_or_else(|| cell_height as f32 / UNDERLINE_WIDTH_RATIO as f32);
 
-        let underline_position = self.underline_position.map(|w| hidpi * w as f32).unwrap_or_else(|| {
-            cell_height as f32 - (cell_height as f32 / UNDERLINE_POSITION_RATIO as f32)
-        });
+        let underline_position = self.underline_position
+            .map(|w| hidpi * w as f32)
+            .unwrap_or_else(|| {
+                cell_height as f32 - (cell_height as f32 / UNDERLINE_POSITION_RATIO as f32)
+            });
 
         let background_renderer = BackgroundRenderer::new(
             window_width,
@@ -194,19 +206,20 @@ impl<'a> ContextBuilder<'a> {
             underline_position,
             rtv.clone(),
             &mut factory,
-            &mut encoder);
+            &mut encoder,
+        );
 
         let font_scale = gfx_glyph::Scale {
             x: self.font_scale.x * hidpi,
             y: self.font_scale.y * hidpi,
         };
 
-        let bold_font_scale = self.bold_font_scale.map(|s| {
-            gfx_glyph::Scale {
+        let bold_font_scale = self.bold_font_scale
+            .map(|s| gfx_glyph::Scale {
                 x: s.x * hidpi,
                 y: s.y * hidpi,
-            }
-        }).unwrap_or(font_scale);
+            })
+            .unwrap_or(font_scale);
 
         Ok(Context {
             window,
@@ -252,7 +265,6 @@ pub struct Context<'a> {
 
 impl<'a> Context<'a> {
     pub fn poll_input<F: FnMut(Input)>(&mut self, mut callback: F) {
-
         let mut closing = false;
         let mut resize = None;
 
@@ -284,12 +296,25 @@ impl<'a> Context<'a> {
     fn handle_resize(&mut self, width: u32, height: u32) {
         let (rtv, dsv) = gfx_window_glutin::new_views(&self.window);
 
-        let width_in_cells = ::std::cmp::min((width as f32 / self.cell_width) as u32, self.max_grid_size.x());
-        let height_in_cells = ::std::cmp::min((height as f32 / self.cell_height) as u32, self.max_grid_size.y());
+        let width_in_cells = ::std::cmp::min(
+            (width as f32 / self.cell_width) as u32,
+            self.max_grid_size.x(),
+        );
+        let height_in_cells = ::std::cmp::min(
+            (height as f32 / self.cell_height) as u32,
+            self.max_grid_size.y(),
+        );
 
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
 
-        self.background_renderer.handle_resize(width, height, window_size_in_cells, rtv.clone(), &mut self.factory, &mut self.encoder);
+        self.background_renderer.handle_resize(
+            width,
+            height,
+            window_size_in_cells,
+            rtv.clone(),
+            &mut self.factory,
+            &mut self.encoder,
+        );
 
         self.rtv = rtv;
         self.dsv = dsv;
@@ -300,7 +325,13 @@ impl<'a> Context<'a> {
 
 impl<'a> Renderer for Context<'a> {
     type Error = Error;
-    fn render_at<V: View<T>, T>(&mut self, view: &mut V, data: &T, offset: Coord, depth: i32) -> Result<()> {
+    fn render_at<V: View<T>, T>(
+        &mut self,
+        view: &mut V,
+        data: &T,
+        offset: Coord,
+        depth: i32,
+    ) -> Result<()> {
         if self.closing {
             return Ok(());
         }
@@ -311,7 +342,9 @@ impl<'a> Renderer for Context<'a> {
         {
             let mut output_cells = self.background_renderer.map_cells(&mut self.factory);
 
-            for ((coord, cell), output_cell) in izip!(self.grid.enumerate(), output_cells.iter_mut()) {
+            for ((coord, cell), output_cell) in
+                izip!(self.grid.enumerate(), output_cells.iter_mut())
+            {
                 self.char_buf.clear();
                 self.char_buf.push(cell.character);
 
@@ -323,8 +356,10 @@ impl<'a> Renderer for Context<'a> {
 
                 let section = gfx_glyph::Section {
                     text: self.char_buf.as_str(),
-                    screen_position: ((coord.x * self.cell_width as i32) as f32,
-                                      (coord.y * self.cell_height as i32) as f32),
+                    screen_position: (
+                        (coord.x * self.cell_width as i32) as f32,
+                        (coord.y * self.cell_height as i32) as f32,
+                    ),
                     scale,
                     font_id,
                     color: cell.foreground_colour.0,
@@ -343,10 +378,14 @@ impl<'a> Renderer for Context<'a> {
 
         self.background_renderer.draw(&mut self.encoder);
 
-        self.glyph_brush.draw_queued(&mut self.encoder, &self.rtv, &self.dsv).map_err(Error::GfxGlyph)?;
+        self.glyph_brush
+            .draw_queued(&mut self.encoder, &self.rtv, &self.dsv)
+            .map_err(Error::GfxGlyph)?;
 
         self.encoder.flush(&mut self.device);
-        self.window.swap_buffers().map_err(Error::GlutinContextError)?;
+        self.window
+            .swap_buffers()
+            .map_err(Error::GlutinContextError)?;
         self.device.cleanup();
 
         Ok(())

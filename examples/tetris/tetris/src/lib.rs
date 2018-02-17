@@ -80,8 +80,6 @@ impl Piece {
     }
 }
 
-
-
 impl PieceType {
     fn piece(self) -> Piece {
         use self::PieceType::*;
@@ -147,7 +145,6 @@ pub struct Board {
 
 impl Board {
     fn new(width: u32, height: u32) -> Self {
-
         let mut rows = Vec::with_capacity(height as usize);
         for _ in 0..height {
             rows.push(Row::new(width));
@@ -190,11 +187,8 @@ impl Board {
 
     fn collides(&self, piece: &Piece) -> bool {
         piece.coords.iter().any(|c| {
-            c.x < 0 || c.x >= self.size.x ||
-            c.y >= self.size.y ||
-            self.get(*c)
-                .map(|c| c.typ.is_some())
-                .unwrap_or(false)
+            c.x < 0 || c.x >= self.size.x || c.y >= self.size.y
+                || self.get(*c).map(|c| c.typ.is_some()).unwrap_or(false)
         })
     }
 
@@ -248,7 +242,6 @@ impl GameState {
     }
 
     fn step<R: Rng>(&mut self, rng: &mut R) -> StepResolution {
-
         if self.board.connects(&self.piece) {
             self.store_piece(rng);
             self.board.strip_full();
@@ -262,7 +255,6 @@ impl GameState {
             if game_over {
                 return StepResolution::GameOver;
             }
-
         } else {
             self.piece = self.piece.translate(Vector2::new(0, 1));
         }
@@ -342,7 +334,12 @@ impl Tetris {
         Vector2::new(WIDTH, HEIGHT)
     }
 
-    pub fn tick<I: IntoIterator<Item=Input>, R: Rng>(&mut self, inputs: I, period: Duration, rng: &mut R) -> Option<Meta> {
+    pub fn tick<I: IntoIterator<Item = Input>, R: Rng>(
+        &mut self,
+        inputs: I,
+        period: Duration,
+        rng: &mut R,
+    ) -> Option<Meta> {
         for input in inputs {
             match input {
                 Input::Left => self.game_state.try_move(Vector2::new(-1, 0)),

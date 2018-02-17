@@ -1,6 +1,6 @@
-extern crate rand;
 extern crate prototty;
 extern crate prototty_unix;
+extern crate rand;
 extern crate tetris_prototty;
 
 use std::time::Duration;
@@ -21,7 +21,11 @@ fn main() {
         context.render(&mut app_view, &app).unwrap();
         thread::sleep(Duration::from_millis(TICK_MILLIS));
 
-        if let Some(control_flow) = app.tick(context.drain_input().unwrap(), Duration::from_millis(TICK_MILLIS), &mut rng) {
+        if let Some(control_flow) = app.tick(
+            context.drain_input().unwrap(),
+            Duration::from_millis(TICK_MILLIS),
+            &mut rng,
+        ) {
             match control_flow {
                 ControlFlow::Exit => break,
             }

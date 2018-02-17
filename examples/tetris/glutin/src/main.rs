@@ -1,6 +1,6 @@
-extern crate rand;
 extern crate prototty;
 extern crate prototty_glutin;
+extern crate rand;
 extern crate tetris_prototty;
 
 use std::time::Instant;
@@ -9,7 +9,6 @@ use prototty_glutin::*;
 use tetris_prototty::{App, AppView, ControlFlow};
 
 fn main() {
-
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
         .with_window_dimensions(640, 480)
@@ -18,7 +17,8 @@ fn main() {
         .with_underline_position(28)
         .with_underline_width(2)
         .with_max_grid_size(20, 20)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let mut rng = rand::thread_rng();
     let mut app = App::new(&mut rng);
@@ -50,6 +50,5 @@ fn main() {
                 ControlFlow::Exit => running = false,
             }
         }
-
     }
 }

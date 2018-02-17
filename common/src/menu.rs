@@ -52,8 +52,9 @@ fn selected_info() -> TextInfo {
 impl<T: Copy> Menu<T> {
     /// Create a new menu.
     pub fn new<S, V>(mut e: Vec<(S, T)>, size: V) -> Self
-        where S: Into<String>,
-              V: Into<Size>,
+    where
+        S: Into<String>,
+        V: Into<Size>,
     {
         Self {
             entries: e.drain(..).map(Into::into).collect(),
@@ -66,7 +67,8 @@ impl<T: Copy> Menu<T> {
     /// Create a new menu, occupying the smallest amount of
     /// space required to fit all entries.
     pub fn smallest<S>(mut e: Vec<(S, T)>) -> Self
-        where S: Into<String>,
+    where
+        S: Into<String>,
     {
         let entries: Vec<MenuEntry<T>> = e.drain(..).map(Into::into).collect();
         let width = entries.iter().fold(0, |acc, e| cmp::max(acc, e.name.len()));
@@ -108,10 +110,7 @@ impl<T: Copy> MenuInstance<T> {
     /// Returns `None` if `index >= menu.entries.len()`.
     pub fn with_index(menu: Menu<T>, index: usize) -> Option<Self> {
         if index < menu.entries.len() {
-            Some(Self {
-                menu,
-                index,
-            })
+            Some(Self { menu, index })
         } else {
             None
         }
@@ -154,7 +153,8 @@ impl<T: Copy> MenuInstance<T> {
     /// menu, attempting to exit the program, or
     /// finalising the selection.
     pub fn tick<I>(&mut self, inputs: I) -> Option<MenuOutput<T>>
-        where I: IntoIterator<Item=Input>,
+    where
+        I: IntoIterator<Item = Input>,
     {
         for input in inputs {
             match input {
@@ -166,7 +166,6 @@ impl<T: Copy> MenuInstance<T> {
                 Input::Up => self.up(),
                 Input::Down => self.down(),
                 _ => (),
-
             }
         }
         None
@@ -177,9 +176,13 @@ impl<T: Copy> MenuInstance<T> {
 pub struct DefaultMenuInstanceView;
 
 impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
-    fn view<G: ViewGrid>(&mut self, value: &MenuInstance<T>,
-                         offset: Coord, depth: i32, grid: &mut G)
-    {
+    fn view<G: ViewGrid>(
+        &mut self,
+        value: &MenuInstance<T>,
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         for (i, entry) in value.menu.entries.iter().enumerate() {
             if i == value.menu.size.y() as usize {
                 break;

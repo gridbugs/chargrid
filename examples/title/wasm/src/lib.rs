@@ -36,11 +36,15 @@ pub extern "C" fn alloc_app(_seed: usize) -> *mut App {
 // inputs and the time that passed since it was last called,
 // which we ignore here.
 #[no_mangle]
-pub unsafe fn tick(app: *mut App,
-                   _key_codes: *const u8,
-                   _key_mods: *const u8,
-                   _num_inputs: usize,
-                   _period_millis: f64) {
-
-    (*app).context.render(&mut DemoTitleView, &(*app).title).unwrap();
+pub unsafe fn tick(
+    app: *mut App,
+    _key_codes: *const u8,
+    _key_mods: *const u8,
+    _num_inputs: usize,
+    _period_millis: f64,
+) {
+    (*app)
+        .context
+        .render(&mut DemoTitleView, &(*app).title)
+        .unwrap();
 }

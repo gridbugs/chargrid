@@ -64,8 +64,8 @@ pub struct Border {
 
 impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
     fn view<G: ViewGrid>(&mut self, data: &T, offset: Coord, depth: i32, grid: &mut G) {
-
-        self.view.view(data, offset + self.decorator.child_offset(), depth, grid);
+        self.view
+            .view(data, offset + self.decorator.child_offset(), depth, grid);
 
         let span = self.decorator.span_offset() + self.view.size(data);
 

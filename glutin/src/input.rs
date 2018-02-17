@@ -1,5 +1,5 @@
-use glutin::{WindowEvent, VirtualKeyCode, ElementState, ModifiersState};
-use prototty::{Input, inputs};
+use glutin::{ElementState, ModifiersState, VirtualKeyCode, WindowEvent};
+use prototty::{inputs, Input};
 
 pub enum InputEvent {
     Input(Input),

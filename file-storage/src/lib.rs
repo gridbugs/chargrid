@@ -44,26 +44,30 @@ impl FileStorage {
 
 impl Storage for FileStorage {
     fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadError>
-        where K: AsRef<str>
+    where
+        K: AsRef<str>,
     {
         let mut file = File::open(self.full_path(key)).map_err(|_| LoadError::NoSuchKey)?;
         let mut contents = Vec::new();
-        file.read_to_end(&mut contents).map_err(|_| LoadError::IoError)?;
+        file.read_to_end(&mut contents)
+            .map_err(|_| LoadError::IoError)?;
         Ok(contents)
     }
 
-
     fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreError>
-        where K: AsRef<str>,
-              V: AsRef<[u8]>
+    where
+        K: AsRef<str>,
+        V: AsRef<[u8]>,
     {
         let mut file = File::create(self.full_path(key)).map_err(|_| StoreError::IoError)?;
-        file.write_all(value.as_ref()).map_err(|_| StoreError::IoError)?;
+        file.write_all(value.as_ref())
+            .map_err(|_| StoreError::IoError)?;
         Ok(())
     }
 
     fn remove_raw<K>(&mut self, key: K) -> Result<Vec<u8>, LoadError>
-        where K: AsRef<str>
+    where
+        K: AsRef<str>,
     {
         let contents = self.load_raw(&key)?;
         let path = self.full_path(key);
@@ -72,7 +76,8 @@ impl Storage for FileStorage {
     }
 
     fn exists<K>(&self, key: K) -> bool
-        where K: AsRef<str>
+    where
+        K: AsRef<str>,
     {
         self.full_path(key).exists()
     }

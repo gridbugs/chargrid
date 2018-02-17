@@ -8,7 +8,6 @@ use prototty::Renderer;
 use prototty_title::*;
 
 fn main() {
-
     let mut context = prototty_unix::Context::new().unwrap();
 
     let title = Title {

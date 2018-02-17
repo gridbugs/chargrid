@@ -12,10 +12,7 @@ impl Context {
     pub fn new() -> Self {
         let terminal = Terminal::new();
         let grid = Grid::new(terminal.size());
-        Self {
-            terminal,
-            grid,
-        }
+        Self { terminal, grid }
     }
 
     pub fn quit(&self) {
@@ -25,7 +22,13 @@ impl Context {
 
 impl Renderer for Context {
     type Error = ();
-    fn render_at<V: View<T>, T>(&mut self, view: &mut V, data: &T, offset: Coord, depth: i32) -> Result<(), Self::Error> {
+    fn render_at<V: View<T>, T>(
+        &mut self,
+        view: &mut V,
+        data: &T,
+        offset: Coord,
+        depth: i32,
+    ) -> Result<(), Self::Error> {
         self.grid.clear();
         view.view(data, offset, depth, &mut self.grid);
         self.terminal.draw_grid(&self.grid);

@@ -8,7 +8,6 @@ pub struct Colour(pub ansi_colour::Colour);
 
 impl From<Rgb24> for Colour {
     fn from(rgb24: Rgb24) -> Self {
-
         if rgb24.red == rgb24.green && rgb24.green == rgb24.blue {
             let level = (rgb24.red as u32 * ansi_colour::MAX_GREY_SCALE as u32) / 255;
             return Colour(ansi_colour::Colour::grey_scale(level as u8).unwrap());

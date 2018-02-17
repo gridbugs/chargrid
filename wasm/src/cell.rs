@@ -1,4 +1,4 @@
-use prototty::{Rgb24, colours};
+use prototty::{colours, Rgb24};
 use prototty_grid::*;
 
 #[derive(Debug, Clone, Copy)]

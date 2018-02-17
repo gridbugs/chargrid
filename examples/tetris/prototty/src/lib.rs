@@ -1,7 +1,7 @@
 extern crate prototty;
 extern crate prototty_common;
-extern crate tetris;
 extern crate rand;
+extern crate tetris;
 
 use std::collections::VecDeque;
 use std::time::Duration;
@@ -10,9 +10,13 @@ use prototty::*;
 use prototty_common::*;
 use prototty::inputs::*;
 use prototty::Input as ProtottyInput;
-use tetris::{Tetris, PieceType, Input as TetrisInput, Meta};
+use tetris::{Input as TetrisInput, Meta, PieceType, Tetris};
 
-const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24 { red: 24, green: 24, blue: 24 };
+const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24 {
+    red: 24,
+    green: 24,
+    blue: 24,
+};
 const FOREGROUND_COLOUR: Rgb24 = colours::WHITE;
 const BACKGROUND_COLOUR: Rgb24 = colours::BLACK;
 const BLOCK_CHAR: char = '-';
@@ -41,7 +45,9 @@ impl View<Tetris> for TetrisBoardView {
     fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
-                if let Some(output_cell) = grid.get_mut(offset + Coord::new(j as i32, i as i32), depth) {
+                if let Some(output_cell) =
+                    grid.get_mut(offset + Coord::new(j as i32, i as i32), depth)
+                {
                     output_cell.set_bold(true);
                     if let Some(typ) = cell.typ {
                         output_cell.set_character(BLOCK_CHAR);
@@ -68,7 +74,9 @@ impl View<Tetris> for TetrisBoardView {
 }
 
 impl ViewSize<Tetris> for TetrisBoardView {
-    fn size(&mut self, tetris: &Tetris) -> Size { tetris.size().into() }
+    fn size(&mut self, tetris: &Tetris) -> Size {
+        tetris.size().into()
+    }
 }
 
 impl View<Tetris> for TetrisNextPieceView {
@@ -86,7 +94,9 @@ impl View<Tetris> for TetrisNextPieceView {
 }
 
 impl ViewSize<Tetris> for TetrisNextPieceView {
-    fn size(&mut self, _: &Tetris) -> Size { NEXT_PIECE_SIZE.into() }
+    fn size(&mut self, _: &Tetris) -> Size {
+        NEXT_PIECE_SIZE.into()
+    }
 }
 
 struct Borders {
@@ -121,7 +131,6 @@ enum AppState {
     Game,
     GameOver,
     EndText,
-
 }
 struct Timeout {
     pub remaining: Duration,
@@ -163,8 +172,7 @@ pub struct App {
 
 impl App {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
-        let mut main_menu = Menu::smallest(
-            vec![
+        let mut main_menu = Menu::smallest(vec![
             ("Play", MainMenuChoice::Play),
             ("Quit", MainMenuChoice::Quit),
         ]);
@@ -191,8 +199,9 @@ impl App {
     }
 
     pub fn tick<I, R>(&mut self, inputs: I, period: Duration, rng: &mut R) -> Option<ControlFlow>
-        where I: IntoIterator<Item=ProtottyInput>,
-              R: Rng,
+    where
+        I: IntoIterator<Item = ProtottyInput>,
+        R: Rng,
     {
         match self.state {
             AppState::Menu => {
@@ -267,8 +276,15 @@ impl View<App> for AppView {
             AppState::Game | AppState::GameOver => {
                 let next_piece_offset_x = self.borders.common.size(&app.tetris).x() as i32;
                 self.borders.common.view(&app.tetris, offset, depth, grid);
-                self.borders.next_piece
-                    .view(&app.tetris, Coord { x: next_piece_offset_x, ..offset }, depth, grid);
+                self.borders.next_piece.view(
+                    &app.tetris,
+                    Coord {
+                        x: next_piece_offset_x,
+                        ..offset
+                    },
+                    depth,
+                    grid,
+                );
             }
             AppState::Menu => {
                 self.borders.menu.view(&app.main_menu, offset, depth, grid);

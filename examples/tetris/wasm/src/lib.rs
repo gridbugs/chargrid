@@ -1,7 +1,7 @@
 extern crate prototty;
 extern crate prototty_wasm;
-extern crate tetris_prototty;
 extern crate rand;
+extern crate tetris_prototty;
 
 use std::time::Duration;
 use rand::{SeedableRng, StdRng};
@@ -33,7 +33,8 @@ impl WebApp {
         }
     }
     fn tick<I>(&mut self, inputs: I, period: Duration)
-        where I: IntoIterator<Item=ProtottyInput>,
+    where
+        I: IntoIterator<Item = ProtottyInput>,
     {
         if let Some(control_flow) = self.app.tick(inputs, period, &mut self.rng) {
             match control_flow {
@@ -53,12 +54,13 @@ pub extern "C" fn alloc_app(seed: usize) -> *mut WebApp {
 }
 
 #[no_mangle]
-pub unsafe fn tick(app: *mut WebApp,
-                   key_codes: *const u8,
-                   key_mods: *const u8,
-                   num_inputs: usize,
-                   period_millis: f64) {
-
+pub unsafe fn tick(
+    app: *mut WebApp,
+    key_codes: *const u8,
+    key_mods: *const u8,
+    num_inputs: usize,
+    period_millis: f64,
+) {
     let period = Duration::from_millis(period_millis as u64);
 
     let input_iter = input::js_event_input_iter(key_codes, key_mods, num_inputs);

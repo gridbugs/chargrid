@@ -41,7 +41,6 @@ impl View<Title> for CenteredTitleView {
 pub struct DemoTitleView;
 impl View<Title> for DemoTitleView {
     fn view<G: ViewGrid>(&mut self, title: &Title, offset: Coord, depth: i32, grid: &mut G) {
-
         // render the title left-aligned in the top-left corner
         TitleView.view(title, offset, depth, grid);
 

@@ -15,7 +15,11 @@ pub struct Align {
 
 impl Align {
     pub fn new(size: Size, x_alignment: Alignment, y_alignment: Alignment) -> Self {
-        Self { size, x_alignment, y_alignment }
+        Self {
+            size,
+            x_alignment,
+            y_alignment,
+        }
     }
 }
 
@@ -52,6 +56,11 @@ impl<T, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Align> {
             0
         };
 
-        self.view.view(data, offset + Coord::new(x_offset as i32, y_offset as i32), depth, grid);
+        self.view.view(
+            data,
+            offset + Coord::new(x_offset as i32, y_offset as i32),
+            depth,
+            grid,
+        );
     }
 }

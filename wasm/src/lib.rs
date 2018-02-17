@@ -1,8 +1,9 @@
-#[macro_use] extern crate itertools;
+extern crate bincode;
+#[macro_use]
+extern crate itertools;
 extern crate prototty;
 extern crate prototty_grid;
 extern crate serde;
-extern crate bincode;
 
 mod terminal;
 mod context;

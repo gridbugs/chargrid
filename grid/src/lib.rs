@@ -1,6 +1,7 @@
-#[macro_use] extern crate itertools;
-extern crate prototty;
 extern crate grid_2d;
+#[macro_use]
+extern crate itertools;
+extern crate prototty;
 
 use prototty::*;
 
@@ -14,8 +15,9 @@ pub trait DefaultBackground {
 
 #[derive(Debug, Clone)]
 pub struct CommonCell<F, B>
-    where F: From<Rgb24> + DefaultForeground,
-          B: From<Rgb24> + DefaultBackground,
+where
+    F: From<Rgb24> + DefaultForeground,
+    B: From<Rgb24> + DefaultBackground,
 {
     pub character: char,
     pub bold: bool,
@@ -25,8 +27,9 @@ pub struct CommonCell<F, B>
 }
 
 impl<F, B> ViewCell for CommonCell<F, B>
-    where F: From<Rgb24> + DefaultForeground,
-          B: From<Rgb24> + DefaultBackground,
+where
+    F: From<Rgb24> + DefaultForeground,
+    B: From<Rgb24> + DefaultBackground,
 {
     fn set_character(&mut self, character: char) {
         self.character = character;
@@ -46,8 +49,9 @@ impl<F, B> ViewCell for CommonCell<F, B>
 }
 
 impl<F, B> Default for CommonCell<F, B>
-    where F: From<Rgb24> + DefaultForeground,
-          B: From<Rgb24> + DefaultBackground,
+where
+    F: From<Rgb24> + DefaultForeground,
+    B: From<Rgb24> + DefaultBackground,
 {
     fn default() -> Self {
         CommonCell {
@@ -74,10 +78,7 @@ impl<C: Default + Clone> Grid<C> {
         let cells = grid_2d::Grid::new_default(size);
         let depth = grid_2d::Grid::new_clone(size, 0);
 
-        Self {
-            cells,
-            depth,
-        }
+        Self { cells, depth }
     }
 
     pub fn size(&self) -> Size {

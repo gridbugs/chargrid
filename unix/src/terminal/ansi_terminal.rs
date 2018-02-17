@@ -67,7 +67,11 @@ impl AnsiTerminal {
 
     pub fn set_cursor(&mut self, coord: Coord) -> Result<()> {
         let params = &[Param::Number(coord.y), Param::Number(coord.x)];
-        let command = parm::expand(self.ti_cache.set_cursor.as_bytes(), params, &mut self.ti_cache.vars)?;
+        let command = parm::expand(
+            self.ti_cache.set_cursor.as_bytes(),
+            params,
+            &mut self.ti_cache.vars,
+        )?;
         let command_slice = ::std::str::from_utf8(&command)?;
         self.output_buffer.push_str(command_slice);
         Ok(())
@@ -132,15 +136,18 @@ impl AnsiTerminal {
         if let Some(input) = self.input_ring.pop_front() {
             return Ok(Some(input));
         }
-        self.low_level.read_timeout(&mut self.input_buffer, timeout)?;
+        self.low_level
+            .read_timeout(&mut self.input_buffer, timeout)?;
         self.drain_input_into_ring()?;
         Ok(self.input_ring.pop_front())
     }
 
     fn drain_input_into_ring(&mut self) -> Result<()> {
-        Self::populate_input_ring(&mut self.input_ring,
-                                  &self.ti_cache.escape_sequence_prefix_tree,
-                                  &self.input_buffer)?;
+        Self::populate_input_ring(
+            &mut self.input_ring,
+            &self.ti_cache.escape_sequence_prefix_tree,
+            &self.input_buffer,
+        )?;
         self.input_buffer.clear();
         Ok(())
     }
@@ -154,9 +161,11 @@ impl AnsiTerminal {
         }
     }
 
-    fn populate_input_ring(input_ring: &mut VecDeque<Input>,
-                           prefix_tree: &BytePrefixTree<Input>,
-                           slice: &[u8]) -> Result<()> {
+    fn populate_input_ring(
+        input_ring: &mut VecDeque<Input>,
+        prefix_tree: &BytePrefixTree<Input>,
+        slice: &[u8],
+    ) -> Result<()> {
         let rest = match prefix_tree.get_longest(slice) {
             None => {
                 // slice does not begin with an escape sequence - chip off the start and try again
@@ -198,6 +207,7 @@ impl AnsiTerminal {
 
 impl Drop for AnsiTerminal {
     fn drop(&mut self) {
-        self.teardown().expect("Failed to reset terminal to original settings");
+        self.teardown()
+            .expect("Failed to reset terminal to original settings");
     }
 }

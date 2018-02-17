@@ -1,4 +1,4 @@
-use prototty::{ViewCell, Rgb24};
+use prototty::{Rgb24, ViewCell};
 
 /// Rich text settings
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -22,16 +22,25 @@ impl Default for TextInfo {
 
 impl TextInfo {
     pub fn foreground_colour(self, colour: Rgb24) -> Self {
-        Self { foreground_colour: Some(colour), .. self }
+        Self {
+            foreground_colour: Some(colour),
+            ..self
+        }
     }
     pub fn background_colour(self, colour: Rgb24) -> Self {
-        Self { background_colour: Some(colour), .. self }
+        Self {
+            background_colour: Some(colour),
+            ..self
+        }
     }
     pub fn underline(self) -> Self {
-        Self { underline: true, .. self }
+        Self {
+            underline: true,
+            ..self
+        }
     }
     pub fn bold(self) -> Self {
-        Self { bold: true, .. self }
+        Self { bold: true, ..self }
     }
     pub fn write_cell<C: ViewCell>(&self, cell: &mut C) {
         if let Some(foreground_colour) = self.foreground_colour {

@@ -29,7 +29,8 @@ pub struct RichText {
 impl RichText {
     /// Create a new `RichText` element.
     pub fn new<S>(mut parts: Vec<(S, TextInfo)>, size: Size) -> Self
-        where S: Into<String>,
+    where
+        S: Into<String>,
     {
         Self {
             parts: parts.drain(..).map(Into::into).collect(),
@@ -40,7 +41,8 @@ impl RichText {
     /// Create a new `Text` element of an appropriate
     /// size for a single line.
     pub fn one_line<S>(mut parts: Vec<(S, TextInfo)>) -> Self
-        where S: Into<String>,
+    where
+        S: Into<String>,
     {
         let parts: Vec<RichTextPart> = parts.drain(..).map(Into::into).collect();
         let length = parts.iter().fold(0, |acc, part| acc + part.string.len());
@@ -92,5 +94,7 @@ impl View<RichText> for DefaultRichTextView {
 }
 
 impl ViewSize<RichText> for DefaultRichTextView {
-    fn size(&mut self, data: &RichText) -> Size { data.size }
+    fn size(&mut self, data: &RichText) -> Size {
+        data.size
+    }
 }
