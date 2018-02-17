@@ -42,7 +42,7 @@ pub trait Storage {
         where K: AsRef<str>,
               T: Serialize,
     {
-        let bytes = bincode::serialize(value, bincode::Infinite)
+        let bytes = bincode::serialize(value)
             .expect("Failed to serialize data");
         self.store_raw(key, bytes)
     }

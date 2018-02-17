@@ -27,7 +27,7 @@ impl WasmStorage {
         Self::from_bytes(slice).unwrap_or_else(Self::new)
     }
     fn to_bytes(&self) -> Vec<u8> {
-        bincode::serialize(&self.table, bincode::Infinite)
+        bincode::serialize(&self.table)
             .expect("Failed to serialize")
     }
     fn sync(&mut self) {
@@ -86,7 +86,7 @@ impl Storage for WasmStorage {
         where K: AsRef<str>,
               T: Serialize
     {
-        let bytes = bincode::serialize(value, bincode::Infinite)
+        let bytes = bincode::serialize(value)
             .expect("Failed to serialize data");
 
         self.store_raw(key, bytes)?;
