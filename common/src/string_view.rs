@@ -22,6 +22,28 @@ impl<T: ?Sized + AsRef<str>> ViewSize<T> for StringView {
 }
 
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct TextInfoStringView;
+
+impl<T: ?Sized + AsRef<str>> View<(TextInfo, T)> for TextInfoStringView {
+    fn view<G: ViewGrid>(&mut self, value: &(TextInfo, T), offset: Coord, depth: i32, grid: &mut G) {
+        let string = value.1.as_ref();
+        for (i, ch) in string.chars().enumerate() {
+            if let Some(cell) = grid.get_mut(offset + Coord::new(i as i32, 0), depth) {
+                cell.set_character(ch);
+                value.0.write_cell(cell);
+            }
+        }
+    }
+}
+
+impl<T: ?Sized + AsRef<str>> ViewSize<(TextInfo, T)> for TextInfoStringView {
+    fn size(&mut self, value: &(TextInfo, T)) -> Size {
+        let string = value.1.as_ref();
+        Size::new(string.len() as u32, 1)
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct RichStringView {
     pub info: TextInfo,
 }
