@@ -252,7 +252,7 @@ pub struct Context<'a> {
     dsv: gfx::handle::DepthStencilView<Resources, DepthFormat>,
     events_loop: glutin::EventsLoop,
     glyph_brush: gfx_glyph::GlyphBrush<'a, Resources, gfx_device_gl::Factory>,
-    grid: Grid<Cell>,
+    grid: Grid<Colour, Colour>,
     char_buf: String,
     cell_width: f32,
     cell_height: f32,

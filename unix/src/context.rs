@@ -8,7 +8,7 @@ use cell::*;
 /// An interface to a terminal for rendering `View`s, and getting input.
 pub struct Context {
     terminal: Terminal,
-    grid: Grid<Cell>,
+    grid: Grid<Colour, Colour>,
 }
 
 impl Context {

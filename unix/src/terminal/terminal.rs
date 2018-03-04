@@ -1,8 +1,9 @@
 use std::time::Duration;
-use ansi_colour::Colour;
+use ansi_colour::Colour as AnsiColour;
 use error::Result;
 use prototty::*;
 use prototty_grid::*;
+use grid_2d;
 use cell::*;
 use defaults::*;
 use super::ansi_terminal::AnsiTerminal;
@@ -12,8 +13,8 @@ pub use super::ansi_terminal::DrainInput;
 pub struct OutputCell {
     dirty: bool,
     ch: char,
-    fg: Colour,
-    bg: Colour,
+    fg: AnsiColour,
+    bg: AnsiColour,
     bold: bool,
     underline: bool,
 }
@@ -23,8 +24,8 @@ impl Default for OutputCell {
         Self {
             dirty: true,
             ch: DEFAULT_CH,
-            fg: Colour::from_code(DEFAULT_FG_ANSI_CODE),
-            bg: Colour::from_code(DEFAULT_BG_ANSI_CODE),
+            fg: AnsiColour::from_code(DEFAULT_FG_ANSI_CODE),
+            bg: AnsiColour::from_code(DEFAULT_BG_ANSI_CODE),
             bold: false,
             underline: false,
         }
@@ -49,7 +50,7 @@ impl OutputCell {
 
 pub struct Terminal {
     ansi: AnsiTerminal,
-    output_grid: Grid<OutputCell>,
+    output_grid: grid_2d::Grid<OutputCell>,
 }
 
 impl Terminal {
@@ -57,7 +58,7 @@ impl Terminal {
         let ansi = AnsiTerminal::new()?;
 
         let size = ansi.size()?;
-        let output_grid = Grid::new(size);
+        let output_grid = grid_2d::Grid::new_default(size);
 
         Ok(Self { ansi, output_grid })
     }
@@ -65,7 +66,7 @@ impl Terminal {
     pub fn resize_if_necessary(&mut self) -> Result<Size> {
         let size = self.ansi.size()?;
         if size != self.output_grid.size() {
-            self.output_grid.resize(size);
+            self.output_grid.resize_default(size);
         }
         Ok(size)
     }
@@ -74,13 +75,13 @@ impl Terminal {
         self.ansi.size()
     }
 
-    pub fn draw_grid(&mut self, grid: &Grid<Cell>) -> Result<()> {
+    pub fn draw_grid(&mut self, grid: &Grid<Colour, Colour>) -> Result<()> {
         self.ansi.set_cursor(Coord::new(0, 0))?;
 
         let mut bold = false;
         let mut underline = false;
-        let mut fg = Colour::from_code(DEFAULT_FG_ANSI_CODE);
-        let mut bg = Colour::from_code(DEFAULT_BG_ANSI_CODE);
+        let mut fg = AnsiColour::from_code(DEFAULT_FG_ANSI_CODE);
+        let mut bg = AnsiColour::from_code(DEFAULT_BG_ANSI_CODE);
         self.ansi.reset();
         self.ansi.clear_underline();
         self.ansi.set_foreground_colour(fg);

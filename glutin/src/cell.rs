@@ -26,5 +26,3 @@ impl DefaultBackground for Colour {
         Colour([0.0, 0.0, 0.0, 1.0])
     }
 }
-
-pub type Cell = CommonCell<Colour, Colour>;

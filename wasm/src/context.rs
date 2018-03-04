@@ -1,11 +1,11 @@
 use prototty::*;
 use prototty_grid::*;
 use terminal::Terminal;
-use cell::Cell;
+use cell::Colour;
 
 pub struct Context {
     terminal: Terminal,
-    grid: Grid<Cell>,
+    grid: Grid<Colour, Colour>,
 }
 
 impl Context {

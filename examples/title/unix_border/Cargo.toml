@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
-prototty = { path = "../../../prototty", version = "0.17" }
-prototty_common = { path = "../../../common", version = "0.17" }
-prototty_unix = { path = "../../../unix", version = "0.17" }
+prototty = { path = "../../../prototty", version = "0.18" }
+prototty_common = { path = "../../../common", version = "0.18" }
+prototty_unix = { path = "../../../unix", version = "0.18" }
 prototty_title = { path = "../prototty" }

@@ -1,7 +1,5 @@
-extern crate grid_2d;
-#[macro_use]
-extern crate itertools;
 extern crate prototty;
+extern crate grid_2d;
 
 use prototty::*;
 
@@ -15,43 +13,58 @@ pub trait DefaultBackground {
 
 #[derive(Debug, Clone)]
 pub struct CommonCell<F, B>
-where
-    F: From<Rgb24> + DefaultForeground,
-    B: From<Rgb24> + DefaultBackground,
+    where F: From<Rgb24> + DefaultForeground,
+          B: From<Rgb24> + DefaultBackground,
 {
     pub character: char,
     pub bold: bool,
     pub underline: bool,
     pub foreground_colour: F,
     pub background_colour: B,
+    foreground_depth: i32,
+    background_depth: i32,
+    access_depth: i32,
 }
 
 impl<F, B> ViewCell for CommonCell<F, B>
-where
-    F: From<Rgb24> + DefaultForeground,
-    B: From<Rgb24> + DefaultBackground,
+    where F: From<Rgb24> + DefaultForeground,
+          B: From<Rgb24> + DefaultBackground,
 {
     fn set_character(&mut self, character: char) {
-        self.character = character;
+        if self.access_depth >=  self.foreground_depth {
+            self.character = character;
+            self.foreground_depth = self.access_depth;
+        }
     }
     fn set_bold(&mut self, bold: bool) {
-        self.bold = bold;
+        if self.access_depth >= self.foreground_depth {
+            self.bold = bold;
+            self.foreground_depth = self.access_depth;
+        }
     }
     fn set_underline(&mut self, underline: bool) {
-        self.underline = underline;
+        if self.access_depth >=  self.foreground_depth {
+            self.underline = underline;
+            self.foreground_depth = self.access_depth;
+        }
     }
     fn set_foreground_colour(&mut self, colour: Rgb24) {
-        self.foreground_colour = colour.into();
+        if self.access_depth >=  self.foreground_depth {
+            self.foreground_colour = colour.into();
+            self.foreground_depth = self.access_depth;
+        }
     }
     fn set_background_colour(&mut self, colour: Rgb24) {
-        self.background_colour = colour.into();
+        if self.access_depth >=  self.background_depth {
+            self.background_colour = colour.into();
+            self.background_depth = self.access_depth;
+        }
     }
 }
 
 impl<F, B> Default for CommonCell<F, B>
-where
-    F: From<Rgb24> + DefaultForeground,
-    B: From<Rgb24> + DefaultBackground,
+    where F: From<Rgb24> + DefaultForeground,
+          B: From<Rgb24> + DefaultBackground,
 {
     fn default() -> Self {
         CommonCell {
@@ -60,6 +73,9 @@ where
             underline: false,
             foreground_colour: F::default_foreground(),
             background_colour: B::default_background(),
+            foreground_depth: 0,
+            background_depth: 0,
+            access_depth: 0,
         }
     }
 }
@@ -68,17 +84,23 @@ pub type IterMut<'a, C> = grid_2d::IterMut<'a, C>;
 pub type CoordEnumerate<'a, C> = grid_2d::CoordEnumerate<'a, C>;
 
 #[derive(Debug, Clone)]
-pub struct Grid<C: Default + Clone> {
-    cells: grid_2d::Grid<C>,
-    depth: grid_2d::Grid<i32>,
+pub struct Grid<F, B>
+    where F: From<Rgb24> + DefaultForeground,
+          B: From<Rgb24> + DefaultBackground,
+{
+    cells: grid_2d::Grid<CommonCell<F, B>>,
 }
 
-impl<C: Default + Clone> Grid<C> {
+impl<F, B> Grid<F, B>
+    where F: From<Rgb24> + DefaultForeground + Clone,
+          B: From<Rgb24> + DefaultBackground + Clone,
+{
     pub fn new(size: Size) -> Self {
         let cells = grid_2d::Grid::new_default(size);
-        let depth = grid_2d::Grid::new_clone(size, 0);
 
-        Self { cells, depth }
+        Self {
+            cells,
+        }
     }
 
     pub fn size(&self) -> Size {
@@ -87,39 +109,39 @@ impl<C: Default + Clone> Grid<C> {
 
     pub fn resize(&mut self, size: Size) {
         self.cells.resize_default(size);
-        self.depth.resize_clone(size, 0);
     }
 
     pub fn clear(&mut self) {
-        for (cell, depth) in izip!(self.cells.iter_mut(), self.depth.iter_mut()) {
+        for cell in self.cells.iter_mut() {
             *cell = Default::default();
-            *depth = 0;
         }
     }
 
-    pub fn enumerate(&self) -> CoordEnumerate<C> {
+    pub fn enumerate(&self) -> CoordEnumerate<CommonCell<F, B>> {
         self.cells.enumerate()
     }
 
-    pub fn iter(&self) -> Iter<C> {
+    pub fn iter(&self) -> Iter<CommonCell<F, B>> {
         self.cells.iter()
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<C> {
+    pub fn iter_mut(&mut self) -> IterMut<CommonCell<F, B>> {
         self.cells.iter_mut()
     }
 }
 
-impl<C: ViewCell + Default + Clone> ViewGrid for Grid<C> {
-    type Cell = C;
+impl<F, B> ViewGrid for Grid<F, B>
+    where F: From<Rgb24> + DefaultForeground,
+          B: From<Rgb24> + DefaultBackground,
+{
+    type Cell = CommonCell<F, B>;
     fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Self::Cell> {
-        if let Some(index) = self.depth.coord_to_index(coord) {
-            let cell_depth = &mut self.depth[index];
-            if depth >= *cell_depth {
-                *cell_depth = depth;
-                Some(&mut self.cells[index])
-            } else {
+        if let Some(cell) = self.cells.get_mut(coord) {
+            if cell.foreground_depth > depth && cell.background_depth > depth {
                 None
+            } else {
+                cell.access_depth = depth;
+                Some(cell)
             }
         } else {
             None

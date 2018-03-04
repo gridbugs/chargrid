@@ -21,5 +21,3 @@ impl DefaultBackground for Colour {
         Colour(colours::BLACK.into_u32())
     }
 }
-
-pub type Cell = CommonCell<Colour, Colour>;

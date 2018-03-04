@@ -1,6 +1,6 @@
 use prototty::*;
 use prototty_grid::*;
-use cell::Cell;
+use cell::Colour;
 
 const BOLD_BIT: u8 = 1 << 0;
 const UNDERLINE_BIT: u8 = 1 << 1;
@@ -48,7 +48,7 @@ impl Terminal {
         }
     }
 
-    pub fn draw_grid(&mut self, grid: &Grid<Cell>) {
+    pub fn draw_grid(&mut self, grid: &Grid<Colour, Colour>) {
         for (cell, chars_entry, style_entry, fg_colour_entry, bg_colour_entry) in izip! {
             grid.iter(),
             self.chars.iter_mut(),
