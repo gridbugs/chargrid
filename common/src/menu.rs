@@ -93,7 +93,7 @@ pub enum MenuOutput<T> {
 /// When a `MenuInstance` is rendered, the
 /// currently-selected entry is  rendered using
 /// the `Menu`'s `selected_info`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MenuInstance<T: Copy> {
     menu: Menu<T>,
     index: usize,
