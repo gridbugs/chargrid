@@ -8,6 +8,7 @@ pub enum Alignment {
     BottomRight,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Align {
     pub size: Size,
     pub x_alignment: Alignment,
