@@ -116,6 +116,16 @@ impl<T: Copy> MenuInstance<T> {
         }
     }
 
+    /// Returns a reference to the internal menu
+    pub fn menu(&self) -> &Menu<T> {
+        &self.menu
+    }
+
+    /// Consumes the instance, returning its menu
+    pub fn into_menu(self) -> Menu<T> {
+        self.menu
+    }
+
     /// Returns the current index
     pub fn index(&self) -> usize {
         self.index
