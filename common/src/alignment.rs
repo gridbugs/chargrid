@@ -1,6 +1,7 @@
 use prototty::*;
 use decorated::Decorated;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Alignment {
     TopLeft,
     Centre,
