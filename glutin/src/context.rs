@@ -64,6 +64,13 @@ impl<'a> ContextBuilder<'a> {
         }
     }
 
+    pub fn with_title<T: Into<String>>(self, title: T) -> Self {
+        Self {
+            window_builder: self.window_builder.with_title(title),
+            ..self
+        }
+    }
+
     pub fn with_cell_dimensions(self, width: u32, height: u32) -> Self {
         Self {
             cell_dimensions: Some(Size::new(width, height)),
