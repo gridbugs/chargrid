@@ -1,7 +1,8 @@
 module.exports = {
+  mode: 'production',
   entry: './index.js',
   devtool: 'source-map',
   output: {
-    filename: 'dist/bundle.js'
+    filename: 'bundle.js'
   },
 };

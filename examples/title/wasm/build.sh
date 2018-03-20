@@ -17,6 +17,6 @@ fi
 cargo build --target=wasm32-unknown-unknown --release
 wasm-gc $TOP_LEVEL_DIR/target/wasm32-unknown-unknown/release/$CRATE.wasm dist/$CRATE.wasm
 
-npx webpack
+npx webpack-cli
 
 popd
