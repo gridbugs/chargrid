@@ -15,7 +15,7 @@ const env = {
 
 $(() => {
     console.log("Loading...");
-    prototty.loadProtottyApp("wasm_app.wasm", 20, 20, protottyTerminal, env).then(app => {
+    prototty.loadProtottyApp("tetris_wasm.wasm", 20, 20, protottyTerminal, env).then(app => {
         console.log("Done!");
         app.start();
     });
