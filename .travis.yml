@@ -1,5 +1,16 @@
 language: rust
-rust:
-  - stable
+matrix:
+  include:
+  - os: linux
+    rust: stable
+  - os: linux
+    rust: beta
+  - os: linux
+    rust: nightly
+  - os: osx
+    rust: stable
+  allow_failures:
+  - rust: nightly
+dist: trusty
 script:
 - ./test.sh
