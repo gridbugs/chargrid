@@ -1,13 +1,13 @@
 {
   "name": "title_wasm",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "dependencies": {
-      "prototty-terminal-js": "file:../../../terminal-js"
+    "prototty-terminal-js": "^0.7.2"
   },
   "devDependencies": {
-      "webpack": "^3.10.0"
+    "webpack": "^3.10.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
