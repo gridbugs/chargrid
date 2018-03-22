@@ -236,8 +236,8 @@ pub trait MenuIndexFromScreenCoord {
 impl MenuIndexFromScreenCoord for () {
     fn menu_index_from_screen_coord<'a, T: Copy>(
         &self,
-        menu: &'a Menu<T>,
-        coord: Coord,
+        _menu: &'a Menu<T>,
+        _coord: Coord,
     ) -> Option<usize> {
         None
     }
