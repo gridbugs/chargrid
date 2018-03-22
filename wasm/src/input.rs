@@ -13,7 +13,10 @@ macro_rules! convert_char_shift {
     }
 }
 
-pub fn from_js_event(event_key_code: u8, event_key_modifiers: u8) -> Option<Input> {
+pub fn from_js_event(event: u64) -> Option<Input> {
+    let event_key_code = event as u8;
+    let event_key_modifiers = (event >> 8) as u8;
+
     let shift = event_key_modifiers & MOD_SHIFT != 0;
 
     match event_key_code {
@@ -122,23 +125,20 @@ pub fn from_js_event(event_key_code: u8, event_key_modifiers: u8) -> Option<Inpu
 }
 
 pub unsafe fn js_event_input_iter<'a>(
-    key_codes: *const u8,
-    key_mods: *const u8,
+    inputs: *const u64,
     num_inputs: usize,
 ) -> InputIter<'a> {
-    InputIter::new(key_codes, key_mods, num_inputs)
+    InputIter::new(inputs, num_inputs)
 }
 
 pub struct InputIter<'a> {
-    key_codes: slice::Iter<'a, u8>,
-    key_mods: slice::Iter<'a, u8>,
+    inputs: slice::Iter<'a, u64>,
 }
 
 impl<'a> InputIter<'a> {
-    pub unsafe fn new(key_codes: *const u8, key_mods: *const u8, num_inputs: usize) -> Self {
+    pub unsafe fn new(inputs: *const u64, num_inputs: usize) -> Self {
         Self {
-            key_codes: slice::from_raw_parts(key_codes, num_inputs).iter(),
-            key_mods: slice::from_raw_parts(key_mods, num_inputs).iter(),
+            inputs: slice::from_raw_parts(inputs, num_inputs).iter(),
         }
     }
 }
@@ -147,11 +147,9 @@ impl<'a> Iterator for InputIter<'a> {
     type Item = Input;
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(key_code) = self.key_codes.next() {
-                if let Some(key_mod) = self.key_mods.next() {
-                    if let Some(input) = from_js_event(*key_code, *key_mod) {
-                        return Some(input);
-                    }
+            if let Some(input) = self.inputs.next() {
+                if let Some(input) = from_js_event(*input) {
+                    return Some(input);
                 }
             } else {
                 return None;

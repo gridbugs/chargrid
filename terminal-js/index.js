@@ -4,11 +4,24 @@ import localforage from 'localforage';
 
 const MOD_SHIFT = (1 << 0);
 
+const INPUT_BYTES = 8;
+
 function make_colour(rgb24) {
     let r = rgb24 & 0xff;
     let g = (rgb24 >> 8) & 0xff;
     let b = (rgb24 >> 16) & 0xff;
     return `rgb(${r},${g},${b})`;
+}
+
+function make_key_input(e) {
+    let key_code = e.keyCode;
+    let key_mod = 0;
+
+    if (e.shiftKey) {
+        key_mod |= MOD_SHIFT;
+    }
+
+    return key_code | (key_mod << 8);
 }
 
 class Terminal {
@@ -91,11 +104,8 @@ class Terminal {
         this.bufs.bg_colour = new Uint32Array(this.mod.memory.buffer,
             this.ptrs.bg_colour, this.size);
 
-        this.bufs.key_mod_buffer = new Uint8ClampedArray(this.mod.memory.buffer,
-            this.ptrs.key_mod_buffer, this.input_buf_size);
-
-        this.bufs.key_code_buffer = new Uint8ClampedArray(this.mod.memory.buffer,
-            this.ptrs.key_code_buffer, this.input_buf_size);
+        this.bufs.input_buffer = new Uint8ClampedArray(this.mod.memory.buffer,
+            this.ptrs.input_buffer, this.input_buf_size * INPUT_BYTES);
     }
 
     maybe_remake_buffers() {
@@ -118,22 +128,19 @@ class Terminal {
         document.head.removeChild(this.style_sheet);
     }
 
-    handleKeyDown(e) {
+    storeInput(input) {
         this.maybe_remake_buffers();
-
-        if (this.num_inputs < this.input_buf_size) {
-            this.bufs.key_code_buffer[this.num_inputs] = e.keyCode;
-
-            let key_mod = 0;
-
-            if (e.shiftKey) {
-                key_mod |= MOD_SHIFT;
+        if (this.num_inputs < (this.input_buf_size / INPUT_BYTES)) {
+            let offset = this.num_inputs * INPUT_BYTES;
+            for (let i = 0; i < INPUT_BYTES; i++) {
+                this.bufs.input_buffer[offset + i] = (input >> i) & 0xff;
             }
-
-            this.bufs.key_mod_buffer[this.num_inputs] = key_mod;
-
             this.num_inputs += 1;
         }
+    }
+
+    handleKeyDown(e) {
+        this.storeInput(make_key_input(e));
     }
 
     tick() {
@@ -142,8 +149,7 @@ class Terminal {
         let now = Date.now();
         let period = now - this.previous_instant;
 
-        this.mod.tick(this.ptrs.app, this.ptrs.key_code_buffer,
-            this.ptrs.key_mod_buffer, this.num_inputs, period);
+        this.mod.tick(this.ptrs.app, this.ptrs.input_buffer, this.num_inputs, period);
 
         this.num_inputs = 0;
 
@@ -286,8 +292,7 @@ function loadProtottyApp(wasm_path, width, height, node, config) {
             mod.free_byte_buffer(storage_ptr, storage.data.length);
         }
 
-        ptrs.key_mod_buffer = mod.alloc_byte_buffer(input_buf_size);
-        ptrs.key_code_buffer = mod.alloc_byte_buffer(input_buf_size);
+        ptrs.input_buffer = mod.alloc_byte_buffer(input_buf_size * INPUT_BYTES);
 
         dynenv.store = (ptr, size) => {
             let buf = new Uint8ClampedArray(mod.memory.buffer, ptr, size);
