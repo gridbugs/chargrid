@@ -214,6 +214,7 @@ impl<T: Copy> MenuInstance<T> {
                 }
                 Input::MousePress { coord, .. } => {
                     if let Some(index) = view.menu_index_from_screen_coord(&self.menu, coord) {
+                        self.set_index(index);
                         return Some(MenuOutput::Finalise(self.selected()));
                     }
                 }
