@@ -173,8 +173,8 @@ impl<T: Copy> MenuInstance<T> {
                 RETURN => {
                     return Some(MenuOutput::Finalise(self.selected()));
                 }
-                Input::Up => self.up(),
-                Input::Down => self.down(),
+                Input::Up | Input::MouseScroll { direction: ScrollDirection::Up, .. } => self.up(),
+                Input::Down | Input::MouseScroll { direction: ScrollDirection::Down, .. } => self.down(),
                 _ => (),
             }
         }

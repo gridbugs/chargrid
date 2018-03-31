@@ -2,8 +2,29 @@ use term::terminfo::TermInfo;
 use term::terminfo::parm::{self, Param, Variables};
 use ansi_colour::{AllColours, Colour};
 use error::{Error, Result};
-use prototty::Input;
+use prototty::{Input, ScrollDirection};
 use super::byte_prefix_tree::BytePrefixTree;
+
+// XXX this might not be portable
+const ESCAPE: &'static [u8] = &[27];
+const ENABLE_MOUSE_REPORTING: &'static str = "[?1003h";
+const DISABLE_MOUSE_REPORTING: &'static str = "[?1003l";
+
+#[derive(Debug, Clone, Copy)]
+pub enum MousePrefix {
+    Move,
+    Press,
+    Release,
+    Drag,
+    Scroll(ScrollDirection),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TerminalInput {
+    Char(char),
+    Literal(Input),
+    MousePrefix(MousePrefix),
+}
 
 pub struct TermInfoCache {
     pub enter_ca: String,
@@ -18,10 +39,19 @@ pub struct TermInfoCache {
     pub bold: String,
     pub underline: String,
     pub no_underline: String,
+    pub enable_mouse_reporting: String,
+    pub disable_mouse_reporting: String,
     pub fg_colours: Vec<String>,
     pub bg_colours: Vec<String>,
     pub vars: Variables,
-    pub escape_sequence_prefix_tree: BytePrefixTree<Input>,
+    pub escape_sequence_prefix_tree: BytePrefixTree<TerminalInput>,
+}
+
+fn raw_cap(seq: &str) -> Result<String> {
+    let escape_str = ::std::str::from_utf8(ESCAPE).map_err(Error::Utf8Error)?;
+    let mut string = escape_str.to_string();
+    string.push_str(seq);
+    Ok(string)
 }
 
 impl TermInfoCache {
@@ -66,7 +96,16 @@ impl TermInfoCache {
                 .get(name)
                 .cloned()
                 .ok_or_else(|| Error::MissingCap(name.to_string()))
-                .map(|seq| (seq, input))
+                .map(|seq| (seq, TerminalInput::Literal(input)))
+        };
+
+        let raw_escseq = |seq: &'static str, input: TerminalInput| {
+            let mut bytes = ESCAPE.iter().cloned().collect::<Vec<_>>();
+            for byte in seq.bytes() {
+                bytes.push(byte);
+            }
+
+            (bytes, input)
         };
 
         let inputs_to_escape = [
@@ -91,6 +130,15 @@ impl TermInfoCache {
             escseq("khome", Input::Home)?,
             escseq("kend", Input::End)?,
             escseq("kdch1", Input::Delete)?,
+
+            raw_escseq("[MC", TerminalInput::MousePrefix(MousePrefix::Move)),
+            raw_escseq("[M#", TerminalInput::MousePrefix(MousePrefix::Press)),
+            raw_escseq("[M ", TerminalInput::MousePrefix(MousePrefix::Release)),
+            raw_escseq("[M@", TerminalInput::MousePrefix(MousePrefix::Drag)),
+            raw_escseq("[M`", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Up))),
+            raw_escseq("[Ma", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Down))),
+            raw_escseq("[Mb", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Left))),
+            raw_escseq("[Mc", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Right))),
         ];
 
         let mut escape_sequence_prefix_tree = BytePrefixTree::new();
@@ -111,6 +159,8 @@ impl TermInfoCache {
             bold: cap("bold")?,
             underline: cap("smul")?,
             no_underline: cap("rmul")?,
+            enable_mouse_reporting: raw_cap(ENABLE_MOUSE_REPORTING)?,
+            disable_mouse_reporting: raw_cap(DISABLE_MOUSE_REPORTING)?,
             fg_colours,
             bg_colours,
             vars,

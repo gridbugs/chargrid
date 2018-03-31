@@ -3,7 +3,7 @@ use std::time::Duration;
 use term::terminfo::parm::{self, Param};
 use ansi_colour::Colour;
 use super::low_level::LowLevel;
-use super::term_info_cache::TermInfoCache;
+use super::term_info_cache::{TerminalInput, MousePrefix, TermInfoCache};
 use super::byte_prefix_tree::{BytePrefixTree, Found};
 use error::Result;
 use prototty::*;
@@ -48,11 +48,13 @@ impl AnsiTerminal {
         self.output_buffer.push_str(&self.ti_cache.enter_xmit);
         self.output_buffer.push_str(&self.ti_cache.hide_cursor);
         self.output_buffer.push_str(&self.ti_cache.clear);
+        self.output_buffer.push_str(&self.ti_cache.enable_mouse_reporting);
 
         self.flush_buffer().map_err(Into::into)
     }
 
     fn teardown(&mut self) -> Result<()> {
+        self.output_buffer.push_str(&self.ti_cache.disable_mouse_reporting);
         self.output_buffer.push_str(&self.ti_cache.exit_ca);
         self.output_buffer.push_str(&self.ti_cache.exit_xmit);
         self.output_buffer.push_str(&self.ti_cache.show_cursor);
@@ -163,28 +165,64 @@ impl AnsiTerminal {
 
     fn populate_input_ring(
         input_ring: &mut VecDeque<Input>,
-        prefix_tree: &BytePrefixTree<Input>,
+        prefix_tree: &BytePrefixTree<TerminalInput>,
         slice: &[u8],
     ) -> Result<()> {
-        let rest = match prefix_tree.get_longest(slice) {
+        let (term_input, rest) = match prefix_tree.get_longest(slice) {
             None => {
                 // slice does not begin with an escape sequence - chip off the start and try again
-                let s = ::std::str::from_utf8(&slice)?;
-                if let Some((ch, rest)) = Self::chip_char(s) {
-                    input_ring.push_back(Input::Char(ch));
-                    Some(rest.as_bytes())
+                let s = if let Ok(s) = ::std::str::from_utf8(&slice) {
+                    s
                 } else {
-                    None
+                    return Ok(());
+                };
+                if let Some((ch, rest)) = Self::chip_char(s) {
+                    (Some(TerminalInput::Char(ch)), Some(rest.as_bytes()))
+                } else {
+                    (None, None)
                 }
             }
             Some(Found::Exact(input)) => {
-                input_ring.push_back(*input);
-                None
+                (Some(*input), None)
             }
             Some(Found::WithRemaining(input, remaining)) => {
-                input_ring.push_back(*input);
-                Some(remaining)
+                (Some(*input), Some(remaining))
             }
+        };
+
+        let rest = if let Some(input) = term_input {
+            let (input, rest) = match input {
+                TerminalInput::Char(ch) => (Some(Input::Char(ch)), rest),
+                TerminalInput::Literal(input) => (Some(input), rest),
+                TerminalInput::MousePrefix(prefix) => {
+                    if let Some(rest) = rest {
+                        if rest.len() >= 2 {
+                            const COORD_OFFSET: i32 = 33;
+                            let x = rest[0] as i32 - COORD_OFFSET;
+                            let y = rest[1] as i32 - COORD_OFFSET;
+                            let coord = Coord::new(x, y);
+                            let input = match prefix {
+                                MousePrefix::Move => Input::MouseMove(coord),
+                                MousePrefix::Press => Input::MousePress(coord),
+                                MousePrefix::Release => Input::MouseRelease(coord),
+                                MousePrefix::Drag => Input::MouseDrag(coord),
+                                MousePrefix::Scroll(direction) => Input::MouseScroll { direction, coord }
+                            };
+                            (Some(input), Some(&rest[2..]))
+                        } else {
+                            (None, Some(rest))
+                        }
+                    } else {
+                        (None, None)
+                    }
+                }
+            };
+            if let Some(input) = input {
+                input_ring.push_back(input);
+            }
+            rest
+        } else {
+            rest
         };
 
         if let Some(rest) = rest {

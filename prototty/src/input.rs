@@ -1,3 +1,13 @@
+use grid_2d::Coord;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub enum ScrollDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 /// An input event
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum Input {
@@ -12,6 +22,14 @@ pub enum Input {
     PageUp,
     PageDown,
     Delete,
+    MouseMove(Coord),
+    MousePress(Coord),
+    MouseRelease(Coord),
+    MouseDrag(Coord),
+    MouseScroll {
+        direction: ScrollDirection,
+        coord: Coord,
+    },
 }
 
 pub mod inputs {
