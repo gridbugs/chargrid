@@ -173,8 +173,50 @@ impl<T: Copy> MenuInstance<T> {
                 RETURN => {
                     return Some(MenuOutput::Finalise(self.selected()));
                 }
-                Input::Up | Input::MouseScroll { direction: ScrollDirection::Up, .. } => self.up(),
-                Input::Down | Input::MouseScroll { direction: ScrollDirection::Down, .. } => self.down(),
+                Input::Up => self.up(),
+                Input::Down => self.down(),
+                _ => (),
+            }
+        }
+        None
+    }
+
+    pub fn tick_with_mouse<'a, I, M>(
+        &mut self,
+        inputs: I,
+        view: &'a M,
+    ) -> Option<MenuOutput<T>>
+    where
+        I: IntoIterator<Item = Input>,
+        M: MenuIndexFromScreenCoord,
+    {
+        for input in inputs {
+            match input {
+                ETX => return Some(MenuOutput::Quit),
+                ESCAPE => return Some(MenuOutput::Cancel),
+                RETURN => {
+                    return Some(MenuOutput::Finalise(self.selected()));
+                }
+                Input::Up
+                | Input::MouseScroll {
+                    direction: ScrollDirection::Up,
+                    ..
+                } => self.up(),
+                Input::Down
+                | Input::MouseScroll {
+                    direction: ScrollDirection::Down,
+                    ..
+                } => self.down(),
+                Input::MouseMove(coord) => {
+                    if let Some(index) = view.menu_index_from_screen_coord(&self.menu, coord) {
+                        self.set_index(index);
+                    }
+                }
+                Input::MousePress(coord) => {
+                    if let Some(index) = view.menu_index_from_screen_coord(&self.menu, coord) {
+                        return Some(MenuOutput::Finalise(self.selected()));
+                    }
+                }
                 _ => (),
             }
         }
@@ -182,8 +224,53 @@ impl<T: Copy> MenuInstance<T> {
     }
 }
 
+pub trait MenuIndexFromScreenCoord {
+    fn menu_index_from_screen_coord<'a, T: Copy>(
+        &self,
+        menu: &'a Menu<T>,
+        coord: Coord,
+    ) -> Option<usize>;
+}
+
+impl MenuIndexFromScreenCoord for () {
+    fn menu_index_from_screen_coord<'a, T: Copy>(
+        &self,
+        menu: &'a Menu<T>,
+        coord: Coord,
+    ) -> Option<usize> {
+        None
+    }
+}
+
 /// Default view of a `MenuInstance`.
-pub struct DefaultMenuInstanceView;
+pub struct DefaultMenuInstanceView {
+    last_coord: Coord,
+}
+
+impl DefaultMenuInstanceView {
+    pub fn new() -> Self {
+        Self {
+            last_coord: Coord::new(0, 0),
+        }
+    }
+}
+
+impl MenuIndexFromScreenCoord for DefaultMenuInstanceView {
+    fn menu_index_from_screen_coord<'a, T: Copy>(
+        &self,
+        menu: &'a Menu<T>,
+        coord: Coord,
+    ) -> Option<usize> {
+        let rel_coord = coord - self.last_coord;
+        if rel_coord.x < 0 || rel_coord.y < 0 || rel_coord.x >= menu.size.x() as i32
+            || rel_coord.y >= menu.entries.len() as i32
+        {
+            None
+        } else {
+            Some(rel_coord.y as usize)
+        }
+    }
+}
 
 impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
     fn view<G: ViewGrid>(
@@ -193,6 +280,7 @@ impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
         depth: i32,
         grid: &mut G,
     ) {
+        self.last_coord = offset;
         for (i, entry) in value.menu.entries.iter().enumerate() {
             if i == value.menu.size.y() as usize {
                 break;
