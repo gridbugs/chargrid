@@ -8,6 +8,13 @@ pub enum ScrollDirection {
     Right,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+}
+
 /// An input event
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum Input {
@@ -23,9 +30,14 @@ pub enum Input {
     PageDown,
     Delete,
     MouseMove(Coord),
-    MousePress(Coord),
-    MouseRelease(Coord),
-    MouseDrag(Coord),
+    MousePress {
+        button: MouseButton,
+        coord: Coord,
+    },
+    MouseRelease {
+        button: MouseButton,
+        coord: Coord,
+    },
     MouseScroll {
         direction: ScrollDirection,
         coord: Coord,

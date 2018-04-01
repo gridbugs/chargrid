@@ -203,9 +203,15 @@ impl AnsiTerminal {
                             let coord = Coord::new(x, y);
                             let input = match prefix {
                                 MousePrefix::Move => Input::MouseMove(coord),
-                                MousePrefix::Press => Input::MousePress(coord),
-                                MousePrefix::Release => Input::MouseRelease(coord),
-                                MousePrefix::Drag => Input::MouseDrag(coord),
+                                MousePrefix::Press => Input::MousePress {
+                                    button: MouseButton::Left,
+                                    coord,
+                                },
+                                MousePrefix::Release => Input::MouseRelease {
+                                    button: MouseButton::Left,
+                                    coord,
+                                },
+                                MousePrefix::Drag => Input::MouseMove(coord),
                                 MousePrefix::Scroll(direction) => Input::MouseScroll { direction, coord }
                             };
                             (Some(input), Some(&rest[2..]))

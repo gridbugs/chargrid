@@ -1,5 +1,5 @@
-use glutin::{ElementState, ModifiersState, VirtualKeyCode, WindowEvent};
-use prototty::{inputs, Input};
+use glutin::{ElementState, ModifiersState, VirtualKeyCode, WindowEvent, MouseButton as GlutinMouseButton, MouseScrollDelta};
+use prototty::{inputs, Input, Coord, MouseButton as ProtottyMouseButton, ScrollDirection};
 
 pub enum InputEvent {
     Input(Input),
@@ -94,7 +94,7 @@ fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input
     Some(input)
 }
 
-pub fn convert_event(event: WindowEvent) -> Option<InputEvent> {
+pub fn convert_event(event: WindowEvent, (cell_width, cell_height): (f32, f32), last_mouse_coord: &mut Coord) -> Option<InputEvent> {
     match event {
         WindowEvent::Closed => {
             return Some(InputEvent::Quit);
@@ -111,6 +111,53 @@ pub fn convert_event(event: WindowEvent) -> Option<InputEvent> {
                 }
             }
             None
+        }
+        WindowEvent::CursorMoved { position: (x, y), .. } => {
+            let x = (x / (cell_width as f64)) as i32;
+            let y = (y / (cell_height as f64)) as i32;
+            let coord = Coord::new(x, y);
+            *last_mouse_coord = coord;
+            Some(InputEvent::Input(Input::MouseMove(coord)))
+        }
+        WindowEvent::MouseInput { state, button, .. } => {
+            let button = match button {
+                GlutinMouseButton::Left => ProtottyMouseButton::Left,
+                GlutinMouseButton::Middle => ProtottyMouseButton::Middle,
+                GlutinMouseButton::Right => ProtottyMouseButton::Right,
+                GlutinMouseButton::Other(_) => return None,
+            };
+            let input = match state {
+                ElementState::Pressed => Input::MousePress {
+                    coord: *last_mouse_coord,
+                    button,
+                },
+                ElementState::Released => Input::MouseRelease {
+                    coord: *last_mouse_coord,
+                    button,
+                }
+            };
+            Some(InputEvent::Input(input))
+        }
+        WindowEvent::MouseWheel { delta, .. } => {
+            let (x, y) = match delta {
+                MouseScrollDelta::LineDelta(x, y) => (x, y),
+                MouseScrollDelta::PixelDelta(x, y) => (x, y),
+            };
+            let direction = if y > 0. {
+                ScrollDirection::Up
+            } else if y < 0. {
+                ScrollDirection::Down
+            } else if x > 0. {
+                ScrollDirection::Right
+            } else if x < 0. {
+                ScrollDirection::Left
+            } else {
+                return None;
+            };
+            Some(InputEvent::Input(Input::MouseScroll {
+                direction,
+                coord: *last_mouse_coord,
+            }))
         }
         _ => None,
     }
