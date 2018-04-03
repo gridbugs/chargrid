@@ -44,16 +44,13 @@ pub extern "C" fn alloc_app(rng_seed: usize, storage_buf: *const u8, storage_len
 
 #[no_mangle]
 pub fn tick(app: *mut c_void,
-            key_code_buffer: *const u8,
-            key_mod_buffer: *const u8,
+            input_buffer: *const u8,
             num_inputs: usize,
             period_millis: f64) {
 
     // Called by the app harness once per frame.
     // `app` is a pointer to your application's state, returned by `alloc_app`.
-    // `key_code_buffer` is a buffer containing `event.keyCode` values of keypress events since the last frame.
-    // `key_mod_buffer` is a buffer of bytes describing modifier keys:
-    //    bit 0 is set <=> shift is pressed
+    // `input_buffer` is a buffer containing encoded input values
     // `num_inputs` is the number of keycodes in `which_buffer` and `key_code_buffer`.
     // `period_millis` is the number of milliseconds that have passed since the last call to `tick`.
 }
