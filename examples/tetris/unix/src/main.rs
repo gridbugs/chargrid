@@ -24,6 +24,7 @@ fn main() {
         if let Some(control_flow) = app.tick(
             context.drain_input().unwrap(),
             Duration::from_millis(TICK_MILLIS),
+            &app_view,
             &mut rng,
         ) {
             match control_flow {

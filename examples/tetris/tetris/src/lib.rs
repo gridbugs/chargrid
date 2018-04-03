@@ -1,10 +1,10 @@
-extern crate cgmath;
 extern crate rand;
+extern crate grid_2d;
 
 use std::time::Duration;
 use std::mem;
 use rand::Rng;
-use cgmath::Vector2;
+use grid_2d::{Coord, Size};
 
 const STEP_MILLIS: u64 = 500;
 const PIECE_SIZE: usize = 4;
@@ -24,7 +24,7 @@ pub enum PieceType {
 
 #[derive(Clone)]
 pub struct Piece {
-    pub coords: [Vector2<i32>; PIECE_SIZE],
+    pub coords: [Coord; PIECE_SIZE],
     pub typ: PieceType,
 }
 
@@ -39,7 +39,7 @@ impl Piece {
         Self { coords, typ }
     }
 
-    fn translate(&self, offset: Vector2<i32>) -> Self {
+    fn translate(&self, offset: Coord) -> Self {
         Self {
             coords: [
                 self.coords[0] + offset,
@@ -70,9 +70,9 @@ impl Piece {
         }
     }
 
-    fn rotate_about(coord: Vector2<i32>, offset: Vector2<i32>) -> Vector2<i32> {
+    fn rotate_about(coord: Coord, offset: Coord) -> Coord {
         let relative = coord - offset;
-        let relative = Vector2 {
+        let relative = Coord {
             x: relative.y,
             y: 0 - relative.x,
         };
@@ -137,7 +137,7 @@ impl Row {
 }
 
 pub struct Board {
-    pub size: Vector2<i32>,
+    pub size: Size,
     pub rows: Vec<Row>,
     rows_swap: Vec<Row>,
     empty_swap: Vec<Row>,
@@ -151,35 +151,33 @@ impl Board {
         }
 
         Self {
-            size: Vector2::new(width, height).cast().unwrap(),
+            size: Size::new(width, height),
             rows,
             rows_swap: Vec::new(),
             empty_swap: Vec::new(),
         }
     }
 
-    pub fn get(&self, c: Vector2<i32>) -> Option<&Cell> {
+    pub fn get(&self, c: Coord) -> Option<&Cell> {
         if c.x < 0 || c.y < 0 {
             return None;
         }
-        let c: Vector2<usize> = c.cast().unwrap();
-        self.rows.get(c.y).and_then(|r| r.cells.get(c.x))
+        self.rows.get(c.y as usize).and_then(|r| r.cells.get(c.x as usize))
     }
 
-    fn get_mut(&mut self, c: Vector2<i32>) -> Option<&mut Cell> {
+    fn get_mut(&mut self, c: Coord) -> Option<&mut Cell> {
         if c.x < 0 || c.y < 0 {
             return None;
         }
-        let c: Vector2<usize> = c.cast().unwrap();
-        self.rows.get_mut(c.y).and_then(|r| r.cells.get_mut(c.x))
+        self.rows.get_mut(c.y as usize).and_then(|r| r.cells.get_mut(c.x as usize))
     }
 
     fn connects(&self, piece: &Piece) -> bool {
         piece.coords.iter().any(|c| {
-            if c.y == self.size.y - 1 {
+            if c.y == self.size.y() as i32 - 1 {
                 return true;
             }
-            self.get(c + Vector2::new(0, 1))
+            self.get(c + Coord::new(0, 1))
                 .map(|c| c.typ.is_some())
                 .unwrap_or(false)
         })
@@ -187,7 +185,7 @@ impl Board {
 
     fn collides(&self, piece: &Piece) -> bool {
         piece.coords.iter().any(|c| {
-            c.x < 0 || c.x >= self.size.x || c.y >= self.size.y
+            c.x < 0 || c.x >= self.size.x() as i32 || c.y >= self.size.y() as i32
                 || self.get(*c).map(|c| c.typ.is_some()).unwrap_or(false)
         })
     }
@@ -216,7 +214,7 @@ impl Board {
     }
 
     fn move_to_top(&self, piece: Piece) -> Piece {
-        piece.translate(Vector2::new(self.size.x as i32 / 2 - 1, 0))
+        piece.translate(Coord::new(self.size.x() as i32 / 2 - 1, 0))
     }
 }
 
@@ -249,20 +247,20 @@ impl GameState {
             let mut game_over = false;
             while self.board.collides(&self.piece) {
                 game_over = true;
-                self.piece = self.piece.translate(Vector2::new(0, -1));
+                self.piece = self.piece.translate(Coord::new(0, -1));
             }
 
             if game_over {
                 return StepResolution::GameOver;
             }
         } else {
-            self.piece = self.piece.translate(Vector2::new(0, 1));
+            self.piece = self.piece.translate(Coord::new(0, 1));
         }
 
         StepResolution::Continue
     }
 
-    fn try_move(&mut self, v: Vector2<i32>) {
+    fn try_move(&mut self, v: Coord) {
         let new_piece = self.piece.translate(v);
         if !self.board.collides(&new_piece) {
             self.piece = new_piece;
@@ -330,8 +328,8 @@ impl Tetris {
         }
     }
 
-    pub fn size(&self) -> Vector2<u32> {
-        Vector2::new(WIDTH, HEIGHT)
+    pub fn size(&self) -> Size {
+        Size::new(WIDTH, HEIGHT)
     }
 
     pub fn tick<I: IntoIterator<Item = Input>, R: Rng>(
@@ -342,10 +340,10 @@ impl Tetris {
     ) -> Option<Meta> {
         for input in inputs {
             match input {
-                Input::Left => self.game_state.try_move(Vector2::new(-1, 0)),
-                Input::Right => self.game_state.try_move(Vector2::new(1, 0)),
+                Input::Left => self.game_state.try_move(Coord::new(-1, 0)),
+                Input::Right => self.game_state.try_move(Coord::new(1, 0)),
                 Input::Up => self.game_state.try_rotate(),
-                Input::Down => self.game_state.try_move(Vector2::new(0, 1)),
+                Input::Down => self.game_state.try_move(Coord::new(0, 1)),
             }
         }
         if self.step.reduce(period) {

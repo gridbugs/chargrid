@@ -6,6 +6,17 @@ const MOD_SHIFT = (1 << 0);
 
 const INPUT_BYTES = 8;
 
+const ID_SHIFT = 24;
+
+const ID_KEY_PRESS = (1 << ID_SHIFT);
+const ID_MOUSE_MOVE = (2 << ID_SHIFT);
+const ID_MOUSE_PRESS = (3 << ID_SHIFT);
+const ID_MOUSE_RELEASE = (4 << ID_SHIFT);
+const ID_MOUSE_SCROLL_UP = (5 << ID_SHIFT);
+const ID_MOUSE_SCROLL_DOWN = (6 << ID_SHIFT);
+const ID_MOUSE_SCROLL_LEFT = (7 << ID_SHIFT);
+const ID_MOUSE_SCROLL_RIGHT = (8 << ID_SHIFT);
+
 function make_colour(rgb24) {
     let r = rgb24 & 0xff;
     let g = (rgb24 >> 8) & 0xff;
@@ -21,7 +32,7 @@ function make_key_input(e) {
         key_mod |= MOD_SHIFT;
     }
 
-    return key_code | (key_mod << 8);
+    return ID_KEY_PRESS | key_code | (key_mod << 8);
 }
 
 class Terminal {
@@ -33,6 +44,8 @@ class Terminal {
         this.mod = props.mod;
         this.height = props.height;
         this.width = props.width;
+        this.cell_width = props.cell_width;
+        this.cell_height = props.cell_height;
         this.size = this.width * this.height;
         this.num_inputs = 0;
         this.input_buf_size = props.input_buf_size;
@@ -69,6 +82,10 @@ class Terminal {
         `;
         this.style_sheet = style_sheet;
         this.node.className = "prototty-terminal";
+
+        let rect = this.node.getBoundingClientRect();
+        this.offset_x = rect.x;
+        this.offset_y = rect.y;
 
         this.children = new Array(this.size);
         let index = 0;
@@ -118,6 +135,10 @@ class Terminal {
     start() {
         this.animationRequest = requestAnimationFrame(() => this.tick());
         window.addEventListener("keydown", (e) => this.handleKeyDown(e));
+        window.addEventListener("mousemove", (e) => this.handleMouseMove(e));
+        window.addEventListener("mousedown", (e) => this.handleMouseDown(e));
+        window.addEventListener("mouseup", (e) => this.handleMouseUp(e));
+        window.addEventListener("wheel", (e) => this.handleWheel(e));
         document.head.appendChild(this.style_sheet);
         this.previous_instant = Date.now();
     }
@@ -133,7 +154,7 @@ class Terminal {
         if (this.num_inputs < (this.input_buf_size / INPUT_BYTES)) {
             let offset = this.num_inputs * INPUT_BYTES;
             for (let i = 0; i < INPUT_BYTES; i++) {
-                this.bufs.input_buffer[offset + i] = (input >> i) & 0xff;
+                this.bufs.input_buffer[offset + i] = (input >> (i * 8)) & 0xff;
             }
             this.num_inputs += 1;
         }
@@ -141,6 +162,46 @@ class Terminal {
 
     handleKeyDown(e) {
         this.storeInput(make_key_input(e));
+    }
+
+    handleMouseMove(e) {
+        this.handleMouseEvent(ID_MOUSE_MOVE, e);
+    }
+    handleMouseUp(e) {
+        this.handleMouseEvent(ID_MOUSE_RELEASE, e);
+    }
+    handleMouseDown(e) {
+        this.handleMouseEvent(ID_MOUSE_PRESS, e);
+    }
+
+    handleWheel(e) {
+        if (e.deltaX < 0) {
+            this.handleMouseEvent(ID_MOUSE_SCROLL_LEFT, e);
+        } else if (e.deltaX > 0) {
+            this.handleMouseEvent(ID_MOUSE_SCROLL_RIGHT, e);
+        }
+
+        if (e.deltaY < 0) {
+            this.handleMouseEvent(ID_MOUSE_SCROLL_UP, e);
+        } else if (e.deltaY > 0) {
+            this.handleMouseEvent(ID_MOUSE_SCROLL_DOWN, e);
+        }
+    }
+
+    handleMouseEvent(id, e) {
+        let position = this.getMousePos(e.clientX, e.clientY);
+        let input = id | position;
+        this.storeInput(input);
+    }
+
+    getMousePos(clientX, clientY) {
+        let pix_x = clientX - this.offset_x;
+        let pix_y = clientY - this.offset_y;
+
+        let x = parseInt(pix_x / this.cell_width) & 0xff;
+        let y = parseInt(pix_y / this.cell_height) & 0xff;
+
+        return x | (y << 8);
     }
 
     tick() {
@@ -256,6 +317,8 @@ function loadProtottyApp(wasm_path, width, height, node, config) {
     let seed = lookup_default(config, "seed", parseInt(2**32 * Math.random()));
     let before_store = lookup_default(config, "before_store", () => {});
     let after_store = lookup_default(config, "after_store", () => {});
+    let cell_width = lookup_default(config, "cell_width", 16);
+    let cell_height = lookup_default(config, "cell_height", 16);
 
     return localforage.getItem(STORAGE_KEY).then(data => {
         if (data === null) {
@@ -271,9 +334,6 @@ function loadProtottyApp(wasm_path, width, height, node, config) {
     }).then(results => {
 
         let mod = results.instance.exports;
-
-        let TEST_SIZE = 10000000;
-        let test = mod.alloc_byte_buffer(TEST_SIZE);
 
         let storage_ptr;
         if (storage.data.length > 0) {
@@ -305,8 +365,6 @@ function loadProtottyApp(wasm_path, width, height, node, config) {
             });
         };
 
-        mod.free_byte_buffer(test, TEST_SIZE);
-
         let props = {
             bufs,
             ptrs,
@@ -319,6 +377,8 @@ function loadProtottyApp(wasm_path, width, height, node, config) {
             cell_style,
             bold_style,
             underline_style,
+            cell_width,
+            cell_height,
         };
 
         let terminal = new Terminal(props);

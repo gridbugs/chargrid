@@ -63,7 +63,7 @@ impl View<Tetris> for TetrisBoardView {
         }
 
         for coord in tetris.game_state.piece.coords.iter().cloned() {
-            if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
+            if let Some(output_cell) = grid.get_mut(offset + Coord::from(coord), depth) {
                 output_cell.set_bold(true);
                 output_cell.set_character(BLOCK_CHAR);
                 output_cell.set_foreground_colour(FOREGROUND_COLOUR);
@@ -83,7 +83,7 @@ impl View<Tetris> for TetrisNextPieceView {
     fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
-            if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
+            if let Some(output_cell) = grid.get_mut(offset + Coord::from(coord), depth) {
                 output_cell.set_bold(true);
                 output_cell.set_character(BLOCK_CHAR);
                 output_cell.set_foreground_colour(FOREGROUND_COLOUR);
@@ -115,7 +115,7 @@ impl Borders {
         Self {
             common: Decorated::new(TetrisBoardView, common.clone()),
             next_piece: Decorated::new(TetrisNextPieceView, next_piece),
-            menu: Decorated::new(DefaultMenuInstanceView, common),
+            menu: Decorated::new(DefaultMenuInstanceView::new(), common),
         }
     }
 }
@@ -198,14 +198,14 @@ impl App {
         }
     }
 
-    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, rng: &mut R) -> Option<ControlFlow>
+    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<ControlFlow>
     where
         I: IntoIterator<Item = ProtottyInput>,
         R: Rng,
     {
         match self.state {
             AppState::Menu => {
-                if let Some(menu_output) = self.main_menu.tick(inputs) {
+                if let Some(menu_output) = self.main_menu.tick_with_mouse(inputs, &view.borders.menu.view) {
                     match menu_output {
                         MenuOutput::Quit => return Some(ControlFlow::Exit),
                         MenuOutput::Cancel => (),

@@ -1,7 +1,17 @@
 use std::slice;
-use prototty::{inputs, Input};
+use prototty::{inputs, Input, Coord, MouseButton, ScrollDirection};
 
 const MOD_SHIFT: u8 = (1 << 0);
+
+const ID_SHIFT: u8 = 24;
+const ID_KEY_PRESS: u8 = 1;
+const ID_MOUSE_MOVE: u8 = 2;
+const ID_MOUSE_PRESS: u8 = 3;
+const ID_MOUSE_RELEASE: u8 = 4;
+const ID_MOUSE_SCROLL_UP: u8 = 5;
+const ID_MOUSE_SCROLL_DOWN: u8 = 6;
+const ID_MOUSE_SCROLL_LEFT: u8 = 7;
+const ID_MOUSE_SCROLL_RIGHT: u8 = 8;
 
 macro_rules! convert_char_shift {
     ($lower:expr, $upper:expr, $shift:expr) => {
@@ -14,6 +24,55 @@ macro_rules! convert_char_shift {
 }
 
 pub fn from_js_event(event: u64) -> Option<Input> {
+    let identifier = (event >> ID_SHIFT) as u8;
+    match identifier {
+        ID_KEY_PRESS => from_js_event_key_press(event),
+        ID_MOUSE_MOVE => from_js_event_mouse_move(event),
+        ID_MOUSE_PRESS => from_js_event_mouse_press(event),
+        ID_MOUSE_RELEASE => from_js_event_mouse_release(event),
+        ID_MOUSE_SCROLL_UP => from_js_event_mouse_scroll(event, ScrollDirection::Up),
+        ID_MOUSE_SCROLL_DOWN => from_js_event_mouse_scroll(event, ScrollDirection::Down),
+        ID_MOUSE_SCROLL_LEFT => from_js_event_mouse_scroll(event, ScrollDirection::Left),
+        ID_MOUSE_SCROLL_RIGHT => from_js_event_mouse_scroll(event, ScrollDirection::Right),
+        _ => None,
+    }
+}
+
+fn unpack_mouse_coord(event: u64) -> Coord {
+    let x = event as u8;
+    let y = (event >> 8) as u8;
+    Coord::new(x as i32, y as i32)
+}
+
+fn from_js_event_mouse_scroll(event: u64, direction: ScrollDirection) -> Option<Input> {
+    let coord = unpack_mouse_coord(event);
+    Some(Input::MouseScroll {
+        coord,
+        direction,
+    })
+}
+
+fn from_js_event_mouse_move(event: u64) -> Option<Input> {
+    Some(Input::MouseMove(unpack_mouse_coord(event)))
+}
+
+fn from_js_event_mouse_press(event: u64) -> Option<Input> {
+    let coord = unpack_mouse_coord(event);
+    Some(Input::MousePress {
+        coord,
+        button: MouseButton::Left,
+    })
+}
+
+fn from_js_event_mouse_release(event: u64) -> Option<Input> {
+    let coord = unpack_mouse_coord(event);
+    Some(Input::MouseRelease {
+        coord,
+        button: MouseButton::Left,
+    })
+}
+
+fn from_js_event_key_press(event: u64) -> Option<Input> {
     let event_key_code = event as u8;
     let event_key_modifiers = (event >> 8) as u8;
 
