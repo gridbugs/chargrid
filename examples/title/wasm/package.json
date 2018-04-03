@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "prototty-terminal-js": "^0.7.2"
+    "prototty-terminal-js": "^0.8.0"
   },
   "devDependencies": {
     "webpack": "^4.1.1",

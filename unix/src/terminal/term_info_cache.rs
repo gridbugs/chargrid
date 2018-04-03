@@ -132,8 +132,12 @@ impl TermInfoCache {
             escseq("kdch1", Input::Delete)?,
 
             raw_escseq("[MC", TerminalInput::MousePrefix(MousePrefix::Move)),
-            raw_escseq("[M#", TerminalInput::MousePrefix(MousePrefix::Press)),
-            raw_escseq("[M ", TerminalInput::MousePrefix(MousePrefix::Release)),
+            raw_escseq("[M ", TerminalInput::MousePrefix(MousePrefix::Press)),
+            // TODO This is actually the escape sequence for right-click.
+            // Dealing with this is non-trivial as the escape sequence for releasing
+            // the mouse button is the same for all buttons.
+            raw_escseq("[M\"", TerminalInput::MousePrefix(MousePrefix::Press)),
+            raw_escseq("[M#", TerminalInput::MousePrefix(MousePrefix::Release)),
             raw_escseq("[M@", TerminalInput::MousePrefix(MousePrefix::Drag)),
             raw_escseq("[M`", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Up))),
             raw_escseq("[Ma", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Down))),

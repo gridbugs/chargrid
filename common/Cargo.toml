@@ -1,7 +1,7 @@
 [package]
 name = "prototty_common"
 description = "Definition of common ui elements and views for use with prototty."
-version = "0.19.4"
+version = "0.20.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -10,6 +10,6 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_common"
 
 [dependencies]
-prototty = { path = "../prototty", version = "0.19" }
+prototty = { path = "../prototty", version = "0.20" }
 serde = "1.0"
 serde_derive = "1.0"

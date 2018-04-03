@@ -1,5 +1,4 @@
 extern crate ansi_colour;
-extern crate grid_2d;
 #[macro_use]
 extern crate itertools;
 extern crate libc;

@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
-prototty = { path = "../../../prototty", version = "0.19" }
-prototty_glutin = { path = "../../../glutin", version = "0.19" }
+prototty = { path = "../../../prototty", version = "0.20" }
+prototty_glutin = { path = "../../../glutin", version = "0.20" }
 prototty_title = { path = "../prototty" }

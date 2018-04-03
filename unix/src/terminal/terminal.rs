@@ -3,7 +3,6 @@ use ansi_colour::Colour as AnsiColour;
 use error::Result;
 use prototty::*;
 use prototty_grid::*;
-use grid_2d;
 use cell::*;
 use defaults::*;
 use super::ansi_terminal::AnsiTerminal;

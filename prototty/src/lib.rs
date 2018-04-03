@@ -1,5 +1,5 @@
 extern crate bincode;
-extern crate grid_2d;
+pub extern crate grid_2d;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

@@ -45,7 +45,7 @@ fn main() {
             input_buffer.push(input);
         });
 
-        if let Some(control_flow) = app.tick(input_buffer.drain(..), duration, &mut rng) {
+        if let Some(control_flow) = app.tick(input_buffer.drain(..), duration, &app_view, &mut rng) {
             match control_flow {
                 ControlFlow::Exit => running = false,
             }
