@@ -5,12 +5,12 @@ extern crate prototty;
 extern crate prototty_grid;
 extern crate serde;
 
-mod terminal;
-mod context;
-mod cell;
-mod storage;
-pub mod input;
 pub mod alloc;
+mod cell;
+mod context;
+pub mod input;
+mod storage;
+mod terminal;
 
 pub use context::*;
 pub use storage::*;

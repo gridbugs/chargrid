@@ -1,7 +1,7 @@
 [package]
 name = "prototty_unix"
 description = "Prototty context for unix terminals."
-version = "0.20.0"
+version = "0.21.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -13,8 +13,8 @@ documentation = "https://docs.rs/prototty_unix"
 serialize = ["prototty/serialize", "prototty_grid/serialize", "ansi_colour/serialize"]
 
 [dependencies]
-prototty = { path = "../prototty", version = "0.20" }
-prototty_grid = { path = "../grid", version = "0.20" }
+prototty = { path = "../prototty", version = "0.21" }
+prototty_grid = { path = "../grid", version = "0.21" }
 libc = "0.2"
 term = "0.5"
 ansi_colour = "0.5"

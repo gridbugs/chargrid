@@ -1,7 +1,7 @@
 [package]
 name = "prototty_glutin"
 description = "Prototty context for glutin windows."
-version = "0.20.1"
+version = "0.21.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -13,8 +13,8 @@ documentation = "https://docs.rs/prototty_glutin"
 serialize = ["prototty/serialize", "prototty_grid/serialize"]
 
 [dependencies]
-prototty = { path = "../prototty", version = "0.20" }
-prototty_grid = { path = "../grid", version = "0.20" }
+prototty = { path = "../prototty", version = "0.21" }
+prototty_grid = { path = "../grid", version = "0.21" }
 glutin = "0.19"
 gfx_window_glutin = "0.28"
 gfx_device_gl = "0.15"
