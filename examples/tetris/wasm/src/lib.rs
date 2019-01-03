@@ -3,11 +3,13 @@ extern crate prototty_wasm;
 extern crate rand;
 extern crate tetris_prototty;
 
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use std::time::Duration;
-use rand::{SeedableRng, StdRng};
-use prototty_wasm::*;
-use prototty::Renderer;
+
 use prototty::Input as ProtottyInput;
+use prototty::Renderer;
+use prototty_wasm::*;
 
 use tetris_prototty::{App, AppView, ControlFlow};
 
@@ -20,7 +22,7 @@ pub struct WebApp {
 
 impl WebApp {
     fn new(seed: usize) -> Self {
-        let mut rng = rand::StdRng::from_seed(&[seed]);
+        let mut rng = StdRng::seed_from_u64(seed as u64);
         let app = App::new(&mut rng);
         let context = Context::new();
         let app_view = AppView::new();
@@ -54,12 +56,7 @@ pub extern "C" fn alloc_app(seed: usize) -> *mut WebApp {
 }
 
 #[no_mangle]
-pub unsafe fn tick(
-    app: *mut WebApp,
-    inputs: *const u64,
-    num_inputs: usize,
-    period_millis: f64,
-) {
+pub unsafe fn tick(app: *mut WebApp, inputs: *const u64, num_inputs: usize, period_millis: f64) {
     let period = Duration::from_millis(period_millis as u64);
 
     let input_iter = input::js_event_input_iter(inputs, num_inputs);
