@@ -1,5 +1,4 @@
-extern crate bincode;
-pub extern crate grid_2d;
+extern crate coord_2d;
 extern crate serde;
 #[cfg(feature = "serialize")]
 #[macro_use]
@@ -17,4 +16,4 @@ pub use rgb24::*;
 pub use storage::*;
 pub use view::*;
 
-pub use grid_2d::{Coord, Size};
+pub use coord_2d::{Coord, Size};

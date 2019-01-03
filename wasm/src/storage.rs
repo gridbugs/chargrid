@@ -1,8 +1,9 @@
-use std::slice;
-use std::collections::BTreeMap;
-use prototty::*;
-use serde::ser::Serialize;
 use bincode;
+use prototty::*;
+use serde::de::DeserializeOwned;
+use serde::ser::Serialize;
+use std::collections::BTreeMap;
+use std::slice;
 
 pub struct WasmStorage {
     pub table: BTreeMap<String, Vec<u8>>,
@@ -38,6 +39,23 @@ impl WasmStorage {
 }
 
 impl Storage for WasmStorage {
+    fn load<K, T>(&self, key: K) -> Result<T, LoadError>
+    where
+        K: AsRef<str>,
+        T: DeserializeOwned,
+    {
+        bincode::deserialize(self.load_raw(key)?.as_slice()).map_err(|_| LoadError::InvalidFormat)
+    }
+
+    fn remove<K, T>(&mut self, key: K) -> Result<T, LoadError>
+    where
+        K: AsRef<str>,
+        T: DeserializeOwned,
+    {
+        let bytes = self.remove_raw(key)?;
+        bincode::deserialize(&bytes).map_err(|_| LoadError::InvalidFormat)
+    }
+
     fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadError>
     where
         K: AsRef<str>,
@@ -55,7 +73,8 @@ impl Storage for WasmStorage {
     {
         {
             let slice = value.as_ref();
-            let buf = self.table
+            let buf = self
+                .table
                 .entry(key.as_ref().to_string())
                 .or_insert_with(Vec::new);
             buf.resize(slice.len(), 0);

@@ -1,10 +1,14 @@
+extern crate bincode;
 extern crate prototty;
+extern crate serde;
 
+use prototty::*;
+use serde::de::DeserializeOwned;
+use serde::ser::Serialize;
 use std::env;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use prototty::*;
 
 pub struct FileStorage {
     base_path: PathBuf,
@@ -43,6 +47,32 @@ impl FileStorage {
 }
 
 impl Storage for FileStorage {
+    fn load<K, T>(&self, key: K) -> Result<T, LoadError>
+    where
+        K: AsRef<str>,
+        T: DeserializeOwned,
+    {
+        bincode::deserialize(self.load_raw(key)?.as_slice()).map_err(|_| LoadError::InvalidFormat)
+    }
+
+    fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>
+    where
+        K: AsRef<str>,
+        T: Serialize,
+    {
+        let bytes = bincode::serialize(value).expect("Failed to serialize data");
+        self.store_raw(key, bytes)
+    }
+
+    fn remove<K, T>(&mut self, key: K) -> Result<T, LoadError>
+    where
+        K: AsRef<str>,
+        T: DeserializeOwned,
+    {
+        let bytes = self.remove_raw(key)?;
+        bincode::deserialize(&bytes).map_err(|_| LoadError::InvalidFormat)
+    }
+
     fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadError>
     where
         K: AsRef<str>,

@@ -1,3 +1,4 @@
+pub extern crate grid_2d;
 extern crate prototty;
 
 use prototty::*;

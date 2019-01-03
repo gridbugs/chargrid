@@ -1,4 +1,4 @@
-use grid_2d::Coord;
+use super::Coord;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

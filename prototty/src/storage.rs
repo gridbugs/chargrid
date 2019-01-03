@@ -1,6 +1,5 @@
-use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
-use bincode;
+use serde::ser::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoadError {
@@ -37,26 +36,15 @@ pub trait Storage {
     fn load<K, T>(&self, key: K) -> Result<T, LoadError>
     where
         K: AsRef<str>,
-        T: DeserializeOwned,
-    {
-        bincode::deserialize(self.load_raw(key)?.as_slice()).map_err(|_| LoadError::InvalidFormat)
-    }
+        T: DeserializeOwned;
 
     fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>
     where
         K: AsRef<str>,
-        T: Serialize,
-    {
-        let bytes = bincode::serialize(value).expect("Failed to serialize data");
-        self.store_raw(key, bytes)
-    }
+        T: Serialize;
 
     fn remove<K, T>(&mut self, key: K) -> Result<T, LoadError>
     where
         K: AsRef<str>,
-        T: DeserializeOwned,
-    {
-        let bytes = self.remove_raw(key)?;
-        bincode::deserialize(&bytes).map_err(|_| LoadError::InvalidFormat)
-    }
+        T: DeserializeOwned;
 }
