@@ -1,21 +1,21 @@
 extern crate prototty;
-extern crate serde;
+#[cfg(feature = "serialize")]
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
-mod border;
 mod alignment;
+mod border;
 mod decorated;
 mod defaults;
 mod menu;
 mod rich_text;
-mod text_info;
 mod string_view;
+mod text_info;
 
-pub use border::*;
 pub use alignment::*;
+pub use border::*;
 pub use decorated::*;
 pub use menu::*;
 pub use rich_text::*;
-pub use text_info::*;
 pub use string_view::*;
+pub use text_info::*;

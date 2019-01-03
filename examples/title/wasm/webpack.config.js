@@ -1,5 +1,5 @@
 module.exports = {
-  mode: 'production',
+  mode: 'development',
   entry: './index.js',
   devtool: 'source-map',
   output: {

@@ -279,13 +279,9 @@ function lookup_default(obj, key, def) {
     }
 }
 
-function init_env_fn(config, name) {
-    return lookup_default(config, name, () => {});
-}
-
 const STORAGE_KEY = "storage";
 
-function loadProtottyApp(wasm_path, width, height, node, config) {
+function loadProtottyApp(wasm_path, width, height, node, config = {}) {
 
     const size = width * height;
 
@@ -293,6 +289,8 @@ function loadProtottyApp(wasm_path, width, height, node, config) {
     let dynenv = {};
     const bufs = {};
     const ptrs = {};
+
+    const default_quit = () => console.log("quit not implemented");
 
     const env = {
         get_width: () => width,
@@ -303,7 +301,7 @@ function loadProtottyApp(wasm_path, width, height, node, config) {
             ptrs.fg_colour = fg_colour;
             ptrs.bg_colour = bg_colour;
         },
-        quit: init_env_fn(config, "quit"),
+        quit: lookup_default(config, "quit", default_quit),
         store: (ptr, size) => {
             dynenv.store(ptr, size);
         },

@@ -1,7 +1,8 @@
 use gfx;
 
-use prototty::Size;
 use formats::*;
+use prototty::grid_2d::coord_system::{CoordSystem, XThenY};
+use prototty::Size;
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
 const QUAD_COORDS: [[f32; 2]; 4] = [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0]];
@@ -160,7 +161,7 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
             .expect("Failed to create instance upload buffer");
 
         for (coord, instance) in izip!(
-            size.coords(),
+            XThenY::from(size).coord_iter(),
             factory
                 .write_mapping(&instance_upload)
                 .expect("Failed to map instance upload buffer")

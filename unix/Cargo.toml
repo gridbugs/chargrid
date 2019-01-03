@@ -9,10 +9,13 @@ homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_unix"
 
+[features]
+serialize = ["prototty/serialize", "prototty_grid/serialize", "ansi_colour/serialize"]
+
 [dependencies]
 prototty = { path = "../prototty", version = "0.20" }
 prototty_grid = { path = "../grid", version = "0.20" }
 libc = "0.2"
 term = "0.5"
-ansi_colour = "0.4"
-itertools = "0.7"
+ansi_colour = "0.5"
+itertools = "0.8"

@@ -1,7 +1,8 @@
 use prototty::{Rgb24, ViewCell};
 
 /// Rich text settings
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
 pub struct TextInfo {
     pub foreground_colour: Option<Rgb24>,
     pub background_colour: Option<Rgb24>,

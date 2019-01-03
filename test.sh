@@ -7,6 +7,7 @@ export RUSTFLAGS="--deny warnings"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cargo test
+cargo test --features=serialize
 
 if [[ "$TRAVIS_RUST_VERSION" == "beta" ]] || [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
     rustup target add wasm32-unknown-unknown

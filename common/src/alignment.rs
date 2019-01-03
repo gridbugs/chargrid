@@ -1,14 +1,16 @@
-use prototty::*;
 use decorated::Decorated;
+use prototty::*;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
 pub enum Alignment {
     TopLeft,
     Centre,
     BottomRight,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
 pub struct Align {
     pub size: Size,
     pub x_alignment: Alignment,

@@ -9,5 +9,8 @@ homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_grid"
 
+[features]
+serialize = ["prototty/serialize"]
+
 [dependencies]
 prototty = { path = "../prototty", version = "0.20" }

@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "prototty-terminal-js": "^0.8.0"
+    "prototty-terminal-js": "file:../../../terminal-js"
   },
   "devDependencies": {
-    "webpack": "^4.1.1",
-    "webpack-cli": "^2.0.12"
+    "webpack": "^4.28.3",
+    "webpack-cli": "^3.2.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

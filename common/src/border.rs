@@ -1,11 +1,12 @@
-use prototty::*;
 use decorated::Decorated;
 use defaults::*;
+use prototty::*;
 
 /// The characters comprising a border. By default, borders are made of unicode
 /// box-drawing characters, but they can be changed to arbitrary characters via
 /// this struct.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub struct BorderChars {
     pub top: char,
     pub bottom: char,
@@ -38,7 +39,8 @@ impl Default for BorderChars {
 
 /// The space in cells between the edge of the bordered area
 /// and the element inside.
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Default, Debug, Clone)]
 pub struct BorderPadding {
     pub top: u32,
     pub bottom: u32,
@@ -49,7 +51,8 @@ pub struct BorderPadding {
 /// Decorate another element with a border.
 /// It's possible to give the border a title, in which case
 /// the text appears in the top-left corner.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub struct Border {
     pub title: Option<String>,
     pub padding: BorderPadding,

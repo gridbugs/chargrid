@@ -1,19 +1,20 @@
 extern crate bincode;
 pub extern crate grid_2d;
 extern crate serde;
+#[cfg(feature = "serialize")]
 #[macro_use]
 extern crate serde_derive;
 
 mod input;
-mod view;
-mod rgb24;
 mod renderer;
+mod rgb24;
 mod storage;
+mod view;
 
-pub use view::*;
 pub use input::*;
-pub use rgb24::*;
 pub use renderer::*;
+pub use rgb24::*;
 pub use storage::*;
+pub use view::*;
 
 pub use grid_2d::{Coord, Size};

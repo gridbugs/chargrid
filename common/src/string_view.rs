@@ -1,7 +1,8 @@
 use prototty::*;
 use text_info::TextInfo;
 
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct StringView;
 impl<T: ?Sized + AsRef<str>> View<T> for StringView {
     fn view<G: ViewGrid>(&mut self, string: &T, offset: Coord, depth: i32, grid: &mut G) {
@@ -21,11 +22,18 @@ impl<T: ?Sized + AsRef<str>> ViewSize<T> for StringView {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct TextInfoStringView;
 
 impl<T: ?Sized + AsRef<str>> View<(TextInfo, T)> for TextInfoStringView {
-    fn view<G: ViewGrid>(&mut self, value: &(TextInfo, T), offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(
+        &mut self,
+        value: &(TextInfo, T),
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         let string = value.1.as_ref();
         for (i, ch) in string.chars().enumerate() {
             if let Some(cell) = grid.get_mut(offset + Coord::new(i as i32, 0), depth) {
@@ -43,7 +51,8 @@ impl<T: ?Sized + AsRef<str>> ViewSize<(TextInfo, T)> for TextInfoStringView {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct RichStringView {
     pub info: TextInfo,
 }

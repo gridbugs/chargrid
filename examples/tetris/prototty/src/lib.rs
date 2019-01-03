@@ -3,13 +3,13 @@ extern crate prototty_common;
 extern crate rand;
 extern crate tetris;
 
-use std::collections::VecDeque;
-use std::time::Duration;
-use rand::Rng;
-use prototty::*;
-use prototty_common::*;
 use prototty::inputs::*;
 use prototty::Input as ProtottyInput;
+use prototty::*;
+use prototty_common::*;
+use rand::Rng;
+use std::collections::VecDeque;
+use std::time::Duration;
 use tetris::{Input as TetrisInput, Meta, PieceType, Tetris};
 
 const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24 {
@@ -63,7 +63,7 @@ impl View<Tetris> for TetrisBoardView {
         }
 
         for coord in tetris.game_state.piece.coords.iter().cloned() {
-            if let Some(output_cell) = grid.get_mut(offset + Coord::from(coord), depth) {
+            if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
                 output_cell.set_bold(true);
                 output_cell.set_character(BLOCK_CHAR);
                 output_cell.set_foreground_colour(FOREGROUND_COLOUR);
@@ -83,7 +83,7 @@ impl View<Tetris> for TetrisNextPieceView {
     fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
-            if let Some(output_cell) = grid.get_mut(offset + Coord::from(coord), depth) {
+            if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
                 output_cell.set_bold(true);
                 output_cell.set_character(BLOCK_CHAR);
                 output_cell.set_foreground_colour(FOREGROUND_COLOUR);
@@ -198,14 +198,23 @@ impl App {
         }
     }
 
-    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<ControlFlow>
+    pub fn tick<I, R>(
+        &mut self,
+        inputs: I,
+        period: Duration,
+        view: &AppView,
+        rng: &mut R,
+    ) -> Option<ControlFlow>
     where
         I: IntoIterator<Item = ProtottyInput>,
         R: Rng,
     {
         match self.state {
             AppState::Menu => {
-                if let Some(menu_output) = self.main_menu.tick_with_mouse(inputs, &view.borders.menu.view) {
+                if let Some(menu_output) = self
+                    .main_menu
+                    .tick_with_mouse(inputs, &view.borders.menu.view)
+                {
                     match menu_output {
                         MenuOutput::Quit => return Some(ControlFlow::Exit),
                         MenuOutput::Cancel => (),

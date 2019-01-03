@@ -2,7 +2,8 @@ use prototty::*;
 use text_info::*;
 
 /// A section of text sharing a common `TextInfo`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub struct RichTextPart {
     pub string: String,
     pub info: TextInfo,
@@ -20,7 +21,8 @@ impl<S: Into<String>> From<(S, TextInfo)> for RichTextPart {
 /// A text element, where the style of the text
 /// can be controlled. A single `RichText` element can have
 /// several different parts, each styled differently.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub struct RichText {
     pub parts: Vec<RichTextPart>,
     pub size: Size,

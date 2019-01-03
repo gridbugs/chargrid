@@ -1,12 +1,12 @@
-use std::time::Duration;
+use super::ansi_terminal::AnsiTerminal;
+pub use super::ansi_terminal::DrainInput;
 use ansi_colour::Colour as AnsiColour;
+use cell::*;
+use defaults::*;
 use error::Result;
 use prototty::*;
 use prototty_grid::*;
-use cell::*;
-use defaults::*;
-use super::ansi_terminal::AnsiTerminal;
-pub use super::ansi_terminal::DrainInput;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct OutputCell {
@@ -33,8 +33,11 @@ impl Default for OutputCell {
 
 impl OutputCell {
     pub fn matches(&self, cell: &Cell) -> bool {
-        !self.dirty && self.ch == cell.character && self.fg == cell.foreground_colour.0
-            && self.bg == cell.background_colour.0 && self.bold == cell.bold
+        !self.dirty
+            && self.ch == cell.character
+            && self.fg == cell.foreground_colour.0
+            && self.bg == cell.background_colour.0
+            && self.bold == cell.bold
             && self.underline == cell.underline
     }
     pub fn copy_fields(&mut self, cell: &Cell) {
@@ -65,7 +68,7 @@ impl Terminal {
     pub fn resize_if_necessary(&mut self) -> Result<Size> {
         let size = self.ansi.size()?;
         if size != self.output_grid.size() {
-            self.output_grid.resize_default(size);
+            self.output_grid = grid_2d::Grid::new_default(size);
         }
         Ok(size)
     }

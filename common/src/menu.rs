@@ -1,13 +1,14 @@
-use std::cmp;
-use prototty::*;
-use prototty::inputs::*;
-use text_info::*;
 use defaults::*;
+use prototty::inputs::*;
+use prototty::*;
+use std::cmp;
+use text_info::*;
 
 /// A single entry in a menu. It owns the value
 /// which will be yielded if this entry is
 /// finalised.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub struct MenuEntry<T: Copy> {
     pub name: String,
     pub value: T,
@@ -34,7 +35,8 @@ impl<T: Copy, S: Into<String>> From<(S, T)> for MenuEntry<T> {
 /// selection. When a `Menu` is rendered, all its entries use
 /// `normal_info` when rendering. To combine a `Menu` with selection
 /// state, use a `MenuInstance`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub struct Menu<T: Copy> {
     pub entries: Vec<MenuEntry<T>>,
     pub size: Size,
@@ -93,7 +95,8 @@ pub enum MenuOutput<T> {
 /// When a `MenuInstance` is rendered, the
 /// currently-selected entry is  rendered using
 /// the `Menu`'s `selected_info`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub struct MenuInstance<T: Copy> {
     menu: Menu<T>,
     index: usize,
@@ -181,11 +184,7 @@ impl<T: Copy> MenuInstance<T> {
         None
     }
 
-    pub fn tick_with_mouse<'a, I, M>(
-        &mut self,
-        inputs: I,
-        view: &'a M,
-    ) -> Option<MenuOutput<T>>
+    pub fn tick_with_mouse<'a, I, M>(&mut self, inputs: I, view: &'a M) -> Option<MenuOutput<T>>
     where
         I: IntoIterator<Item = Input>,
         M: MenuIndexFromScreenCoord,
@@ -263,7 +262,9 @@ impl MenuIndexFromScreenCoord for DefaultMenuInstanceView {
         coord: Coord,
     ) -> Option<usize> {
         let rel_coord = coord - self.last_coord;
-        if rel_coord.x < 0 || rel_coord.y < 0 || rel_coord.x >= menu.size.x() as i32
+        if rel_coord.x < 0
+            || rel_coord.y < 0
+            || rel_coord.x >= menu.size.x() as i32
             || rel_coord.y >= menu.entries.len() as i32
         {
             None

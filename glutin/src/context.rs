@@ -1,19 +1,20 @@
 use gfx;
-use glutin;
 use gfx_device_gl;
-use gfx_window_glutin;
 use gfx_glyph;
+use gfx_window_glutin;
+use glutin;
 
 use gfx::Device;
-use glutin::{Event, GlContext};
 use gfx_glyph::GlyphCruncher;
+use glutin::dpi::LogicalSize;
+use glutin::Event;
 
-use prototty_grid::*;
-use prototty::*;
+use background::*;
 use cell::*;
 use formats::*;
-use background::*;
 use input::*;
+use prototty::*;
+use prototty_grid::*;
 
 type Resources = gfx_device_gl::Resources;
 
@@ -80,7 +81,10 @@ impl<'a> ContextBuilder<'a> {
 
     pub fn with_window_dimensions(self, width: u32, height: u32) -> Self {
         Self {
-            window_builder: self.window_builder.with_dimensions(width, height),
+            window_builder: self.window_builder.with_dimensions(LogicalSize {
+                width: width as f64,
+                height: height as f64,
+            }),
             ..self
         }
     }
@@ -142,7 +146,8 @@ impl<'a> ContextBuilder<'a> {
                 self.window_builder,
                 self.context_builder,
                 &events_loop,
-            );
+            )
+            .expect("Failed to create window");
 
         let mut encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer> =
             factory.create_command_buffer().into();
@@ -158,7 +163,7 @@ impl<'a> ContextBuilder<'a> {
         let window_width = window_width as u32;
         let window_height = window_height as u32;
 
-        let hidpi = window.hidpi_factor();
+        let hidpi = window.window().get_hidpi_factor() as f32;
 
         let (cell_width, cell_height) = if let Some(cell_dimensions) = self.cell_dimensions {
             (cell_dimensions.x(), cell_dimensions.y())
@@ -178,7 +183,8 @@ impl<'a> ContextBuilder<'a> {
         let cell_width = (cell_width as f32) * hidpi;
         let cell_height = (cell_height as f32) * hidpi;
 
-        let max_grid_size = self.max_grid_size
+        let max_grid_size = self
+            .max_grid_size
             .unwrap_or(Size::new(MAX_WIDTH_IN_CELLS, MAX_HEIGHT_IN_CELLS));
 
         let width_in_cells =
@@ -193,11 +199,13 @@ impl<'a> ContextBuilder<'a> {
         let grid = Grid::new(window_size_in_cells);
         let char_buf = String::with_capacity(1);
 
-        let underline_width = self.underline_width
+        let underline_width = self
+            .underline_width
             .map(|w| hidpi * w as f32)
             .unwrap_or_else(|| cell_height as f32 / UNDERLINE_WIDTH_RATIO as f32);
 
-        let underline_position = self.underline_position
+        let underline_position = self
+            .underline_position
             .map(|w| hidpi * w as f32)
             .unwrap_or_else(|| {
                 cell_height as f32 - (cell_height as f32 / UNDERLINE_POSITION_RATIO as f32)
@@ -221,7 +229,8 @@ impl<'a> ContextBuilder<'a> {
             y: self.font_scale.y * hidpi,
         };
 
-        let bold_font_scale = self.bold_font_scale
+        let bold_font_scale = self
+            .bold_font_scale
             .map(|s| gfx_glyph::Scale {
                 x: s.x * hidpi,
                 y: s.y * hidpi,
@@ -283,7 +292,9 @@ impl<'a> Context<'a> {
         self.events_loop.poll_events(|event| {
             match event {
                 Event::WindowEvent { event, .. } => {
-                    if let Some(event) = convert_event(event, cell_dimensions, &mut last_mouse_coord) {
+                    if let Some(event) =
+                        convert_event(event, cell_dimensions, &mut last_mouse_coord)
+                    {
                         match event {
                             InputEvent::Input(input) => callback(input),
                             InputEvent::Quit => closing = true,
