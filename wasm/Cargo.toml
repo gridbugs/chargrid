@@ -12,6 +12,6 @@ documentation = "https://docs.rs/prototty_wasm"
 [dependencies]
 prototty = { path = "../prototty", version = "0.21" }
 prototty_grid = { path = "../grid", version = "0.21" }
-itertools = "0.7"
+itertools = "0.8"
 serde = "1.0"
 bincode = "1.0"
