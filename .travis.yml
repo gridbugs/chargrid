@@ -12,5 +12,7 @@ matrix:
   allow_failures:
   - rust: nightly
 dist: trusty
+before_script:
+  - npm install -g npx
 script:
 - ./test.sh

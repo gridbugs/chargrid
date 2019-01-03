@@ -8,7 +8,6 @@
     "author": "",
     "license": "MIT",
     "devDependencies": {
-        "uglifyjs-webpack-plugin": "^2.1.1",
         "webpack": "^4.28.3",
         "webpack-cli": "^3.2.0"
     },
