@@ -1,8 +1,9 @@
 extern crate coord_2d;
-extern crate serde;
 #[cfg(feature = "serialize")]
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
+#[cfg(not(feature = "serialize"))]
+extern crate serde;
 
 mod input;
 mod renderer;
