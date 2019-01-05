@@ -1,3 +1,4 @@
+extern crate serde;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 

@@ -1,13 +1,13 @@
 [package]
-name = "prototty_render"
-description = "Traits for defining a renderer and a view"
-version = "0.21.0"
+name = "prototty_input"
+description = "Normalized input"
+version = "0.22.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
-documentation = "https://docs.rs/prototty_render"
+documentation = "https://docs.rs/prototty_storage"
 
 [features]
 serialize = ["serde", "coord_2d/serialize"]
