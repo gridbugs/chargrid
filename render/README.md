@@ -1,11 +1,10 @@
-# prototty
+# prototty render
 
-[![Version](https://img.shields.io/crates/v/prototty.svg)](https://crates.io/crates/prototty)
-[![Documentation](https://docs.rs/prototty/badge.svg)](https://docs.rs/prototty)
+[![Version](https://img.shields.io/crates/v/prototty_render.svg)](https://crates.io/crates/prototty_render)
+[![Documentation](https://docs.rs/prototty_render/badge.svg)](https://docs.rs/prototty_render)
 
 Definition of types and traits for describing how to render a type to a grid of
-characters (such as a terminal). Also provides an input type to simplify making
-an application that works with multiple frontends.
+characters (such as a terminal).
 
 ## Example
 
@@ -14,8 +13,8 @@ a fixed width rectangle of height 1. The entire source code for this
 example is in the "examples/title" directory in this repo.
 
 ```rust
-extern crate prototty;
-use prototty::*;
+extern crate prototty_render;
+use prototty_render::*;
 
 // Define a type representing the element
 pub struct Title {

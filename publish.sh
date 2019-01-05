@@ -3,7 +3,7 @@
 set -e
 
 publish() {
-    cargo publish --manifest-path storage/Cargo.toml
+    cargo publish --manifest-path render/Cargo.toml
     cargo publish --manifest-path input/Cargo.toml
     cargo publish --manifest-path prototty/Cargo.toml
     cargo publish --manifest-path grid/Cargo.toml
