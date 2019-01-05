@@ -1,11 +1,10 @@
-extern crate prototty;
 extern crate prototty_glutin;
 extern crate rand;
 extern crate tetris_prototty;
 
-use std::time::Instant;
-use prototty::Renderer;
+use prototty_glutin::prototty_render::Renderer;
 use prototty_glutin::*;
+use std::time::Instant;
 use tetris_prototty::{App, AppView, ControlFlow};
 
 fn main() {
@@ -45,7 +44,8 @@ fn main() {
             input_buffer.push(input);
         });
 
-        if let Some(control_flow) = app.tick(input_buffer.drain(..), duration, &app_view, &mut rng) {
+        if let Some(control_flow) = app.tick(input_buffer.drain(..), duration, &app_view, &mut rng)
+        {
             match control_flow {
                 ControlFlow::Exit => running = false,
             }

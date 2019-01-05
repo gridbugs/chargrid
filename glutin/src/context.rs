@@ -13,8 +13,9 @@ use background::*;
 use cell::*;
 use formats::*;
 use input::*;
-use prototty::*;
 use prototty_grid::*;
+use prototty_input::*;
+use prototty_render::*;
 
 type Resources = gfx_device_gl::Resources;
 

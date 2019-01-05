@@ -1,6 +1,7 @@
 use defaults::*;
-use prototty::inputs::*;
-use prototty::*;
+use prototty_input::inputs::*;
+use prototty_input::*;
+use prototty_render::*;
 use std::cmp;
 use text_info::*;
 

@@ -1,12 +1,12 @@
-use std::mem;
-use std::ptr;
+use error::{Error, Result};
+use libc;
+use prototty_render::*;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
+use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
+use std::ptr;
 use std::time::Duration;
-use libc;
-use error::{Error, Result};
-use prototty::*;
 
 struct WinSize {
     ws_row: libc::c_ushort,
@@ -31,8 +31,14 @@ impl LowLevel {
 
         let original_termios = termios.clone();
 
-        termios.c_iflag &= !(libc::IGNBRK | libc::BRKINT | libc::PARMRK | libc::ISTRIP | libc::INLCR
-            | libc::IGNCR | libc::ICRNL | libc::IXON);
+        termios.c_iflag &= !(libc::IGNBRK
+            | libc::BRKINT
+            | libc::PARMRK
+            | libc::ISTRIP
+            | libc::INLCR
+            | libc::IGNCR
+            | libc::ICRNL
+            | libc::IXON);
         termios.c_oflag &= !libc::OPOST;
         termios.c_lflag &= !(libc::ECHO | libc::ECHONL | libc::ICANON | libc::ISIG | libc::IEXTEN);
         termios.c_cflag &= !(libc::CSIZE | libc::PARENB);

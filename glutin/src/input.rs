@@ -3,7 +3,8 @@ use glutin::{
     ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta,
     VirtualKeyCode, WindowEvent,
 };
-use prototty::{inputs, Coord, Input, MouseButton as ProtottyMouseButton, ScrollDirection};
+use prototty_input::{inputs, Input, MouseButton as ProtottyMouseButton, ScrollDirection};
+use prototty_render::Coord;
 
 pub enum InputEvent {
     Input(Input),

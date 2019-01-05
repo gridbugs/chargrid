@@ -1,6 +1,6 @@
 use decorated::Decorated;
 use defaults::*;
-use prototty::*;
+use prototty_render::*;
 
 /// The characters comprising a border. By default, borders are made of unicode
 /// box-drawing characters, but they can be changed to arbitrary characters via

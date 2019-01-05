@@ -4,14 +4,15 @@ extern crate itertools;
 extern crate libc;
 extern crate term;
 
-extern crate prototty;
 extern crate prototty_grid;
+pub extern crate prototty_input;
+pub extern crate prototty_render;
 
 mod cell;
-mod terminal;
-mod error;
 mod context;
 mod defaults;
+mod error;
+mod terminal;
 
 pub use self::context::*;
 pub use self::error::*;

@@ -10,8 +10,8 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_grid"
 
 [features]
-serialize = ["prototty/serialize", "grid_2d/serialize"]
+serialize = ["prototty_render/serialize", "grid_2d/serialize"]
 
 [dependencies]
-prototty = { path = "../prototty", version = "0.21" }
+prototty_render = { path = "../render", version = "0.21" }
 grid_2d = "0.12"

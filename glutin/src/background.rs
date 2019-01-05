@@ -1,8 +1,8 @@
 use gfx;
 
 use formats::*;
-use prototty::Size;
 use prototty_grid::grid_2d::coord_system::{CoordSystem, XThenY};
+use prototty_render::Size;
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
 const QUAD_COORDS: [[f32; 2]; 4] = [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0]];

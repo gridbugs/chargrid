@@ -1,4 +1,4 @@
-use prototty::*;
+use prototty_render::*;
 use text_info::*;
 
 /// A section of text sharing a common `TextInfo`.

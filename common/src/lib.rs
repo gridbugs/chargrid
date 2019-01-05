@@ -1,4 +1,5 @@
-extern crate prototty;
+extern crate prototty_input;
+extern crate prototty_render;
 #[cfg(feature = "serialize")]
 #[macro_use]
 extern crate serde;

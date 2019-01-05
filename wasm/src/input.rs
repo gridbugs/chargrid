@@ -1,5 +1,6 @@
+use prototty_input::{inputs, Input, MouseButton, ScrollDirection};
+use prototty_render::Coord;
 use std::slice;
-use prototty::{inputs, Input, Coord, MouseButton, ScrollDirection};
 
 const MOD_SHIFT: u8 = (1 << 0);
 
@@ -15,12 +16,8 @@ const ID_MOUSE_SCROLL_RIGHT: u8 = 8;
 
 macro_rules! convert_char_shift {
     ($lower:expr, $upper:expr, $shift:expr) => {
-        Some(Input::Char(if $shift {
-            $upper
-        } else {
-            $lower
-        }))
-    }
+        Some(Input::Char(if $shift { $upper } else { $lower }))
+    };
 }
 
 pub fn from_js_event(event: u64) -> Option<Input> {
@@ -46,10 +43,7 @@ fn unpack_mouse_coord(event: u64) -> Coord {
 
 fn from_js_event_mouse_scroll(event: u64, direction: ScrollDirection) -> Option<Input> {
     let coord = unpack_mouse_coord(event);
-    Some(Input::MouseScroll {
-        coord,
-        direction,
-    })
+    Some(Input::MouseScroll { coord, direction })
 }
 
 fn from_js_event_mouse_move(event: u64) -> Option<Input> {
@@ -183,10 +177,7 @@ fn from_js_event_key_press(event: u64) -> Option<Input> {
     }
 }
 
-pub unsafe fn js_event_input_iter<'a>(
-    inputs: *const u64,
-    num_inputs: usize,
-) -> InputIter<'a> {
+pub unsafe fn js_event_input_iter<'a>(inputs: *const u64, num_inputs: usize) -> InputIter<'a> {
     InputIter::new(inputs, num_inputs)
 }
 

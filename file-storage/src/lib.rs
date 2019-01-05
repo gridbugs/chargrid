@@ -1,8 +1,8 @@
 extern crate bincode;
-extern crate prototty;
+extern crate prototty_storage;
 extern crate serde;
 
-use prototty::*;
+pub use prototty_storage::{LoadError, Storage, StoreError};
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use std::env;

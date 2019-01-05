@@ -10,8 +10,9 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_common"
 
 [features]
-serialize = ["serde", "prototty/serialize"]
+serialize = ["serde", "prototty_render/serialize", "prototty_input/serialize"]
 
 [dependencies]
-prototty = { path = "../prototty", version = "0.21" }
+prototty_render = { path = "../render", version = "0.21" }
+prototty_input = { path = "../input", version = "0.21" }
 serde = { version = "1.0", features = ["serde_derive"], optional = true }

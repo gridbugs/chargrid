@@ -10,10 +10,11 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_unix"
 
 [features]
-serialize = ["prototty/serialize", "prototty_grid/serialize", "ansi_colour/serialize"]
+serialize = ["prototty_render/serialize", "prototty_input/serialize", "prototty_grid/serialize", "ansi_colour/serialize"]
 
 [dependencies]
-prototty = { path = "../prototty", version = "0.21" }
+prototty_render = { path = "../render", version = "0.21" }
+prototty_input = { path = "../input", version = "0.21" }
 prototty_grid = { path = "../grid", version = "0.21" }
 libc = "0.2"
 term = "0.5"

@@ -1,7 +1,7 @@
 pub extern crate grid_2d;
-extern crate prototty;
+extern crate prototty_render;
 
-use prototty::*;
+use prototty_render::*;
 
 pub trait DefaultForeground {
     fn default_foreground() -> Self;

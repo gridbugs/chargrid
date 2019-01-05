@@ -4,8 +4,9 @@ use ansi_colour::Colour as AnsiColour;
 use cell::*;
 use defaults::*;
 use error::Result;
-use prototty::*;
 use prototty_grid::*;
+use prototty_input::*;
+use prototty_render::*;
 use std::time::Duration;
 
 #[derive(Debug, Clone)]

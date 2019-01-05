@@ -1,0 +1,12 @@
+[package]
+name = "web"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+prototty_wasm_storage = { path = "../../../wasm-storage", version = "0.21" }
+fib = { path = "../fib" }
+wasm-bindgen = "0.2"

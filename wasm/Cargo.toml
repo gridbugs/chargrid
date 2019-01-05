@@ -9,9 +9,11 @@ homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_wasm"
 
+[features]
+serialize = ["prototty_input/serialize", "prototty_render/serialize", "prototty_grid/serialize"]
+
 [dependencies]
-prototty = { path = "../prototty", version = "0.21" }
+prototty_render = { path = "../render", version = "0.21" }
+prototty_input = { path = "../input", version = "0.21" }
 prototty_grid = { path = "../grid", version = "0.21" }
 itertools = "0.8"
-serde = "1.0"
-bincode = "1.0"

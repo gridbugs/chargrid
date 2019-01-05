@@ -10,6 +10,8 @@ members = [
     "storage",
     "input",
     "file-storage",
+    "mono-storage",
+    "wasm-storage",
 
     "examples/title/prototty",
     "examples/title/glutin",
@@ -17,10 +19,13 @@ members = [
     "examples/title/unix_border",
     "examples/title/wasm",
 
+    "examples/fib/fib",
+    "examples/fib/file",
+    "examples/fib/web",
+
     "examples/tetris/tetris",
     "examples/tetris/prototty",
     "examples/tetris/glutin",
     "examples/tetris/unix",
     "examples/tetris/wasm",
-
 ]

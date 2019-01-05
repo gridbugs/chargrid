@@ -1,44 +1,47 @@
-use bincode;
-use prototty::*;
+extern crate bincode;
+extern crate prototty_storage;
+extern crate serde;
+
+pub use prototty_storage::{LoadError, Storage, StoreError};
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
-use std::collections::BTreeMap;
-use std::slice;
+use std::collections::HashMap;
 
-pub struct WasmStorage {
-    pub table: BTreeMap<String, Vec<u8>>,
+pub trait StoreBytes {
+    fn store(&mut self, bytes: &[u8]);
 }
 
-impl WasmStorage {
-    pub fn new() -> Self {
-        Self {
-            table: BTreeMap::new(),
-        }
-    }
-    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        bincode::deserialize(bytes).ok().map(|table| Self { table })
-    }
-    pub unsafe fn from_ptr(ptr: *const u8, size: usize) -> Self {
-        if size == 0 {
-            return Self::new();
-        }
+pub struct MonoStorage<S: StoreBytes> {
+    table: HashMap<String, Vec<u8>>,
+    store_bytes: S,
+}
 
-        let slice = slice::from_raw_parts(ptr, size);
-
-        Self::from_bytes(slice).unwrap_or_else(Self::new)
+impl<S: StoreBytes> MonoStorage<S> {
+    pub fn new(store_bytes: S) -> Self {
+        let table = HashMap::new();
+        Self { table, store_bytes }
+    }
+    pub fn from_bytes(bytes: &[u8], store_bytes: S) -> Option<Self> {
+        bincode::deserialize(bytes)
+            .ok()
+            .map(|table| Self { table, store_bytes })
+    }
+    pub fn from_bytes_or_empty(bytes: &[u8], store_bytes: S) -> Self {
+        match bincode::deserialize(bytes).ok() {
+            Some(table) => Self { table, store_bytes },
+            None => Self::new(store_bytes),
+        }
     }
     fn to_bytes(&self) -> Vec<u8> {
         bincode::serialize(&self.table).expect("Failed to serialize")
     }
     fn sync(&mut self) {
-        let mut bytes = self.to_bytes();
-        unsafe {
-            ffi::store(bytes.as_mut_ptr(), bytes.len());
-        }
+        let bytes = self.to_bytes();
+        self.store_bytes.store(&bytes);
     }
 }
 
-impl Storage for WasmStorage {
+impl<S: StoreBytes> Storage for MonoStorage<S> {
     fn load<K, T>(&self, key: K) -> Result<T, LoadError>
     where
         K: AsRef<str>,
@@ -119,11 +122,5 @@ impl Storage for WasmStorage {
         self.store_raw(key, bytes)?;
 
         Ok(())
-    }
-}
-
-mod ffi {
-    extern "C" {
-        pub fn store(buf: *mut u8, size: usize);
     }
 }

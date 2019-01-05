@@ -1,6 +1,6 @@
-use prototty::*;
-use prototty_grid::*;
 use cell::Colour;
+use prototty_grid::*;
+use prototty_render::*;
 
 const BOLD_BIT: u8 = 1 << 0;
 const UNDERLINE_BIT: u8 = 1 << 1;
@@ -13,13 +13,11 @@ pub struct Terminal {
 }
 
 macro_rules! create_buf {
-    ($size:expr) => {
-        {
-            let mut buf = Vec::with_capacity($size);
-            buf.resize($size, 0);
-            buf
-        }
-    }
+    ($size:expr) => {{
+        let mut buf = Vec::with_capacity($size);
+        buf.resize($size, 0);
+        buf
+    }};
 }
 
 impl Terminal {
@@ -58,11 +56,8 @@ impl Terminal {
         } {
             *chars_entry = cell.character as u32;
 
-            *style_entry = if cell.bold { BOLD_BIT } else { 0 } | if cell.underline {
-                UNDERLINE_BIT
-            } else {
-                0
-            };
+            *style_entry = if cell.bold { BOLD_BIT } else { 0 }
+                | if cell.underline { UNDERLINE_BIT } else { 0 };
 
             *fg_colour_entry = cell.foreground_colour.0;
             *bg_colour_entry = cell.background_colour.0;

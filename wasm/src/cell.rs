@@ -1,5 +1,5 @@
-use prototty::{colours, Rgb24};
 use prototty_grid::*;
+use prototty_render::{colours, Rgb24};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Colour(pub u32);

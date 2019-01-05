@@ -1,7 +1,7 @@
-use prototty::*;
-use prototty_grid::*;
-use terminal::Terminal;
 use cell::Colour;
+use prototty_grid::*;
+use prototty_render::*;
+use terminal::Terminal;
 
 pub struct Context {
     terminal: Terminal,

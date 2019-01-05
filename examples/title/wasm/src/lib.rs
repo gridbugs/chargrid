@@ -1,11 +1,10 @@
-extern crate prototty;
 extern crate prototty_wasm;
 
 // Assuming the title and its views were defined here
 extern crate prototty_title;
 
-use prototty::Renderer;
 use prototty_title::*;
+use prototty_wasm::prototty_render::Renderer;
 
 // Define a type containing the entire application state.
 pub struct App {

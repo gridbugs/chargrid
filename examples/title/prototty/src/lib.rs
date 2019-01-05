@@ -1,5 +1,5 @@
-extern crate prototty;
-use prototty::*;
+extern crate prototty_render;
+use prototty_render::*;
 
 // Define a type representing the element
 pub struct Title {

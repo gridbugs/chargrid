@@ -1,9 +1,9 @@
-use term::terminfo::TermInfo;
-use term::terminfo::parm::{self, Param, Variables};
+use super::byte_prefix_tree::BytePrefixTree;
 use ansi_colour::{AllColours, Colour};
 use error::{Error, Result};
-use prototty::{Input, ScrollDirection};
-use super::byte_prefix_tree::BytePrefixTree;
+use prototty_input::{Input, ScrollDirection};
+use term::terminfo::parm::{self, Param, Variables};
+use term::terminfo::TermInfo;
 
 // XXX this might not be portable
 const ESCAPE: &'static [u8] = &[27];
@@ -130,7 +130,6 @@ impl TermInfoCache {
             escseq("khome", Input::Home)?,
             escseq("kend", Input::End)?,
             escseq("kdch1", Input::Delete)?,
-
             raw_escseq("[MC", TerminalInput::MousePrefix(MousePrefix::Move)),
             raw_escseq("[M ", TerminalInput::MousePrefix(MousePrefix::Press)),
             // TODO This is actually the escape sequence for right-click.
@@ -139,10 +138,22 @@ impl TermInfoCache {
             raw_escseq("[M\"", TerminalInput::MousePrefix(MousePrefix::Press)),
             raw_escseq("[M#", TerminalInput::MousePrefix(MousePrefix::Release)),
             raw_escseq("[M@", TerminalInput::MousePrefix(MousePrefix::Drag)),
-            raw_escseq("[M`", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Up))),
-            raw_escseq("[Ma", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Down))),
-            raw_escseq("[Mb", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Left))),
-            raw_escseq("[Mc", TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Right))),
+            raw_escseq(
+                "[M`",
+                TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Up)),
+            ),
+            raw_escseq(
+                "[Ma",
+                TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Down)),
+            ),
+            raw_escseq(
+                "[Mb",
+                TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Left)),
+            ),
+            raw_escseq(
+                "[Mc",
+                TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Right)),
+            ),
         ];
 
         let mut escape_sequence_prefix_tree = BytePrefixTree::new();

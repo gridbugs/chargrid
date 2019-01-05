@@ -1,4 +1,4 @@
-use prototty::*;
+use prototty_render::*;
 use text_info::TextInfo;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]

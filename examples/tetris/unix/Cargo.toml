@@ -5,6 +5,5 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
 tetris_prototty = { path = "../prototty" }
-prototty = { path = "../../../prototty", version = "0.21" }
 prototty_unix = { path = "../../../unix", version = "0.21" }
 rand = "0.6"

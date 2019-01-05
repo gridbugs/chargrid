@@ -1,5 +1,5 @@
 use decorated::Decorated;
-use prototty::*;
+use prototty_render::*;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]

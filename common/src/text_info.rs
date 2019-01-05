@@ -1,4 +1,4 @@
-use prototty::{Rgb24, ViewCell};
+use prototty_render::{Rgb24, ViewCell};
 
 /// Rich text settings
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]

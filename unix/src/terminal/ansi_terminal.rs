@@ -1,12 +1,13 @@
+use super::byte_prefix_tree::{BytePrefixTree, Found};
+use super::low_level::LowLevel;
+use super::term_info_cache::{MousePrefix, TermInfoCache, TerminalInput};
+use ansi_colour::Colour;
+use error::Result;
+use prototty_input::*;
+use prototty_render::*;
 use std::collections::{vec_deque, VecDeque};
 use std::time::Duration;
 use term::terminfo::parm::{self, Param};
-use ansi_colour::Colour;
-use super::low_level::LowLevel;
-use super::term_info_cache::{TerminalInput, MousePrefix, TermInfoCache};
-use super::byte_prefix_tree::{BytePrefixTree, Found};
-use error::Result;
-use prototty::*;
 
 const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
 const INPUT_BUFFER_INITIAL_CAPACITY: usize = 32;
@@ -48,13 +49,15 @@ impl AnsiTerminal {
         self.output_buffer.push_str(&self.ti_cache.enter_xmit);
         self.output_buffer.push_str(&self.ti_cache.hide_cursor);
         self.output_buffer.push_str(&self.ti_cache.clear);
-        self.output_buffer.push_str(&self.ti_cache.enable_mouse_reporting);
+        self.output_buffer
+            .push_str(&self.ti_cache.enable_mouse_reporting);
 
         self.flush_buffer().map_err(Into::into)
     }
 
     fn teardown(&mut self) -> Result<()> {
-        self.output_buffer.push_str(&self.ti_cache.disable_mouse_reporting);
+        self.output_buffer
+            .push_str(&self.ti_cache.disable_mouse_reporting);
         self.output_buffer.push_str(&self.ti_cache.exit_ca);
         self.output_buffer.push_str(&self.ti_cache.exit_xmit);
         self.output_buffer.push_str(&self.ti_cache.show_cursor);
@@ -182,12 +185,8 @@ impl AnsiTerminal {
                     (None, None)
                 }
             }
-            Some(Found::Exact(input)) => {
-                (Some(*input), None)
-            }
-            Some(Found::WithRemaining(input, remaining)) => {
-                (Some(*input), Some(remaining))
-            }
+            Some(Found::Exact(input)) => (Some(*input), None),
+            Some(Found::WithRemaining(input, remaining)) => (Some(*input), Some(remaining)),
         };
 
         let rest = if let Some(input) = term_input {
@@ -212,7 +211,9 @@ impl AnsiTerminal {
                                     coord,
                                 },
                                 MousePrefix::Drag => Input::MouseMove(coord),
-                                MousePrefix::Scroll(direction) => Input::MouseScroll { direction, coord }
+                                MousePrefix::Scroll(direction) => {
+                                    Input::MouseScroll { direction, coord }
+                                }
                             };
                             (Some(input), Some(&rest[2..]))
                         } else {

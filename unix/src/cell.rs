@@ -1,7 +1,7 @@
-use prototty::Rgb24;
-use prototty_grid::*;
 use ansi_colour;
 use defaults::*;
+use prototty_grid::*;
+use prototty_render::Rgb24;
 
 #[derive(Debug, Clone)]
 pub struct Colour(pub ansi_colour::Colour);

@@ -1,0 +1,8 @@
+[package]
+name = "file"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+prototty_file_storage = { path = "../../../file-storage", version = "0.21" }
+fib = { path = "../fib" }

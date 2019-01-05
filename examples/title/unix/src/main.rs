@@ -1,11 +1,10 @@
-extern crate prototty;
 extern crate prototty_unix;
 
 // Assuming the title and its views were defined here
 extern crate prototty_title;
 
-use prototty::Renderer;
 use prototty_title::*;
+use prototty_unix::prototty_render::Renderer;
 
 fn main() {
     let mut context = prototty_unix::Context::new().unwrap();

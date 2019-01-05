@@ -1,4 +1,3 @@
-extern crate prototty;
 extern crate prototty_wasm;
 extern crate rand;
 extern crate tetris_prototty;
@@ -7,8 +6,8 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::time::Duration;
 
-use prototty::Input as ProtottyInput;
-use prototty::Renderer;
+use prototty_wasm::prototty_input::Input as ProtottyInput;
+use prototty_wasm::prototty_render::Renderer;
 use prototty_wasm::*;
 
 use tetris_prototty::{App, AppView, ControlFlow};
