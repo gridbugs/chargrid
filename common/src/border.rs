@@ -72,45 +72,57 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
 
         let span = self.decorator.span_offset() + self.view.size(data);
 
-        if let Some(c) = grid.get_mut(offset, depth) {
-            c.set_character(self.decorator.chars.top_left);
-            self.decorator.write_border_style(c);
-        }
-        if let Some(c) = grid.get_mut(offset + Coord::new(span.x, 0), depth) {
-            c.set_character(self.decorator.chars.top_right);
-            self.decorator.write_border_style(c);
-        }
-        if let Some(c) = grid.get_mut(offset + Coord::new(0, span.y), depth) {
-            c.set_character(self.decorator.chars.bottom_left);
-            self.decorator.write_border_style(c);
-        }
-        if let Some(c) = grid.get_mut(offset + Coord::new(span.x, span.y), depth) {
-            c.set_character(self.decorator.chars.bottom_right);
-            self.decorator.write_border_style(c);
-        }
-
+        grid.set_cell(
+            offset,
+            depth,
+            self.decorator.view_cell_info(self.decorator.chars.top_left),
+        );
+        grid.set_cell(
+            offset + Coord::new(span.x, 0),
+            depth,
+            self.decorator
+                .view_cell_info(self.decorator.chars.top_right),
+        );
+        grid.set_cell(
+            offset + Coord::new(0, span.y),
+            depth,
+            self.decorator
+                .view_cell_info(self.decorator.chars.bottom_left),
+        );
+        grid.set_cell(
+            offset + Coord::new(span.x, span.y),
+            depth,
+            self.decorator
+                .view_cell_info(self.decorator.chars.bottom_right),
+        );
         let title_offset = if let Some(title) = self.decorator.title.as_ref() {
             let before = offset + Coord::new(1, 0);
             let after = offset + Coord::new(title.len() as i32 + 2, 0);
-
-            if let Some(c) = grid.get_mut(before, depth) {
-                c.set_character(self.decorator.chars.before_title);
-                self.decorator.write_border_style(c);
-            }
-            if let Some(c) = grid.get_mut(after, depth) {
-                c.set_character(self.decorator.chars.after_title);
-                self.decorator.write_border_style(c);
-            }
-
+            grid.set_cell(
+                before,
+                depth,
+                self.decorator
+                    .view_cell_info(self.decorator.chars.before_title),
+            );
+            grid.set_cell(
+                after,
+                depth,
+                self.decorator
+                    .view_cell_info(self.decorator.chars.after_title),
+            );
             for (index, ch) in title.chars().enumerate() {
                 let coord = offset + Coord::new(index as i32 + 2, 0);
-                if let Some(c) = grid.get_mut(coord, depth) {
-                    c.set_character(ch);
-                    c.set_foreground_colour(self.decorator.title_colour);
-                    c.set_background_colour(self.decorator.background_colour);
-                    c.set_bold(self.decorator.bold_title);
-                    c.set_underline(self.decorator.underline_title);
-                }
+                grid.set_cell(
+                    coord,
+                    depth,
+                    ViewCellInfo {
+                        character: Some(ch),
+                        bold: Some(self.decorator.bold_title),
+                        underline: Some(self.decorator.underline_title),
+                        foreground: Some(self.decorator.title_colour),
+                        background: Some(self.decorator.background_colour),
+                    },
+                );
             }
 
             title.len() as i32 + 2
@@ -119,27 +131,31 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
         };
 
         for i in (1 + title_offset)..span.x {
-            if let Some(c) = grid.get_mut(offset + Coord::new(i, 0), depth) {
-                c.set_character(self.decorator.chars.top);
-                self.decorator.write_border_style(c);
-            }
+            grid.set_cell(
+                offset + Coord::new(i, 0),
+                depth,
+                self.decorator.view_cell_info(self.decorator.chars.top),
+            );
         }
         for i in 1..span.x {
-            if let Some(c) = grid.get_mut(offset + Coord::new(i, span.y), depth) {
-                c.set_character(self.decorator.chars.bottom);
-                self.decorator.write_border_style(c);
-            }
+            grid.set_cell(
+                offset + Coord::new(i, span.y),
+                depth,
+                self.decorator.view_cell_info(self.decorator.chars.bottom),
+            );
         }
 
         for i in 1..span.y {
-            if let Some(c) = grid.get_mut(offset + Coord::new(0, i), depth) {
-                c.set_character(self.decorator.chars.left);
-                self.decorator.write_border_style(c);
-            }
-            if let Some(c) = grid.get_mut(offset + Coord::new(span.x, i), depth) {
-                c.set_character(self.decorator.chars.right);
-                self.decorator.write_border_style(c);
-            }
+            grid.set_cell(
+                offset + Coord::new(0, i),
+                depth,
+                self.decorator.view_cell_info(self.decorator.chars.left),
+            );
+            grid.set_cell(
+                offset + Coord::new(span.x, i),
+                depth,
+                self.decorator.view_cell_info(self.decorator.chars.right),
+            );
         }
     }
 }
@@ -189,10 +205,13 @@ impl Border {
             y: (self.padding.top + self.padding.bottom + 1) as i32,
         }
     }
-    fn write_border_style<C: ViewCell>(&self, cell: &mut C) {
-        cell.set_foreground_colour(self.foreground_colour);
-        cell.set_background_colour(self.background_colour);
-        cell.set_bold(self.bold_border);
-        cell.set_underline(false);
+    fn view_cell_info(&self, character: char) -> ViewCellInfo {
+        ViewCellInfo {
+            character: Some(character),
+            foreground: Some(self.foreground_colour),
+            background: Some(self.background_colour),
+            bold: Some(self.bold_border),
+            underline: Some(false),
+        }
     }
 }

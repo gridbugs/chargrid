@@ -3,11 +3,9 @@ extern crate coord_2d;
 #[macro_use]
 extern crate serde;
 
-mod renderer;
 mod rgb24;
 mod view;
 
-pub use renderer::*;
 pub use rgb24::*;
 pub use view::*;
 

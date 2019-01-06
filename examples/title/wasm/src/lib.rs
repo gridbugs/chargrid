@@ -1,49 +1,34 @@
-extern crate prototty_wasm;
-
-// Assuming the title and its views were defined here
 extern crate prototty_title;
+extern crate prototty_wasm_render;
+extern crate wasm_bindgen;
 
 use prototty_title::*;
-use prototty_wasm::prototty_render::Renderer;
+use prototty_wasm_render::*;
+use wasm_bindgen::prelude::*;
 
-// Define a type containing the entire application state.
-pub struct App {
-    title: Title,
-    context: prototty_wasm::Context,
+#[wasm_bindgen]
+pub struct WebApp {
+    app: Title,
+    view: DemoTitleView,
+    js_grid: JsGrid,
 }
 
-// Implement a function "alloc_app", which allocates the
-// application state, returning a pointer to it. This will
-// be called by the prototty-terminal-js library.
-//
-// This function takes a rng seed, which we ignore here.
-#[no_mangle]
-pub extern "C" fn alloc_app(_seed: usize) -> *mut App {
-    let context = prototty_wasm::Context::new();
-    let title = Title {
-        width: 20,
-        text: "My Title".to_string(),
-    };
-    let app = App { title, context };
+#[wasm_bindgen]
+impl WebApp {
+    #[wasm_bindgen(constructor)]
+    pub fn new(js_grid: JsGrid) -> Self {
+        WebApp {
+            app: Title {
+                width: 20,
+                text: "My Title".to_string(),
+            },
+            view: DemoTitleView,
+            js_grid,
+        }
+    }
 
-    prototty_wasm::alloc::into_boxed_raw(app)
-}
-
-// Implement a function "tick", which is called periodically
-// by prototty-terminal-js. It's passed a pointer to the app
-// state (allocated by "alloc_app"), and some information about
-// inputs and the time that passed since it was last called,
-// which we ignore here.
-#[no_mangle]
-pub unsafe fn tick(
-    app: *mut App,
-    _key_codes: *const u8,
-    _key_mods: *const u8,
-    _num_inputs: usize,
-    _period_millis: f64,
-) {
-    (*app)
-        .context
-        .render(&mut DemoTitleView, &(*app).title)
-        .unwrap();
+    pub fn run(&mut self, js_renderer: &JsRenderer) {
+        self.js_grid.view(&mut self.view, &self.app);
+        js_renderer.js_render(&self.js_grid);
+    }
 }

@@ -4,7 +4,6 @@ extern crate prototty_glutin;
 extern crate prototty_title;
 
 use prototty_glutin::prototty_input::inputs;
-use prototty_glutin::prototty_render::Renderer;
 use prototty_title::*;
 
 fn main() {

@@ -8,9 +8,11 @@ impl<T: ?Sized + AsRef<str>> View<T> for StringView {
     fn view<G: ViewGrid>(&mut self, string: &T, offset: Coord, depth: i32, grid: &mut G) {
         let string = string.as_ref();
         for (i, ch) in string.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(i as i32, 0), depth) {
-                cell.set_character(ch);
-            }
+            grid.set_cell(
+                offset + Coord::new(i as i32, 0),
+                depth,
+                ViewCellInfo::new().with_character(ch),
+            );
         }
     }
 }
@@ -36,10 +38,11 @@ impl<T: ?Sized + AsRef<str>> View<(TextInfo, T)> for TextInfoStringView {
     ) {
         let string = value.1.as_ref();
         for (i, ch) in string.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(i as i32, 0), depth) {
-                cell.set_character(ch);
-                value.0.write_cell(cell);
-            }
+            grid.set_cell(
+                offset + Coord::new(i as i32, 0),
+                depth,
+                value.0.view_cell_info(ch),
+            );
         }
     }
 }
@@ -70,10 +73,11 @@ impl<T: ?Sized + AsRef<str>> View<T> for RichStringView {
     fn view<G: ViewGrid>(&mut self, string: &T, offset: Coord, depth: i32, grid: &mut G) {
         let string = string.as_ref();
         for (i, ch) in string.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(i as i32, 0), depth) {
-                cell.set_character(ch);
-                self.info.write_cell(cell);
-            }
+            grid.set_cell(
+                offset + Coord::new(i as i32, 0),
+                depth,
+                self.info.view_cell_info(ch),
+            );
         }
     }
 }

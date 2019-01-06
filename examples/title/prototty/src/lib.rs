@@ -14,10 +14,11 @@ pub struct TitleView;
 impl View<Title> for TitleView {
     fn view<G: ViewGrid>(&mut self, title: &Title, offset: Coord, depth: i32, grid: &mut G) {
         for (i, ch) in title.text.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(i as i32, 0), depth) {
-                cell.set_character(ch);
-                cell.set_underline(true);
-            }
+            grid.set_cell(
+                offset + Coord::new(i as i32, 0),
+                depth,
+                ViewCellInfo::new().with_character(ch).with_underline(true),
+            );
         }
     }
 }
@@ -28,10 +29,11 @@ impl View<Title> for CenteredTitleView {
     fn view<G: ViewGrid>(&mut self, title: &Title, offset: Coord, depth: i32, grid: &mut G) {
         let space = ::std::cmp::max(title.width as i32 - title.text.len() as i32, 0) / 2;
         for (i, ch) in title.text.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(space + i as i32, 0), depth) {
-                cell.set_character(ch);
-                cell.set_underline(true);
-            }
+            grid.set_cell(
+                offset + Coord::new(space + i as i32, 0),
+                depth,
+                ViewCellInfo::new().with_character(ch).with_underline(true),
+            );
         }
     }
 }

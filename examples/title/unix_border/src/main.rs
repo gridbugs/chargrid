@@ -5,7 +5,7 @@ extern crate prototty_unix;
 extern crate prototty_title;
 
 use prototty_title::*;
-use prototty_unix::prototty_render::{Coord, Renderer, Size, View, ViewGrid, ViewSize};
+use prototty_unix::prototty_render::{Coord, Size, View, ViewGrid, ViewSize};
 
 // The `Border` decorator in prototty_common requires that the
 // view which it decorates implements `ViewSize`, defined in

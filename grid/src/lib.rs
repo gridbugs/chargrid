@@ -27,36 +27,36 @@ where
     access_depth: i32,
 }
 
-impl<F, B> ViewCell for CommonCell<F, B>
+impl<F, B> CommonCell<F, B>
 where
     F: From<Rgb24> + DefaultForeground,
     B: From<Rgb24> + DefaultBackground,
 {
-    fn set_character(&mut self, character: char) {
+    pub fn set_character(&mut self, character: char) {
         if self.access_depth >= self.foreground_depth {
             self.character = character;
             self.foreground_depth = self.access_depth;
         }
     }
-    fn set_bold(&mut self, bold: bool) {
+    pub fn set_bold(&mut self, bold: bool) {
         if self.access_depth >= self.foreground_depth {
             self.bold = bold;
             self.foreground_depth = self.access_depth;
         }
     }
-    fn set_underline(&mut self, underline: bool) {
+    pub fn set_underline(&mut self, underline: bool) {
         if self.access_depth >= self.foreground_depth {
             self.underline = underline;
             self.foreground_depth = self.access_depth;
         }
     }
-    fn set_foreground_colour(&mut self, colour: Rgb24) {
+    pub fn set_foreground_colour(&mut self, colour: Rgb24) {
         if self.access_depth >= self.foreground_depth {
             self.foreground_colour = colour.into();
             self.foreground_depth = self.access_depth;
         }
     }
-    fn set_background_colour(&mut self, colour: Rgb24) {
+    pub fn set_background_colour(&mut self, colour: Rgb24) {
         if self.access_depth >= self.background_depth {
             self.background_colour = colour.into();
             self.background_depth = self.access_depth;
@@ -84,7 +84,7 @@ where
 }
 pub type Iter<'a, C> = grid_2d::GridIter<'a, C>;
 pub type IterMut<'a, C> = grid_2d::GridIterMut<'a, C>;
-pub type CoordEnumerate<'a, C> = grid_2d::GridEnumerate<'a, C>;
+pub type Enumerate<'a, C> = grid_2d::GridEnumerate<'a, C>;
 
 #[derive(Debug, Clone)]
 pub struct Grid<F, B>
@@ -120,7 +120,7 @@ where
         }
     }
 
-    pub fn enumerate(&self) -> CoordEnumerate<CommonCell<F, B>> {
+    pub fn enumerate(&self) -> Enumerate<CommonCell<F, B>> {
         self.cells.enumerate()
     }
 
@@ -138,17 +138,26 @@ where
     F: From<Rgb24> + DefaultForeground,
     B: From<Rgb24> + DefaultBackground,
 {
-    type Cell = CommonCell<F, B>;
-    fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Self::Cell> {
+    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCellInfo) {
         if let Some(cell) = self.cells.get_mut(coord) {
-            if cell.foreground_depth > depth && cell.background_depth > depth {
-                None
-            } else {
+            if cell.foreground_depth <= depth || cell.background_depth <= depth {
                 cell.access_depth = depth;
-                Some(cell)
+                if let Some(character) = info.character {
+                    cell.set_character(character);
+                }
+                if let Some(bold) = info.bold {
+                    cell.set_bold(bold);
+                }
+                if let Some(underline) = info.underline {
+                    cell.set_underline(underline);
+                }
+                if let Some(foreground) = info.foreground {
+                    cell.set_foreground_colour(foreground);
+                }
+                if let Some(background) = info.background {
+                    cell.set_background_colour(background);
+                }
             }
-        } else {
-            None
         }
     }
 }

@@ -46,30 +46,28 @@ impl View<Tetris> for TetrisBoardView {
     fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
-                if let Some(output_cell) =
-                    grid.get_mut(offset + Coord::new(j as i32, i as i32), depth)
-                {
-                    output_cell.set_bold(true);
-                    if let Some(typ) = cell.typ {
-                        output_cell.set_character(BLOCK_CHAR);
-                        output_cell.set_foreground_colour(FOREGROUND_COLOUR);
-                        output_cell.set_background_colour(piece_colour(typ));
-                    } else {
-                        output_cell.set_character(BLANK_CHAR);
-                        output_cell.set_foreground_colour(BLANK_FOREGROUND_COLOUR);
-                        output_cell.set_background_colour(BACKGROUND_COLOUR);
-                    }
+                let mut cell_info = ViewCellInfo::new().with_bold(true);
+                if let Some(typ) = cell.typ {
+                    cell_info.character = Some(BLOCK_CHAR);
+                    cell_info.foreground = Some(FOREGROUND_COLOUR);
+                    cell_info.background = Some(piece_colour(typ));
+                } else {
+                    cell_info.character = Some(BLANK_CHAR);
+                    cell_info.foreground = Some(BLANK_FOREGROUND_COLOUR);
+                    cell_info.background = Some(BACKGROUND_COLOUR);
                 }
+                grid.set_cell(offset + Coord::new(j as i32, i as i32), depth, cell_info);
             }
         }
-
         for coord in tetris.game_state.piece.coords.iter().cloned() {
-            if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
-                output_cell.set_bold(true);
-                output_cell.set_character(BLOCK_CHAR);
-                output_cell.set_foreground_colour(FOREGROUND_COLOUR);
-                output_cell.set_background_colour(piece_colour(tetris.game_state.piece.typ));
-            }
+            let cell_info = ViewCellInfo {
+                character: Some(BLOCK_CHAR),
+                bold: Some(true),
+                underline: Some(false),
+                foreground: Some(FOREGROUND_COLOUR),
+                background: Some(piece_colour(tetris.game_state.piece.typ)),
+            };
+            grid.set_cell(offset + coord, depth, cell_info);
         }
     }
 }
@@ -84,12 +82,14 @@ impl View<Tetris> for TetrisNextPieceView {
     fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
-            if let Some(output_cell) = grid.get_mut(offset + coord, depth) {
-                output_cell.set_bold(true);
-                output_cell.set_character(BLOCK_CHAR);
-                output_cell.set_foreground_colour(FOREGROUND_COLOUR);
-                output_cell.set_background_colour(piece_colour(tetris.game_state.next_piece.typ));
-            }
+            let cell_info = ViewCellInfo {
+                character: Some(BLOCK_CHAR),
+                bold: Some(true),
+                underline: Some(false),
+                foreground: Some(FOREGROUND_COLOUR),
+                background: Some(piece_colour(tetris.game_state.piece.typ)),
+            };
+            grid.set_cell(offset + coord, depth, cell_info);
         }
     }
 }

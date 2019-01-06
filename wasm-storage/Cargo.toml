@@ -11,6 +11,6 @@ documentation = "https://docs.rs/prototty_wasm_storage"
 
 
 [dependencies]
-prototty_mono_storage = { path = "../mono-storage", version = "0.21" }
+prototty_monolithic_storage = { path = "../monolithic-storage", version = "0.21" }
 wasm-bindgen = "0.2"
 serde = "1.0"

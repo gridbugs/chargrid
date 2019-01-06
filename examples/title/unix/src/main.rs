@@ -4,7 +4,6 @@ extern crate prototty_unix;
 extern crate prototty_title;
 
 use prototty_title::*;
-use prototty_unix::prototty_render::Renderer;
 
 fn main() {
     let mut context = prototty_unix::Context::new().unwrap();

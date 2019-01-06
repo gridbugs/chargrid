@@ -56,11 +56,12 @@ impl Context {
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
         self.terminal.wait_input_timeout(timeout)
     }
-}
 
-impl Renderer for Context {
-    type Error = Error;
-    fn render_at<V: View<T>, T>(
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
+        self.render_at(view, data, Coord::new(0, 0), 0)
+    }
+
+    pub fn render_at<V: View<T>, T>(
         &mut self,
         view: &mut V,
         data: &T,
@@ -73,7 +74,8 @@ impl Renderer for Context {
         view.view(data, offset, depth, &mut self.grid);
         self.terminal.draw_grid(&self.grid)
     }
-    fn size(&self) -> Size {
-        self.terminal.size().expect("Failed to get size")
+
+    pub fn size(&self) -> Result<Size> {
+        self.terminal.size()
     }
 }

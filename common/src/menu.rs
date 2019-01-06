@@ -298,10 +298,7 @@ impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
                     break;
                 }
                 let coord = offset + Coord::new(j as i32, i as i32);
-                if let Some(cell) = grid.get_mut(coord, depth) {
-                    cell.set_character(ch);
-                    info.write_cell(cell);
-                }
+                grid.set_cell(coord, depth, info.view_cell_info(ch));
             }
         }
     }

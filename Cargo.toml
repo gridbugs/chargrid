@@ -10,7 +10,8 @@ members = [
     "storage",
     "input",
     "file-storage",
-    "mono-storage",
+    "monolithic-storage",
+    "wasm-render",
     "wasm-storage",
 
     "examples/title/prototty",

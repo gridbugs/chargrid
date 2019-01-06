@@ -18,23 +18,18 @@ impl Context {
     pub fn quit(&self) {
         self.terminal.quit();
     }
-}
 
-impl Renderer for Context {
-    type Error = ();
-    fn render_at<V: View<T>, T>(
-        &mut self,
-        view: &mut V,
-        data: &T,
-        offset: Coord,
-        depth: i32,
-    ) -> Result<(), Self::Error> {
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) {
+        self.render_at(view, data, Coord::new(0, 0), 0)
+    }
+
+    pub fn render_at<V: View<T>, T>(&mut self, view: &mut V, data: &T, offset: Coord, depth: i32) {
         self.grid.clear();
         view.view(data, offset, depth, &mut self.grid);
         self.terminal.draw_grid(&self.grid);
-        Ok(())
     }
-    fn size(&self) -> Size {
+
+    pub fn size(&self) -> Size {
         self.terminal.size()
     }
 }

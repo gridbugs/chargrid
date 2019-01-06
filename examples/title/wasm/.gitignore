@@ -1,4 +1,6 @@
-dist/bundle.js
-dist/bundle.js.map
-dist/title_wasm.wasm
-node_modules
+/target
+**/*.rs.bk
+/wasm_out
+/dist
+/node_modules
+package-lock.json

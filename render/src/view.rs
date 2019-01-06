@@ -1,24 +1,52 @@
 use super::{Coord, Size};
 use rgb24::Rgb24;
 
-/// A cell that a view can write to
-pub trait ViewCell {
-    fn set_character(&mut self, character: char);
-    fn set_bold(&mut self, bold: bool);
-    fn set_underline(&mut self, underline: bool);
-    fn set_foreground_colour(&mut self, colour: Rgb24);
-    fn set_background_colour(&mut self, colour: Rgb24);
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ViewCellInfo {
+    pub character: Option<char>,
+    pub bold: Option<bool>,
+    pub underline: Option<bool>,
+    pub foreground: Option<Rgb24>,
+    pub background: Option<Rgb24>,
+}
+
+impl ViewCellInfo {
+    pub fn new() -> Self {
+        Default::default()
+    }
+    pub fn with_character(mut self, character: char) -> Self {
+        self.character = Some(character);
+        self
+    }
+    pub fn with_bold(mut self, bold: bool) -> Self {
+        self.bold = Some(bold);
+        self
+    }
+    pub fn with_underline(mut self, underline: bool) -> Self {
+        self.underline = Some(underline);
+        self
+    }
+    pub fn with_foreground(mut self, foreground: Rgb24) -> Self {
+        self.foreground = Some(foreground);
+        self
+    }
+    pub fn with_background(mut self, background: Rgb24) -> Self {
+        self.background = Some(background);
+        self
+    }
 }
 
 /// A grid of cells
 pub trait ViewGrid {
-    type Cell: ViewCell;
-    fn get_mut(&mut self, coord: Coord, depth: i32) -> Option<&mut Self::Cell>;
+    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCellInfo);
 }
 
 /// Defines a method for rendering a `T` to the terminal.
 pub trait View<T: ?Sized> {
     /// Update the cells in `grid` to describe how a type should be rendered.
+    /// This mutably borrows `self` to allow the view to contain buffers/caches which
+    /// are updated during rendering.
     fn view<G: ViewGrid>(&mut self, data: &T, offset: Coord, depth: i32, grid: &mut G);
 }
 

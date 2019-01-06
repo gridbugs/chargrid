@@ -76,10 +76,7 @@ impl View<RichText> for DefaultRichTextView {
                         coord.x = offset.x;
                     }
                     _ => {
-                        if let Some(cell) = grid.get_mut(coord, depth) {
-                            cell.set_character(ch);
-                            part.info.write_cell(cell);
-                        }
+                        grid.set_cell(coord, depth, part.info.view_cell_info(ch));
                         coord.x += 1;
                         if coord.x == bottom_right_abs.x {
                             coord.x = offset.x;

@@ -1,18 +1,15 @@
 {
-  "name": "title_wasm",
-  "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
-  "dependencies": {
-    "prototty-terminal-js": "file:../../../terminal-js"
+  "scripts": {
+    "serve": "webpack-dev-server"
   },
   "devDependencies": {
+    "copy-webpack-plugin": "^4.6.0",
     "webpack": "^4.28.3",
-    "webpack-cli": "^3.2.0"
+    "webpack-cli": "^3.2.0",
+    "webpack-dev-server": "^3.1.14",
+    "webpack-shell-plugin": "^0.5.0"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Stephen Sherratt <sfsherratt@gmail.com> (https://gridbugs.org)",
-  "license": "MIT"
+  "dependencies": {
+    "prototty-wasm-render-js": "file:../../../wasm-render-js"
+  }
 }

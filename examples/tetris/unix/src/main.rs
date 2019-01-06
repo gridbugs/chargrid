@@ -2,7 +2,6 @@ extern crate prototty_unix;
 extern crate rand;
 extern crate tetris_prototty;
 
-use prototty_unix::prototty_render::Renderer;
 use prototty_unix::Context;
 use std::thread;
 use std::time::Duration;

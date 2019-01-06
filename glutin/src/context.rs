@@ -347,11 +347,12 @@ impl<'a> Context<'a> {
 
         self.grid.resize(window_size_in_cells);
     }
-}
 
-impl<'a> Renderer for Context<'a> {
-    type Error = Error;
-    fn render_at<V: View<T>, T>(
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
+        self.render_at(view, data, Coord::new(0, 0), 0)
+    }
+
+    pub fn render_at<V: View<T>, T>(
         &mut self,
         view: &mut V,
         data: &T,
@@ -416,7 +417,8 @@ impl<'a> Renderer for Context<'a> {
 
         Ok(())
     }
-    fn size(&self) -> Size {
+
+    pub fn size(&self) -> Size {
         self.grid.size()
     }
 }

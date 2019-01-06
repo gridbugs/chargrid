@@ -1,27 +1,27 @@
-extern crate prototty_mono_storage;
+extern crate prototty_monolithic_storage;
 extern crate serde;
 extern crate wasm_bindgen;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
-pub use prototty_mono_storage::{LoadError, Storage, StoreError};
-use prototty_mono_storage::{MonoStorage, StoreBytes};
-
+pub use prototty_monolithic_storage::{LoadError, Storage, StoreError};
+use prototty_monolithic_storage::{MonoStorage, StoreBytes};
 use wasm_bindgen::prelude::*;
+
 #[wasm_bindgen(module = "prototty-wasm-storage-js")]
 extern "C" {
     pub type JsByteStorage;
 
     #[wasm_bindgen(method)]
-    fn load(this: &JsByteStorage) -> Vec<u8>;
+    fn js_load(this: &JsByteStorage) -> Vec<u8>;
 
     #[wasm_bindgen(method)]
-    fn store(this: &JsByteStorage, data: &[u8]);
+    fn js_store(this: &JsByteStorage, data: &[u8]);
 }
 
 impl StoreBytes for JsByteStorage {
     fn store(&mut self, bytes: &[u8]) {
-        JsByteStorage::store(self, bytes);
+        self.js_store(bytes);
     }
 }
 
@@ -29,7 +29,7 @@ pub struct WasmStorage(MonoStorage<JsByteStorage>);
 
 impl WasmStorage {
     pub fn new(js_byte_storage: JsByteStorage) -> Self {
-        let existing_data = js_byte_storage.load();
+        let existing_data = js_byte_storage.js_load();
         WasmStorage(MonoStorage::from_bytes_or_empty(
             &existing_data,
             js_byte_storage,

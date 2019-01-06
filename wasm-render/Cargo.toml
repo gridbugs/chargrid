@@ -1,17 +1,18 @@
 [package]
-name = "prototty_grid"
-description = "Implementation of prototty_render::ViewGrid for use in renderers."
+name = "prototty_wasm_render"
+description = "Implementation of prototty_render::ViewGrid for use in wasm frontend."
 version = "0.21.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
-documentation = "https://docs.rs/prototty_grid"
+documentation = "https://docs.rs/prototty_wasm_render"
+
 
 [features]
-serialize = ["prototty_render/serialize", "grid_2d/serialize"]
+serialize = ["prototty_render/serialize"]
 
 [dependencies]
 prototty_render = { path = "../render", version = "0.21" }
-grid_2d = "0.12"
+wasm-bindgen = "0.2"

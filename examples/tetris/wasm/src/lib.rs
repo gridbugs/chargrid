@@ -7,7 +7,6 @@ use rand::SeedableRng;
 use std::time::Duration;
 
 use prototty_wasm::prototty_input::Input as ProtottyInput;
-use prototty_wasm::prototty_render::Renderer;
 use prototty_wasm::*;
 
 use tetris_prototty::{App, AppView, ControlFlow};
@@ -45,7 +44,7 @@ impl WebApp {
                 }
             }
         }
-        self.context.render(&mut self.app_view, &self.app).unwrap();
+        self.context.render(&mut self.app_view, &self.app);
     }
 }
 

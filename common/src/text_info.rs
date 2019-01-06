@@ -1,4 +1,4 @@
-use prototty_render::{Rgb24, ViewCell};
+use prototty_render::{Rgb24, ViewCellInfo};
 
 /// Rich text settings
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -43,14 +43,13 @@ impl TextInfo {
     pub fn bold(self) -> Self {
         Self { bold: true, ..self }
     }
-    pub fn write_cell<C: ViewCell>(&self, cell: &mut C) {
-        if let Some(foreground_colour) = self.foreground_colour {
-            cell.set_foreground_colour(foreground_colour);
+    pub fn view_cell_info(&self, character: char) -> ViewCellInfo {
+        ViewCellInfo {
+            character: Some(character),
+            foreground: self.foreground_colour,
+            background: self.background_colour,
+            underline: Some(self.underline),
+            bold: Some(self.bold),
         }
-        if let Some(background_colour) = self.background_colour {
-            cell.set_background_colour(background_colour);
-        }
-        cell.set_bold(self.bold);
-        cell.set_underline(self.underline);
     }
 }
