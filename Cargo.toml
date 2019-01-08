@@ -11,6 +11,7 @@ members = [
     "input",
     "file-storage",
     "monolithic-storage",
+    "wasm-input",
     "wasm-render",
     "wasm-storage",
 

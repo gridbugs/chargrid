@@ -27,8 +27,7 @@ impl WebApp {
         }
     }
 
-    pub fn run(&mut self, js_renderer: &JsRenderer) {
-        self.js_grid.view(&mut self.view, &self.app);
-        js_renderer.js_render(&self.js_grid);
+    pub fn run(&mut self) {
+        self.js_grid.render(&mut self.view, &self.app);
     }
 }

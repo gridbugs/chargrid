@@ -24,7 +24,6 @@ where
     pub background_colour: B,
     foreground_depth: i32,
     background_depth: i32,
-    access_depth: i32,
 }
 
 impl<F, B> CommonCell<F, B>
@@ -32,34 +31,34 @@ where
     F: From<Rgb24> + DefaultForeground,
     B: From<Rgb24> + DefaultBackground,
 {
-    pub fn set_character(&mut self, character: char) {
-        if self.access_depth >= self.foreground_depth {
+    fn set_character(&mut self, character: char, depth: i32) {
+        if depth >= self.foreground_depth {
             self.character = character;
-            self.foreground_depth = self.access_depth;
+            self.foreground_depth = depth;
         }
     }
-    pub fn set_bold(&mut self, bold: bool) {
-        if self.access_depth >= self.foreground_depth {
+    fn set_bold(&mut self, bold: bool, depth: i32) {
+        if depth >= self.foreground_depth {
             self.bold = bold;
-            self.foreground_depth = self.access_depth;
+            self.foreground_depth = depth;
         }
     }
-    pub fn set_underline(&mut self, underline: bool) {
-        if self.access_depth >= self.foreground_depth {
+    fn set_underline(&mut self, underline: bool, depth: i32) {
+        if depth >= self.foreground_depth {
             self.underline = underline;
-            self.foreground_depth = self.access_depth;
+            self.foreground_depth = depth;
         }
     }
-    pub fn set_foreground_colour(&mut self, colour: Rgb24) {
-        if self.access_depth >= self.foreground_depth {
+    fn set_foreground_colour(&mut self, colour: Rgb24, depth: i32) {
+        if depth >= self.foreground_depth {
             self.foreground_colour = colour.into();
-            self.foreground_depth = self.access_depth;
+            self.foreground_depth = depth;
         }
     }
-    pub fn set_background_colour(&mut self, colour: Rgb24) {
-        if self.access_depth >= self.background_depth {
+    fn set_background_colour(&mut self, colour: Rgb24, depth: i32) {
+        if depth >= self.background_depth {
             self.background_colour = colour.into();
-            self.background_depth = self.access_depth;
+            self.background_depth = depth;
         }
     }
 }
@@ -78,7 +77,6 @@ where
             background_colour: B::default_background(),
             foreground_depth: 0,
             background_depth: 0,
-            access_depth: 0,
         }
     }
 }
@@ -141,21 +139,20 @@ where
     fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCellInfo) {
         if let Some(cell) = self.cells.get_mut(coord) {
             if cell.foreground_depth <= depth || cell.background_depth <= depth {
-                cell.access_depth = depth;
                 if let Some(character) = info.character {
-                    cell.set_character(character);
+                    cell.set_character(character, depth);
                 }
                 if let Some(bold) = info.bold {
-                    cell.set_bold(bold);
+                    cell.set_bold(bold, depth);
                 }
                 if let Some(underline) = info.underline {
-                    cell.set_underline(underline);
+                    cell.set_underline(underline, depth);
                 }
                 if let Some(foreground) = info.foreground {
-                    cell.set_foreground_colour(foreground);
+                    cell.set_foreground_colour(foreground, depth);
                 }
                 if let Some(background) = info.background {
-                    cell.set_background_colour(background);
+                    cell.set_background_colour(background, depth);
                 }
             }
         }

@@ -69,7 +69,6 @@ impl Context {
         depth: i32,
     ) -> Result<()> {
         self.resize_if_necessary()?;
-
         self.grid.clear();
         view.view(data, offset, depth, &mut self.grid);
         self.terminal.draw_grid(&self.grid)

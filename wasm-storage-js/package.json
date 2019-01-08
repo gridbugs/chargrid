@@ -1,6 +1,6 @@
 {
     "name": "prototty-wasm-storage-js",
-    "version": "0.22.0",
+    "version": "0.1.0",
     "description": "The javascript counterpart to the prototty_wasm_storage crate.",
     "main": "index.js",
     "homepage": "https://github.com/stevebob/prototty/tree/master/wasm-storage-js",

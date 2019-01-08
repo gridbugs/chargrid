@@ -1,18 +1,16 @@
 {
-    "name": "wasm_app",
-    "version": "0.1.0",
-    "description": "",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "",
-    "license": "MIT",
-    "devDependencies": {
-        "webpack": "^4.28.3",
-        "webpack-cli": "^3.2.0"
-    },
-    "dependencies": {
-        "jquery": "^3.3.1",
-        "prototty-terminal-js": "file:../../../terminal-js"
-    }
+  "scripts": {
+    "serve": "webpack-dev-server"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^4.6.0",
+    "webpack": "^4.28.3",
+    "webpack-cli": "^3.2.0",
+    "webpack-dev-server": "^3.1.14",
+    "webpack-shell-plugin": "^0.5.0"
+  },
+  "dependencies": {
+    "prototty-wasm-render-js": "file:../../../wasm-render-js",
+    "prototty-wasm-input-js": "file:../../../wasm-input-js"
+  }
 }

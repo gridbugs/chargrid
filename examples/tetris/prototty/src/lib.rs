@@ -87,7 +87,7 @@ impl View<Tetris> for TetrisNextPieceView {
                 bold: Some(true),
                 underline: Some(false),
                 foreground: Some(FOREGROUND_COLOUR),
-                background: Some(piece_colour(tetris.game_state.piece.typ)),
+                background: Some(piece_colour(tetris.game_state.next_piece.typ)),
             };
             grid.set_cell(offset + coord, depth, cell_info);
         }

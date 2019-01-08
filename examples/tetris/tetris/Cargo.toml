@@ -3,6 +3,9 @@ name = "tetris"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
+[features]
+wasm-bindgen = [ "rand/wasm-bindgen" ]
+
 [dependencies]
 rand = "0.6"
 grid_2d = "0.12"

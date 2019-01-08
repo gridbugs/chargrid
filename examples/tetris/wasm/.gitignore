@@ -1,3 +1,6 @@
-node_modules
-**/bundle.js
-**/bundle.js.map
+/target
+**/*.rs.bk
+/wasm_out
+/dist
+/node_modules
+package-lock.json
