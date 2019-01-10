@@ -13,15 +13,18 @@ cargo clean
 
 pushd $DIR/examples/tetris/wasm
 npm install
+./build_wasm.sh
 npx webpack
 popd
 
 pushd $DIR/examples/title/wasm
 npm install
+./build_wasm.sh
 npx webpack
 popd
 
 pushd $DIR/examples/fib/wasm
 npm install
+./build_wasm.sh
 npx webpack
 popd
