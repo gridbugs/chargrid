@@ -16,3 +16,4 @@ mod terminal;
 
 pub use self::context::*;
 pub use self::error::*;
+pub use prototty_render::{Coord, Size};

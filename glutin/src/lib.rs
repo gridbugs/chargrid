@@ -17,3 +17,4 @@ mod formats;
 mod input;
 
 pub use context::*;
+pub use prototty_render::{Coord, Size};

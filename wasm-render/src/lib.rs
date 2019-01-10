@@ -1,7 +1,8 @@
 pub extern crate prototty_render;
 extern crate wasm_bindgen;
 
-use prototty_render::{Coord, Rgb24, View, ViewCellInfo, ViewGrid};
+pub use prototty_render::{Coord, Size};
+use prototty_render::{Rgb24, View, ViewCellInfo, ViewGrid};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "prototty-wasm-render-js")]

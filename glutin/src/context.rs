@@ -73,18 +73,38 @@ impl<'a> ContextBuilder<'a> {
         }
     }
 
-    pub fn with_cell_dimensions(self, width: u32, height: u32) -> Self {
+    pub fn with_cell_dimensions(self, size: Size) -> Self {
         Self {
-            cell_dimensions: Some(Size::new(width, height)),
+            cell_dimensions: Some(size),
             ..self
         }
     }
 
-    pub fn with_window_dimensions(self, width: u32, height: u32) -> Self {
+    pub fn with_window_dimensions(self, size: Size) -> Self {
         Self {
             window_builder: self.window_builder.with_dimensions(LogicalSize {
-                width: width as f64,
-                height: height as f64,
+                width: size.width() as f64,
+                height: size.height() as f64,
+            }),
+            ..self
+        }
+    }
+
+    pub fn with_min_window_dimensions(self, size: Size) -> Self {
+        Self {
+            window_builder: self.window_builder.with_min_dimensions(LogicalSize {
+                width: size.width() as f64,
+                height: size.height() as f64,
+            }),
+            ..self
+        }
+    }
+
+    pub fn with_max_window_dimensions(self, size: Size) -> Self {
+        Self {
+            window_builder: self.window_builder.with_max_dimensions(LogicalSize {
+                width: size.width() as f64,
+                height: size.height() as f64,
             }),
             ..self
         }
@@ -132,9 +152,9 @@ impl<'a> ContextBuilder<'a> {
         }
     }
 
-    pub fn with_max_grid_size(self, width: u32, height: u32) -> Self {
+    pub fn with_max_grid_size(self, size: Size) -> Self {
         Self {
-            max_grid_size: Some(Size::new(width, height)),
+            max_grid_size: Some(size),
             ..self
         }
     }

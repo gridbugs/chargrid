@@ -35,6 +35,36 @@ impl ViewCellInfo {
         self.background = Some(background);
         self
     }
+    pub fn set_character(&mut self, character: char) {
+        self.character = Some(character);
+    }
+    pub fn clear_character(&mut self) {
+        self.character = None;
+    }
+    pub fn set_bold(&mut self, bold: bool) {
+        self.bold = Some(bold);
+    }
+    pub fn clear_bold(&mut self) {
+        self.bold = None;
+    }
+    pub fn set_underline(&mut self, underline: bool) {
+        self.underline = Some(underline);
+    }
+    pub fn clear_underline(&mut self) {
+        self.underline = None;
+    }
+    pub fn set_foreground(&mut self, foreground: Rgb24) {
+        self.foreground = Some(foreground);
+    }
+    pub fn clear_foreground(&mut self) {
+        self.foreground = None;
+    }
+    pub fn set_background(&mut self, background: Rgb24) {
+        self.background = Some(background);
+    }
+    pub fn clear_background(&mut self) {
+        self.background = None;
+    }
 }
 
 /// A grid of cells
