@@ -119,6 +119,8 @@ class Cell {
         return this.cell_node.element();
     }
     clear() {
+        this.foreground_depth = 0;
+        this.background_depth = 0;
         this.next_data.clear();
     }
     set(depth, character, bold, underline, foreground, background) {
