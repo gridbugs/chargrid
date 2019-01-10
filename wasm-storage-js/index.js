@@ -3,13 +3,13 @@
 import localforage from 'localforage';
 
 export class JsByteStorage {
-    load() {
+    js_load() {
         return this.data;
     }
-    clear() {
+    js_clear() {
         this.store(new Uint8Array());
     }
-    store(data) {
+    js_store(data) {
         this.data = data;
         return localforage.setItem(this.key, this.data);
     }
