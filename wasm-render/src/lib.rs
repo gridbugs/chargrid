@@ -22,7 +22,10 @@ extern "C" {
     );
 
     #[wasm_bindgen(method)]
-    fn clear(this: &JsGrid);
+    fn js_clear(this: &JsGrid);
+
+    #[wasm_bindgen(method)]
+    fn js_render(this: &JsGrid);
 }
 
 fn rgb24_to_js_string(Rgb24 { red, green, blue }: Rgb24) -> String {
@@ -58,8 +61,9 @@ impl ViewGrid for JsGrid {
 
 impl JsGrid {
     pub fn render_at<V: View<T>, T>(&mut self, view: &mut V, data: &T, offset: Coord, depth: i32) {
-        self.clear();
+        self.js_clear();
         view.view(data, offset, depth, self);
+        self.js_render();
     }
     pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) {
         self.render_at(view, data, Coord::new(0, 0), 0);

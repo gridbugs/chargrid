@@ -13,6 +13,8 @@ matrix:
   - rust: nightly
 dist: trusty
 before_script:
+  - cargo install wasm-bindgen-cli
   - npm install -g npx
+  - rustup target add wasm32-unknown-unknown
 script:
 - ./test.sh

@@ -23,7 +23,7 @@ members = [
 
     "examples/fib/fib",
     "examples/fib/file",
-    "examples/fib/web",
+    "examples/fib/wasm",
 
     "examples/tetris/tetris",
     "examples/tetris/prototty",

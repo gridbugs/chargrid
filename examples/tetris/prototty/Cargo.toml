@@ -3,9 +3,6 @@ name = "tetris_prototty"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
-[features]
-wasm-bindgen = [ "rand/wasm-bindgen", "tetris/wasm-bindgen" ]
-
 [dependencies]
 tetris = { path = "../tetris" }
 prototty_render = { path = "../../../render", version = "0.21" }

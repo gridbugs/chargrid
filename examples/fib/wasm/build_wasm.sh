@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-WASM_FILE=web.wasm
+WASM_FILE=wasm.wasm
 
 if [ "$#" -ne 1 ]; then
     echo "Usage $0 (release|debug)"

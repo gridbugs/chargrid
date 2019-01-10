@@ -34,9 +34,8 @@ export function installStyleSheet(config) {
     document.head.appendChild(styleSheet(config));
 }
 
-class Cell {
-    constructor(node) {
-        this.node = node;
+class CellData {
+    constructor() {
         this.clear();
     }
     clear() {
@@ -45,52 +44,117 @@ class Cell {
         this.underline = false;
         this.foreground = "rgb(255,255,255)";
         this.background = "rgb(0,0,0)";
+    }
+}
+
+class Node {
+    constructor(element) {
+        this.element = element;
+    }
+    set_character(character) {
+        this.element.innerHTML = character;
+    }
+    set_bold(bold) {
+        this.element.style.fontWeight = bold ? "bold" : "normal";
+    }
+    set_underline(underline) {
+        this.element.style.textDecoration = underline ? "underline" : "none";
+    }
+    set_foreground(foreground) {
+        this.element.style.color = foreground;
+    }
+    set_background(background) {
+        this.element.style.backgroundColor = background;
+    }
+    set_data(data) {
+        this.set_character(data.character);
+        this.set_bold(data.bold);
+        this.set_underline(data.underline);
+        this.set_foreground(data.foreground);
+        this.set_background(data.background);
+    }
+}
+
+class CellNode {
+    constructor(node) {
+        this.node = node;
+        this.data = new CellData();
+        this.node.set_data(this.data);
+    }
+    element() {
+        return this.node.element;
+    }
+    update(data) {
+        if (this.data.character !== data.character) {
+            this.node.set_character(data.character);
+            this.data.character = data.characater;
+        }
+        if (this.data.bold !== data.bold) {
+            this.node.set_bold(data.bold);
+            this.data.bold = data.bold;
+        }
+        if (this.data.underline !== data.underline) {
+            this.node.set_underline(data.underline);
+            this.data.underline = data.underline;
+        }
+        if (this.data.foreground !== data.foreground) {
+            this.node.set_foreground(data.foreground);
+            this.data.foreground = data.foreground;
+        }
+        if (this.data.background !== data.background) {
+            this.node.set_background(data.background);
+            this.data.background = data.background;
+        }
+    }
+}
+
+class Cell {
+    constructor() {
+        this.cell_node = new CellNode(new Node(document.createElement("span")));
+        this.next_data = new CellData();
         this.foreground_depth = 0;
         this.background_depth = 0;
-        this.node.innerHTML = this.character;
-        this.node.style.fontWeight = "normal";
-        this.node.style.textDecoration = "none";
-        this.node.style.color = this.foreground;
-        this.node.style.backgroundColor = this.background;
+    }
+    element() {
+        return this.cell_node.element();
+    }
+    clear() {
+        this.next_data.clear();
     }
     set(depth, character, bold, underline, foreground, background) {
-        if (depth >= this.background_depth) {
-            if (background !== null && this.background !== background) {
+        if (background !== null) {
+            if (depth >= this.background_depth) {
                 this.background_depth = depth;
-                this.background = background;
-                this.node.style.backgroundColor = this.background;
+                this.next_data.background = background;
             }
         }
-        if (depth >= this.foreground_depth) {
-            if (character !== null && this.character !== character) {
+        if (character !== null) {
+            if (depth >= this.foreground_depth) {
                 this.foreground_depth = depth;
-                this.character = character;
-                this.node.innerHTML = this.character;
-            }
-            if (bold !== null && this.bold !== bold) {
-                this.foreground_depth = depth;
-                this.bold = bold;
-                if (this.bold) {
-                    this.node.style.fontWeight = "bold";
-                } else {
-                    this.node.style.fontWeight = "normal";
-                }
-            }
-            if (underline !== null && this.underline !== underline) {
-                this.foreground_depth = depth;
-                this.underline = underline;
-                if (this.underline) {
-                    this.node.style.textDecoration = "underline";
-                } else {
-                    this.node.style.textDecoration = "none";
-                }
-            }
-            if (foreground !== null && this.foreground !== foreground) {
-                this.foreground_depth = depth;
-                this.foreground = foreground;
-                this.node.style.color = this.foreground;
+                this.next_data.character = character;
             }
         }
+        if (bold !== null) {
+            if (depth >= this.foreground_depth) {
+                this.foreground_depth = depth;
+                this.next_data.bold = bold;
+            }
+        }
+        if (underline !== null) {
+            if (depth >= this.foreground_depth) {
+                this.foreground_depth = depth;
+                this.next_data.underline = underline;
+            }
+        }
+        if (foreground !== null) {
+            if (depth >= this.foreground_depth) {
+                this.foreground_depth = depth;
+                this.next_data.foreground = foreground;
+            }
+        }
+    }
+    render() {
+        this.cell_node.update(this.next_data);
     }
 }
 
@@ -103,18 +167,11 @@ export class JsGrid {
         this.cells = [];
         for (let i = 0; i < height; i++) {
             for (let j = 0; j < width; j++) {
-                let node = document.createElement("span");
-                let cell = new Cell(node);
+                let cell = new Cell();
                 this.cells.push(cell);
-                this.node.appendChild(node);
+                this.node.appendChild(cell.element());
             }
             this.node.appendChild(document.createElement("br"));
-        }
-    }
-    clear() {
-        return;
-        for (let cell of this.cells) {
-            cell.set(0, "&nbsp", null, null, "rgb(255,255,255)", "rgb(0,0,0)");
         }
     }
     js_set_cell(x, y, depth, character, bold, underline, foreground, background) {
@@ -127,5 +184,15 @@ export class JsGrid {
         let index = y * this.width + x;
         let cell = this.cells[index];
         cell.set(depth, character, bold, underline, foreground, background);
+    }
+    js_clear() {
+        for (let cell of this.cells) {
+            cell.clear();
+        }
+    }
+    js_render() {
+        for (let cell of this.cells) {
+            cell.render();
+        }
     }
 }

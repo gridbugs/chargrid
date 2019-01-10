@@ -9,8 +9,19 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cargo test
 cargo test --features=serialize
 
-rustup target add wasm32-unknown-unknown
-cargo install --git https://github.com/alexcrichton/wasm-gc || true
+cargo clean
 
-$DIR/examples/tetris/wasm/build.sh --with-npm-install
-$DIR/examples/title/wasm/build.sh --with-npm-install
+pushd $DIR/examples/tetris/wasm
+npm install
+npx webpack
+popd
+
+pushd $DIR/examples/title/wasm
+npm install
+npx webpack
+popd
+
+pushd $DIR/examples/fib/wasm
+npm install
+npx webpack
+popd
