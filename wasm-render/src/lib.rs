@@ -5,7 +5,7 @@ pub use prototty_render::{Coord, Size};
 use prototty_render::{Rgb24, View, ViewCell, ViewGrid};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "prototty-wasm-render-js")]
+#[wasm_bindgen]
 extern "C" {
     pub type JsGrid;
 

@@ -10,7 +10,6 @@
     "webpack-shell-plugin": "^0.5.0"
   },
   "dependencies": {
-    "prototty-wasm-render-js": "file:../../../wasm-render-js",
-    "prototty-wasm-input-js": "file:../../../wasm-input-js"
+    "prototty": "file:../../../prototty-js"
   }
 }

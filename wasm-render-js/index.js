@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 function lookup_default(obj, key, def) {
     let val = obj[key];
@@ -30,7 +30,7 @@ function styleSheet(config) {
     return style_sheet;
 }
 
-export function installStyleSheet(config) {
+export function installStyleSheet_(config) {
     document.head.appendChild(styleSheet(config));
 }
 
@@ -160,8 +160,41 @@ class Cell {
     }
 }
 
+export const DEFAULT_CONFIG = {
+    font_family: "monospace",
+    font_size: "24px",
+    cell_width_px: 14,
+    cell_height_px: 28,
+};
+
+function installStyleSheet(node, config) {
+    let style_sheet = `
+        #${node.id} {
+            font-family: ${config.font_family};
+            font-size: ${config.font_size};
+        }
+        #${node.id} br {
+            line-height: 0px;
+            margin: 0px;
+            padding: 0px;
+        }
+        #${node.id} span {
+            display: inline-block;
+            margin: 0px;
+            padding: 0px;
+            height: ${config.cell_height_px}px;
+            width: ${config.cell_width_px}px;
+        }
+    `;
+    let element = document.createElement("style");
+    element.innerHTML = style_sheet;
+    document.head.appendChild(element);
+}
+
 export class JsGrid {
-    constructor(node, width, height) {
+    constructor(node, width, height, config = DEFAULT_CONFIG) {
+        installStyleSheet(node, config);
+        this.config = config;
         this.width = width;
         this.height = height;
         this.node = node;
@@ -196,5 +229,17 @@ export class JsGrid {
         for (let cell of this.cells) {
             cell.render();
         }
+    }
+    nodeXOffset() {
+        return this.node.getBoundingClientRect().x;
+    }
+    nodeYOffset() {
+        return this.node.getBoundingClientRect().y;
+    }
+    nodeCellWidth() {
+        return this.config.cell_width_px;
+    }
+    nodeCellHeight() {
+        return this.config.cell_height_px;
     }
 }

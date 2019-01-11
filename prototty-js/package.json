@@ -1,9 +1,9 @@
 {
-    "name": "prototty_storage",
+    "name": "prototty",
     "version": "0.1.0",
-    "description": "The javascript counterpart to the prototty_wasm_storage crate.",
+    "description": "Wrapper of prototty js libraries",
     "main": "index.js",
-    "homepage": "https://github.com/stevebob/prototty/tree/master/wasm-storage-js",
+    "homepage": "https://github.com/stevebob/prototty/tree/master/prototty-js",
     "bugs": {
         "url": "https://github.com/stevebob/prototty/issues"
     },
@@ -17,6 +17,8 @@
     "author": "Stephen Sherratt",
     "license": "MIT",
     "dependencies": {
-        "localforage": "^1.7.3"
+        "prototty_storage": "file:../wasm-storage-js",
+        "prototty_render": "file:../wasm-render-js",
+        "prototty_input": "file:../wasm-input-js"
     }
 }

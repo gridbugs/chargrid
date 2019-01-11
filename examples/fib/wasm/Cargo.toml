@@ -7,6 +7,6 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
-prototty_wasm_storage = { path = "../../../wasm-storage", version = "0.21" }
+prototty_wasm_storage = { path = "../../../wasm-storage" }
 fib = { path = "../fib" }
 wasm-bindgen = "0.2"

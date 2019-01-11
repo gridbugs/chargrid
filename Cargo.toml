@@ -32,5 +32,5 @@ members = [
     "examples/tetris/unix",
     "examples/tetris/wasm",
 
-    "examples/serialize",
+    "examples/optional_features",
 ]

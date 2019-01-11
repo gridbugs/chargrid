@@ -1,5 +1,5 @@
 {
-    "name": "prototty-wasm-render-js",
+    "name": "prototty_render",
     "version": "0.1.0",
     "description": "The javascript counterpart to the prototty_wasm_render crate.",
     "main": "index.js",

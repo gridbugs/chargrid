@@ -8,7 +8,7 @@ pub use prototty_monolithic_storage::{LoadError, Storage, StoreError};
 use prototty_monolithic_storage::{MonoStorage, StoreBytes};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "prototty-wasm-storage-js")]
+#[wasm_bindgen]
 extern "C" {
     pub type JsByteStorage;
 

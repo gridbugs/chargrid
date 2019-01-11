@@ -7,7 +7,7 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
-prototty_wasm = { path = "../../../wasm", version = "0.21" }
+prototty_wasm = { path = "../../../wasm" }
 tetris_prototty = { path = "../prototty" }
 wasm-bindgen = "0.2"
 rand = { version = "0.6", features = ["wasm-bindgen"] }

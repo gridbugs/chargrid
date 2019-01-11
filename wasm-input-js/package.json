@@ -1,5 +1,5 @@
 {
-    "name": "prototty-wasm-input-js",
+    "name": "prototty_input",
     "version": "0.1.0",
     "description": "The javascript counterpart to the prototty_wasm_input crate.",
     "main": "index.js",

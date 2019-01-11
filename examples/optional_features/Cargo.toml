@@ -1,0 +1,10 @@
+[package]
+name = "optional_features"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+prototty_glutin = { path = "../../glutin", features = ["storage", "serialize"] }
+prototty_unix = { path = "../../unix", features = ["storage", "serialize"] }
+prototty_wasm = { path = "../../wasm", features = ["storage", "serialize"] }
+prototty = { path = "../../prototty", features = ["storage", "serialize"] }
