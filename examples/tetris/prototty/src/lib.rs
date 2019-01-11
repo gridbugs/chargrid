@@ -1,13 +1,9 @@
-extern crate prototty_common;
-extern crate prototty_input;
-extern crate prototty_render;
+extern crate prototty;
 extern crate rand;
 extern crate tetris;
 
-use prototty_common::*;
-use prototty_input::inputs::*;
-use prototty_input::Input as ProtottyInput;
-use prototty_render::*;
+use prototty::*;
+use prototty_inputs::*;
 use rand::Rng;
 use std::collections::VecDeque;
 use std::time::Duration;

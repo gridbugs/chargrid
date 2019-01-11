@@ -1,0 +1,10 @@
+[package]
+name = "serialize"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+prototty_glutin = { path = "../../glutin", version = "0.21", features = ["storage", "serialize"] }
+prototty_unix = { path = "../../unix", version = "0.21", features = ["storage", "serialize"] }
+prototty_wasm = { path = "../../wasm", version = "0.21", features = ["storage", "serialize"] }
+prototty = { path = "../../prototty", version = "0.21", features = ["serialize"] }

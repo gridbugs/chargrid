@@ -1,13 +1,9 @@
-#[macro_use]
-extern crate itertools;
-extern crate prototty_grid;
-pub extern crate prototty_input;
-pub extern crate prototty_render;
+extern crate prototty_wasm_input;
+extern crate prototty_wasm_render;
+#[cfg(features = "storage")]
+extern crate prototty_wasm_storage;
 
-pub mod alloc;
-mod cell;
-mod context;
-pub mod input;
-mod terminal;
-
-pub use context::*;
+pub use prototty_wasm_input::*;
+pub use prototty_wasm_render::*;
+#[cfg(features = "storage")]
+pub use prototty_wasm_storage::*;

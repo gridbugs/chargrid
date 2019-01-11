@@ -1,17 +1,16 @@
-extern crate prototty_wasm_input;
-extern crate prototty_wasm_render;
+extern crate prototty_wasm;
 extern crate rand;
 extern crate tetris_prototty;
 extern crate wasm_bindgen;
 
-use prototty_wasm_render::*;
+use prototty_wasm::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::time::Duration;
 use tetris_prototty::*;
 use wasm_bindgen::prelude::*;
 
-pub use prototty_wasm_input::InputBuffer;
+pub use prototty_wasm::InputBuffer;
 
 #[wasm_bindgen]
 pub struct WebApp {

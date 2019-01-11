@@ -11,11 +11,13 @@ documentation = "https://docs.rs/prototty_unix"
 
 [features]
 serialize = ["prototty_render/serialize", "prototty_input/serialize", "prototty_grid/serialize", "ansi_colour/serialize"]
+storage = ["prototty_file_storage"]
 
 [dependencies]
 prototty_render = { path = "../render", version = "0.21" }
 prototty_input = { path = "../input", version = "0.21" }
 prototty_grid = { path = "../grid", version = "0.21" }
+prototty_file_storage = { path = "../file-storage", version = "0.21", optional = true }
 libc = "0.2"
 term = "0.5"
 ansi_colour = "0.5"

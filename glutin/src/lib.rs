@@ -6,6 +6,8 @@ extern crate gfx_window_glutin;
 extern crate glutin;
 #[macro_use]
 extern crate itertools;
+#[cfg(feature = "storage")]
+extern crate prototty_file_storage;
 extern crate prototty_grid;
 pub extern crate prototty_input;
 pub extern crate prototty_render;
@@ -18,3 +20,6 @@ mod input;
 
 pub use context::*;
 pub use prototty_render::{Coord, Size};
+
+#[cfg(feature = "storage")]
+pub use prototty_file_storage::{FileStorage, LoadError, Storage, StoreError};

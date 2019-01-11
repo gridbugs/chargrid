@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euxo pipefail
 
 export RUSTFLAGS="--deny warnings"
 

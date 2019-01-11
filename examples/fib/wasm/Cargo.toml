@@ -1,5 +1,5 @@
 [package]
-name = "wasm"
+name = "fib_wasm"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 

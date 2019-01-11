@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "prototty",
     "render",
     "common",
     "grid",
@@ -30,4 +31,6 @@ members = [
     "examples/tetris/glutin",
     "examples/tetris/unix",
     "examples/tetris/wasm",
+
+    "examples/serialize",
 ]

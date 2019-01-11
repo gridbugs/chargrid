@@ -72,10 +72,10 @@ impl InputBuffer {
     }
 }
 
-pub type Iter<'a> = iter::Cloned<slice::Iter<'a, Input>>;
+pub type InputIter<'a> = iter::Cloned<slice::Iter<'a, Input>>;
 
 impl InputBuffer {
-    pub fn iter(&self) -> Iter {
+    pub fn iter(&self) -> InputIter {
         self.inputs.iter().cloned()
     }
 }
