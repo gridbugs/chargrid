@@ -14,7 +14,7 @@ publish() {
     cargo publish --manifest-path unix/Cargo.toml
     cargo publish --manifest-path glutin/Cargo.toml
     cargo publish --manifest-path wasm-input/Cargo.toml
-    cargo publish --manifest-path wasm-renderer/Cargo.toml
+    cargo publish --manifest-path wasm-render/Cargo.toml
     cargo publish --manifest-path wasm-storage/Cargo.toml
     cargo publish --manifest-path wasm/Cargo.toml
 }
