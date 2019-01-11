@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "description": "The javascript counterpart to the prototty_wasm_input crate.",
     "main": "index.js",
-    "homepage": "https://github.com/stevebob/prototty/tree/master/wasm-render-js",
+    "homepage": "https://github.com/stevebob/prototty/tree/master/wasm-input-js",
     "bugs": {
         "url": "https://github.com/stevebob/prototty/issues"
     },

@@ -17,8 +17,8 @@
     "author": "Stephen Sherratt",
     "license": "MIT",
     "dependencies": {
-        "prototty_storage": "file:../wasm-storage-js",
-        "prototty_render": "file:../wasm-render-js",
-        "prototty_input": "file:../wasm-input-js"
+        "prototty_input": "^0.1.0",
+        "prototty_render": "^0.1.0",
+        "prototty_storage": "^0.1.0"
     }
 }
