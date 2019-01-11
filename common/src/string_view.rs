@@ -11,7 +11,7 @@ impl<T: ?Sized + AsRef<str>> View<T> for StringView {
             grid.set_cell(
                 offset + Coord::new(i as i32, 0),
                 depth,
-                ViewCellInfo::new().with_character(ch),
+                ViewCell::new().with_character(ch),
             );
         }
     }

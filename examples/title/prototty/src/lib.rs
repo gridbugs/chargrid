@@ -17,7 +17,7 @@ impl View<Title> for TitleView {
             grid.set_cell(
                 offset + Coord::new(i as i32, 0),
                 depth,
-                ViewCellInfo::new()
+                ViewCell::new()
                     .with_character(ch)
                     .with_bold(true)
                     .with_foreground(Rgb24::new(0, 0, 0))
@@ -36,7 +36,7 @@ impl View<Title> for CenteredTitleView {
             grid.set_cell(
                 offset + Coord::new(space + i as i32, 0),
                 depth,
-                ViewCellInfo::new()
+                ViewCell::new()
                     .with_character(ch)
                     .with_underline(true)
                     .with_foreground(Rgb24::new(255, 127, 0)),

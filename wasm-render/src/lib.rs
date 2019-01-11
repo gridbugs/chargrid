@@ -2,7 +2,7 @@ pub extern crate prototty_render;
 extern crate wasm_bindgen;
 
 pub use prototty_render::{Coord, Size};
-use prototty_render::{Rgb24, View, ViewCellInfo, ViewGrid};
+use prototty_render::{Rgb24, View, ViewCell, ViewGrid};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "prototty-wasm-render-js")]
@@ -34,7 +34,7 @@ fn rgb24_to_js_string(Rgb24 { red, green, blue }: Rgb24) -> String {
 }
 
 impl ViewGrid for JsGrid {
-    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCellInfo) {
+    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCell) {
         let x = coord.x;
         let y = coord.y;
         let character = info

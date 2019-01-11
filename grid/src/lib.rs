@@ -136,7 +136,7 @@ where
     F: From<Rgb24> + DefaultForeground,
     B: From<Rgb24> + DefaultBackground,
 {
-    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCellInfo) {
+    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCell) {
         if let Some(cell) = self.cells.get_mut(coord) {
             if cell.foreground_depth <= depth || cell.background_depth <= depth {
                 if let Some(character) = info.character {

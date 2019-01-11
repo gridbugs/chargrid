@@ -115,7 +115,7 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
                 grid.set_cell(
                     coord,
                     depth,
-                    ViewCellInfo {
+                    ViewCell {
                         character: Some(ch),
                         bold: Some(self.decorator.bold_title),
                         underline: Some(self.decorator.underline_title),
@@ -205,8 +205,8 @@ impl Border {
             y: (self.padding.top + self.padding.bottom + 1) as i32,
         }
     }
-    fn view_cell_info(&self, character: char) -> ViewCellInfo {
-        ViewCellInfo {
+    fn view_cell_info(&self, character: char) -> ViewCell {
+        ViewCell {
             character: Some(character),
             foreground: Some(self.foreground_colour),
             background: Some(self.background_colour),

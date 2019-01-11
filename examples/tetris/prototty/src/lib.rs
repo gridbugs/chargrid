@@ -46,7 +46,7 @@ impl View<Tetris> for TetrisBoardView {
     fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
-                let mut cell_info = ViewCellInfo::new().with_bold(true);
+                let mut cell_info = ViewCell::new().with_bold(true);
                 if let Some(typ) = cell.typ {
                     cell_info.character = Some(BLOCK_CHAR);
                     cell_info.foreground = Some(FOREGROUND_COLOUR);
@@ -60,7 +60,7 @@ impl View<Tetris> for TetrisBoardView {
             }
         }
         for coord in tetris.game_state.piece.coords.iter().cloned() {
-            let cell_info = ViewCellInfo {
+            let cell_info = ViewCell {
                 character: Some(BLOCK_CHAR),
                 bold: Some(true),
                 underline: Some(false),
@@ -82,7 +82,7 @@ impl View<Tetris> for TetrisNextPieceView {
     fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
         let offset = offset + Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
-            let cell_info = ViewCellInfo {
+            let cell_info = ViewCell {
                 character: Some(BLOCK_CHAR),
                 bold: Some(true),
                 underline: Some(false),

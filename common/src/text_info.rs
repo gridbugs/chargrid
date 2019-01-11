@@ -1,4 +1,4 @@
-use prototty_render::{Rgb24, ViewCellInfo};
+use prototty_render::{Rgb24, ViewCell};
 
 /// Rich text settings
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -43,8 +43,8 @@ impl TextInfo {
     pub fn bold(self) -> Self {
         Self { bold: true, ..self }
     }
-    pub fn view_cell_info(&self, character: char) -> ViewCellInfo {
-        ViewCellInfo {
+    pub fn view_cell_info(&self, character: char) -> ViewCell {
+        ViewCell {
             character: Some(character),
             foreground: self.foreground_colour,
             background: self.background_colour,

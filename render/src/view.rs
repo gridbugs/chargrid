@@ -3,7 +3,7 @@ use rgb24::Rgb24;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ViewCellInfo {
+pub struct ViewCell {
     pub character: Option<char>,
     pub bold: Option<bool>,
     pub underline: Option<bool>,
@@ -11,7 +11,7 @@ pub struct ViewCellInfo {
     pub background: Option<Rgb24>,
 }
 
-impl ViewCellInfo {
+impl ViewCell {
     pub fn new() -> Self {
         Default::default()
     }
@@ -69,7 +69,7 @@ impl ViewCellInfo {
 
 /// A grid of cells
 pub trait ViewGrid {
-    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCellInfo);
+    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCell);
 }
 
 /// Defines a method for rendering a `T` to the terminal.
