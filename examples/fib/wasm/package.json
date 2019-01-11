@@ -10,6 +10,6 @@
     "webpack-shell-plugin": "^0.5.0"
   },
   "dependencies": {
-    "prototty-wasm-storage-js": "file:../../../wasm-storage-js"
+    "prototty_storage": "file:../../../wasm-storage-js"
   }
 }

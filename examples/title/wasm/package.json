@@ -10,6 +10,6 @@
     "webpack-shell-plugin": "^0.5.0"
   },
   "dependencies": {
-    "prototty-wasm-render-js": "file:../../../wasm-render-js"
+    "prototty_render": "file:../../../wasm-render-js"
   }
 }
