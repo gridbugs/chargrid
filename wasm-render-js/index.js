@@ -9,31 +9,6 @@ function lookup_default(obj, key, def) {
     }
 }
 
-function styleSheet(config) {
-    let font_family = lookup_default(config, "font_family", "monospace");
-    let font_size = lookup_default(config, "font_size", "16px");
-    let style_sheet = document.createElement("style");
-        style_sheet.innerHTML = `
-            .prototty-terminal br {
-                line-height: 0px;
-                margin: 0px;
-                padding: 0px;
-            }
-            .prototty-terminal span {
-                margin: 0px;
-                padding: 0px;
-                font-family: ${font_family};
-                font-size: ${font_size};
-            }
-
-        `;
-    return style_sheet;
-}
-
-export function installStyleSheet_(config) {
-    document.head.appendChild(styleSheet(config));
-}
-
 class CellData {
     constructor() {
         this.clear();
@@ -172,6 +147,7 @@ function installStyleSheet(node, config) {
         #${node.id} {
             font-family: ${config.font_family};
             font-size: ${config.font_size};
+            line-height: ${config.cell_height_px}px;
         }
         #${node.id} br {
             line-height: 0px;
