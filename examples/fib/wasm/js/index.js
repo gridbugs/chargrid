@@ -1,4 +1,4 @@
-import { JsByteStorage} from 'prototty-wasm-storage-js';
+import { JsByteStorage} from 'prototty_storage';
 const wasm = import('../wasm_out/fib_wasm');
 
 wasm.then(async wasm => {
