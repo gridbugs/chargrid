@@ -1,13 +1,13 @@
 [package]
 name = "prototty_input"
 description = "Normalized input type for prototty applications"
-version = "0.22.0"
+version = "0.22.1"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
-documentation = "https://docs.rs/prototty_storage"
+documentation = "https://docs.rs/prototty_input"
 
 [features]
 serialize = ["serde", "coord_2d/serialize"]
