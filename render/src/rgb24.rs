@@ -7,15 +7,15 @@ pub struct Rgb24 {
 }
 
 impl Rgb24 {
-    pub fn new(red: u8, green: u8, blue: u8) -> Self {
+    pub const fn new(red: u8, green: u8, blue: u8) -> Self {
         Self { red, green, blue }
     }
 
-    pub fn into_u32(self) -> u32 {
+    pub const fn into_u32(self) -> u32 {
         self.red as u32 + ((self.green as u32) << 8) + ((self.blue as u32) << 16)
     }
 
-    pub fn from_u32(u: u32) -> Self {
+    pub const fn from_u32(u: u32) -> Self {
         Rgb24::new(
             (u & 0xff) as u8,
             ((u >> 8) & 0xff) as u8,
