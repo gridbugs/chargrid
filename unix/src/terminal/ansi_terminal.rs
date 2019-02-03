@@ -30,7 +30,6 @@ impl AnsiTerminal {
         let input_buffer = Vec::with_capacity(INPUT_BUFFER_INITIAL_CAPACITY);
         let ti_cache = TermInfoCache::new()?;
         let input_ring = VecDeque::with_capacity(INPUT_RING_INITIAL_CAPACITY);
-
         let mut terminal = Self {
             low_level,
             output_buffer,
@@ -38,9 +37,7 @@ impl AnsiTerminal {
             ti_cache,
             input_ring,
         };
-
         terminal.init()?;
-
         Ok(terminal)
     }
 
@@ -51,7 +48,6 @@ impl AnsiTerminal {
         self.output_buffer.push_str(&self.ti_cache.clear);
         self.output_buffer
             .push_str(&self.ti_cache.enable_mouse_reporting);
-
         self.flush_buffer().map_err(Into::into)
     }
 
@@ -62,7 +58,6 @@ impl AnsiTerminal {
         self.output_buffer.push_str(&self.ti_cache.exit_xmit);
         self.output_buffer.push_str(&self.ti_cache.show_cursor);
         self.output_buffer.push_str(&self.ti_cache.reset);
-
         self.flush_buffer().map_err(Into::into)
     }
 
@@ -133,7 +128,6 @@ impl AnsiTerminal {
                 break input;
             }
         };
-
         Ok(input)
     }
 
@@ -188,7 +182,6 @@ impl AnsiTerminal {
             Some(Found::Exact(input)) => (Some(*input), None),
             Some(Found::WithRemaining(input, remaining)) => (Some(*input), Some(remaining)),
         };
-
         let rest = if let Some(input) = term_input {
             let (input, rest) = match input {
                 TerminalInput::Char(ch) => (Some(Input::Char(ch)), rest),
