@@ -122,11 +122,11 @@ impl AnsiTerminal {
             // read_waiting returns without a new input becoming
             // available, this will ensure we don't return without
             // an input.
-            self.low_level.read_waiting(&mut self.input_buffer)?;
-            self.drain_input_into_ring()?;
             if let Some(input) = self.input_ring.pop_front() {
                 break input;
             }
+            self.low_level.read_waiting(&mut self.input_buffer)?;
+            self.drain_input_into_ring()?;
         };
         Ok(input)
     }
