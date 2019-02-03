@@ -92,7 +92,7 @@ impl Terminal {
 
         let mut must_move_cursor = false;
 
-        for ((coord, cell), output_cell) in izip!(grid.enumerate(), self.output_grid.iter_mut()) {
+        for ((coord, cell), output_cell) in grid.enumerate().zip(self.output_grid.iter_mut()) {
             if output_cell.matches(cell) {
                 must_move_cursor = true;
                 continue;

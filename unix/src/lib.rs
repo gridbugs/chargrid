@@ -1,6 +1,4 @@
 extern crate ansi_colour;
-#[macro_use]
-extern crate itertools;
 extern crate libc;
 #[cfg(feature = "storage")]
 extern crate prototty_file_storage;
