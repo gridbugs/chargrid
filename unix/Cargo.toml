@@ -21,3 +21,9 @@ prototty_file_storage = { path = "../file-storage", version = "0.22", optional =
 libc = "0.2"
 term = "0.5"
 ansi_colour = "0.5"
+
+[dev-dependencies]
+line_2d = "0.1"
+
+[[examples]]
+name = "drag"
