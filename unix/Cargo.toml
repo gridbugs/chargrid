@@ -24,6 +24,3 @@ ansi_colour = "0.5"
 
 [dev-dependencies]
 line_2d = "0.1"
-
-[[example]]
-name = "drag"
