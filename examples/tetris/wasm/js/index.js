@@ -1,7 +1,9 @@
 'use strict';
 
 import { Context, rngSeed } from 'prototty';
-const wasm = import('../wasm_out/tetris_wasm');
+const wasm = import('../wasm_out/app');
+
+document.oncontextmenu = () => false;
 
 wasm.then(async wasm => {
     let config = {

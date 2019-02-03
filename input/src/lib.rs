@@ -21,6 +21,10 @@ pub enum MouseButton {
     Middle,
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct NotSupported;
+
 /// An input event
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -36,13 +40,17 @@ pub enum Input {
     PageUp,
     PageDown,
     Delete,
-    MouseMove(Coord),
+    MouseMove {
+        button: Option<MouseButton>,
+        coord: Coord,
+    },
     MousePress {
         button: MouseButton,
         coord: Coord,
     },
     MouseRelease {
-        button: MouseButton,
+        // some platforms (e.g. ansi terminal) don't report the button that was released
+        button: Result<MouseButton, NotSupported>,
         coord: Coord,
     },
     MouseScroll {

@@ -3,7 +3,9 @@ use glutin::{
     ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta,
     VirtualKeyCode, WindowEvent,
 };
-use prototty_input::{inputs, Input, MouseButton as ProtottyMouseButton, ScrollDirection};
+use prototty_input::{
+    inputs, Input, MouseButton as ProtottyMouseButton, MouseButton, ScrollDirection,
+};
 use prototty_render::Coord;
 
 pub enum InputEvent {
@@ -99,6 +101,7 @@ pub fn convert_event(
     event: WindowEvent,
     (cell_width, cell_height): (f32, f32),
     last_mouse_coord: &mut Coord,
+    last_mouse_button: &mut Option<MouseButton>,
 ) -> Option<InputEvent> {
     match event {
         WindowEvent::CloseRequested => {
@@ -125,7 +128,10 @@ pub fn convert_event(
             let y = (y / (cell_height as f64)) as i32;
             let coord = Coord::new(x, y);
             *last_mouse_coord = coord;
-            Some(InputEvent::Input(Input::MouseMove(coord)))
+            Some(InputEvent::Input(Input::MouseMove {
+                coord,
+                button: *last_mouse_button,
+            }))
         }
         WindowEvent::MouseInput { state, button, .. } => {
             let button = match button {
@@ -135,14 +141,20 @@ pub fn convert_event(
                 GlutinMouseButton::Other(_) => return None,
             };
             let input = match state {
-                ElementState::Pressed => Input::MousePress {
-                    coord: *last_mouse_coord,
-                    button,
-                },
-                ElementState::Released => Input::MouseRelease {
-                    coord: *last_mouse_coord,
-                    button,
-                },
+                ElementState::Pressed => {
+                    *last_mouse_button = Some(button);
+                    Input::MousePress {
+                        coord: *last_mouse_coord,
+                        button,
+                    }
+                }
+                ElementState::Released => {
+                    *last_mouse_button = None;
+                    Input::MouseRelease {
+                        coord: *last_mouse_coord,
+                        button: Ok(button),
+                    }
+                }
             };
             Some(InputEvent::Input(input))
         }

@@ -157,4 +157,7 @@ where
             }
         }
     }
+    fn size(&self) -> Size {
+        self.cells.size()
+    }
 }

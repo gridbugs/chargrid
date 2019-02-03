@@ -206,6 +206,12 @@ export class JsGrid {
             cell.render();
         }
     }
+    js_width() {
+        return this.width;
+    }
+    js_height() {
+        return this.height;
+    }
     nodeXOffset() {
         return this.node.getBoundingClientRect().x;
     }

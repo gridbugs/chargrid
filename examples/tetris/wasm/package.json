@@ -6,8 +6,7 @@
     "copy-webpack-plugin": "^4.6.0",
     "webpack": "^4.28.3",
     "webpack-cli": "^3.2.0",
-    "webpack-dev-server": "^3.1.14",
-    "webpack-shell-plugin": "^0.5.0"
+    "webpack-dev-server": "^3.1.14"
   },
   "dependencies": {
     "prototty": "file:../../../prototty-js"

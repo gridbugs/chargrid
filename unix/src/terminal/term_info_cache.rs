@@ -1,7 +1,7 @@
 use super::byte_prefix_tree::BytePrefixTree;
 use ansi_colour::{AllColours, Colour};
 use error::{Error, Result};
-use prototty_input::{Input, ScrollDirection};
+use prototty_input::{Input, MouseButton, ScrollDirection};
 use term::terminfo::parm::{self, Param, Variables};
 use term::terminfo::TermInfo;
 
@@ -12,10 +12,11 @@ const DISABLE_MOUSE_REPORTING: &'static str = "[?1003l";
 
 #[derive(Debug, Clone, Copy)]
 pub enum MousePrefix {
-    Move,
-    Press,
+    Press(MouseButton),
+    // ansi terminals don't report which button was released
     Release,
-    Drag,
+    // ansi terminals only report the last button pressed when reporting a mouse drag
+    Move(Option<MouseButton>),
     Scroll(ScrollDirection),
 }
 
@@ -130,14 +131,32 @@ impl TermInfoCache {
             escseq("khome", Input::Home)?,
             escseq("kend", Input::End)?,
             escseq("kdch1", Input::Delete)?,
-            raw_escseq("[MC", TerminalInput::MousePrefix(MousePrefix::Move)),
-            raw_escseq("[M ", TerminalInput::MousePrefix(MousePrefix::Press)),
-            // TODO This is actually the escape sequence for right-click.
-            // Dealing with this is non-trivial as the escape sequence for releasing
-            // the mouse button is the same for all buttons.
-            raw_escseq("[M\"", TerminalInput::MousePrefix(MousePrefix::Press)),
+            raw_escseq("[MC", TerminalInput::MousePrefix(MousePrefix::Move(None))),
+            raw_escseq(
+                "[M ",
+                TerminalInput::MousePrefix(MousePrefix::Press(MouseButton::Left)),
+            ),
+            raw_escseq(
+                "[M!",
+                TerminalInput::MousePrefix(MousePrefix::Press(MouseButton::Middle)),
+            ),
+            raw_escseq(
+                "[M\"",
+                TerminalInput::MousePrefix(MousePrefix::Press(MouseButton::Right)),
+            ),
             raw_escseq("[M#", TerminalInput::MousePrefix(MousePrefix::Release)),
-            raw_escseq("[M@", TerminalInput::MousePrefix(MousePrefix::Drag)),
+            raw_escseq(
+                "[M@",
+                TerminalInput::MousePrefix(MousePrefix::Move(Some(MouseButton::Left))),
+            ),
+            raw_escseq(
+                "[MA",
+                TerminalInput::MousePrefix(MousePrefix::Move(Some(MouseButton::Middle))),
+            ),
+            raw_escseq(
+                "[MB",
+                TerminalInput::MousePrefix(MousePrefix::Move(Some(MouseButton::Right))),
+            ),
             raw_escseq(
                 "[M`",
                 TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Up)),

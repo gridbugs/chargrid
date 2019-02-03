@@ -207,7 +207,7 @@ impl<T: Copy> MenuInstance<T> {
                     direction: ScrollDirection::Down,
                     ..
                 } => self.down(),
-                Input::MouseMove(coord) => {
+                Input::MouseMove { coord, .. } => {
                     if let Some(index) = view.menu_index_from_screen_coord(&self.menu, coord) {
                         self.set_index(index);
                     }

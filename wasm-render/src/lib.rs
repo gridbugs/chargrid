@@ -27,6 +27,12 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     fn js_render(this: &JsGrid);
+
+    #[wasm_bindgen(method)]
+    fn js_width(this: &JsGrid) -> u32;
+
+    #[wasm_bindgen(method)]
+    fn js_height(this: &JsGrid) -> u32;
 }
 
 fn rgb24_to_js_string(Rgb24 { red, green, blue }: Rgb24) -> String {
@@ -57,6 +63,10 @@ impl ViewGrid for JsGrid {
         self.js_set_cell(
             x, y, depth, character, bold, underline, foreground, background,
         );
+    }
+
+    fn size(&self) -> Size {
+        Size::new(self.js_width(), self.js_height())
     }
 }
 

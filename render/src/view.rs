@@ -70,6 +70,7 @@ impl ViewCell {
 /// A grid of cells
 pub trait ViewGrid {
     fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCell);
+    fn size(&self) -> Size;
 }
 
 /// Defines a method for rendering a `T` to the terminal.

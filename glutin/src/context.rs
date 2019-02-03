@@ -277,6 +277,7 @@ impl<'a> ContextBuilder<'a> {
             bold_font_scale,
             closing: false,
             last_mouse_coord: Coord::new(0, 0),
+            last_mouse_button: None,
         })
     }
 }
@@ -300,6 +301,7 @@ pub struct Context<'a> {
     bold_font_scale: gfx_glyph::Scale,
     closing: bool,
     last_mouse_coord: Coord,
+    last_mouse_button: Option<MouseButton>,
 }
 
 impl<'a> Context<'a> {
@@ -309,13 +311,17 @@ impl<'a> Context<'a> {
 
         let cell_dimensions = (self.cell_width, self.cell_height);
         let mut last_mouse_coord = self.last_mouse_coord;
+        let mut last_mouse_button = self.last_mouse_button;
 
         self.events_loop.poll_events(|event| {
             match event {
                 Event::WindowEvent { event, .. } => {
-                    if let Some(event) =
-                        convert_event(event, cell_dimensions, &mut last_mouse_coord)
-                    {
+                    if let Some(event) = convert_event(
+                        event,
+                        cell_dimensions,
+                        &mut last_mouse_coord,
+                        &mut last_mouse_button,
+                    ) {
                         match event {
                             InputEvent::Input(input) => callback(input),
                             InputEvent::Quit => closing = true,
@@ -328,6 +334,7 @@ impl<'a> Context<'a> {
         });
 
         self.last_mouse_coord = last_mouse_coord;
+        self.last_mouse_button = last_mouse_button;
 
         if let Some((width, height)) = resize {
             self.handle_resize(width, height);

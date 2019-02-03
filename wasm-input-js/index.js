@@ -8,6 +8,24 @@ export function registerKeyDownInputBuffer(input_buffer) {
     window.addEventListener("keydown", e => handleKeyDown(input_buffer, e));
 }
 
+const LEFT = 0;
+const RIGHT = 1;
+const MIDDLE = 2;
+const MASK = (1 << LEFT) | (1 << RIGHT) | (1 << MIDDLE);
+
+function contains_left(e) {
+    return (e.button & (1 << LEFT)) !== 0;
+}
+function contains_right(e) {
+    return (e.button & (1 << RIGHT)) !== 0;
+}
+function contains_middle(e) {
+    return (e.button & (1 << MIDDLE)) !== 0;
+}
+function contains_none(e) {
+    return (e.button & MASK) === 0;
+}
+
 export class InputContext {
     constructor(grid_x, grid_y, cell_width, cell_height) {
         this.grid_x = grid_x;
@@ -25,15 +43,42 @@ export class InputContext {
     }
 
     handleMouseMove(prototty_input, e) {
-        prototty_input.push_mouse_move(this.mouseCoordX(e), this.mouseCoordY(e));
+        if (contains_left(e)) {
+            prototty_input.push_mouse_move_left(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
+        if (contains_right(e)) {
+            prototty_input.push_mouse_move_right(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
+        if (contains_middle(e)) {
+            prototty_input.push_mouse_move_middle(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
+        if (contains_none(e)) {
+            prototty_input.push_mouse_move_none(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
     }
 
     handleMousePress(prototty_input, e) {
-        prototty_input.push_mouse_press(this.mouseCoordX(e), this.mouseCoordY(e));
+        if (e.button === LEFT) {
+            prototty_input.push_mouse_press_left(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
+        if (e.button === RIGHT) {
+            prototty_input.push_mouse_press_right(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
+        if (e.button === MIDDLE) {
+            prototty_input.push_mouse_press_middle(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
     }
 
     handleMouseRelease(prototty_input, e) {
-        prototty_input.push_mouse_release(this.mouseCoordX(e), this.mouseCoordY(e));
+        if (e.button === LEFT) {
+            prototty_input.push_mouse_release_left(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
+        if (e.button === RIGHT) {
+            prototty_input.push_mouse_release_right(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
+        if (e.button === MIDDLE) {
+            prototty_input.push_mouse_release_middle(this.mouseCoordX(e), this.mouseCoordY(e));
+        }
     }
 
     handleMouseWheel(prototty_input, e) {

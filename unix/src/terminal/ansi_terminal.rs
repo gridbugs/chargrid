@@ -194,16 +194,12 @@ impl AnsiTerminal {
                             let y = rest[1] as i32 - COORD_OFFSET;
                             let coord = Coord::new(x, y);
                             let input = match prefix {
-                                MousePrefix::Move => Input::MouseMove(coord),
-                                MousePrefix::Press => Input::MousePress {
-                                    button: MouseButton::Left,
-                                    coord,
-                                },
+                                MousePrefix::Move(button) => Input::MouseMove { button, coord },
+                                MousePrefix::Press(button) => Input::MousePress { button, coord },
                                 MousePrefix::Release => Input::MouseRelease {
-                                    button: MouseButton::Left,
+                                    button: Err(NotSupported),
                                     coord,
                                 },
-                                MousePrefix::Drag => Input::MouseMove(coord),
                                 MousePrefix::Scroll(direction) => {
                                     Input::MouseScroll { direction, coord }
                                 }

@@ -6,12 +6,26 @@ use prototty_unix::prototty_input::{inputs, Input, MouseButton};
 use prototty_unix::prototty_render::{colours, View, ViewCell, ViewGrid};
 use prototty_unix::Context;
 
+#[derive(Debug, Clone, Copy)]
+enum LineType {
+    Normal,
+    Cardinal,
+    Infinite,
+}
+
+impl Default for LineType {
+    fn default() -> Self {
+        LineType::Normal
+    }
+}
+
 struct AppView;
+
 #[derive(Default)]
 struct App {
     coord: Option<Coord>,
     last_clicked_coord: Option<Coord>,
-    cardinal_only: bool,
+    line_type: LineType,
 }
 
 fn draw_line<G: ViewGrid, I: IntoIterator<Item = Coord>>(
@@ -21,6 +35,9 @@ fn draw_line<G: ViewGrid, I: IntoIterator<Item = Coord>>(
     depth: i32,
 ) {
     for coord in iter {
+        if !coord.is_valid(grid.size()) {
+            break;
+        }
         grid.set_cell(
             coord + offset,
             depth,
@@ -33,20 +50,15 @@ impl View<App> for AppView {
     fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
         match (app.last_clicked_coord, app.coord) {
             (Some(last_clicked_coord), Some(coord)) => {
-                if app.cardinal_only {
-                    draw_line(
-                        grid,
-                        LineSegment::new(last_clicked_coord, coord),
-                        offset,
-                        depth,
-                    );
-                } else {
-                    draw_line(
-                        grid,
-                        LineSegment::new(last_clicked_coord, coord),
-                        offset,
-                        depth,
-                    );
+                let line = LineSegment::new(last_clicked_coord, coord);
+                match app.line_type {
+                    LineType::Normal => draw_line(grid, line.traverse(), offset, depth),
+                    LineType::Cardinal => draw_line(grid, line.traverse_cardinal(), offset, depth),
+                    LineType::Infinite => {
+                        if let Ok(line) = line.try_infinite() {
+                            draw_line(grid, line.traverse(), offset, depth);
+                        }
+                    }
                 }
             }
             _ => (),
@@ -59,14 +71,15 @@ fn main() {
     let mut app = App::default();
     loop {
         match context.wait_input().unwrap() {
-            Input::MouseMove(coord) => {
+            Input::MouseMove { coord, .. } => {
                 app.coord = Some(coord);
             }
             Input::MousePress { coord, button } => {
                 app.last_clicked_coord = Some(coord);
-                match button {
-                    MouseButton::Right => app.cardinal_only = true,
-                    MouseButton::Left | MouseButton::Middle => app.cardinal_only = false,
+                app.line_type = match button {
+                    MouseButton::Left => LineType::Normal,
+                    MouseButton::Right => LineType::Cardinal,
+                    MouseButton::Middle => LineType::Infinite,
                 }
             }
             Input::MouseRelease {

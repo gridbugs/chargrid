@@ -25,4 +25,4 @@ case $MODE in
 esac
 mkdir -p $WASM_DIR
 cargo build --target=wasm32-unknown-unknown $CARGO_ARGS
-wasm-bindgen $WASM_DIR_RAW/$WASM_FILE --out-dir $WASM_DIR
+wasm-bindgen $WASM_DIR_RAW/$WASM_FILE --out-dir $WASM_DIR --out-name app

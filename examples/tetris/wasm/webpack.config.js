@@ -1,9 +1,7 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
-const WebpackShellPlugin = require('webpack-shell-plugin');
 
-const RUST_MODE = (typeof process.env.RUST_MODE === 'undefined') ? "debug" : process.env.RUST_MODE;
-const WEBPACK_MODE = RUST_MODE === "debug" ? "development" : "production";
+const WEBPACK_MODE = (typeof process.env.WEBPACK_MODE === 'undefined') ? "development" : process.env.WEBPACK_MODE;
 
 module.exports = {
     mode: WEBPACK_MODE,
@@ -12,9 +10,9 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, "dist"),
         filename: "bundle.js",
+        webassemblyModuleFilename: "app.wasm",
     },
     plugins: [
         new CopyWebpackPlugin([{ from: "static_web" }]),
-        new WebpackShellPlugin({ onBuildStart: [`./build_wasm.sh ${RUST_MODE}`]}),
     ],
 };

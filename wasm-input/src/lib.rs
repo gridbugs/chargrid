@@ -57,18 +57,65 @@ impl InputBuffer {
         ));
     }
 
-    pub fn push_mouse_move(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_move(Coord::new(x, y)));
+    pub fn push_mouse_move_none(&mut self, x: i32, y: i32) {
+        self.inputs
+            .push(from_js_event_mouse_move(Coord::new(x, y), None));
+    }
+    pub fn push_mouse_move_left(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_move(
+            Coord::new(x, y),
+            Some(MouseButton::Left),
+        ));
+    }
+    pub fn push_mouse_move_right(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_move(
+            Coord::new(x, y),
+            Some(MouseButton::Right),
+        ));
+    }
+    pub fn push_mouse_move_middle(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_move(
+            Coord::new(x, y),
+            Some(MouseButton::Middle),
+        ));
     }
 
-    pub fn push_mouse_press(&mut self, x: i32, y: i32) {
-        self.inputs
-            .push(from_js_event_mouse_press(Coord::new(x, y)));
+    pub fn push_mouse_press_left(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_press(
+            Coord::new(x, y),
+            MouseButton::Left,
+        ));
+    }
+    pub fn push_mouse_press_right(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_press(
+            Coord::new(x, y),
+            MouseButton::Right,
+        ));
+    }
+    pub fn push_mouse_press_middle(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_press(
+            Coord::new(x, y),
+            MouseButton::Middle,
+        ));
     }
 
-    pub fn push_mouse_release(&mut self, x: i32, y: i32) {
-        self.inputs
-            .push(from_js_event_mouse_release(Coord::new(x, y)));
+    pub fn push_mouse_release_left(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_release(
+            Coord::new(x, y),
+            MouseButton::Left,
+        ));
+    }
+    pub fn push_mouse_release_right(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_release(
+            Coord::new(x, y),
+            MouseButton::Right,
+        ));
+    }
+    pub fn push_mouse_release_middle(&mut self, x: i32, y: i32) {
+        self.inputs.push(from_js_event_mouse_release(
+            Coord::new(x, y),
+            MouseButton::Middle,
+        ));
     }
 }
 
@@ -90,21 +137,18 @@ fn from_js_event_mouse_scroll(coord: Coord, direction: ScrollDirection) -> Input
     Input::MouseScroll { coord, direction }
 }
 
-fn from_js_event_mouse_move(coord: Coord) -> Input {
-    Input::MouseMove(coord)
+fn from_js_event_mouse_move(coord: Coord, button: Option<MouseButton>) -> Input {
+    Input::MouseMove { coord, button }
 }
 
-fn from_js_event_mouse_press(coord: Coord) -> Input {
-    Input::MousePress {
-        coord,
-        button: MouseButton::Left,
-    }
+fn from_js_event_mouse_press(coord: Coord, button: MouseButton) -> Input {
+    Input::MousePress { coord, button }
 }
 
-fn from_js_event_mouse_release(coord: Coord) -> Input {
+fn from_js_event_mouse_release(coord: Coord, button: MouseButton) -> Input {
     Input::MouseRelease {
         coord,
-        button: MouseButton::Left,
+        button: Ok(button),
     }
 }
 
