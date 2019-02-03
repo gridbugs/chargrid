@@ -346,6 +346,10 @@ impl<'a> Context<'a> {
         }
     }
 
+    pub fn buffer_input(&mut self, buffer: &mut Vec<Input>) {
+        self.poll_input(|input| buffer.push(input));
+    }
+
     fn handle_resize(&mut self, width: u32, height: u32) {
         let (rtv, dsv) = gfx_window_glutin::new_views(&self.window);
 

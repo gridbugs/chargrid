@@ -33,4 +33,9 @@ members = [
     "examples/tetris/wasm",
 
     "examples/optional_features",
+
+    "examples/drag/prototty",
+    "examples/drag/unix",
+    "examples/drag/glutin",
+    "examples/drag/wasm",
 ]

@@ -8,22 +8,26 @@ export function registerKeyDownInputBuffer(input_buffer) {
     window.addEventListener("keydown", e => handleKeyDown(input_buffer, e));
 }
 
+const LEFT_BIT = 1;
+const RIGHT_BIT = 2;
+const MIDDLE_BIT = 4;
+const MASK = (1 << LEFT_BIT) | (1 << RIGHT_BIT) | (1 << MIDDLE_BIT);
+
 const LEFT = 0;
-const RIGHT = 1;
-const MIDDLE = 2;
-const MASK = (1 << LEFT) | (1 << RIGHT) | (1 << MIDDLE);
+const RIGHT = 2;
+const MIDDLE = 1;
 
 function contains_left(e) {
-    return (e.button & (1 << LEFT)) !== 0;
+    return (e.buttons & (1 << LEFT_BIT)) !== 0;
 }
 function contains_right(e) {
-    return (e.button & (1 << RIGHT)) !== 0;
+    return (e.buttons & (1 << RIGHT_BIT)) !== 0;
 }
 function contains_middle(e) {
-    return (e.button & (1 << MIDDLE)) !== 0;
+    return (e.buttons & (1 << MIDDLE_BIT)) !== 0;
 }
 function contains_none(e) {
-    return (e.button & MASK) === 0;
+    return (e.buttons & MASK) === 0;
 }
 
 export class InputContext {

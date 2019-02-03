@@ -1,6 +1,6 @@
 {
     "name": "prototty",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "description": "Wrapper of prototty js libraries",
     "main": "index.js",
     "homepage": "https://github.com/stevebob/prototty/tree/master/prototty-js",
@@ -17,8 +17,8 @@
     "author": "Stephen Sherratt",
     "license": "MIT",
     "dependencies": {
-        "prototty_input": "^0.1.0",
-        "prototty_render": "^0.1.1",
+        "prototty_input": "^0.2.0",
+        "prototty_render": "^0.2.0",
         "prototty_storage": "^0.1.0"
     }
 }

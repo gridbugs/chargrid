@@ -1,0 +1,8 @@
+[package]
+name = "drag_glutin"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+drag_prototty = { path = "../prototty" }
+prototty_glutin = { path = "../../../glutin" }

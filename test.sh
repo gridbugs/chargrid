@@ -34,3 +34,9 @@ npm install
 ./build_wasm.sh debug
 npx webpack
 popd
+
+pushd $DIR/examples/drag/wasm
+npm install
+./build_wasm.sh debug
+npx webpack
+popd
