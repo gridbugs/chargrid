@@ -400,9 +400,7 @@ impl<'a> Context<'a> {
         {
             let mut output_cells = self.background_renderer.map_cells(&mut self.factory);
 
-            for ((coord, cell), output_cell) in
-                izip!(self.grid.enumerate(), output_cells.iter_mut())
-            {
+            for ((coord, cell), output_cell) in self.grid.enumerate().zip(output_cells.iter_mut()) {
                 self.char_buf.clear();
                 self.char_buf.push(cell.character);
 

@@ -160,12 +160,11 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
             .create_upload_buffer(num_instances)
             .expect("Failed to create instance upload buffer");
 
-        for (coord, instance) in izip!(
-            XThenY::from(size).coord_iter(),
+        for (coord, instance) in XThenY::from(size).coord_iter().zip(
             factory
                 .write_mapping(&instance_upload)
                 .expect("Failed to map instance upload buffer")
-                .iter_mut()
+                .iter_mut(),
         ) {
             let x = coord.x as f32 * cell_width;
             let y = coord.y as f32 * cell_height;
