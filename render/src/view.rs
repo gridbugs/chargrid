@@ -12,28 +12,44 @@ pub struct ViewCell {
 }
 
 impl ViewCell {
-    pub fn new() -> Self {
-        Default::default()
+    pub const fn new() -> Self {
+        Self {
+            character: None,
+            bold: None,
+            underline: None,
+            foreground: None,
+            background: None,
+        }
     }
-    pub fn with_character(mut self, character: char) -> Self {
-        self.character = Some(character);
-        self
+    pub const fn with_character(self, character: char) -> Self {
+        Self {
+            character: Some(character),
+            ..self
+        }
     }
-    pub fn with_bold(mut self, bold: bool) -> Self {
-        self.bold = Some(bold);
-        self
+    pub const fn with_bold(self, bold: bool) -> Self {
+        Self {
+            bold: Some(bold),
+            ..self
+        }
     }
-    pub fn with_underline(mut self, underline: bool) -> Self {
-        self.underline = Some(underline);
-        self
+    pub const fn with_underline(self, underline: bool) -> Self {
+        Self {
+            underline: Some(underline),
+            ..self
+        }
     }
-    pub fn with_foreground(mut self, foreground: Rgb24) -> Self {
-        self.foreground = Some(foreground);
-        self
+    pub const fn with_foreground(self, foreground: Rgb24) -> Self {
+        Self {
+            foreground: Some(foreground),
+            ..self
+        }
     }
-    pub fn with_background(mut self, background: Rgb24) -> Self {
-        self.background = Some(background);
-        self
+    pub const fn with_background(self, background: Rgb24) -> Self {
+        Self {
+            background: Some(background),
+            ..self
+        }
     }
     pub fn set_character(&mut self, character: char) {
         self.character = Some(character);
