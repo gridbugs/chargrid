@@ -10,8 +10,9 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_render"
 
 [features]
-serialize = ["serde", "coord_2d/serialize"]
+serialize = ["serde", "coord_2d/serialize", "rgb24/serialize"]
 
 [dependencies]
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
 coord_2d = "0.2"
+rgb24 = { path = "/home/steve/src/rgb24" }

@@ -9,11 +9,7 @@ use std::collections::VecDeque;
 use std::time::Duration;
 use tetris::{Input as TetrisInput, Meta, PieceType, Tetris};
 
-const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24 {
-    red: 24,
-    green: 24,
-    blue: 24,
-};
+const BLANK_FOREGROUND_COLOUR: Rgb24 = rgb24(24, 24, 24);
 const FOREGROUND_COLOUR: Rgb24 = colours::WHITE;
 const BACKGROUND_COLOUR: Rgb24 = colours::BLACK;
 const BLOCK_CHAR: char = '-';

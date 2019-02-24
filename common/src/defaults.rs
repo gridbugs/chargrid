@@ -1,4 +1,4 @@
-use prototty_render::{colours, Rgb24};
+use prototty_render::Rgb24;
 
-pub const DEFAULT_FG: Rgb24 = colours::WHITE;
-pub const DEFAULT_BG: Rgb24 = colours::BLACK;
+pub const DEFAULT_FG: Rgb24 = Rgb24::new(255, 255, 255);
+pub const DEFAULT_BG: Rgb24 = Rgb24::new(0, 0, 0);
