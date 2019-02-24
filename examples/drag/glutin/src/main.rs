@@ -5,9 +5,12 @@ use drag_prototty::{App, AppView, Quit};
 use prototty_glutin::*;
 
 fn main() {
+    let size = Size::new(640, 400);
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
-        .with_window_dimensions(Size::new(640, 480))
+        .with_window_dimensions(size)
+        .with_min_window_dimensions(size)
+        .with_max_window_dimensions(size)
         .with_font_scale(8.0, 8.0)
         .with_cell_dimensions(Size::new(8, 8))
         .with_max_grid_size(Size::new(120, 80))

@@ -10,7 +10,7 @@ use prototty_render::Coord;
 
 pub enum InputEvent {
     Input(Input),
-    Resize(u32, u32),
+    Resize(f32, f32),
     Quit,
 }
 
@@ -108,7 +108,7 @@ pub fn convert_event(
             return Some(InputEvent::Quit);
         }
         WindowEvent::Resized(LogicalSize { width, height }) => {
-            return Some(InputEvent::Resize(width as u32, height as u32));
+            return Some(InputEvent::Resize(width as f32, height as f32));
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let ElementState::Pressed = input.state {

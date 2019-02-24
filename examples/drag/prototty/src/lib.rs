@@ -71,7 +71,11 @@ fn draw_line<G: ViewGrid, I: IntoIterator<Item = Coord>>(
         grid.set_cell(
             coord + offset,
             depth,
-            ViewCell::new().with_background(colours::WHITE),
+            ViewCell::new()
+                .with_bold(true)
+                .with_background(colours::WHITE)
+                .with_foreground(colours::BLUE)
+                .with_character('.'),
         );
     }
 }

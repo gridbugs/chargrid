@@ -5,7 +5,7 @@ use gfx_window_glutin;
 use glutin;
 
 use gfx::Device;
-use gfx_glyph::GlyphCruncher;
+use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
 use glutin::dpi::LogicalSize;
 use glutin::Event;
 
@@ -181,10 +181,10 @@ impl<'a> ContextBuilder<'a> {
 
         let (window_width, window_height, _, _) = rtv.get_dimensions();
 
-        let window_width = window_width as u32;
-        let window_height = window_height as u32;
-
         let hidpi = window.window().get_hidpi_factor() as f32;
+
+        let window_width = (window_width as f32 * hidpi) as u32;
+        let window_height = (window_height as f32 * hidpi) as u32;
 
         let (cell_width, cell_height) = if let Some(cell_dimensions) = self.cell_dimensions {
             (cell_dimensions.x(), cell_dimensions.y())
@@ -201,8 +201,10 @@ impl<'a> ContextBuilder<'a> {
             (rect.width() as u32, rect.height() as u32)
         };
 
-        let cell_width = (cell_width as f32) * hidpi;
-        let cell_height = (cell_height as f32) * hidpi;
+        let unscaled_cell_width = cell_width as f32;
+        let unscaled_cell_height = cell_height as f32;
+        let cell_width = unscaled_cell_width * hidpi;
+        let cell_height = unscaled_cell_height * hidpi;
 
         let max_grid_size = self
             .max_grid_size
@@ -210,6 +212,7 @@ impl<'a> ContextBuilder<'a> {
 
         let width_in_cells =
             ::std::cmp::min((window_width as f32 / cell_width) as u32, max_grid_size.x());
+
         let height_in_cells = ::std::cmp::min(
             (window_height as f32 / cell_height) as u32,
             max_grid_size.y(),
@@ -235,8 +238,8 @@ impl<'a> ContextBuilder<'a> {
         let background_renderer = BackgroundRenderer::new(
             window_width,
             window_height,
-            cell_width,
-            cell_height,
+            unscaled_cell_width,
+            unscaled_cell_height,
             window_size_in_cells,
             underline_width,
             underline_position,
@@ -271,6 +274,8 @@ impl<'a> ContextBuilder<'a> {
             char_buf,
             cell_width,
             cell_height,
+            unscaled_cell_width,
+            unscaled_cell_height,
             max_grid_size,
             background_renderer,
             font_scale,
@@ -295,6 +300,8 @@ pub struct Context<'a> {
     char_buf: String,
     cell_width: f32,
     cell_height: f32,
+    unscaled_cell_width: f32,
+    unscaled_cell_height: f32,
     max_grid_size: Size,
     background_renderer: BackgroundRenderer<Resources>,
     font_scale: gfx_glyph::Scale,
@@ -309,7 +316,7 @@ impl<'a> Context<'a> {
         let mut closing = false;
         let mut resize = None;
 
-        let cell_dimensions = (self.cell_width, self.cell_height);
+        let cell_dimensions = (self.unscaled_cell_width, self.unscaled_cell_height);
         let mut last_mouse_coord = self.last_mouse_coord;
         let mut last_mouse_button = self.last_mouse_button;
 
@@ -350,15 +357,15 @@ impl<'a> Context<'a> {
         self.poll_input(|input| buffer.push(input));
     }
 
-    fn handle_resize(&mut self, width: u32, height: u32) {
+    fn handle_resize(&mut self, width: f32, height: f32) {
         let (rtv, dsv) = gfx_window_glutin::new_views(&self.window);
 
         let width_in_cells = ::std::cmp::min(
-            (width as f32 / self.cell_width) as u32,
+            (width as f32 / self.unscaled_cell_width) as u32,
             self.max_grid_size.x(),
         );
         let height_in_cells = ::std::cmp::min(
-            (height as f32 / self.cell_height) as u32,
+            (height as f32 / self.unscaled_cell_height) as u32,
             self.max_grid_size.y(),
         );
 
@@ -413,12 +420,15 @@ impl<'a> Context<'a> {
                 let section = gfx_glyph::Section {
                     text: self.char_buf.as_str(),
                     screen_position: (
-                        (coord.x * self.cell_width as i32) as f32,
-                        (coord.y * self.cell_height as i32) as f32,
+                        (coord.x as f32 * self.cell_width),
+                        (coord.y as f32 * self.cell_height),
                     ),
                     scale,
                     font_id,
                     color: cell.foreground_colour.0,
+                    layout: Layout::default()
+                        .h_align(HorizontalAlign::Left)
+                        .v_align(VerticalAlign::Top),
                     ..Default::default()
                 };
 

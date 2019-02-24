@@ -176,8 +176,8 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
 
     pub fn handle_resize<F, C>(
         &mut self,
-        window_width: u32,
-        window_height: u32,
+        window_width: f32,
+        window_height: f32,
         size: Size,
         rtv: gfx::handle::RenderTargetView<R, ColourFormat>,
         factory: &mut F,
