@@ -1,7 +1,7 @@
 [package]
 name = "prototty"
 description = "Wrapper crate for frontend-independent prototty crates"
-version = "0.23.0"
+version = "0.24.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -14,7 +14,7 @@ serialize = ["prototty_render/serialize", "prototty_input/serialize", "prototty_
 storage = ["prototty_storage"]
 
 [dependencies]
-prototty_render = { path = "../render", version = "0.23" }
-prototty_input = { path = "../input", version = "0.23" }
-prototty_storage = { path = "../storage", version = "0.23", optional = true }
-prototty_common = { path = "../common", version = "0.23" }
+prototty_render = { path = "../render", version = "0.24" }
+prototty_input = { path = "../input", version = "0.24" }
+prototty_storage = { path = "../storage", version = "0.24", optional = true }
+prototty_common = { path = "../common", version = "0.24" }
