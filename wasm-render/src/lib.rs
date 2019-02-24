@@ -35,8 +35,8 @@ extern "C" {
     fn js_height(this: &JsGrid) -> u32;
 }
 
-fn rgb24_to_js_string(Rgb24 { red, green, blue }: Rgb24) -> String {
-    format!("rgb({},{},{})", red, green, blue)
+fn rgb24_to_js_string(Rgb24 { r, g, b }: Rgb24) -> String {
+    format!("rgb({},{},{})", r, g, b)
 }
 
 impl ViewGrid for JsGrid {

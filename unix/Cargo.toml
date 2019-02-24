@@ -20,7 +20,7 @@ prototty_grid = { path = "../grid", version = "0.23" }
 prototty_file_storage = { path = "../file-storage", version = "0.23", optional = true }
 libc = "0.2"
 term = "0.5"
-ansi_colour = { path = "/home/steve/src/ansi-colour" }
+ansi_colour = "0.5"
 
 [dev-dependencies]
 prototty = { path = "../prototty", version = "0.23" }
