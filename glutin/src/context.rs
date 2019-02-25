@@ -36,15 +36,32 @@ pub struct MonitorInfo {
 }
 
 impl MonitorInfo {
-    pub fn get_primary() -> Self {
-        let events_loop = glutin::EventsLoop::new();
-        let monitor_id = events_loop.get_primary_monitor();
+    fn from_monitor_id(monitor_id: glutin::MonitorId) -> Self {
         let physical_size = monitor_id.get_dimensions();
         let hidpi_factor = monitor_id.get_hidpi_factor();
         Self {
             physical_size,
             hidpi_factor,
         }
+    }
+    pub fn get_primary() -> Self {
+        let events_loop = glutin::EventsLoop::new();
+        let monitor_id = events_loop.get_primary_monitor();
+        Self::from_monitor_id(monitor_id)
+    }
+    pub fn get_current() -> Self {
+        let window_builder = glutin::WindowBuilder::new();
+        let context_builder = glutin::ContextBuilder::new();
+        let events_loop = glutin::EventsLoop::new();
+        let (window, _device, _factory, _rtv, _dsv) =
+            gfx_window_glutin::init::<ColourFormat, DepthFormat>(
+                window_builder,
+                context_builder,
+                &events_loop,
+            )
+            .expect("Failed to create window");
+        let monitor_id = window.get_current_monitor();
+        Self::from_monitor_id(monitor_id)
     }
     pub fn physical_width(&self) -> f64 {
         self.physical_size.width
