@@ -6,7 +6,7 @@ use glutin;
 
 use gfx::Device;
 use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
-use glutin::dpi::LogicalSize;
+use glutin::dpi::{LogicalSize, PhysicalSize};
 use glutin::Event;
 
 use background::*;
@@ -29,9 +29,9 @@ const BOLD_FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(1);
 pub const MAX_WIDTH_IN_CELLS: u32 = 256;
 pub const MAX_HEIGHT_IN_CELLS: u32 = 256;
 
+#[derive(Debug, Clone, Copy)]
 pub struct MonitorInfo {
-    width: f64,
-    height: f64,
+    physical_size: PhysicalSize,
     hidpi_factor: f64,
 }
 
@@ -39,16 +39,24 @@ impl MonitorInfo {
     pub fn get_primary() -> Self {
         let events_loop = glutin::EventsLoop::new();
         let monitor_id = events_loop.get_primary_monitor();
-        let dimensions = monitor_id.get_dimensions();
-        let size = Size::new(dimensions.width as u32, dimensions.height as u32);
+        let physical_size = monitor_id.get_dimensions();
         let hidpi_factor = monitor_id.get_hidpi_factor();
-        Self { size, hidpi_factor }
+        Self {
+            physical_size,
+            hidpi_factor,
+        }
     }
-    pub fn width(&self) -> f64 {
-        self.width
+    pub fn physical_width(&self) -> f64 {
+        self.physical_size.width
     }
-    pub fn height(&self) -> f64 {
-        self.height
+    pub fn physical_height(&self) -> f64 {
+        self.physical_size.height
+    }
+    pub fn logical_width(&self) -> f64 {
+        self.physical_size.to_logical(self.hidpi_factor).width
+    }
+    pub fn logical_height(&self) -> f64 {
+        self.physical_size.to_logical(self.hidpi_factor).height
     }
     pub fn hidpi_factor(&self) -> f64 {
         self.hidpi_factor
