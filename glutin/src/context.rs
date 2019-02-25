@@ -29,6 +29,32 @@ const BOLD_FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(1);
 pub const MAX_WIDTH_IN_CELLS: u32 = 256;
 pub const MAX_HEIGHT_IN_CELLS: u32 = 256;
 
+pub struct MonitorInfo {
+    width: f64,
+    height: f64,
+    hidpi_factor: f64,
+}
+
+impl MonitorInfo {
+    pub fn get_primary() -> Self {
+        let events_loop = glutin::EventsLoop::new();
+        let monitor_id = events_loop.get_primary_monitor();
+        let dimensions = monitor_id.get_dimensions();
+        let size = Size::new(dimensions.width as u32, dimensions.height as u32);
+        let hidpi_factor = monitor_id.get_hidpi_factor();
+        Self { size, hidpi_factor }
+    }
+    pub fn width(&self) -> f64 {
+        self.width
+    }
+    pub fn height(&self) -> f64 {
+        self.height
+    }
+    pub fn hidpi_factor(&self) -> f64 {
+        self.hidpi_factor
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     GfxGlyph(String),
