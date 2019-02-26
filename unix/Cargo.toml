@@ -27,3 +27,6 @@ prototty = { path = "../prototty", version = "0.24" }
 
 [[example]]
 name = "bold"
+
+[[example]]
+name = "pager"
