@@ -145,7 +145,10 @@ impl<T: Copy> MenuInstance<T> {
     /// Select the entry above the current selection,
     /// unless the first entry is currently selected.
     pub fn up(&mut self) {
-        self.index = self.index.saturating_sub(1);
+        match self.index.checked_sub(1) {
+            Some(index) => self.index = index,
+            None => self.index = self.menu.entries.len() - 1,
+        }
     }
 
     /// Select the entry below the current selection,
@@ -153,6 +156,8 @@ impl<T: Copy> MenuInstance<T> {
     pub fn down(&mut self) {
         if self.index < self.menu.entries.len() - 1 {
             self.index += 1;
+        } else {
+            self.index = 0;
         }
     }
 
