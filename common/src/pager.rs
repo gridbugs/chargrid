@@ -239,6 +239,8 @@ impl<'a, V: ViewSize<Pager>> ViewSize<(&'a Pager, &'a PagerScrollbar)>
     for PagerViewWithScrollbar<V>
 {
     fn size(&mut self, data: &(&'a Pager, &'a PagerScrollbar)) -> Size {
-        self.0.size(data.0).saturating_sub(Size::new(1, 0))
+        self.0
+            .size(data.0)
+            .saturating_sub(Size::new(data.1.padding + 1, 0))
     }
 }
