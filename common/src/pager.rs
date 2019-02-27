@@ -133,11 +133,42 @@ impl Pager {
             wrapped_lines,
         }
     }
-    pub fn up(&mut self) {
-        self.scroll_position = self.scroll_position.saturating_sub(1);
+    pub fn scroll_to(&mut self, scroll_position: usize) {
+        self.scroll_position = scroll_position.min(self.max_scroll_position());
     }
-    pub fn down(&mut self) {
-        self.scroll_position = (self.scroll_position + 1).min(self.max_scroll_position());
+    pub fn scroll_up_lines(&mut self, num_lines: usize) {
+        self.scroll_position = self.scroll_position.saturating_sub(num_lines);
+    }
+    pub fn scroll_down_lines(&mut self, num_lines: usize) {
+        let scroll_position = self.scroll_position;
+        self.scroll_to(scroll_position + num_lines)
+    }
+    pub fn scroll_lines(&mut self, num_lines: isize) {
+        if num_lines < 0 {
+            self.scroll_up_lines((-num_lines) as usize);
+        } else {
+            self.scroll_down_lines(num_lines as usize);
+        }
+    }
+    pub fn scroll_up_line(&mut self) {
+        self.scroll_up_lines(1);
+    }
+    pub fn scroll_down_line(&mut self) {
+        self.scroll_down_lines(1);
+    }
+    pub fn scroll_up_page(&mut self) {
+        let height = self.size.height() as usize;
+        self.scroll_up_lines(height);
+    }
+    pub fn scroll_down_page(&mut self) {
+        let height = self.size.height() as usize;
+        self.scroll_down_lines(height);
+    }
+    pub fn scroll_to_top(&mut self) {
+        self.scroll_position = 0;
+    }
+    pub fn scroll_to_bottom(&mut self) {
+        self.scroll_position = self.max_scroll_position();
     }
     pub fn max_scroll_position(&self) -> usize {
         self.wrapped_lines

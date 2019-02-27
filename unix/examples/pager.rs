@@ -32,9 +32,13 @@ fn main() -> io::Result<()> {
             )
             .unwrap();
         match context.wait_input().unwrap() {
-            prototty_inputs::ETX => break,
-            ProtottyInput::Up => pager.up(),
-            ProtottyInput::Down => pager.down(),
+            prototty_inputs::ETX | prototty_inputs::ESCAPE | ProtottyInput::Char('q') => break,
+            ProtottyInput::Up => pager.scroll_up_line(),
+            ProtottyInput::Down => pager.scroll_down_line(),
+            ProtottyInput::PageUp => pager.scroll_up_page(),
+            ProtottyInput::PageDown => pager.scroll_down_page(),
+            ProtottyInput::Home | ProtottyInput::Char('g') => pager.scroll_to_top(),
+            ProtottyInput::End | ProtottyInput::Char('G') => pager.scroll_to_bottom(),
             _ => (),
         }
     }
