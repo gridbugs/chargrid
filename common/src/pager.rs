@@ -133,11 +133,50 @@ impl Pager {
         self.scroll_position = self.scroll_position.saturating_sub(1);
     }
     pub fn down(&mut self) {
-        let max_scroll = self
-            .wrapped_lines
+        self.scroll_position = (self.scroll_position + 1).min(self.max_scroll_position());
+    }
+    pub fn max_scroll_position(&self) -> usize {
+        self.wrapped_lines
             .len()
-            .saturating_sub(self.size.height() as usize + 1);
-        self.scroll_position = (self.scroll_position + 1).min(max_scroll);
+            .saturating_sub(self.size.height() as usize + 1)
+    }
+    pub fn scroll_position(&self) -> usize {
+        self.scroll_position
+    }
+    pub fn size(&self) -> Size {
+        self.size
+    }
+    pub fn num_lines(&self) -> usize {
+        self.wrapped_lines.len()
+    }
+}
+
+pub struct PagerScrollbar {
+    pub text_info: TextInfo,
+    pub character: char,
+    pub padding: u32,
+}
+
+impl Default for PagerScrollbar {
+    fn default() -> Self {
+        Self {
+            text_info: TextInfo::default(),
+            character: '█',
+            padding: 1,
+        }
+    }
+}
+
+impl PagerScrollbar {
+    pub fn new(text_info: TextInfo, character: char, padding: u32) -> Self {
+        Self {
+            text_info,
+            character,
+            padding,
+        }
+    }
+    pub fn padding(&self) -> u32 {
+        self.padding
     }
 }
 
@@ -165,5 +204,41 @@ impl View<Pager> for PagerView {
 impl ViewSize<Pager> for PagerView {
     fn size(&mut self, pager: &Pager) -> Size {
         pager.size
+    }
+}
+
+pub struct PagerViewWithScrollbar<V>(pub V);
+
+impl<'a, V: View<Pager>> View<(&'a Pager, &'a PagerScrollbar)> for PagerViewWithScrollbar<V> {
+    fn view<G: ViewGrid>(
+        &mut self,
+        data: &(&'a Pager, &'a PagerScrollbar),
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
+        self.0.view(data.0, offset, depth, grid);
+        let pager_height = data.0.size().height();
+        if data.0.num_lines() as u32 > pager_height {
+            let view_cell = data.1.text_info.view_cell_info(data.1.character);
+            let bar_x = offset.x + data.0.size().width() as i32 + data.1.padding as i32;
+            let bar_height = (pager_height * pager_height) / data.0.num_lines() as u32;
+            let bar_top = offset.y as u32
+                + ((pager_height - bar_height) * data.0.scroll_position() as u32)
+                    / data.0.max_scroll_position() as u32;
+            for y in 0..bar_height {
+                let bar_y = (y + bar_top) as i32;
+                let coord = Coord::new(bar_x, bar_y);
+                grid.set_cell(coord, depth, view_cell);
+            }
+        }
+    }
+}
+
+impl<'a, V: ViewSize<Pager>> ViewSize<(&'a Pager, &'a PagerScrollbar)>
+    for PagerViewWithScrollbar<V>
+{
+    fn size(&mut self, data: &(&'a Pager, &'a PagerScrollbar)) -> Size {
+        self.0.size(data.0).saturating_sub(Size::new(1, 0))
     }
 }
