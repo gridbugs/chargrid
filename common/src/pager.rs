@@ -117,7 +117,11 @@ pub struct Pager {
 }
 
 impl Pager {
+    /// panics if `size.width() == 0`
     pub fn new<T: AsRef<str>>(string: T, size: Size, text_info: TextInfo) -> Self {
+        if size.width() == 0 {
+            panic!("may not have 0 width");
+        }
         let string = string.as_ref();
         let mut buffer = Buffer::new();
         buffer.update(string, size.width() as usize);
@@ -243,4 +247,69 @@ impl<'a, V: ViewSize<Pager>> ViewSize<(&'a Pager, &'a PagerScrollbar)>
             .size(data.0)
             .saturating_sub(Size::new(data.1.padding + 1, 0))
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn wrap_lines(string: &str, width: u32) -> Vec<String> {
+        let pager = Pager::new(string, Size::new(width, 100), Default::default());
+        pager.wrapped_lines
+    }
+
+    #[test]
+    fn small_example() {
+        let lines = wrap_lines("Hello, World!", 8);
+        assert_eq!(lines, ["Hello, ", "World!"]);
+    }
+
+    #[test]
+    fn single_long_word_8() {
+        let lines = wrap_lines("abcdefghijklmnopqrstuvwxyz", 8);
+        assert_eq!(lines, ["abcdefgh", "ijklmnop", "qrstuvwx", "yz"]);
+    }
+
+    #[test]
+    fn single_long_word_1() {
+        let lines = wrap_lines("abcdefghijklmnop", 1);
+        assert_eq!(
+            lines,
+            ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",]
+        );
+    }
+
+    #[test]
+    fn consecutive_spaces() {
+        let lines = wrap_lines("hello        world     there  are lots  of    spaces", 10);
+        assert_eq!(
+            lines,
+            [
+                "hello     ",
+                "world     ",
+                "there  are",
+                "lots  of  ",
+                "spaces"
+            ]
+        );
+    }
+
+    #[test]
+    fn newlines() {
+        let lines = wrap_lines("hello\nworld", 100);
+        assert_eq!(lines, ["hello", "world"]);
+    }
+
+    #[test]
+    fn empty() {
+        let lines = wrap_lines("", 100);
+        assert_eq!(lines, [""]);
+    }
+
+    #[test]
+    fn only_spaces() {
+        let lines = wrap_lines("      ", 100);
+        assert_eq!(lines, [""]);
+    }
+
 }
