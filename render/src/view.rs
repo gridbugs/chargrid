@@ -81,6 +81,23 @@ impl ViewCell {
     pub fn clear_background(&mut self) {
         self.background = None;
     }
+    pub fn coalesce(&mut self, other: &Self) {
+        if self.character.is_none() {
+            self.character = other.character;
+        }
+        if self.bold.is_none() {
+            self.bold = other.bold;
+        }
+        if self.underline.is_none() {
+            self.underline = other.bold;
+        }
+        if self.foreground.is_none() {
+            self.foreground = other.foreground;
+        }
+        if self.background.is_none() {
+            self.background = other.background;
+        }
+    }
 }
 
 /// A grid of cells
