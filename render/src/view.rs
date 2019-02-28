@@ -81,21 +81,13 @@ impl ViewCell {
     pub fn clear_background(&mut self) {
         self.background = None;
     }
-    pub fn coalesce(&mut self, other: &Self) {
-        if self.character.is_none() {
-            self.character = other.character;
-        }
-        if self.bold.is_none() {
-            self.bold = other.bold;
-        }
-        if self.underline.is_none() {
-            self.underline = other.bold;
-        }
-        if self.foreground.is_none() {
-            self.foreground = other.foreground;
-        }
-        if self.background.is_none() {
-            self.background = other.background;
+    pub fn coalesce(self, other: Self) -> Self {
+        Self {
+            character: (self.character.or(other.character)),
+            bold: (self.bold.or(other.bold)),
+            underline: (self.underline.or(other.underline)),
+            foreground: (self.foreground.or(other.foreground)),
+            background: (self.background.or(other.background)),
         }
     }
 }
