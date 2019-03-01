@@ -8,9 +8,7 @@ extern crate prototty_grid;
 pub extern crate prototty_input;
 pub extern crate prototty_render;
 
-mod cell;
 mod context;
-mod defaults;
 mod error;
 mod terminal;
 

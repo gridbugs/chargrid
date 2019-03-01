@@ -1,13 +1,17 @@
 use super::ansi_terminal::AnsiTerminal;
 pub use super::ansi_terminal::DrainInput;
 use ansi_colour::Colour as AnsiColour;
-use cell::*;
-use defaults::*;
 use error::Result;
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
 use std::time::Duration;
+
+const DEFAULT_CH: char = ' ';
+const DEFAULT_FG: AnsiColour = AnsiColour::from_rgb24(grey24(255));
+const DEFAULT_BG: AnsiColour = AnsiColour::from_rgb24(grey24(0));
+
+type Cell = CommonCell<AnsiColour>;
 
 #[derive(Debug, Clone)]
 pub struct OutputCell {
@@ -24,8 +28,8 @@ impl Default for OutputCell {
         Self {
             dirty: true,
             ch: DEFAULT_CH,
-            fg: AnsiColour::from_code(DEFAULT_FG_ANSI_CODE),
-            bg: AnsiColour::from_code(DEFAULT_BG_ANSI_CODE),
+            fg: DEFAULT_FG,
+            bg: DEFAULT_BG,
             bold: false,
             underline: false,
         }
@@ -36,16 +40,16 @@ impl OutputCell {
     pub fn matches(&self, cell: &Cell) -> bool {
         !self.dirty
             && self.ch == cell.character
-            && self.fg == cell.foreground_colour.0
-            && self.bg == cell.background_colour.0
+            && self.fg == cell.foreground_colour
+            && self.bg == cell.background_colour
             && self.bold == cell.bold
             && self.underline == cell.underline
     }
     pub fn copy_fields(&mut self, cell: &Cell) {
         self.dirty = false;
         self.ch = cell.character;
-        self.fg = cell.foreground_colour.0;
-        self.bg = cell.background_colour.0;
+        self.fg = cell.foreground_colour;
+        self.bg = cell.background_colour;
         self.bold = cell.bold;
         self.underline = cell.underline;
     }
@@ -78,26 +82,25 @@ impl Terminal {
         self.ansi.size()
     }
 
-    pub fn draw_grid(&mut self, grid: &Grid<Colour, Colour>) -> Result<()> {
+    pub fn draw_grid<C>(&mut self, grid: &Grid<C>) -> Result<()>
+    where
+        C: ColourConversion<Colour = AnsiColour>,
+    {
         self.ansi.set_cursor(Coord::new(0, 0))?;
-
         let mut bold = false;
         let mut underline = false;
-        let mut fg = AnsiColour::from_code(DEFAULT_FG_ANSI_CODE);
-        let mut bg = AnsiColour::from_code(DEFAULT_BG_ANSI_CODE);
+        let mut fg = DEFAULT_FG;
+        let mut bg = DEFAULT_BG;
         self.ansi.reset();
         self.ansi.clear_underline();
         self.ansi.set_foreground_colour(fg);
         self.ansi.set_background_colour(bg);
-
         let mut must_move_cursor = false;
-
         for ((coord, cell), output_cell) in grid.enumerate().zip(self.output_grid.iter_mut()) {
             if output_cell.matches(cell) {
                 must_move_cursor = true;
                 continue;
             }
-
             let reset = if cell.bold != bold {
                 if cell.bold {
                     self.ansi.set_bold();
@@ -111,15 +114,13 @@ impl Terminal {
             } else {
                 false
             };
-
-            if reset || cell.foreground_colour.0 != fg {
-                self.ansi.set_foreground_colour(cell.foreground_colour.0);
-                fg = cell.foreground_colour.0;
+            if reset || cell.foreground_colour != fg {
+                self.ansi.set_foreground_colour(cell.foreground_colour);
+                fg = cell.foreground_colour;
             }
-
-            if reset || cell.background_colour.0 != bg {
-                self.ansi.set_background_colour(cell.background_colour.0);
-                bg = cell.background_colour.0;
+            if reset || cell.background_colour != bg {
+                self.ansi.set_background_colour(cell.background_colour);
+                bg = cell.background_colour;
             }
 
             if reset || (cell.underline != underline) {

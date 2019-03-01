@@ -11,7 +11,6 @@ pub extern crate prototty_input;
 pub extern crate prototty_render;
 
 mod background;
-mod cell;
 mod context;
 mod formats;
 mod input;

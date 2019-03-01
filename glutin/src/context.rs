@@ -10,7 +10,6 @@ use glutin::dpi::{LogicalSize, PhysicalSize};
 use glutin::Event;
 
 use background::*;
-use cell::*;
 use formats::*;
 use input::*;
 use prototty_grid::*;
@@ -271,7 +270,7 @@ impl<'a> ContextBuilder<'a> {
 
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
 
-        let grid = Grid::new(window_size_in_cells);
+        let grid = Grid::new(window_size_in_cells, GlutinColourConversion);
         let char_buf = String::with_capacity(1);
 
         let underline_width = self
@@ -338,6 +337,20 @@ impl<'a> ContextBuilder<'a> {
     }
 }
 
+struct GlutinColourConversion;
+impl ColourConversion for GlutinColourConversion {
+    type Colour = [f32; 4];
+    fn convert_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+        rgb24.to_f32_rgba(1.)
+    }
+    fn default_foreground(&mut self) -> Self::Colour {
+        [1.0, 1.0, 1.0, 1.0]
+    }
+    fn default_background(&mut self) -> Self::Colour {
+        [0.0, 0.0, 0.0, 1.0]
+    }
+}
+
 pub struct Context<'a> {
     window: glutin::GlWindow,
     device: gfx_device_gl::Device,
@@ -347,7 +360,7 @@ pub struct Context<'a> {
     dsv: gfx::handle::DepthStencilView<Resources, DepthFormat>,
     events_loop: glutin::EventsLoop,
     glyph_brush: gfx_glyph::GlyphBrush<'a, Resources, gfx_device_gl::Factory>,
-    grid: Grid<Colour, Colour>,
+    grid: Grid<GlutinColourConversion>,
     char_buf: String,
     cell_width: f32,
     cell_height: f32,
@@ -476,7 +489,7 @@ impl<'a> Context<'a> {
                     ),
                     scale,
                     font_id,
-                    color: cell.foreground_colour.0,
+                    color: cell.foreground_colour,
                     layout: Layout::default()
                         .h_align(HorizontalAlign::Left)
                         .v_align(VerticalAlign::Top),
@@ -485,8 +498,8 @@ impl<'a> Context<'a> {
 
                 self.glyph_brush.queue(section);
 
-                output_cell.foreground_colour = cell.foreground_colour.0;
-                output_cell.background_colour = cell.background_colour.0;
+                output_cell.foreground_colour = cell.foreground_colour;
+                output_cell.background_colour = cell.background_colour;
                 output_cell.underline = cell.underline as u32;
             }
         }

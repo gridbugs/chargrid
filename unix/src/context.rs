@@ -1,5 +1,4 @@
 pub use ansi_colour::Colour as AnsiColour;
-use cell::*;
 use error::*;
 use prototty_grid::*;
 use prototty_input::*;
@@ -7,60 +6,69 @@ use prototty_render::*;
 use std::time::Duration;
 use terminal::*;
 
-pub trait ColourConversion {
-    fn convert_rgb24_to_ansi_colour(&mut self, rgb24: Rgb24) -> AnsiColour;
+pub trait ConvertRgb24 {
+    fn convert_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour;
 }
 
-pub struct DefaultColourConversion;
+pub struct DefaultConvertRgb24;
 
-impl ColourConversion for DefaultColourConversion {
-    fn convert_rgb24_to_ansi_colour(&mut self, rgb24: Rgb24) -> AnsiColour {
+impl ConvertRgb24 for DefaultConvertRgb24 {
+    fn convert_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
         AnsiColour::from_rgb24(rgb24)
     }
 }
 
-impl<F: FnMut(Rgb24) -> AnsiColour> ColourConversion for F {
-    fn convert_rgb24_to_ansi_colour(&mut self, rgb24: Rgb24) -> AnsiColour {
+impl<F: FnMut(Rgb24) -> AnsiColour> ConvertRgb24 for F {
+    fn convert_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
         (self)(rgb24)
     }
 }
 
-/// An interface to a terminal for rendering `View`s, and getting input.
-pub struct Context<C: ColourConversion = DefaultColourConversion> {
-    terminal: Terminal,
-    grid: Grid<Colour, Colour>,
-    colour_conversion: C,
+struct UnixColourConversion<C>(C);
+
+impl<C: ConvertRgb24> ColourConversion for UnixColourConversion<C> {
+    type Colour = AnsiColour;
+    fn default_foreground(&mut self) -> Self::Colour {
+        AnsiColour::from_rgb24(grey24(255))
+    }
+    fn default_background(&mut self) -> Self::Colour {
+        AnsiColour::from_rgb24(grey24(0))
+    }
+    fn convert_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+        self.0.convert_rgb24(rgb24)
+    }
 }
 
-impl Context<DefaultColourConversion> {
+/// An interface to a terminal for rendering `View`s, and getting input.
+pub struct Context<C: ConvertRgb24 = DefaultConvertRgb24> {
+    terminal: Terminal,
+    grid: Grid<UnixColourConversion<C>>,
+}
+
+impl Context<DefaultConvertRgb24> {
     /// Initialise a new context using the current terminal.
     pub fn new() -> Result<Self> {
-        Self::with_colour_conversion(DefaultColourConversion)
+        Self::with_convert_rgb24(DefaultConvertRgb24)
     }
 
-    fn from_terminal(terminal: Terminal) -> Result<Self> {
-        Self::from_terminal_with_colour_conversion(terminal, DefaultColourConversion)
+    pub fn from_terminal(terminal: Terminal) -> Result<Self> {
+        Self::from_terminal_with_convert_rgb24(terminal, DefaultConvertRgb24)
     }
 }
 
-impl<C: ColourConversion> Context<C> {
-    pub fn with_colour_conversion(colour_conversion: C) -> Result<Self> {
-        Terminal::new().and_then(|terminal| {
-            Self::from_terminal_with_colour_conversion(terminal, colour_conversion)
-        })
+impl<C: ConvertRgb24> Context<C> {
+    pub fn with_convert_rgb24(convert_rgb24: C) -> Result<Self> {
+        Terminal::new()
+            .and_then(|terminal| Self::from_terminal_with_convert_rgb24(terminal, convert_rgb24))
     }
 
-    pub fn from_terminal_with_colour_conversion(
+    pub fn from_terminal_with_convert_rgb24(
         mut terminal: Terminal,
-        colour_conversion: C,
+        convert_rgb24: C,
     ) -> Result<Self> {
         let size = terminal.resize_if_necessary()?;
-        let grid = Grid::new(size);
-        Ok(Self {
-            terminal,
-            grid,
-            colour_conversion,
-        })
+        let grid = Grid::new(size, UnixColourConversion(convert_rgb24));
+        Ok(Self { terminal, grid })
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
@@ -68,7 +76,6 @@ impl<C: ColourConversion> Context<C> {
         if size != self.grid.size() {
             self.grid.resize(size);
         }
-
         Ok(())
     }
 
