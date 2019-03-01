@@ -6,73 +6,97 @@ use prototty_render::*;
 use std::time::Duration;
 use terminal::*;
 
-pub trait ConvertRgb24 {
-    fn convert_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour;
+const DEFAULT_FG: AnsiColour = AnsiColour::from_rgb24(grey24(255));
+const DEFAULT_BG: AnsiColour = AnsiColour::from_rgb24(grey24(0));
+
+pub trait ColourConfig {
+    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour;
+    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
+        self.convert_foreground_rgb24(rgb24)
+    }
+    fn default_foreground(&mut self) -> AnsiColour {
+        DEFAULT_FG
+    }
+    fn default_background(&mut self) -> AnsiColour {
+        DEFAULT_BG
+    }
 }
 
-pub struct DefaultConvertRgb24;
+pub struct DefaultColourConfig;
 
-impl ConvertRgb24 for DefaultConvertRgb24 {
-    fn convert_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
+impl ColourConfig for DefaultColourConfig {
+    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
         AnsiColour::from_rgb24(rgb24)
     }
 }
 
-impl<F: FnMut(Rgb24) -> AnsiColour> ConvertRgb24 for F {
-    fn convert_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
+impl<F: FnMut(Rgb24) -> AnsiColour> ColourConfig for F {
+    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
         (self)(rgb24)
     }
 }
 
 struct UnixColourConversion<C>(C);
 
-impl<C: ConvertRgb24> ColourConversion for UnixColourConversion<C> {
+impl<C: ColourConfig> ColourConversion for UnixColourConversion<C> {
     type Colour = AnsiColour;
     fn default_foreground(&mut self) -> Self::Colour {
-        AnsiColour::from_rgb24(grey24(255))
+        self.0.default_foreground()
     }
     fn default_background(&mut self) -> Self::Colour {
-        AnsiColour::from_rgb24(grey24(0))
+        self.0.default_background()
     }
-    fn convert_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        self.0.convert_rgb24(rgb24)
+    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+        self.0.convert_foreground_rgb24(rgb24)
+    }
+    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+        self.0.convert_background_rgb24(rgb24)
     }
 }
 
 /// An interface to a terminal for rendering `View`s, and getting input.
-pub struct Context<C: ConvertRgb24 = DefaultConvertRgb24> {
+pub struct Context<C: ColourConfig = DefaultColourConfig> {
     terminal: Terminal,
     grid: Grid<UnixColourConversion<C>>,
 }
 
-impl Context<DefaultConvertRgb24> {
+impl Context<DefaultColourConfig> {
     /// Initialise a new context using the current terminal.
     pub fn new() -> Result<Self> {
-        Self::with_convert_rgb24(DefaultConvertRgb24)
+        Self::with_colour_config(DefaultColourConfig)
     }
 
     pub fn from_terminal(terminal: Terminal) -> Result<Self> {
-        Self::from_terminal_with_convert_rgb24(terminal, DefaultConvertRgb24)
+        Self::from_terminal_with_colour_config(terminal, DefaultColourConfig)
     }
 }
 
-impl<C: ConvertRgb24> Context<C> {
-    pub fn with_convert_rgb24(convert_rgb24: C) -> Result<Self> {
-        Terminal::new()
-            .and_then(|terminal| Self::from_terminal_with_convert_rgb24(terminal, convert_rgb24))
+impl<C: ColourConfig> Context<C> {
+    pub fn with_colour_config(mut colour_config: C) -> Result<Self> {
+        Terminal::new(
+            colour_config.default_foreground(),
+            colour_config.default_background(),
+        )
+        .and_then(|terminal| Self::from_terminal_with_colour_config(terminal, colour_config))
     }
 
-    pub fn from_terminal_with_convert_rgb24(
+    pub fn from_terminal_with_colour_config(
         mut terminal: Terminal,
-        convert_rgb24: C,
+        mut colour_config: C,
     ) -> Result<Self> {
-        let size = terminal.resize_if_necessary()?;
-        let grid = Grid::new(size, UnixColourConversion(convert_rgb24));
+        let size = terminal.resize_if_necessary(
+            colour_config.default_foreground(),
+            colour_config.default_background(),
+        )?;
+        let grid = Grid::new(size, UnixColourConversion(colour_config));
         Ok(Self { terminal, grid })
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
-        let size = self.terminal.resize_if_necessary()?;
+        let size = self.terminal.resize_if_necessary(
+            self.grid.default_foreground(),
+            self.grid.default_background(),
+        )?;
         if size != self.grid.size() {
             self.grid.resize(size);
         }
@@ -116,7 +140,7 @@ impl<C: ConvertRgb24> Context<C> {
         self.resize_if_necessary()?;
         self.grid.clear();
         view.view(data, offset, depth, &mut self.grid);
-        self.terminal.draw_grid(&self.grid)
+        self.terminal.draw_grid(&mut self.grid)
     }
 
     pub fn size(&self) -> Result<Size> {

@@ -340,7 +340,10 @@ impl<'a> ContextBuilder<'a> {
 struct GlutinColourConversion;
 impl ColourConversion for GlutinColourConversion {
     type Colour = [f32; 4];
-    fn convert_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+        rgb24.to_f32_rgba(1.)
+    }
+    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
         rgb24.to_f32_rgba(1.)
     }
     fn default_foreground(&mut self) -> Self::Colour {

@@ -5,7 +5,8 @@ use prototty_render::*;
 
 pub trait ColourConversion {
     type Colour;
-    fn convert_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour;
+    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour;
+    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour;
     fn default_foreground(&mut self) -> Self::Colour;
     fn default_background(&mut self) -> Self::Colour;
 }
@@ -118,6 +119,14 @@ impl<C: ColourConversion> Grid<C> {
     pub fn iter_mut(&mut self) -> IterMut<CommonCell<C::Colour>> {
         self.cells.iter_mut()
     }
+
+    pub fn default_foreground(&mut self) -> C::Colour {
+        self.colour_conversion.default_foreground()
+    }
+
+    pub fn default_background(&mut self) -> C::Colour {
+        self.colour_conversion.default_background()
+    }
 }
 
 impl<C: ColourConversion> ViewGrid for Grid<C> {
@@ -135,19 +144,20 @@ impl<C: ColourConversion> ViewGrid for Grid<C> {
                 }
                 if let Some(foreground) = info.foreground {
                     cell.set_foreground_colour(
-                        self.colour_conversion.convert_rgb24(foreground),
+                        self.colour_conversion.convert_foreground_rgb24(foreground),
                         depth,
                     );
                 }
                 if let Some(background) = info.background {
                     cell.set_background_colour(
-                        self.colour_conversion.convert_rgb24(background),
+                        self.colour_conversion.convert_background_rgb24(background),
                         depth,
                     );
                 }
             }
         }
     }
+
     fn size(&self) -> Size {
         self.cells.size()
     }

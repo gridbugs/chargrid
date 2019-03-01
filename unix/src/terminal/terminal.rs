@@ -7,10 +7,6 @@ use prototty_input::*;
 use prototty_render::*;
 use std::time::Duration;
 
-const DEFAULT_CH: char = ' ';
-const DEFAULT_FG: AnsiColour = AnsiColour::from_rgb24(grey24(255));
-const DEFAULT_BG: AnsiColour = AnsiColour::from_rgb24(grey24(0));
-
 type Cell = CommonCell<AnsiColour>;
 
 #[derive(Debug, Clone)]
@@ -21,19 +17,6 @@ pub struct OutputCell {
     bg: AnsiColour,
     bold: bool,
     underline: bool,
-}
-
-impl Default for OutputCell {
-    fn default() -> Self {
-        Self {
-            dirty: true,
-            ch: DEFAULT_CH,
-            fg: DEFAULT_FG,
-            bg: DEFAULT_BG,
-            bold: false,
-            underline: false,
-        }
-    }
 }
 
 impl OutputCell {
@@ -53,6 +36,16 @@ impl OutputCell {
         self.bold = cell.bold;
         self.underline = cell.underline;
     }
+    fn new_default(fg: AnsiColour, bg: AnsiColour) -> Self {
+        Self {
+            dirty: true,
+            ch: ' ',
+            fg,
+            bg,
+            bold: false,
+            underline: false,
+        }
+    }
 }
 
 pub struct Terminal {
@@ -61,19 +54,17 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn new() -> Result<Self> {
+    pub fn new(fg: AnsiColour, bg: AnsiColour) -> Result<Self> {
         let ansi = AnsiTerminal::new()?;
-
         let size = ansi.size()?;
-        let output_grid = grid_2d::Grid::new_default(size);
-
+        let output_grid = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
         Ok(Self { ansi, output_grid })
     }
 
-    pub fn resize_if_necessary(&mut self) -> Result<Size> {
+    pub fn resize_if_necessary(&mut self, fg: AnsiColour, bg: AnsiColour) -> Result<Size> {
         let size = self.ansi.size()?;
         if size != self.output_grid.size() {
-            self.output_grid = grid_2d::Grid::new_default(size);
+            self.output_grid = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
         }
         Ok(size)
     }
@@ -82,15 +73,15 @@ impl Terminal {
         self.ansi.size()
     }
 
-    pub fn draw_grid<C>(&mut self, grid: &Grid<C>) -> Result<()>
+    pub fn draw_grid<C>(&mut self, grid: &mut Grid<C>) -> Result<()>
     where
         C: ColourConversion<Colour = AnsiColour>,
     {
         self.ansi.set_cursor(Coord::new(0, 0))?;
         let mut bold = false;
         let mut underline = false;
-        let mut fg = DEFAULT_FG;
-        let mut bg = DEFAULT_BG;
+        let mut fg = grid.default_foreground();
+        let mut bg = grid.default_background();
         self.ansi.reset();
         self.ansi.clear_underline();
         self.ansi.set_foreground_colour(fg);
