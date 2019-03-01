@@ -4,7 +4,7 @@ use prototty_grid::*;
 use prototty_render::Rgb24;
 
 #[derive(Debug, Clone)]
-pub struct Colour(pub ansi_colour::Colour);
+pub struct Colour(ansi_colour::Colour);
 
 impl From<Rgb24> for Colour {
     fn from(rgb24: Rgb24) -> Self {
