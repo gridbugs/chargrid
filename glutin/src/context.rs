@@ -356,7 +356,7 @@ impl ColourConversion for GlutinColourConversion {
 }
 
 pub struct Context<'a> {
-    window: glutin::GlWindow,
+    window: glutin::WindowedContext,
     device: gfx_device_gl::Device,
     encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer>,
     factory: gfx_device_gl::Factory,
