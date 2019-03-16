@@ -58,8 +58,9 @@ impl Context<DefaultConvertRgb24> {
 
 impl<C: ConvertRgb24> Context<C> {
     pub fn with_convert_rgb24(convert_rgb24: C) -> Result<Self> {
-        Terminal::new()
-            .and_then(|terminal| Self::from_terminal_with_convert_rgb24(terminal, convert_rgb24))
+        Terminal::new().and_then(|terminal| {
+            Self::from_terminal_with_convert_rgb24(terminal, convert_rgb24)
+        })
     }
 
     pub fn from_terminal_with_convert_rgb24(
@@ -103,19 +104,18 @@ impl<C: ConvertRgb24> Context<C> {
     }
 
     pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
-        self.render_at(view, data, Coord::new(0, 0), 0)
+        self.render_at(view, data, Default::default())
     }
 
-    pub fn render_at<V: View<T>, T>(
+    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
         &mut self,
         view: &mut V,
         data: &T,
-        offset: Coord,
-        depth: i32,
+        context: ViewContext<R>,
     ) -> Result<()> {
         self.resize_if_necessary()?;
         self.grid.clear();
-        view.view(data, offset, depth, &mut self.grid);
+        view.view(data, context, &mut self.grid);
         self.terminal.draw_grid(&self.grid)
     }
 

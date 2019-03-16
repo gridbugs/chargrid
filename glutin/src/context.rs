@@ -223,8 +223,10 @@ impl<'a> ContextBuilder<'a> {
         let mut encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer> =
             factory.create_command_buffer().into();
 
-        let mut glyph_brush_builder = gfx_glyph::GlyphBrushBuilder::using_font_bytes(self.font);
-        let bold_font_id = glyph_brush_builder.add_font_bytes(self.bold_font.unwrap_or(self.font));
+        let mut glyph_brush_builder =
+            gfx_glyph::GlyphBrushBuilder::using_font_bytes(self.font);
+        let bold_font_id =
+            glyph_brush_builder.add_font_bytes(self.bold_font.unwrap_or(self.font));
         assert_eq!(bold_font_id, BOLD_FONT_ID);
 
         let mut glyph_brush = glyph_brush_builder.build(factory.clone());
@@ -236,20 +238,21 @@ impl<'a> ContextBuilder<'a> {
         let window_width = (window_width as f32 * hidpi) as u32;
         let window_height = (window_height as f32 * hidpi) as u32;
 
-        let (cell_width, cell_height) = if let Some(cell_dimensions) = self.cell_dimensions {
-            (cell_dimensions.x(), cell_dimensions.y())
-        } else {
-            let section = gfx_glyph::Section {
-                text: "@",
-                scale: self.font_scale,
-                font_id: FONT_ID,
-                ..Default::default()
+        let (cell_width, cell_height) =
+            if let Some(cell_dimensions) = self.cell_dimensions {
+                (cell_dimensions.x(), cell_dimensions.y())
+            } else {
+                let section = gfx_glyph::Section {
+                    text: "@",
+                    scale: self.font_scale,
+                    font_id: FONT_ID,
+                    ..Default::default()
+                };
+                let rect = glyph_brush
+                    .pixel_bounds(section)
+                    .ok_or(Error::FailedToMeasureFont)?;
+                (rect.width() as u32, rect.height() as u32)
             };
-            let rect = glyph_brush
-                .pixel_bounds(section)
-                .ok_or(Error::FailedToMeasureFont)?;
-            (rect.width() as u32, rect.height() as u32)
-        };
 
         let unscaled_cell_width = cell_width as f32;
         let unscaled_cell_height = cell_height as f32;
@@ -282,7 +285,8 @@ impl<'a> ContextBuilder<'a> {
             .underline_position
             .map(|w| hidpi * w as f32)
             .unwrap_or_else(|| {
-                cell_height as f32 - (cell_height as f32 / UNDERLINE_POSITION_RATIO as f32)
+                cell_height as f32
+                    - (cell_height as f32 / UNDERLINE_POSITION_RATIO as f32)
             });
 
         let background_renderer = BackgroundRenderer::new(
@@ -396,7 +400,9 @@ impl<'a> Context<'a> {
                         match event {
                             InputEvent::Input(input) => callback(input),
                             InputEvent::Quit => closing = true,
-                            InputEvent::Resize(width, height) => resize = Some((width, height)),
+                            InputEvent::Resize(width, height) => {
+                                resize = Some((width, height))
+                            }
                         }
                     }
                 }
@@ -451,27 +457,28 @@ impl<'a> Context<'a> {
     }
 
     pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
-        self.render_at(view, data, Coord::new(0, 0), 0)
+        self.render_at(view, data, Default::default())
     }
 
-    pub fn render_at<V: View<T>, T>(
+    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
         &mut self,
         view: &mut V,
         data: &T,
-        offset: Coord,
-        depth: i32,
+        context: ViewContext<R>,
     ) -> Result<()> {
         if self.closing {
             return Ok(());
         }
 
         self.grid.clear();
-        view.view(data, offset, depth, &mut self.grid);
+        view.view(data, context, &mut self.grid);
 
         {
             let mut output_cells = self.background_renderer.map_cells(&mut self.factory);
 
-            for ((coord, cell), output_cell) in self.grid.enumerate().zip(output_cells.iter_mut()) {
+            for ((coord, cell), output_cell) in
+                self.grid.enumerate().zip(output_cells.iter_mut())
+            {
                 self.char_buf.clear();
                 self.char_buf.push(cell.character);
 

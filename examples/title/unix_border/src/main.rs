@@ -5,7 +5,7 @@ extern crate prototty_unix;
 extern crate prototty_title;
 
 use prototty_title::*;
-use prototty_unix::prototty_render::{Coord, Size, View, ViewGrid, ViewSize};
+use prototty_unix::prototty_render::*;
 
 // The `Border` decorator in prototty_common requires that the
 // view which it decorates implements `ViewSize`, defined in
@@ -14,9 +14,14 @@ use prototty_unix::prototty_render::{Coord, Size, View, ViewGrid, ViewSize};
 // `View` and `ViewSize` here in this crate.
 struct SizedDemoTitleView;
 impl View<Title> for SizedDemoTitleView {
-    fn view<G: ViewGrid>(&mut self, title: &Title, coord: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        title: &Title,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
         // behave identically to `DemoTitleView`
-        DemoTitleView.view(title, coord, depth, grid);
+        DemoTitleView.view(title, context, grid);
     }
 }
 impl ViewSize<Title> for SizedDemoTitleView {

@@ -37,9 +37,13 @@ impl<T, V: View<T> + ViewSize<T>> ViewSize<T> for Decorated<V, Align> {
 }
 
 impl<T, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Align> {
-    fn view<G: ViewGrid>(&mut self, data: &T, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        data: &T,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
         let data_size = self.view.size(data);
-
         let x_offset = if self.decorator.size.x() > data_size.x() {
             match self.decorator.x_alignment {
                 Alignment::TopLeft => 0,
@@ -62,8 +66,13 @@ impl<T, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Align> {
 
         self.view.view(
             data,
-            offset + Coord::new(x_offset as i32, y_offset as i32),
-            depth,
+            context.add_offset(Coord::new(x_offset as i32, y_offset as i32)),
+            grid,
+        );
+
+        self.view.view(
+            data,
+            context.add_offset(Coord::new(x_offset as i32, y_offset as i32)),
             grid,
         );
     }

@@ -190,7 +190,11 @@ impl<T: Copy> MenuInstance<T> {
         None
     }
 
-    pub fn tick_with_mouse<'a, I, M>(&mut self, inputs: I, view: &'a M) -> Option<MenuOutput<T>>
+    pub fn tick_with_mouse<'a, I, M>(
+        &mut self,
+        inputs: I,
+        view: &'a M,
+    ) -> Option<MenuOutput<T>>
     where
         I: IntoIterator<Item = Input>,
         M: MenuIndexFromScreenCoord,
@@ -213,12 +217,16 @@ impl<T: Copy> MenuInstance<T> {
                     ..
                 } => self.down(),
                 Input::MouseMove { coord, .. } => {
-                    if let Some(index) = view.menu_index_from_screen_coord(&self.menu, coord) {
+                    if let Some(index) =
+                        view.menu_index_from_screen_coord(&self.menu, coord)
+                    {
                         self.set_index(index);
                     }
                 }
                 Input::MousePress { coord, .. } => {
-                    if let Some(index) = view.menu_index_from_screen_coord(&self.menu, coord) {
+                    if let Some(index) =
+                        view.menu_index_from_screen_coord(&self.menu, coord)
+                    {
                         self.set_index(index);
                         return Some(MenuOutput::Finalise(self.selected()));
                     }
@@ -281,14 +289,13 @@ impl MenuIndexFromScreenCoord for DefaultMenuInstanceView {
 }
 
 impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
-    fn view<G: ViewGrid>(
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         value: &MenuInstance<T>,
-        offset: Coord,
-        depth: i32,
+        context: ViewContext<R>,
         grid: &mut G,
     ) {
-        self.last_coord = offset;
+        self.last_coord = Coord::new(0, 0);
         for (i, entry) in value.menu.entries.iter().enumerate() {
             if i == value.menu.size.y() as usize {
                 break;
@@ -302,8 +309,8 @@ impl<T: Copy> View<MenuInstance<T>> for DefaultMenuInstanceView {
                 if j == value.menu.size.x() as usize {
                     break;
                 }
-                let coord = offset + Coord::new(j as i32, i as i32);
-                grid.set_cell(coord, depth, info.view_cell_info(ch));
+                let coord = Coord::new(j as i32, i as i32);
+                grid.set_cell_relative(coord, 0, info.view_cell_info(ch), context);
             }
         }
     }

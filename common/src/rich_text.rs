@@ -59,27 +59,37 @@ impl RichText {
 pub struct DefaultRichTextView;
 
 impl View<RichText> for DefaultRichTextView {
-    fn view<G: ViewGrid>(&mut self, data: &RichText, offset: Coord, depth: i32, grid: &mut G) {
-        let bottom_right_abs = offset + data.size;
-        let mut coord = offset;
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        data: &RichText,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        let bottom_right_abs = data.size.to_coord().unwrap();
+        let mut coord = Coord::new(0, 0);
         'part_loop: for part in data.parts.iter() {
             for ch in part.string.chars() {
                 match ch {
                     '\n' => {
-                        coord.x = offset.x;
+                        coord.x = 0;
                         coord.y += 1;
                         if coord.y == bottom_right_abs.y {
                             break;
                         }
                     }
                     '\r' => {
-                        coord.x = offset.x;
+                        coord.x = 0;
                     }
                     _ => {
-                        grid.set_cell(coord, depth, part.info.view_cell_info(ch));
+                        grid.set_cell_relative(
+                            coord,
+                            0,
+                            part.info.view_cell_info(ch),
+                            context,
+                        );
                         coord.x += 1;
                         if coord.x == bottom_right_abs.x {
-                            coord.x = offset.x;
+                            coord.x = 0;
                             coord.y += 1;
                             if coord.y == bottom_right_abs.y {
                                 break 'part_loop;

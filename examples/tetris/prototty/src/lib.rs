@@ -35,7 +35,12 @@ fn piece_colour(typ: PieceType) -> Rgb24 {
     }
 }
 impl View<Tetris> for TetrisBoardView {
-    fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        tetris: &Tetris,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
                 let mut cell_info = ViewCell::new().with_bold(true);
@@ -48,7 +53,12 @@ impl View<Tetris> for TetrisBoardView {
                     cell_info.foreground = Some(BLANK_FOREGROUND_COLOUR);
                     cell_info.background = Some(BACKGROUND_COLOUR);
                 }
-                grid.set_cell(offset + Coord::new(j as i32, i as i32), depth, cell_info);
+                grid.set_cell_relative(
+                    Coord::new(j as i32, i as i32),
+                    0,
+                    cell_info,
+                    context,
+                );
             }
         }
         for coord in tetris.game_state.piece.coords.iter().cloned() {
@@ -59,7 +69,7 @@ impl View<Tetris> for TetrisBoardView {
                 foreground: Some(FOREGROUND_COLOUR),
                 background: Some(piece_colour(tetris.game_state.piece.typ)),
             };
-            grid.set_cell(offset + coord, depth, cell_info);
+            grid.set_cell_relative(coord, 0, cell_info, context);
         }
     }
 }
@@ -71,8 +81,13 @@ impl ViewSize<Tetris> for TetrisBoardView {
 }
 
 impl View<Tetris> for TetrisNextPieceView {
-    fn view<G: ViewGrid>(&mut self, tetris: &Tetris, offset: Coord, depth: i32, grid: &mut G) {
-        let offset = offset + Coord::new(1, 0);
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        tetris: &Tetris,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        let offset = Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             let cell_info = ViewCell {
                 character: Some(BLOCK_CHAR),
@@ -81,7 +96,7 @@ impl View<Tetris> for TetrisNextPieceView {
                 foreground: Some(FOREGROUND_COLOUR),
                 background: Some(piece_colour(tetris.game_state.next_piece.typ)),
             };
-            grid.set_cell(offset + coord, depth, cell_info);
+            grid.set_cell_relative(offset + coord, 0, cell_info, context);
         }
     }
 }
@@ -228,13 +243,21 @@ impl App {
                             self.state = AppState::Menu;
                         }
                         ProtottyInput::Up => self.input_buffer.push_back(TetrisInput::Up),
-                        ProtottyInput::Down => self.input_buffer.push_back(TetrisInput::Down),
-                        ProtottyInput::Left => self.input_buffer.push_back(TetrisInput::Left),
-                        ProtottyInput::Right => self.input_buffer.push_back(TetrisInput::Right),
+                        ProtottyInput::Down => {
+                            self.input_buffer.push_back(TetrisInput::Down)
+                        }
+                        ProtottyInput::Left => {
+                            self.input_buffer.push_back(TetrisInput::Left)
+                        }
+                        ProtottyInput::Right => {
+                            self.input_buffer.push_back(TetrisInput::Right)
+                        }
                         _ => (),
                     }
                 }
-                if let Some(meta) = self.tetris.tick(self.input_buffer.drain(..), period, rng) {
+                if let Some(meta) =
+                    self.tetris.tick(self.input_buffer.drain(..), period, rng)
+                {
                     match meta {
                         Meta::GameOver => {
                             self.timeout = Timeout::from_millis(DEATH_ANIMATION_MILLIS);
@@ -273,26 +296,31 @@ impl AppView {
 }
 
 impl View<App> for AppView {
-    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        app: &App,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
         match app.state {
             AppState::Game | AppState::GameOver => {
-                let next_piece_offset_x = self.borders.common.size(&app.tetris).x() as i32;
-                self.borders.common.view(&app.tetris, offset, depth, grid);
+                let next_piece_offset_x =
+                    self.borders.common.size(&app.tetris).x() as i32;
+                self.borders.common.view(&app.tetris, context, grid);
                 self.borders.next_piece.view(
                     &app.tetris,
-                    Coord {
+                    context.add_offset(Coord {
                         x: next_piece_offset_x,
-                        ..offset
-                    },
-                    depth,
+                        y: 0,
+                    }),
                     grid,
                 );
             }
             AppState::Menu => {
-                self.borders.menu.view(&app.main_menu, offset, depth, grid);
+                self.borders.menu.view(&app.main_menu, context, grid);
             }
             AppState::EndText => {
-                DefaultRichTextView.view(&app.end_text, offset, depth, grid);
+                DefaultRichTextView.view(&app.end_text, context, grid);
             }
         }
     }

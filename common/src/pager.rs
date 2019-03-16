@@ -24,7 +24,9 @@ impl Buffer {
             self.wrapped_lines
                 .push(mem::replace(&mut self.current_word, String::new()));
         } else {
-            if self.wrapped_lines[index_of_current_line].len() + self.current_word.len() <= width {
+            if self.wrapped_lines[index_of_current_line].len() + self.current_word.len()
+                <= width
+            {
                 self.wrapped_lines[index_of_current_line].push_str(&self.current_word);
             } else {
                 index_of_current_line += 1;
@@ -218,19 +220,25 @@ impl PagerScrollbar {
 pub struct PagerView;
 
 impl View<Pager> for PagerView {
-    fn view<G: ViewGrid>(&mut self, pager: &Pager, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        pager: &Pager,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
         let start_index = pager.scroll_position;
         let remaining_lines_to_show = pager
             .wrapped_lines
             .len()
             .saturating_sub(pager.scroll_position);
-        let num_lines_to_show = (pager.size.height() as usize).min(remaining_lines_to_show);
+        let num_lines_to_show =
+            (pager.size.height() as usize).min(remaining_lines_to_show);
         let range = start_index..(start_index + num_lines_to_show);
         for (y_offset, line) in pager.wrapped_lines[range].iter().enumerate() {
             for (x_offset, ch) in line.chars().enumerate() {
                 let coord = Coord::new(x_offset as i32, y_offset as i32);
                 let view_cell = pager.text_info.view_cell_info(ch);
-                grid.set_cell(offset + coord, depth, view_cell);
+                grid.set_cell_relative(coord, 0, view_cell, context);
             }
         }
     }
@@ -244,27 +252,27 @@ impl ViewSize<Pager> for PagerView {
 
 pub struct PagerViewWithScrollbar<V>(pub V);
 
-impl<'a, V: View<Pager>> View<(&'a Pager, &'a PagerScrollbar)> for PagerViewWithScrollbar<V> {
-    fn view<G: ViewGrid>(
+impl<'a, V: View<Pager>> View<(&'a Pager, &'a PagerScrollbar)>
+    for PagerViewWithScrollbar<V>
+{
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         data: &(&'a Pager, &'a PagerScrollbar),
-        offset: Coord,
-        depth: i32,
+        context: ViewContext<R>,
         grid: &mut G,
     ) {
-        self.0.view(data.0, offset, depth, grid);
+        self.0.view(data.0, context, grid);
         let pager_height = data.0.size().height();
         if data.0.num_lines() as u32 > pager_height {
             let view_cell = data.1.text_info.view_cell_info(data.1.character);
-            let bar_x = offset.x + data.0.size().width() as i32 + data.1.padding as i32;
+            let bar_x = data.0.size().width() as i32 + data.1.padding as i32;
             let bar_height = (pager_height * pager_height) / data.0.num_lines() as u32;
-            let bar_top = offset.y as u32
-                + ((pager_height - bar_height) * data.0.scroll_position() as u32)
-                    / data.0.max_scroll_position() as u32;
+            let bar_top = ((pager_height - bar_height) * data.0.scroll_position() as u32)
+                / data.0.max_scroll_position() as u32;
             for y in 0..bar_height {
                 let bar_y = (y + bar_top) as i32;
                 let coord = Coord::new(bar_x, bar_y);
-                grid.set_cell(coord, depth, view_cell);
+                grid.set_cell_relative(coord, 0, view_cell, context);
             }
         }
     }
@@ -306,13 +314,17 @@ mod test {
         let lines = wrap_lines("abcdefghijklmnop", 1);
         assert_eq!(
             lines,
-            ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",]
+            [
+                "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n",
+                "o", "p",
+            ]
         );
     }
 
     #[test]
     fn consecutive_spaces() {
-        let lines = wrap_lines("hello        world     there  are lots  of    spaces", 10);
+        let lines =
+            wrap_lines("hello        world     there  are lots  of    spaces", 10);
         assert_eq!(
             lines,
             [

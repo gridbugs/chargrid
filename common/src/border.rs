@@ -66,55 +66,69 @@ pub struct Border {
 }
 
 impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
-    fn view<G: ViewGrid>(&mut self, data: &T, offset: Coord, depth: i32, grid: &mut G) {
-        self.view
-            .view(data, offset + self.decorator.child_offset(), depth, grid);
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        data: &T,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        self.view.view(
+            data,
+            context.add_offset(self.decorator.child_offset()),
+            grid,
+        );
 
         let span = self.decorator.span_offset() + self.view.size(data);
 
-        grid.set_cell(
-            offset,
-            depth,
+        grid.set_cell_relative(
+            Coord::new(0, 0),
+            0,
             self.decorator.view_cell_info(self.decorator.chars.top_left),
+            context,
         );
-        grid.set_cell(
-            offset + Coord::new(span.x, 0),
-            depth,
+        grid.set_cell_relative(
+            Coord::new(span.x, 0),
+            0,
             self.decorator
                 .view_cell_info(self.decorator.chars.top_right),
+            context,
         );
-        grid.set_cell(
-            offset + Coord::new(0, span.y),
-            depth,
+        grid.set_cell_relative(
+            Coord::new(0, span.y),
+            0,
             self.decorator
                 .view_cell_info(self.decorator.chars.bottom_left),
+            context,
         );
-        grid.set_cell(
-            offset + Coord::new(span.x, span.y),
-            depth,
+        grid.set_cell_relative(
+            Coord::new(span.x, span.y),
+            0,
             self.decorator
                 .view_cell_info(self.decorator.chars.bottom_right),
+            context,
         );
         let title_offset = if let Some(title) = self.decorator.title.as_ref() {
-            let before = offset + Coord::new(1, 0);
-            let after = offset + Coord::new(title.len() as i32 + 2, 0);
-            grid.set_cell(
+            let before = Coord::new(1, 0);
+            let after = Coord::new(title.len() as i32 + 2, 0);
+            grid.set_cell_relative(
                 before,
-                depth,
+                0,
                 self.decorator
                     .view_cell_info(self.decorator.chars.before_title),
+                context,
             );
-            grid.set_cell(
+            grid.set_cell_relative(
                 after,
-                depth,
+                0,
                 self.decorator
                     .view_cell_info(self.decorator.chars.after_title),
+                context,
             );
             for (index, ch) in title.chars().enumerate() {
-                let coord = offset + Coord::new(index as i32 + 2, 0);
-                grid.set_cell(
+                let coord = Coord::new(index as i32 + 2, 0);
+                grid.set_cell_relative(
                     coord,
-                    depth,
+                    0,
                     ViewCell {
                         character: Some(ch),
                         bold: Some(self.decorator.bold_title),
@@ -122,6 +136,7 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
                         foreground: Some(self.decorator.title_colour),
                         background: Some(self.decorator.background_colour),
                     },
+                    context,
                 );
             }
 
@@ -131,30 +146,34 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
         };
 
         for i in (1 + title_offset)..span.x {
-            grid.set_cell(
-                offset + Coord::new(i, 0),
-                depth,
+            grid.set_cell_relative(
+                Coord::new(i, 0),
+                0,
                 self.decorator.view_cell_info(self.decorator.chars.top),
+                context,
             );
         }
         for i in 1..span.x {
-            grid.set_cell(
-                offset + Coord::new(i, span.y),
-                depth,
+            grid.set_cell_relative(
+                Coord::new(i, span.y),
+                0,
                 self.decorator.view_cell_info(self.decorator.chars.bottom),
+                context,
             );
         }
 
         for i in 1..span.y {
-            grid.set_cell(
-                offset + Coord::new(0, i),
-                depth,
+            grid.set_cell_relative(
+                Coord::new(0, i),
+                0,
                 self.decorator.view_cell_info(self.decorator.chars.left),
+                context,
             );
-            grid.set_cell(
-                offset + Coord::new(span.x, i),
-                depth,
+            grid.set_cell_relative(
+                Coord::new(span.x, i),
+                0,
                 self.decorator.view_cell_info(self.decorator.chars.right),
+                context,
             );
         }
     }
