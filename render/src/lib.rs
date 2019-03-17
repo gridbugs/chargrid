@@ -6,10 +6,9 @@ extern crate serde;
 
 mod view;
 
+pub use coord_2d::{Coord, Size};
 pub use rgb24::*;
 pub use view::*;
-
-pub use coord_2d::{Coord, Size};
 
 pub mod colours {
     use rgb24::*;

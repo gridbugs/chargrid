@@ -39,7 +39,8 @@ where
 
 #[derive(Clone, Copy)]
 pub struct ViewContext<R: ViewTransformRgb24 = ViewTransformRgb24Identity> {
-    pub offset: Coord,
+    pub inner_offset: Coord,
+    pub outer_offset: Coord,
     pub depth: i32,
     pub transform_rgb24: R,
     pub size: Size,
@@ -48,7 +49,8 @@ pub struct ViewContext<R: ViewTransformRgb24 = ViewTransformRgb24Identity> {
 impl ViewContext<ViewTransformRgb24Identity> {
     pub fn default_with_size(size: Size) -> Self {
         Self {
-            offset: Coord::new(0, 0),
+            inner_offset: Coord::new(0, 0),
+            outer_offset: Coord::new(0, 0),
             depth: 0,
             transform_rgb24: ViewTransformRgb24Identity,
             size,
@@ -57,18 +59,32 @@ impl ViewContext<ViewTransformRgb24Identity> {
 }
 
 impl<R: ViewTransformRgb24> ViewContext<R> {
-    pub fn new(offset: Coord, depth: i32, transform_rgb24: R, size: Size) -> Self {
+    pub fn new(
+        inner_offset: Coord,
+        outer_offset: Coord,
+        depth: i32,
+        transform_rgb24: R,
+        size: Size,
+    ) -> Self {
         Self {
-            offset,
+            inner_offset,
+            outer_offset,
             depth,
             transform_rgb24,
             size,
         }
     }
 
+    pub fn add_inner_offset(self, offset_delta: Coord) -> Self {
+        Self {
+            inner_offset: self.inner_offset + offset_delta,
+            ..self
+        }
+    }
+
     pub fn add_offset(self, offset_delta: Coord) -> Self {
         Self {
-            offset: self.offset + offset_delta,
+            outer_offset: self.outer_offset + offset_delta,
             size: (self.size.to_coord().unwrap() - offset_delta)
                 .to_size()
                 .unwrap_or(Size::new_u16(0, 0)),
@@ -83,9 +99,16 @@ impl<R: ViewTransformRgb24> ViewContext<R> {
         }
     }
 
-    pub fn constrain_size(self, size: Size) -> Self {
+    pub fn constrain_size_to(self, size: Size) -> Self {
         Self {
             size: Size::new(self.size.x().min(size.x()), self.size.y().min(size.y())),
+            ..self
+        }
+    }
+
+    pub fn constrain_size_by(self, size: Size) -> Self {
+        Self {
+            size: self.size.saturating_sub(size),
             ..self
         }
     }
@@ -99,7 +122,8 @@ impl<R: ViewTransformRgb24> ViewContext<R> {
                 inner,
                 outer: self.transform_rgb24,
             },
-            offset: self.offset,
+            inner_offset: self.inner_offset,
+            outer_offset: self.outer_offset,
             depth: self.depth,
             size: self.size,
         }
@@ -206,8 +230,9 @@ pub trait ViewGrid {
         relative_cell: ViewCell,
         context: ViewContext<R>,
     ) {
-        if relative_coord.is_valid(context.size) {
-            let absolute_coord = relative_coord + context.offset;
+        let adjusted_relative_coord = relative_coord + context.inner_offset;
+        if adjusted_relative_coord.is_valid(context.size) {
+            let absolute_coord = adjusted_relative_coord + context.outer_offset;
             let absolute_depth = relative_depth + context.depth;
             let absolute_cell = ViewCell {
                 foreground: relative_cell
@@ -253,13 +278,11 @@ pub trait ViewSize<T> {
     fn size(&mut self, data: T) -> Size;
 }
 
-impl<'a, T, V: View<T>> View<T> for &'a mut V {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+pub trait ViewReportingRenderedSize<T> {
+    fn view_reporting_render_size<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,
         grid: &mut G,
-    ) {
-        (*self).view(data, context, grid)
-    }
+    ) -> Size;
 }

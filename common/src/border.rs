@@ -105,7 +105,7 @@ impl Border {
             y: (self.padding.top + self.padding.bottom + 1) as i32,
         }
     }
-    fn view_cell_info(&self, character: char) -> ViewCell {
+    fn view_cell(&self, character: char) -> ViewCell {
         ViewCell {
             character: Some(character),
             foreground: Some(self.foreground),
@@ -121,38 +121,47 @@ pub struct Bordered<V> {
     pub border: Border,
 }
 
-impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
+impl<V> Bordered<V> {
+    pub fn new(view: V, border: Border) -> Self {
+        Self { view, border }
+    }
+}
+
+impl<T: Clone, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        data: &T,
+        data: T,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        self.view
-            .view(data, context.add_offset(self.border.child_offset()), grid);
+        self.view.view(
+            data.clone(),
+            context.add_offset(self.border.child_offset()),
+            grid,
+        );
         let span = self.border.span_offset() + self.view.size(data);
         grid.set_cell_relative(
             Coord::new(0, 0),
             0,
-            self.border.view_cell_info(self.border.chars.top_left),
+            self.border.view_cell(self.border.chars.top_left),
             context,
         );
         grid.set_cell_relative(
             Coord::new(span.x, 0),
             0,
-            self.border.view_cell_info(self.border.chars.top_right),
+            self.border.view_cell(self.border.chars.top_right),
             context,
         );
         grid.set_cell_relative(
             Coord::new(0, span.y),
             0,
-            self.border.view_cell_info(self.border.chars.bottom_left),
+            self.border.view_cell(self.border.chars.bottom_left),
             context,
         );
         grid.set_cell_relative(
             Coord::new(span.x, span.y),
             0,
-            self.border.view_cell_info(self.border.chars.bottom_right),
+            self.border.view_cell(self.border.chars.bottom_right),
             context,
         );
         let title_offset = if let Some(title) = self.border.title.as_ref() {
@@ -161,13 +170,13 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
             grid.set_cell_relative(
                 before,
                 0,
-                self.border.view_cell_info(self.border.chars.before_title),
+                self.border.view_cell(self.border.chars.before_title),
                 context,
             );
             grid.set_cell_relative(
                 after,
                 0,
-                self.border.view_cell_info(self.border.chars.after_title),
+                self.border.view_cell(self.border.chars.after_title),
                 context,
             );
             for (index, ch) in title.chars().enumerate() {
@@ -193,7 +202,7 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
             grid.set_cell_relative(
                 Coord::new(i, 0),
                 0,
-                self.border.view_cell_info(self.border.chars.top),
+                self.border.view_cell(self.border.chars.top),
                 context,
             );
         }
@@ -201,7 +210,7 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
             grid.set_cell_relative(
                 Coord::new(i, span.y),
                 0,
-                self.border.view_cell_info(self.border.chars.bottom),
+                self.border.view_cell(self.border.chars.bottom),
                 context,
             );
         }
@@ -209,21 +218,21 @@ impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
             grid.set_cell_relative(
                 Coord::new(0, i),
                 0,
-                self.border.view_cell_info(self.border.chars.left),
+                self.border.view_cell(self.border.chars.left),
                 context,
             );
             grid.set_cell_relative(
                 Coord::new(span.x, i),
                 0,
-                self.border.view_cell_info(self.border.chars.right),
+                self.border.view_cell(self.border.chars.right),
                 context,
             );
         }
     }
 }
 
-impl<T: ?Sized, V: ViewSize<T>> ViewSize<T> for Bordered<V> {
-    fn size(&mut self, data: &T) -> Size {
+impl<T, V: ViewSize<T>> ViewSize<T> for Bordered<V> {
+    fn size(&mut self, data: T) -> Size {
         self.view.size(data) + Size::new(2, 2)
     }
 }
