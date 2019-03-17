@@ -219,25 +219,18 @@ impl<'a> ContextBuilder<'a> {
                 &events_loop,
             )
             .expect("Failed to create window");
-
         let mut encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer> =
             factory.create_command_buffer().into();
-
         let mut glyph_brush_builder =
             gfx_glyph::GlyphBrushBuilder::using_font_bytes(self.font);
         let bold_font_id =
             glyph_brush_builder.add_font_bytes(self.bold_font.unwrap_or(self.font));
         assert_eq!(bold_font_id, BOLD_FONT_ID);
-
         let mut glyph_brush = glyph_brush_builder.build(factory.clone());
-
         let (window_width, window_height, _, _) = rtv.get_dimensions();
-
         let hidpi = window.window().get_hidpi_factor() as f32;
-
         let window_width = (window_width as f32 * hidpi) as u32;
         let window_height = (window_height as f32 * hidpi) as u32;
-
         let (cell_width, cell_height) =
             if let Some(cell_dimensions) = self.cell_dimensions {
                 (cell_dimensions.x(), cell_dimensions.y())
@@ -253,34 +246,26 @@ impl<'a> ContextBuilder<'a> {
                     .ok_or(Error::FailedToMeasureFont)?;
                 (rect.width() as u32, rect.height() as u32)
             };
-
         let unscaled_cell_width = cell_width as f32;
         let unscaled_cell_height = cell_height as f32;
         let cell_width = unscaled_cell_width * hidpi;
         let cell_height = unscaled_cell_height * hidpi;
-
         let max_grid_size = self
             .max_grid_size
             .unwrap_or(Size::new(MAX_WIDTH_IN_CELLS, MAX_HEIGHT_IN_CELLS));
-
         let width_in_cells =
             ::std::cmp::min((window_width as f32 / cell_width) as u32, max_grid_size.x());
-
         let height_in_cells = ::std::cmp::min(
             (window_height as f32 / cell_height) as u32,
             max_grid_size.y(),
         );
-
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
-
         let grid = Grid::new(window_size_in_cells, GlutinColourConversion);
         let char_buf = String::with_capacity(1);
-
         let underline_width = self
             .underline_width
             .map(|w| hidpi * w as f32)
             .unwrap_or_else(|| cell_height as f32 / UNDERLINE_WIDTH_RATIO as f32);
-
         let underline_position = self
             .underline_position
             .map(|w| hidpi * w as f32)
@@ -288,7 +273,6 @@ impl<'a> ContextBuilder<'a> {
                 cell_height as f32
                     - (cell_height as f32 / UNDERLINE_POSITION_RATIO as f32)
             });
-
         let background_renderer = BackgroundRenderer::new(
             window_width,
             window_height,
@@ -301,12 +285,10 @@ impl<'a> ContextBuilder<'a> {
             &mut factory,
             &mut encoder,
         );
-
         let font_scale = gfx_glyph::Scale {
             x: self.font_scale.x * hidpi,
             y: self.font_scale.y * hidpi,
         };
-
         let bold_font_scale = self
             .bold_font_scale
             .map(|s| gfx_glyph::Scale {
@@ -314,7 +296,6 @@ impl<'a> ContextBuilder<'a> {
                 y: s.y * hidpi,
             })
             .unwrap_or(font_scale);
-
         Ok(Context {
             window,
             device,
@@ -383,11 +364,9 @@ impl<'a> Context<'a> {
     pub fn poll_input<F: FnMut(Input)>(&mut self, mut callback: F) {
         let mut closing = false;
         let mut resize = None;
-
         let cell_dimensions = (self.unscaled_cell_width, self.unscaled_cell_height);
         let mut last_mouse_coord = self.last_mouse_coord;
         let mut last_mouse_button = self.last_mouse_button;
-
         self.events_loop.poll_events(|event| {
             match event {
                 Event::WindowEvent { event, .. } => {
@@ -409,14 +388,11 @@ impl<'a> Context<'a> {
                 _ => (),
             };
         });
-
         self.last_mouse_coord = last_mouse_coord;
         self.last_mouse_button = last_mouse_button;
-
         if let Some((width, height)) = resize {
             self.handle_resize(width, height);
         }
-
         if closing {
             self.closing = true;
             callback(inputs::ETX);
@@ -429,7 +405,6 @@ impl<'a> Context<'a> {
 
     fn handle_resize(&mut self, width: f32, height: f32) {
         let (rtv, dsv) = gfx_window_glutin::new_views(&self.window);
-
         let width_in_cells = ::std::cmp::min(
             (width as f32 / self.unscaled_cell_width) as u32,
             self.max_grid_size.x(),
@@ -438,9 +413,7 @@ impl<'a> Context<'a> {
             (height as f32 / self.unscaled_cell_height) as u32,
             self.max_grid_size.y(),
         );
-
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
-
         self.background_renderer.handle_resize(
             width,
             height,
@@ -449,15 +422,14 @@ impl<'a> Context<'a> {
             &mut self.factory,
             &mut self.encoder,
         );
-
         self.rtv = rtv;
         self.dsv = dsv;
-
         self.grid.resize(window_size_in_cells);
     }
 
     pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
-        self.render_at(view, data, Default::default())
+        let size = self.size();
+        self.render_at(view, data, ViewContext::default_with_size(size))
     }
 
     pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
@@ -469,25 +441,20 @@ impl<'a> Context<'a> {
         if self.closing {
             return Ok(());
         }
-
         self.grid.clear();
         view.view(data, context, &mut self.grid);
-
         {
             let mut output_cells = self.background_renderer.map_cells(&mut self.factory);
-
             for ((coord, cell), output_cell) in
                 self.grid.enumerate().zip(output_cells.iter_mut())
             {
                 self.char_buf.clear();
                 self.char_buf.push(cell.character);
-
                 let (font_id, scale) = if cell.bold {
                     (BOLD_FONT_ID, self.bold_font_scale)
                 } else {
                     (FONT_ID, self.font_scale)
                 };
-
                 let section = gfx_glyph::Section {
                     text: self.char_buf.as_str(),
                     screen_position: (
@@ -502,29 +469,22 @@ impl<'a> Context<'a> {
                         .v_align(VerticalAlign::Top),
                     ..Default::default()
                 };
-
                 self.glyph_brush.queue(section);
-
                 output_cell.foreground_colour = cell.foreground_colour;
                 output_cell.background_colour = cell.background_colour;
                 output_cell.underline = cell.underline as u32;
             }
         }
-
         self.encoder.clear(&self.rtv, [0.0, 0.0, 0.0, 1.0]);
-
         self.background_renderer.draw(&mut self.encoder);
-
         self.glyph_brush
             .draw_queued(&mut self.encoder, &self.rtv, &self.dsv)
             .map_err(Error::GfxGlyph)?;
-
         self.encoder.flush(&mut self.device);
         self.window
             .swap_buffers()
             .map_err(Error::GlutinContextError)?;
         self.device.cleanup();
-
         Ok(())
     }
 

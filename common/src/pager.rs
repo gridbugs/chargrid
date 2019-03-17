@@ -219,10 +219,10 @@ impl PagerScrollbar {
 
 pub struct PagerView;
 
-impl View<Pager> for PagerView {
+impl<'a> View<&'a Pager> for PagerView {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        pager: &Pager,
+        pager: &'a Pager,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
@@ -244,20 +244,20 @@ impl View<Pager> for PagerView {
     }
 }
 
-impl ViewSize<Pager> for PagerView {
-    fn size(&mut self, pager: &Pager) -> Size {
+impl<'a> ViewSize<&'a Pager> for PagerView {
+    fn size(&mut self, pager: &'a Pager) -> Size {
         pager.size
     }
 }
 
 pub struct PagerViewWithScrollbar<V>(pub V);
 
-impl<'a, V: View<Pager>> View<(&'a Pager, &'a PagerScrollbar)>
+impl<'a, V: View<&'a Pager>> View<(&'a Pager, &'a PagerScrollbar)>
     for PagerViewWithScrollbar<V>
 {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        data: &(&'a Pager, &'a PagerScrollbar),
+        data: (&'a Pager, &'a PagerScrollbar),
         context: ViewContext<R>,
         grid: &mut G,
     ) {
@@ -278,10 +278,10 @@ impl<'a, V: View<Pager>> View<(&'a Pager, &'a PagerScrollbar)>
     }
 }
 
-impl<'a, V: ViewSize<Pager>> ViewSize<(&'a Pager, &'a PagerScrollbar)>
+impl<'a, V: ViewSize<&'a Pager>> ViewSize<(&'a Pager, &'a PagerScrollbar)>
     for PagerViewWithScrollbar<V>
 {
-    fn size(&mut self, data: &(&'a Pager, &'a PagerScrollbar)) -> Size {
+    fn size(&mut self, data: (&'a Pager, &'a PagerScrollbar)) -> Size {
         self.0
             .size(data.0)
             .saturating_sub(Size::new(data.1.padding + 1, 0))

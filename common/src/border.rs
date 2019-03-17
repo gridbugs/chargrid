@@ -1,4 +1,3 @@
-use decorated::Decorated;
 use defaults::*;
 use prototty_render::*;
 
@@ -22,6 +21,12 @@ pub struct BorderChars {
 
 impl Default for BorderChars {
     fn default() -> Self {
+        Self::single()
+    }
+}
+
+impl BorderChars {
+    pub fn single() -> Self {
         Self {
             top: '─',
             bottom: '─',
@@ -57,159 +62,35 @@ pub struct Border {
     pub title: Option<String>,
     pub padding: BorderPadding,
     pub chars: BorderChars,
-    pub foreground_colour: Rgb24,
-    pub background_colour: Rgb24,
+    pub foreground: Rgb24,
+    pub background: Rgb24,
+    pub bold: bool,
     pub title_colour: Rgb24,
-    pub bold_title: bool,
-    pub underline_title: bool,
-    pub bold_border: bool,
+    pub title_bold: bool,
+    pub title_underline: bool,
 }
 
-impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Border> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
-        &mut self,
-        data: &T,
-        context: ViewContext<R>,
-        grid: &mut G,
-    ) {
-        self.view.view(
-            data,
-            context.add_offset(self.decorator.child_offset()),
-            grid,
-        );
-
-        let span = self.decorator.span_offset() + self.view.size(data);
-
-        grid.set_cell_relative(
-            Coord::new(0, 0),
-            0,
-            self.decorator.view_cell_info(self.decorator.chars.top_left),
-            context,
-        );
-        grid.set_cell_relative(
-            Coord::new(span.x, 0),
-            0,
-            self.decorator
-                .view_cell_info(self.decorator.chars.top_right),
-            context,
-        );
-        grid.set_cell_relative(
-            Coord::new(0, span.y),
-            0,
-            self.decorator
-                .view_cell_info(self.decorator.chars.bottom_left),
-            context,
-        );
-        grid.set_cell_relative(
-            Coord::new(span.x, span.y),
-            0,
-            self.decorator
-                .view_cell_info(self.decorator.chars.bottom_right),
-            context,
-        );
-        let title_offset = if let Some(title) = self.decorator.title.as_ref() {
-            let before = Coord::new(1, 0);
-            let after = Coord::new(title.len() as i32 + 2, 0);
-            grid.set_cell_relative(
-                before,
-                0,
-                self.decorator
-                    .view_cell_info(self.decorator.chars.before_title),
-                context,
-            );
-            grid.set_cell_relative(
-                after,
-                0,
-                self.decorator
-                    .view_cell_info(self.decorator.chars.after_title),
-                context,
-            );
-            for (index, ch) in title.chars().enumerate() {
-                let coord = Coord::new(index as i32 + 2, 0);
-                grid.set_cell_relative(
-                    coord,
-                    0,
-                    ViewCell {
-                        character: Some(ch),
-                        bold: Some(self.decorator.bold_title),
-                        underline: Some(self.decorator.underline_title),
-                        foreground: Some(self.decorator.title_colour),
-                        background: Some(self.decorator.background_colour),
-                    },
-                    context,
-                );
-            }
-
-            title.len() as i32 + 2
-        } else {
-            0
-        };
-
-        for i in (1 + title_offset)..span.x {
-            grid.set_cell_relative(
-                Coord::new(i, 0),
-                0,
-                self.decorator.view_cell_info(self.decorator.chars.top),
-                context,
-            );
-        }
-        for i in 1..span.x {
-            grid.set_cell_relative(
-                Coord::new(i, span.y),
-                0,
-                self.decorator.view_cell_info(self.decorator.chars.bottom),
-                context,
-            );
-        }
-
-        for i in 1..span.y {
-            grid.set_cell_relative(
-                Coord::new(0, i),
-                0,
-                self.decorator.view_cell_info(self.decorator.chars.left),
-                context,
-            );
-            grid.set_cell_relative(
-                Coord::new(span.x, i),
-                0,
-                self.decorator.view_cell_info(self.decorator.chars.right),
-                context,
-            );
-        }
-    }
-}
-
-impl<T: ?Sized, V: View<T> + ViewSize<T>> ViewSize<T> for Decorated<V, Border> {
-    fn size(&mut self, data: &T) -> Size {
-        self.view.size(data) + Size::new(2, 2)
-    }
-}
-
-impl Border {
-    pub fn new() -> Self {
+impl Default for Border {
+    fn default() -> Self {
         Self {
             title: None,
             padding: Default::default(),
             chars: Default::default(),
-            foreground_colour: DEFAULT_FG,
-            background_colour: DEFAULT_BG,
+            foreground: DEFAULT_FG,
+            background: DEFAULT_BG,
+            bold: false,
             title_colour: DEFAULT_FG,
-            bold_title: false,
-            underline_title: false,
-            bold_border: false,
+            title_bold: false,
+            title_underline: false,
         }
     }
-    pub fn with_title<S: Into<String>>(title: S) -> Self {
+}
+
+impl Border {
+    pub fn default_with_title<S: Into<String>>(title: S) -> Self {
         Self {
             title: Some(title.into()),
-            padding: Default::default(),
-            chars: Default::default(),
-            foreground_colour: DEFAULT_FG,
-            background_colour: DEFAULT_BG,
-            title_colour: DEFAULT_FG,
-            bold_title: false,
-            underline_title: false,
-            bold_border: false,
+            ..Default::default()
         }
     }
     fn child_offset(&self) -> Coord {
@@ -227,10 +108,122 @@ impl Border {
     fn view_cell_info(&self, character: char) -> ViewCell {
         ViewCell {
             character: Some(character),
-            foreground: Some(self.foreground_colour),
-            background: Some(self.background_colour),
-            bold: Some(self.bold_border),
+            foreground: Some(self.foreground),
+            background: Some(self.background),
+            bold: Some(self.bold),
             underline: Some(false),
         }
+    }
+}
+
+pub struct Bordered<V> {
+    pub view: V,
+    pub border: Border,
+}
+
+impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        data: &T,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        self.view
+            .view(data, context.add_offset(self.border.child_offset()), grid);
+        let span = self.border.span_offset() + self.view.size(data);
+        grid.set_cell_relative(
+            Coord::new(0, 0),
+            0,
+            self.border.view_cell_info(self.border.chars.top_left),
+            context,
+        );
+        grid.set_cell_relative(
+            Coord::new(span.x, 0),
+            0,
+            self.border.view_cell_info(self.border.chars.top_right),
+            context,
+        );
+        grid.set_cell_relative(
+            Coord::new(0, span.y),
+            0,
+            self.border.view_cell_info(self.border.chars.bottom_left),
+            context,
+        );
+        grid.set_cell_relative(
+            Coord::new(span.x, span.y),
+            0,
+            self.border.view_cell_info(self.border.chars.bottom_right),
+            context,
+        );
+        let title_offset = if let Some(title) = self.border.title.as_ref() {
+            let before = Coord::new(1, 0);
+            let after = Coord::new(title.len() as i32 + 2, 0);
+            grid.set_cell_relative(
+                before,
+                0,
+                self.border.view_cell_info(self.border.chars.before_title),
+                context,
+            );
+            grid.set_cell_relative(
+                after,
+                0,
+                self.border.view_cell_info(self.border.chars.after_title),
+                context,
+            );
+            for (index, ch) in title.chars().enumerate() {
+                let coord = Coord::new(index as i32 + 2, 0);
+                grid.set_cell_relative(
+                    coord,
+                    0,
+                    ViewCell {
+                        character: Some(ch),
+                        bold: Some(self.border.title_bold),
+                        underline: Some(self.border.title_underline),
+                        foreground: Some(self.border.title_colour),
+                        background: Some(self.border.background),
+                    },
+                    context,
+                );
+            }
+            title.len() as i32 + 2
+        } else {
+            0
+        };
+        for i in (1 + title_offset)..span.x {
+            grid.set_cell_relative(
+                Coord::new(i, 0),
+                0,
+                self.border.view_cell_info(self.border.chars.top),
+                context,
+            );
+        }
+        for i in 1..span.x {
+            grid.set_cell_relative(
+                Coord::new(i, span.y),
+                0,
+                self.border.view_cell_info(self.border.chars.bottom),
+                context,
+            );
+        }
+        for i in 1..span.y {
+            grid.set_cell_relative(
+                Coord::new(0, i),
+                0,
+                self.border.view_cell_info(self.border.chars.left),
+                context,
+            );
+            grid.set_cell_relative(
+                Coord::new(span.x, i),
+                0,
+                self.border.view_cell_info(self.border.chars.right),
+                context,
+            );
+        }
+    }
+}
+
+impl<T: ?Sized, V: ViewSize<T>> ViewSize<T> for Bordered<V> {
+    fn size(&mut self, data: &T) -> Size {
+        self.view.size(data) + Size::new(2, 2)
     }
 }

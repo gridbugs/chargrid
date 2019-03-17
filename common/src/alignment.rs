@@ -1,42 +1,47 @@
-use decorated::Decorated;
 use prototty_render::*;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub enum Alignment {
-    TopLeft,
+pub enum AlignX {
+    Left,
     Centre,
-    BottomRight,
+    Right,
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
+pub enum AlignY {
+    Top,
+    Centre,
+    Bottom,
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
 pub struct Align {
     pub size: Size,
-    pub x_alignment: Alignment,
-    pub y_alignment: Alignment,
+    pub x: AlignX,
+    pub y: AlignY,
 }
 
 impl Align {
-    pub fn new(size: Size, x_alignment: Alignment, y_alignment: Alignment) -> Self {
-        Self {
-            size,
-            x_alignment,
-            y_alignment,
-        }
+    pub fn new(size: Size, x: AlignX, y: AlignY) -> Self {
+        Self { size, x, y }
     }
 }
 
-impl<T, V: View<T> + ViewSize<T>> ViewSize<T> for Decorated<V, Align> {
-    fn size(&mut self, data: &T) -> Size {
-        let data_size = self.view.size(data);
-        let x = ::std::cmp::max(data_size.x(), self.decorator.size.x());
-        let y = ::std::cmp::max(data_size.y(), self.decorator.size.y());
-        Size::new(x, y)
+pub struct Aligned<V> {
+    pub view: V,
+    pub align: Align,
+}
+
+impl<V> Aligned<V> {
+    pub fn new(view: V, align: Align) -> Self {
+        Self { view, align }
     }
 }
 
-impl<T, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Align> {
+impl<T: ?Sized, V: View<T> + ViewSize<T>> View<T> for Aligned<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         data: &T,
@@ -44,36 +49,28 @@ impl<T, V: View<T> + ViewSize<T>> View<T> for Decorated<V, Align> {
         grid: &mut G,
     ) {
         let data_size = self.view.size(data);
-        let x_offset = if self.decorator.size.x() > data_size.x() {
-            match self.decorator.x_alignment {
-                Alignment::TopLeft => 0,
-                Alignment::Centre => (self.decorator.size.x() - data_size.x()) / 2,
-                Alignment::BottomRight => self.decorator.size.x() - data_size.x(),
-            }
-        } else {
-            0
+        let x_offset = match self.align.x {
+            AlignX::Left => 0,
+            AlignX::Centre => (self.align.size.x() as i32 - data_size.x() as i32) / 2,
+            AlignX::Right => self.align.size.x() as i32 - data_size.x() as i32,
         };
-
-        let y_offset = if self.decorator.size.y() > data_size.y() {
-            match self.decorator.y_alignment {
-                Alignment::TopLeft => 0,
-                Alignment::Centre => (self.decorator.size.y() - data_size.y()) / 2,
-                Alignment::BottomRight => self.decorator.size.y() - data_size.y(),
-            }
-        } else {
-            0
+        let y_offset = match self.align.y {
+            AlignY::Top => 0,
+            AlignY::Centre => (self.align.size.y() as i32 - data_size.y() as i32) / 2,
+            AlignY::Bottom => self.align.size.y() as i32 - data_size.y() as i32,
         };
-
         self.view.view(
             data,
-            context.add_offset(Coord::new(x_offset as i32, y_offset as i32)),
+            context
+                .add_offset(Coord::new(x_offset, y_offset))
+                .constrain_size(data_size),
             grid,
         );
+    }
+}
 
-        self.view.view(
-            data,
-            context.add_offset(Coord::new(x_offset as i32, y_offset as i32)),
-            grid,
-        );
+impl<T: ?Sized, V: ViewSize<T>> ViewSize<T> for Aligned<V> {
+    fn size(&mut self, _data: &T) -> Size {
+        self.align.size
     }
 }

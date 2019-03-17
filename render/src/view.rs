@@ -42,30 +42,36 @@ pub struct ViewContext<R: ViewTransformRgb24 = ViewTransformRgb24Identity> {
     pub offset: Coord,
     pub depth: i32,
     pub transform_rgb24: R,
+    pub size: Size,
 }
 
-impl Default for ViewContext<ViewTransformRgb24Identity> {
-    fn default() -> Self {
+impl ViewContext<ViewTransformRgb24Identity> {
+    pub fn default_with_size(size: Size) -> Self {
         Self {
             offset: Coord::new(0, 0),
             depth: 0,
             transform_rgb24: ViewTransformRgb24Identity,
+            size,
         }
     }
 }
 
 impl<R: ViewTransformRgb24> ViewContext<R> {
-    pub fn new(offset: Coord, depth: i32, transform_rgb24: R) -> Self {
+    pub fn new(offset: Coord, depth: i32, transform_rgb24: R, size: Size) -> Self {
         Self {
             offset,
             depth,
             transform_rgb24,
+            size,
         }
     }
 
     pub fn add_offset(self, offset_delta: Coord) -> Self {
         Self {
             offset: self.offset + offset_delta,
+            size: (self.size.to_coord().unwrap() - offset_delta)
+                .to_size()
+                .unwrap_or(Size::new_u16(0, 0)),
             ..self
         }
     }
@@ -73,6 +79,13 @@ impl<R: ViewTransformRgb24> ViewContext<R> {
     pub fn add_depth(self, depth_delta: i32) -> Self {
         Self {
             depth: self.depth + depth_delta,
+            ..self
+        }
+    }
+
+    pub fn constrain_size(self, size: Size) -> Self {
+        Self {
+            size: Size::new(self.size.x().min(size.x()), self.size.y().min(size.y())),
             ..self
         }
     }
@@ -88,6 +101,7 @@ impl<R: ViewTransformRgb24> ViewContext<R> {
             },
             offset: self.offset,
             depth: self.depth,
+            size: self.size,
         }
     }
 }
@@ -192,18 +206,20 @@ pub trait ViewGrid {
         relative_cell: ViewCell,
         context: ViewContext<R>,
     ) {
-        let absolute_coord = relative_coord + context.offset;
-        let absolute_depth = relative_depth + context.depth;
-        let absolute_cell = ViewCell {
-            foreground: relative_cell
-                .foreground
-                .map(|rgb24| context.transform_rgb24.transform(rgb24)),
-            background: relative_cell
-                .background
-                .map(|rgb24| context.transform_rgb24.transform(rgb24)),
-            ..relative_cell
-        };
-        self.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+        if relative_coord.is_valid(context.size) {
+            let absolute_coord = relative_coord + context.offset;
+            let absolute_depth = relative_depth + context.depth;
+            let absolute_cell = ViewCell {
+                foreground: relative_cell
+                    .foreground
+                    .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+                background: relative_cell
+                    .background
+                    .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+                ..relative_cell
+            };
+            self.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+        }
     }
 
     fn set_cell_absolute(
@@ -217,22 +233,33 @@ pub trait ViewGrid {
 }
 
 /// Defines a method for rendering a `T` to the terminal.
-pub trait View<T: ?Sized> {
+pub trait View<T> {
     /// Update the cells in `grid` to describe how a type should be rendered.
     /// This mutably borrows `self` to allow the view to contain buffers/caches which
     /// are updated during rendering.
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        data: &T,
+        data: T,
         context: ViewContext<R>,
         grid: &mut G,
     );
 }
 
 /// Report the size of a `T` when rendered.
-pub trait ViewSize<T: ?Sized> {
+pub trait ViewSize<T> {
     /// Returns the size in cells of the rectangle containing a ui element.
     /// This allows for the implementation of decorator ui components that
     /// render a border around some inner element.
-    fn size(&mut self, data: &T) -> Size;
+    fn size(&mut self, data: T) -> Size;
+}
+
+impl<'a, T, V: View<T>> View<T> for &'a mut V {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        data: T,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        (*self).view(data, context, grid)
+    }
 }

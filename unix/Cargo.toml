@@ -30,3 +30,6 @@ name = "bold"
 
 [[example]]
 name = "pager"
+
+[[example]]
+name = "text"

@@ -86,6 +86,7 @@ impl JsGrid {
     }
 
     pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) {
-        self.render_at(view, data, Default::default())
+        let size = self.size();
+        self.render_at(view, data, ViewContext::default_with_size(size))
     }
 }

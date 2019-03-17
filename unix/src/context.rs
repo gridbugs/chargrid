@@ -103,14 +103,15 @@ impl<C: ConvertRgb24> Context<C> {
         self.terminal.wait_input_timeout(timeout)
     }
 
-    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
-        self.render_at(view, data, Default::default())
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) -> Result<()> {
+        let size = self.size()?;
+        self.render_at(view, data, ViewContext::default_with_size(size))
     }
 
     pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
         &mut self,
         view: &mut V,
-        data: &T,
+        data: T,
         context: ViewContext<R>,
     ) -> Result<()> {
         self.resize_if_necessary()?;

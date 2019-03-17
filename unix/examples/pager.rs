@@ -26,13 +26,12 @@ fn main() -> io::Result<()> {
     );
     loop {
         context
-            .render(
-                &mut PagerViewWithScrollbar(PagerView),
-                &(&pager, &scrollbar),
-            )
+            .render(&mut PagerViewWithScrollbar(PagerView), (&pager, &scrollbar))
             .unwrap();
         match context.wait_input().unwrap() {
-            prototty_inputs::ETX | prototty_inputs::ESCAPE | ProtottyInput::Char('q') => break,
+            prototty_inputs::ETX | prototty_inputs::ESCAPE | ProtottyInput::Char('q') => {
+                break;
+            }
             ProtottyInput::Up => pager.scroll_up_line(),
             ProtottyInput::Down => pager.scroll_down_line(),
             ProtottyInput::PageUp => pager.scroll_up_page(),

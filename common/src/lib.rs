@@ -4,21 +4,27 @@ extern crate prototty_render;
 #[macro_use]
 extern crate serde;
 
+mod defaults;
+mod pager;
+mod style;
+mod text;
+mod text_info;
+/*
 mod alignment;
 mod border;
-mod decorated;
-mod defaults;
-mod menu;
-mod pager;
 mod rich_text;
+mod menu;
 mod string_view;
-mod text_info;
+*/
 
+pub use pager::*;
+pub use style::*;
+pub use text::*;
+pub use text_info::*;
+/*
 pub use alignment::*;
 pub use border::*;
-pub use decorated::*;
-pub use menu::*;
-pub use pager::*;
 pub use rich_text::*;
+pub use menu::*;
 pub use string_view::*;
-pub use text_info::*;
+ */
