@@ -83,10 +83,10 @@ fn draw_line<G: ViewGrid, R: ViewTransformRgb24, I: IntoIterator<Item = Coord>>(
     }
 }
 
-impl View<App> for AppView {
+impl<'a> View<&'a App> for AppView {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        app: &App,
+        app: &'a App,
         context: ViewContext<R>,
         grid: &mut G,
     ) {

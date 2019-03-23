@@ -1,0 +1,8 @@
+[package]
+name = "pager_glutin"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+pager_prototty = { path = "../prototty" }
+prototty_glutin = { path = "../../../glutin" }

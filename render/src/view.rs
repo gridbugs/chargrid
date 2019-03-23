@@ -1,97 +1,6 @@
 use super::{Coord, Size};
 use crate::context::*;
-use rgb24::Rgb24;
-
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ViewCell {
-    pub character: Option<char>,
-    pub bold: Option<bool>,
-    pub underline: Option<bool>,
-    pub foreground: Option<Rgb24>,
-    pub background: Option<Rgb24>,
-}
-
-impl ViewCell {
-    pub const fn new() -> Self {
-        Self {
-            character: None,
-            bold: None,
-            underline: None,
-            foreground: None,
-            background: None,
-        }
-    }
-    pub const fn with_character(self, character: char) -> Self {
-        Self {
-            character: Some(character),
-            ..self
-        }
-    }
-    pub const fn with_bold(self, bold: bool) -> Self {
-        Self {
-            bold: Some(bold),
-            ..self
-        }
-    }
-    pub const fn with_underline(self, underline: bool) -> Self {
-        Self {
-            underline: Some(underline),
-            ..self
-        }
-    }
-    pub const fn with_foreground(self, foreground: Rgb24) -> Self {
-        Self {
-            foreground: Some(foreground),
-            ..self
-        }
-    }
-    pub const fn with_background(self, background: Rgb24) -> Self {
-        Self {
-            background: Some(background),
-            ..self
-        }
-    }
-    pub fn set_character(&mut self, character: char) {
-        self.character = Some(character);
-    }
-    pub fn clear_character(&mut self) {
-        self.character = None;
-    }
-    pub fn set_bold(&mut self, bold: bool) {
-        self.bold = Some(bold);
-    }
-    pub fn clear_bold(&mut self) {
-        self.bold = None;
-    }
-    pub fn set_underline(&mut self, underline: bool) {
-        self.underline = Some(underline);
-    }
-    pub fn clear_underline(&mut self) {
-        self.underline = None;
-    }
-    pub fn set_foreground(&mut self, foreground: Rgb24) {
-        self.foreground = Some(foreground);
-    }
-    pub fn clear_foreground(&mut self) {
-        self.foreground = None;
-    }
-    pub fn set_background(&mut self, background: Rgb24) {
-        self.background = Some(background);
-    }
-    pub fn clear_background(&mut self) {
-        self.background = None;
-    }
-    pub fn coalesce(self, other: Self) -> Self {
-        Self {
-            character: (self.character.or(other.character)),
-            bold: (self.bold.or(other.bold)),
-            underline: (self.underline.or(other.underline)),
-            foreground: (self.foreground.or(other.foreground)),
-            background: (self.background.or(other.background)),
-        }
-    }
-}
+use crate::view_cell::*;
 
 fn set_cell_relative_default<G: ?Sized + ViewGrid, R: ViewTransformRgb24>(
     grid: &mut G,
@@ -105,12 +14,17 @@ fn set_cell_relative_default<G: ?Sized + ViewGrid, R: ViewTransformRgb24>(
         let absolute_coord = adjusted_relative_coord + context.outer_offset;
         let absolute_depth = relative_depth + context.depth;
         let absolute_cell = ViewCell {
-            foreground: relative_cell
-                .foreground
-                .map(|rgb24| context.transform_rgb24.transform(rgb24)),
-            background: relative_cell
-                .background
-                .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+            style: Style {
+                foreground: relative_cell
+                    .style
+                    .foreground
+                    .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+                background: relative_cell
+                    .style
+                    .background
+                    .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+                ..relative_cell.style
+            },
             ..relative_cell
         };
         grid.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);

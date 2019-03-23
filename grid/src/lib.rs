@@ -124,22 +124,22 @@ impl<C: ColourConversion> ViewGrid for Grid<C> {
     fn set_cell_absolute(&mut self, coord: Coord, depth: i32, view_cell: ViewCell) {
         if let Some(cell) = self.cells.get_mut(coord) {
             if cell.foreground_depth <= depth || cell.background_depth <= depth {
-                if let Some(character) = view_cell.character {
+                if let Some(character) = view_cell.character() {
                     cell.set_character(character, depth);
                 }
-                if let Some(bold) = view_cell.bold {
+                if let Some(bold) = view_cell.bold() {
                     cell.set_bold(bold, depth);
                 }
-                if let Some(underline) = view_cell.underline {
+                if let Some(underline) = view_cell.underline() {
                     cell.set_underline(underline, depth);
                 }
-                if let Some(foreground) = view_cell.foreground {
+                if let Some(foreground) = view_cell.foreground() {
                     cell.set_foreground_colour(
                         self.colour_conversion.convert_rgb24(foreground),
                         depth,
                     );
                 }
-                if let Some(background) = view_cell.background {
+                if let Some(background) = view_cell.background() {
                     cell.set_background_colour(
                         self.colour_conversion.convert_rgb24(background),
                         depth,

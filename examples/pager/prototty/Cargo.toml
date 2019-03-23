@@ -1,0 +1,8 @@
+[package]
+name = "pager_prototty"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+prototty = { path = "../../../prototty" }

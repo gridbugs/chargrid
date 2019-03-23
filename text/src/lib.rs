@@ -3,9 +3,8 @@ extern crate prototty_render;
 #[macro_use]
 extern crate serde;
 
-mod defaults;
-mod style;
+mod rich_text;
 mod text;
-
-pub use style::*;
+pub mod wrap;
+pub use rich_text::*;
 pub use text::*;

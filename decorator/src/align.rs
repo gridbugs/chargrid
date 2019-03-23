@@ -40,6 +40,9 @@ impl<V> Aligned<V> {
     pub fn new(view: V, align: Align) -> Self {
         Self { view, align }
     }
+    pub fn centre(view: V) -> Self {
+        Self::new(view, Align::new(AlignX::Centre, AlignY::Centre))
+    }
 }
 
 impl<T: Clone, V: View<T>> View<T> for Aligned<V> {

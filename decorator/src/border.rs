@@ -1,12 +1,11 @@
 use defaults::*;
 use prototty_render::*;
-use prototty_text::Style;
 
 /// The characters comprising a border. By default, borders are made of unicode
 /// box-drawing characters, but they can be changed to arbitrary characters via
 /// this struct.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct BorderChars {
     pub top: char,
     pub bottom: char,
@@ -46,7 +45,7 @@ impl BorderChars {
 /// The space in cells between the edge of the bordered area
 /// and the element inside.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct BorderPadding {
     pub top: u32,
     pub bottom: u32,
@@ -107,6 +106,12 @@ impl Border {
             y: (self.padding.top + 1) as i32,
         }
     }
+    fn child_constrain_size_by(&self) -> Size {
+        Size::new(
+            self.padding.left + self.padding.right + 2,
+            self.padding.top + self.padding.bottom + 2,
+        )
+    }
     fn span_offset(&self) -> Coord {
         Coord {
             x: (self.padding.left + self.padding.right + 1) as i32,
@@ -116,10 +121,12 @@ impl Border {
     fn view_cell(&self, character: char) -> ViewCell {
         ViewCell {
             character: Some(character),
-            foreground: Some(self.foreground),
-            background: Some(self.background),
-            bold: Some(self.bold),
-            underline: Some(false),
+            style: Style {
+                foreground: Some(self.foreground),
+                background: Some(self.background),
+                bold: Some(self.bold),
+                underline: Some(false),
+            },
         }
     }
 }
@@ -142,12 +149,12 @@ impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        self.view.view(
-            data.clone(),
-            context.add_offset(self.border.child_offset()),
-            grid,
-        );
-        let span = self.border.span_offset() + self.view.visible_bounds(data, context);
+        let child_context = context
+            .add_offset(self.border.child_offset())
+            .constrain_size_by(self.border.child_constrain_size_by());
+        self.view.view(data.clone(), child_context, grid);
+        let span =
+            self.border.span_offset() + self.view.visible_bounds(data, child_context);
         grid.set_cell_relative(
             Coord::new(0, 0),
             0,
@@ -192,7 +199,10 @@ impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
                 grid.set_cell_relative(
                     coord,
                     0,
-                    self.border.title_style.view_cell(ch),
+                    ViewCell {
+                        style: self.border.title_style,
+                        character: Some(ch),
+                    },
                     context,
                 );
             }
@@ -236,10 +246,10 @@ impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
         data: T,
         context: ViewContext<R>,
     ) -> Size {
-        self.view.visible_bounds(data, context)
-            + Size::new(
-                2 + self.border.padding.left + self.border.padding.right,
-                2 + self.border.padding.top + self.border.padding.bottom,
-            )
+        let bounds_of_child_with_border = self.view.visible_bounds(data, context)
+            + self.border.child_constrain_size_by();
+        let x = bounds_of_child_with_border.x().min(context.size.x());
+        let y = bounds_of_child_with_border.y().min(context.size.y());
+        Size::new(x, y)
     }
 }

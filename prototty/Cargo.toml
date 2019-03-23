@@ -10,7 +10,14 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty"
 
 [features]
-serialize = ["prototty_render/serialize", "prototty_input/serialize", "prototty_text/serialize", "prototty_decorator/serialize"]
+serialize = [
+    "prototty_render/serialize",
+    "prototty_input/serialize",
+    "prototty_text/serialize",
+    "prototty_decorator/serialize",
+    "prototty_menu/serialize",
+]
+
 storage = ["prototty_storage"]
 
 [dependencies]
@@ -19,3 +26,4 @@ prototty_input = { path = "../input", version = "0.24" }
 prototty_storage = { path = "../storage", version = "0.24", optional = true }
 prototty_decorator = { path = "../decorator", version = "0.24" }
 prototty_text = { path = "../text", version = "0.24" }
+prototty_menu = { path = "../menu", version = "0.24" }

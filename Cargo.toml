@@ -21,7 +21,6 @@ members = [
     "examples/title/prototty",
     "examples/title/glutin",
     "examples/title/unix",
-    "examples/title/unix_border",
     "examples/title/wasm",
 
     "examples/fib/fib",
@@ -40,4 +39,9 @@ members = [
     "examples/drag/unix",
     "examples/drag/glutin",
     "examples/drag/wasm",
+
+    "examples/pager/prototty",
+    "examples/pager/unix",
+    "examples/pager/glutin",
+    "examples/pager/wasm",
 ]

@@ -6,11 +6,13 @@ extern crate serde;
 
 mod context;
 mod view;
+mod view_cell;
 
 pub use context::*;
 pub use coord_2d::{Coord, Size};
 pub use rgb24::*;
 pub use view::*;
+pub use view_cell::*;
 
 pub mod colours {
     use rgb24::*;

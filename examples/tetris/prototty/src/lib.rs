@@ -34,10 +34,10 @@ fn piece_colour(typ: PieceType) -> Rgb24 {
         Line => colours::BRIGHT_BLUE,
     }
 }
-impl View<Tetris> for TetrisBoardView {
+impl<'a> View<&'a Tetris> for TetrisBoardView {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        tetris: &Tetris,
+        tetris: &'a Tetris,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
@@ -46,12 +46,12 @@ impl View<Tetris> for TetrisBoardView {
                 let mut cell_info = ViewCell::new().with_bold(true);
                 if let Some(typ) = cell.typ {
                     cell_info.character = Some(BLOCK_CHAR);
-                    cell_info.foreground = Some(FOREGROUND_COLOUR);
-                    cell_info.background = Some(piece_colour(typ));
+                    cell_info.style.foreground = Some(FOREGROUND_COLOUR);
+                    cell_info.style.background = Some(piece_colour(typ));
                 } else {
                     cell_info.character = Some(BLANK_CHAR);
-                    cell_info.foreground = Some(BLANK_FOREGROUND_COLOUR);
-                    cell_info.background = Some(BACKGROUND_COLOUR);
+                    cell_info.style.foreground = Some(BLANK_FOREGROUND_COLOUR);
+                    cell_info.style.background = Some(BACKGROUND_COLOUR);
                 }
                 grid.set_cell_relative(
                     Coord::new(j as i32, i as i32),
@@ -64,26 +64,29 @@ impl View<Tetris> for TetrisBoardView {
         for coord in tetris.game_state.piece.coords.iter().cloned() {
             let cell_info = ViewCell {
                 character: Some(BLOCK_CHAR),
-                bold: Some(true),
-                underline: Some(false),
-                foreground: Some(FOREGROUND_COLOUR),
-                background: Some(piece_colour(tetris.game_state.piece.typ)),
+                style: Style {
+                    bold: Some(true),
+                    underline: Some(false),
+                    foreground: Some(FOREGROUND_COLOUR),
+                    background: Some(piece_colour(tetris.game_state.piece.typ)),
+                },
             };
             grid.set_cell_relative(coord, 0, cell_info, context);
         }
     }
-}
-
-impl ViewSize<Tetris> for TetrisBoardView {
-    fn size(&mut self, tetris: &Tetris) -> Size {
+    fn visible_bounds<R: ViewTransformRgb24>(
+        &mut self,
+        tetris: &'a Tetris,
+        _context: ViewContext<R>,
+    ) -> Size {
         tetris.size().into()
     }
 }
 
-impl View<Tetris> for TetrisNextPieceView {
+impl<'a> View<&'a Tetris> for TetrisNextPieceView {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        tetris: &Tetris,
+        tetris: &'a Tetris,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
@@ -91,39 +94,40 @@ impl View<Tetris> for TetrisNextPieceView {
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             let cell_info = ViewCell {
                 character: Some(BLOCK_CHAR),
-                bold: Some(true),
-                underline: Some(false),
-                foreground: Some(FOREGROUND_COLOUR),
-                background: Some(piece_colour(tetris.game_state.next_piece.typ)),
+                style: Style {
+                    bold: Some(true),
+                    underline: Some(false),
+                    foreground: Some(FOREGROUND_COLOUR),
+                    background: Some(piece_colour(tetris.game_state.next_piece.typ)),
+                },
             };
             grid.set_cell_relative(offset + coord, 0, cell_info, context);
         }
     }
-}
-
-impl ViewSize<Tetris> for TetrisNextPieceView {
-    fn size(&mut self, _: &Tetris) -> Size {
+    fn visible_bounds<R: ViewTransformRgb24>(
+        &mut self,
+        _data: &'a Tetris,
+        _context: ViewContext<R>,
+    ) -> Size {
         NEXT_PIECE_SIZE.into()
     }
 }
 
 struct Borders {
-    common: Decorated<TetrisBoardView, Border>,
-    next_piece: Decorated<TetrisNextPieceView, Border>,
-    menu: Decorated<DefaultMenuInstanceView, Border>,
+    common: Bordered<TetrisBoardView>,
+    next_piece: Bordered<TetrisNextPieceView>,
+    menu: Bordered<MenuInstanceView<MainMenuEntryView>>,
 }
 
 impl Borders {
     fn new() -> Self {
-        let mut next_piece = Border::new();
-        next_piece.title = Some("next".to_string());
-
-        let common = Border::new();
-
+        let next_piece = Border::default_with_title("next");
+        let common = Border::default();
+        let menu_instance_view = MenuInstanceView::new(MainMenuEntryView);
         Self {
-            common: Decorated::new(TetrisBoardView, common.clone()),
-            next_piece: Decorated::new(TetrisNextPieceView, next_piece),
-            menu: Decorated::new(DefaultMenuInstanceView::new(), common),
+            common: Bordered::new(TetrisBoardView, common.clone()),
+            next_piece: Bordered::new(TetrisNextPieceView, next_piece),
+            menu: Bordered::new(menu_instance_view, common),
         }
     }
 }
@@ -132,6 +136,45 @@ impl Borders {
 enum MainMenuChoice {
     Play,
     Quit,
+}
+
+struct MainMenuEntryView;
+
+impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
+    fn normal<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        choice: &MainMenuChoice,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) -> Size {
+        let string = match choice {
+            MainMenuChoice::Play => "  Play",
+            MainMenuChoice::Quit => "  Quit",
+        };
+        StringViewSingleLine::new(Style::default())
+            .view_reporting_intended_size(string, context, grid)
+    }
+    fn selected<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        choice: &MainMenuChoice,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) -> Size {
+        let base_style = Style::new().with_bold(true);
+        let rich_text = match choice {
+            MainMenuChoice::Play => vec![
+                ("> ", base_style.with_foreground(colours::RED)),
+                ("P", base_style.with_foreground(colours::YELLOW)),
+                ("l", base_style.with_foreground(colours::GREEN)),
+                ("a", base_style.with_foreground(colours::CYAN)),
+                ("y", base_style.with_foreground(colours::BLUE)),
+                ("!", base_style.with_foreground(colours::MAGENTA)),
+            ],
+            MainMenuChoice::Quit => vec![("> Quit", base_style)],
+        };
+        RichTextViewSingleLine::new()
+            .view_reporting_intended_size(&rich_text, context, grid)
+    }
 }
 
 enum AppState {
@@ -174,28 +217,18 @@ pub struct App {
     state: AppState,
     timeout: Timeout,
     tetris: Tetris,
-    end_text: RichText,
+    end_text: RichTextPartOwned,
     input_buffer: VecDeque<TetrisInput>,
 }
 
 impl App {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
-        let mut main_menu = Menu::smallest(vec![
-            ("Play", MainMenuChoice::Play),
-            ("Quit", MainMenuChoice::Quit),
-        ]);
-
-        main_menu.selected_info = TextInfo::default()
-            .foreground_colour(colours::BLACK)
-            .background_colour(colours::WHITE)
-            .bold()
-            .underline();
-
+        let main_menu = vec![MainMenuChoice::Play, MainMenuChoice::Quit];
         let main_menu = MenuInstance::new(main_menu).unwrap();
-
-        let end_text_info = TextInfo::default().bold().foreground_colour(colours::RED);
-        let end_text = RichText::one_line(vec![("YOU DIED", end_text_info)]);
-
+        let end_text_style = Style::default()
+            .with_bold(true)
+            .with_foreground(colours::RED);
+        let end_text = RichTextPartOwned::new("YOU DIED".to_string(), end_text_style);
         Self {
             main_menu,
             state: AppState::Menu,
@@ -295,17 +328,17 @@ impl AppView {
     }
 }
 
-impl View<App> for AppView {
+impl<'a> View<&'a App> for AppView {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        app: &App,
+        app: &'a App,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
         match app.state {
             AppState::Game | AppState::GameOver => {
                 let next_piece_offset_x =
-                    self.borders.common.size(&app.tetris).x() as i32;
+                    self.borders.common.visible_bounds(&app.tetris, context).x() as i32;
                 self.borders.common.view(&app.tetris, context, grid);
                 self.borders.next_piece.view(
                     &app.tetris,
@@ -320,7 +353,11 @@ impl View<App> for AppView {
                 self.borders.menu.view(&app.main_menu, context, grid);
             }
             AppState::EndText => {
-                DefaultRichTextView.view(&app.end_text, context, grid);
+                Aligned::centre(RichStringViewSingleLine).view(
+                    &app.end_text,
+                    context,
+                    grid,
+                );
             }
         }
     }

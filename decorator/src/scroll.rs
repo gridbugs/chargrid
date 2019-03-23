@@ -1,5 +1,4 @@
 use prototty_render::*;
-use prototty_text::Style;
 
 pub struct VerticalScrollbar {
     pub style: Style,
@@ -33,19 +32,22 @@ impl VerticalScrollbar {
 pub struct VerticalScrolled<V> {
     pub view: V,
     pub scrollbar: VerticalScrollbar,
-    scroll_position: usize,
-    last_rendered_inner_height: u32,
-    last_rendered_outer_height: u32,
+    state: VerticalScrollState,
 }
 
-impl<V> VerticalScrolled<V> {
-    pub fn new(view: V, scrollbar: VerticalScrollbar) -> Self {
+#[derive(Default, Debug, Clone, Copy)]
+pub struct VerticalScrollState {
+    last_rendered_inner_height: u32,
+    last_rendered_outer_height: u32,
+    scroll_position: usize,
+}
+
+impl VerticalScrollState {
+    pub fn new() -> Self {
         Self {
-            view,
-            scrollbar,
-            scroll_position: 0,
             last_rendered_inner_height: 0,
             last_rendered_outer_height: 0,
+            scroll_position: 0,
         }
     }
     pub fn scroll_to(&mut self, scroll_position: usize) {
@@ -92,26 +94,39 @@ impl<V> VerticalScrolled<V> {
     pub fn scroll_position(&self) -> usize {
         self.scroll_position
     }
-    pub fn last_rendered_inner_height(&self) -> usize {
-        self.last_rendered_inner_height as usize
+}
+
+impl<V> VerticalScrolled<V> {
+    pub fn new(view: V, scrollbar: VerticalScrollbar) -> Self {
+        Self {
+            view,
+            scrollbar,
+            state: VerticalScrollState::new(),
+        }
     }
-    pub fn last_rendered_outer_height(&self) -> usize {
-        self.last_rendered_outer_height as usize
+    pub fn state(&self) -> VerticalScrollState {
+        self.state
+    }
+    pub fn sync_scroll_position(&mut self, state: &VerticalScrollState) {
+        self.state.scroll_position = state.scroll_position;
     }
     fn view_scrollbar<G: ViewGrid, R: ViewTransformRgb24>(
         &self,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        if self.last_rendered_inner_height > self.last_rendered_outer_height {
-            let view_cell = self.scrollbar.style.view_cell(self.scrollbar.character);
+        if self.state.last_rendered_inner_height > self.state.last_rendered_outer_height {
+            let view_cell = ViewCell {
+                style: self.scrollbar.style,
+                character: Some(self.scrollbar.character),
+            };
             let bar_x = context.size.width() as i32 - 1;
-            let bar_height = (self.last_rendered_outer_height
-                * self.last_rendered_outer_height)
-                / self.last_rendered_inner_height;
-            let bar_top = ((self.last_rendered_outer_height - bar_height)
-                * self.scroll_position as u32)
-                / self.max_scroll_position() as u32;
+            let bar_height = (self.state.last_rendered_outer_height
+                * self.state.last_rendered_outer_height)
+                / self.state.last_rendered_inner_height;
+            let bar_top = ((self.state.last_rendered_outer_height - bar_height)
+                * self.state.scroll_position as u32)
+                / self.state.max_scroll_position() as u32;
             for y in 0..bar_height {
                 let bar_y = (y + bar_top) as i32;
                 let coord = Coord::new(bar_x, bar_y);
@@ -132,11 +147,11 @@ impl<T: Clone, V: View<T>> View<T> for VerticalScrolled<V> {
             data,
             context
                 .constrain_size_by(Size::new(1 + self.scrollbar.padding, 0))
-                .add_inner_offset(Coord::new(0, -(self.scroll_position as i32))),
+                .add_inner_offset(Coord::new(0, -(self.state.scroll_position as i32))),
             grid,
         );
-        self.last_rendered_inner_height = inner_size.height();
-        self.last_rendered_outer_height = context.size.height();
+        self.state.last_rendered_inner_height = inner_size.height();
+        self.state.last_rendered_outer_height = context.size.height();
         self.view_scrollbar(context, grid);
     }
 }

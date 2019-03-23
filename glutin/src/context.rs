@@ -427,7 +427,7 @@ impl<'a> Context<'a> {
         self.grid.resize(window_size_in_cells);
     }
 
-    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) -> Result<()> {
         let size = self.size();
         self.render_at(view, data, ViewContext::default_with_size(size))
     }
@@ -435,7 +435,7 @@ impl<'a> Context<'a> {
     pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
         &mut self,
         view: &mut V,
-        data: &T,
+        data: T,
         context: ViewContext<R>,
     ) -> Result<()> {
         if self.closing {
