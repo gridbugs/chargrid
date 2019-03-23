@@ -42,14 +42,14 @@ impl<V> Aligned<V> {
     }
 }
 
-impl<T: Clone, V: View<T> + ViewSize<T>> View<T> for Aligned<V> {
+impl<T: Clone, V: View<T>> View<T> for Aligned<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        let data_size = self.view.size(data.clone());
+        let data_size = self.view.visible_bounds(data.clone(), context);
         let x_offset = match self.align.x {
             AlignX::Left => 0,
             AlignX::Centre => (context.size.x() as i32 - data_size.x() as i32) / 2,

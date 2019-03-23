@@ -23,10 +23,11 @@ impl<T, V: View<T>> View<T> for Bounded<V> {
         self.view
             .view(data, context.constrain_size_to(self.size), grid);
     }
-}
-
-impl<T, V> ViewSize<T> for Bounded<V> {
-    fn size(&mut self, _data: T) -> Size {
+    fn visible_bounds<R: ViewTransformRgb24>(
+        &mut self,
+        _data: T,
+        _context: ViewContext<R>,
+    ) -> Size {
         self.size
     }
 }

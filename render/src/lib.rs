@@ -4,8 +4,10 @@ extern crate rgb24;
 #[macro_use]
 extern crate serde;
 
+mod context;
 mod view;
 
+pub use context::*;
 pub use coord_2d::{Coord, Size};
 pub use rgb24::*;
 pub use view::*;

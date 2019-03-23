@@ -1,5 +1,6 @@
 use defaults::*;
 use prototty_render::*;
+use prototty_text::Style;
 
 /// The characters comprising a border. By default, borders are made of unicode
 /// box-drawing characters, but they can be changed to arbitrary characters via
@@ -53,6 +54,17 @@ pub struct BorderPadding {
     pub right: u32,
 }
 
+impl BorderPadding {
+    pub fn all(padding: u32) -> Self {
+        Self {
+            top: padding,
+            bottom: padding,
+            left: padding,
+            right: padding,
+        }
+    }
+}
+
 /// Decorate another element with a border.
 /// It's possible to give the border a title, in which case
 /// the text appears in the top-left corner.
@@ -65,9 +77,7 @@ pub struct Border {
     pub foreground: Rgb24,
     pub background: Rgb24,
     pub bold: bool,
-    pub title_colour: Rgb24,
-    pub title_bold: bool,
-    pub title_underline: bool,
+    pub title_style: Style,
 }
 
 impl Default for Border {
@@ -79,9 +89,7 @@ impl Default for Border {
             foreground: DEFAULT_FG,
             background: DEFAULT_BG,
             bold: false,
-            title_colour: DEFAULT_FG,
-            title_bold: false,
-            title_underline: false,
+            title_style: Default::default(),
         }
     }
 }
@@ -127,7 +135,7 @@ impl<V> Bordered<V> {
     }
 }
 
-impl<T: Clone, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
+impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         data: T,
@@ -139,7 +147,7 @@ impl<T: Clone, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
             context.add_offset(self.border.child_offset()),
             grid,
         );
-        let span = self.border.span_offset() + self.view.size(data);
+        let span = self.border.span_offset() + self.view.visible_bounds(data, context);
         grid.set_cell_relative(
             Coord::new(0, 0),
             0,
@@ -184,13 +192,7 @@ impl<T: Clone, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
                 grid.set_cell_relative(
                     coord,
                     0,
-                    ViewCell {
-                        character: Some(ch),
-                        bold: Some(self.border.title_bold),
-                        underline: Some(self.border.title_underline),
-                        foreground: Some(self.border.title_colour),
-                        background: Some(self.border.background),
-                    },
+                    self.border.title_style.view_cell(ch),
                     context,
                 );
             }
@@ -229,10 +231,15 @@ impl<T: Clone, V: View<T> + ViewSize<T>> View<T> for Bordered<V> {
             );
         }
     }
-}
-
-impl<T, V: ViewSize<T>> ViewSize<T> for Bordered<V> {
-    fn size(&mut self, data: T) -> Size {
-        self.view.size(data) + Size::new(2, 2)
+    fn visible_bounds<R: ViewTransformRgb24>(
+        &mut self,
+        data: T,
+        context: ViewContext<R>,
+    ) -> Size {
+        self.view.visible_bounds(data, context)
+            + Size::new(
+                2 + self.border.padding.left + self.border.padding.right,
+                2 + self.border.padding.top + self.border.padding.bottom,
+            )
     }
 }

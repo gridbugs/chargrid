@@ -1,5 +1,5 @@
-use crate::style::*;
 use prototty_render::*;
+use prototty_text::Style;
 
 pub struct VerticalScrollbar {
     pub style: Style,
@@ -87,7 +87,7 @@ impl<V> VerticalScrolled<V> {
     }
     pub fn max_scroll_position(&self) -> usize {
         self.last_rendered_inner_height
-            .saturating_sub(self.last_rendered_outer_height + 1) as usize
+            .saturating_sub(self.last_rendered_outer_height) as usize
     }
     pub fn scroll_position(&self) -> usize {
         self.scroll_position
@@ -121,14 +121,14 @@ impl<V> VerticalScrolled<V> {
     }
 }
 
-impl<T: Clone, V: ViewReportingRenderedSize<T>> View<T> for VerticalScrolled<V> {
+impl<T: Clone, V: View<T>> View<T> for VerticalScrolled<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        let inner_size = self.view.view_reporting_render_size(
+        let inner_size = self.view.view_reporting_intended_size(
             data,
             context
                 .constrain_size_by(Size::new(1 + self.scrollbar.padding, 0))

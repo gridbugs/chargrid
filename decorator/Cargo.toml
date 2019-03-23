@@ -1,0 +1,18 @@
+[package]
+name = "prototty_decorator"
+description = "Prototty views for decorating other views"
+version = "0.24.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_decorator"
+
+[features]
+serialize = ["serde", "prototty_render/serialize", "prototty_text/serialize"]
+
+[dependencies]
+prototty_render = { path = "../render", version = "0.24" }
+prototty_text = { path = "../text", version = "0.24" }
+serde = { version = "1.0", features = ["serde_derive"], optional = true }

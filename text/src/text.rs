@@ -279,18 +279,18 @@ impl<W: Wrap> RichTextView<W> {
     }
 }
 
-impl<'a, T, I, W> ViewReportingRenderedSize<I> for RichTextView<W>
+impl<'a, T, I, W> View<I> for RichTextView<W>
 where
     T: 'a + Into<RichTextPart<'a>> + Copy,
     I: IntoIterator<Item = &'a T>,
     W: Wrap,
 {
-    fn view_reporting_render_size<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         parts: I,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> Size {
+    ) {
         grid.set_cell_relative(
             Coord::new(0, 0),
             0,
@@ -306,23 +306,5 @@ where
             }
         }
         self.wrap.flush(context, grid);
-        let num_lines = self.wrap.num_lines();
-        Size::new(context.size.width(), num_lines as u32)
-    }
-}
-
-impl<'a, T, I, W> View<I> for RichTextView<W>
-where
-    T: 'a + Into<RichTextPart<'a>> + Copy,
-    I: IntoIterator<Item = &'a T>,
-    W: Wrap,
-{
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
-        &mut self,
-        parts: I,
-        context: ViewContext<R>,
-        grid: &mut G,
-    ) {
-        self.view_reporting_render_size(parts, context, grid);
     }
 }

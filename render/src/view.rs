@@ -1,134 +1,6 @@
 use super::{Coord, Size};
+use crate::context::*;
 use rgb24::Rgb24;
-
-pub trait ViewTransformRgb24: Copy {
-    fn transform(&self, rgb24: Rgb24) -> Rgb24;
-}
-
-impl<F: Fn(Rgb24) -> Rgb24 + Copy> ViewTransformRgb24 for F {
-    fn transform(&self, rgb24: Rgb24) -> Rgb24 {
-        (self)(rgb24)
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct ViewTransformRgb24Identity;
-
-impl ViewTransformRgb24 for ViewTransformRgb24Identity {
-    fn transform(&self, rgb24: Rgb24) -> Rgb24 {
-        rgb24
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct ViewTransformRgb24Compose<Inner: ViewTransformRgb24, Outer: ViewTransformRgb24>
-{
-    inner: Inner,
-    outer: Outer,
-}
-
-impl<Inner, Outer> ViewTransformRgb24 for ViewTransformRgb24Compose<Inner, Outer>
-where
-    Inner: ViewTransformRgb24,
-    Outer: ViewTransformRgb24,
-{
-    fn transform(&self, rgb24: Rgb24) -> Rgb24 {
-        self.outer.transform(self.inner.transform(rgb24))
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct ViewContext<R: ViewTransformRgb24 = ViewTransformRgb24Identity> {
-    pub inner_offset: Coord,
-    pub outer_offset: Coord,
-    pub depth: i32,
-    pub transform_rgb24: R,
-    pub size: Size,
-}
-
-impl ViewContext<ViewTransformRgb24Identity> {
-    pub fn default_with_size(size: Size) -> Self {
-        Self {
-            inner_offset: Coord::new(0, 0),
-            outer_offset: Coord::new(0, 0),
-            depth: 0,
-            transform_rgb24: ViewTransformRgb24Identity,
-            size,
-        }
-    }
-}
-
-impl<R: ViewTransformRgb24> ViewContext<R> {
-    pub fn new(
-        inner_offset: Coord,
-        outer_offset: Coord,
-        depth: i32,
-        transform_rgb24: R,
-        size: Size,
-    ) -> Self {
-        Self {
-            inner_offset,
-            outer_offset,
-            depth,
-            transform_rgb24,
-            size,
-        }
-    }
-
-    pub fn add_inner_offset(self, offset_delta: Coord) -> Self {
-        Self {
-            inner_offset: self.inner_offset + offset_delta,
-            ..self
-        }
-    }
-
-    pub fn add_offset(self, offset_delta: Coord) -> Self {
-        Self {
-            outer_offset: self.outer_offset + offset_delta,
-            size: (self.size.to_coord().unwrap() - offset_delta)
-                .to_size()
-                .unwrap_or(Size::new_u16(0, 0)),
-            ..self
-        }
-    }
-
-    pub fn add_depth(self, depth_delta: i32) -> Self {
-        Self {
-            depth: self.depth + depth_delta,
-            ..self
-        }
-    }
-
-    pub fn constrain_size_to(self, size: Size) -> Self {
-        Self {
-            size: Size::new(self.size.x().min(size.x()), self.size.y().min(size.y())),
-            ..self
-        }
-    }
-
-    pub fn constrain_size_by(self, size: Size) -> Self {
-        Self {
-            size: self.size.saturating_sub(size),
-            ..self
-        }
-    }
-
-    pub fn compose_transform_rgb24<Inner: ViewTransformRgb24>(
-        self,
-        inner: Inner,
-    ) -> ViewContext<ViewTransformRgb24Compose<Inner, R>> {
-        ViewContext {
-            transform_rgb24: ViewTransformRgb24Compose {
-                inner,
-                outer: self.transform_rgb24,
-            },
-            inner_offset: self.inner_offset,
-            outer_offset: self.outer_offset,
-            depth: self.depth,
-            size: self.size,
-        }
-    }
-}
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -221,6 +93,30 @@ impl ViewCell {
     }
 }
 
+fn set_cell_relative_default<G: ?Sized + ViewGrid, R: ViewTransformRgb24>(
+    grid: &mut G,
+    relative_coord: Coord,
+    relative_depth: i32,
+    relative_cell: ViewCell,
+    context: ViewContext<R>,
+) {
+    let adjusted_relative_coord = relative_coord + context.inner_offset;
+    if adjusted_relative_coord.is_valid(context.size) {
+        let absolute_coord = adjusted_relative_coord + context.outer_offset;
+        let absolute_depth = relative_depth + context.depth;
+        let absolute_cell = ViewCell {
+            foreground: relative_cell
+                .foreground
+                .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+            background: relative_cell
+                .background
+                .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+            ..relative_cell
+        };
+        grid.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+    }
+}
+
 /// A grid of cells
 pub trait ViewGrid {
     fn set_cell_relative<R: ViewTransformRgb24>(
@@ -230,23 +126,14 @@ pub trait ViewGrid {
         relative_cell: ViewCell,
         context: ViewContext<R>,
     ) {
-        let adjusted_relative_coord = relative_coord + context.inner_offset;
-        if adjusted_relative_coord.is_valid(context.size) {
-            let absolute_coord = adjusted_relative_coord + context.outer_offset;
-            let absolute_depth = relative_depth + context.depth;
-            let absolute_cell = ViewCell {
-                foreground: relative_cell
-                    .foreground
-                    .map(|rgb24| context.transform_rgb24.transform(rgb24)),
-                background: relative_cell
-                    .background
-                    .map(|rgb24| context.transform_rgb24.transform(rgb24)),
-                ..relative_cell
-            };
-            self.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
-        }
+        set_cell_relative_default(
+            self,
+            relative_coord,
+            relative_depth,
+            relative_cell,
+            context,
+        );
     }
-
     fn set_cell_absolute(
         &mut self,
         absolute_coord: Coord,
@@ -257,7 +144,6 @@ pub trait ViewGrid {
     fn size(&self) -> Size;
 }
 
-/// Defines a method for rendering a `T` to the terminal.
 pub trait View<T> {
     /// Update the cells in `grid` to describe how a type should be rendered.
     /// This mutably borrows `self` to allow the view to contain buffers/caches which
@@ -268,21 +154,73 @@ pub trait View<T> {
         context: ViewContext<R>,
         grid: &mut G,
     );
-}
 
-/// Report the size of a `T` when rendered.
-pub trait ViewSize<T> {
-    /// Returns the size in cells of the rectangle containing a ui element.
-    /// This allows for the implementation of decorator ui components that
-    /// render a border around some inner element.
-    fn size(&mut self, data: T) -> Size;
-}
+    /// Return the size of the visible component of the element without
+    /// rendering it.
+    /// By default this is the current context size.
+    fn visible_bounds<R: ViewTransformRgb24>(
+        &mut self,
+        data: T,
+        context: ViewContext<R>,
+    ) -> Size {
+        let _ = data;
+        context.size
+    }
 
-pub trait ViewReportingRenderedSize<T> {
-    fn view_reporting_render_size<G: ViewGrid, R: ViewTransformRgb24>(
+    /// Render an element and return the size that the element, regardless of the
+    /// size of the visible component of the element. This allows decorators to know
+    /// the size of the output of a view they are decorating.
+    /// By default this calls `view` keeping track of the maximum x and y
+    /// components of the relative coords of cells which are set in `grid`.
+    fn view_reporting_intended_size<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> Size;
+    ) -> Size {
+        struct Measure<'a, H> {
+            grid: &'a mut H,
+            max: Coord,
+        }
+        impl<'a, H: ViewGrid> ViewGrid for Measure<'a, H> {
+            fn set_cell_relative<R: ViewTransformRgb24>(
+                &mut self,
+                relative_coord: Coord,
+                relative_depth: i32,
+                relative_cell: ViewCell,
+                context: ViewContext<R>,
+            ) {
+                set_cell_relative_default(
+                    self,
+                    relative_coord,
+                    relative_depth,
+                    relative_cell,
+                    context,
+                );
+                self.max.x = self.max.x.max(relative_coord.x);
+                self.max.y = self.max.y.max(relative_coord.y);
+            }
+            fn set_cell_absolute(
+                &mut self,
+                absolute_coord: Coord,
+                absolute_depth: i32,
+                absolute_cell: ViewCell,
+            ) {
+                self.grid.set_cell_absolute(
+                    absolute_coord,
+                    absolute_depth,
+                    absolute_cell,
+                );
+            }
+            fn size(&self) -> Size {
+                self.grid.size()
+            }
+        }
+        let mut measure = Measure {
+            grid,
+            max: Coord::new(0, 0),
+        };
+        self.view(data, context, &mut measure);
+        measure.max.to_size().unwrap() + Size::new_u16(1, 1)
+    }
 }
