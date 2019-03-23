@@ -142,7 +142,7 @@ impl<C: ColourConfig> Context<C> {
         self.resize_if_necessary()?;
         self.grid.clear();
         view.view(data, context, &mut self.grid);
-        self.terminal.draw_grid(&self.grid)
+        self.terminal.draw_grid(&mut self.grid)
     }
 
     pub fn size(&self) -> Result<Size> {

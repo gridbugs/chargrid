@@ -1,7 +1,7 @@
 [package]
 name = "prototty_monolithic_storage"
 description = "Simple implementation of prototty_storage::Storage, which uses an in-memomry key/value store, storing persistently in a user-provided way"
-version = "0.25.0"
+version = "0.26.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -10,6 +10,6 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_monolithic_storage"
 
 [dependencies]
-prototty_storage = { path = "../storage", version = "0.25" }
+prototty_storage = { path = "../storage", version = "0.26" }
 bincode = "1.1"
 serde = "1.0"
