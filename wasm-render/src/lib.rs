@@ -1,8 +1,8 @@
 pub extern crate prototty_render;
 extern crate wasm_bindgen;
 
+use prototty_render::*;
 pub use prototty_render::{Coord, Size};
-use prototty_render::{Rgb24, View, ViewCell, ViewGrid};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -40,24 +40,27 @@ fn rgb24_to_js_string(Rgb24 { r, g, b }: Rgb24) -> String {
 }
 
 impl ViewGrid for JsGrid {
-    fn set_cell(&mut self, coord: Coord, depth: i32, info: ViewCell) {
+    fn set_cell_absolute(&mut self, coord: Coord, depth: i32, view_cell: ViewCell) {
         let x = coord.x;
         let y = coord.y;
-        let character = info
-            .character
+        let character = view_cell
+            .character()
             .map(|character| JsValue::from_str(&character.to_string()))
             .unwrap_or(JsValue::NULL);
-        let bold = info.bold.map(JsValue::from_bool).unwrap_or(JsValue::NULL);
-        let underline = info
-            .underline
+        let bold = view_cell
+            .bold()
             .map(JsValue::from_bool)
             .unwrap_or(JsValue::NULL);
-        let foreground = info
-            .foreground
+        let underline = view_cell
+            .underline()
+            .map(JsValue::from_bool)
+            .unwrap_or(JsValue::NULL);
+        let foreground = view_cell
+            .foreground()
             .map(|foreground| JsValue::from_str(&rgb24_to_js_string(foreground)))
             .unwrap_or(JsValue::NULL);
-        let background = info
-            .background
+        let background = view_cell
+            .background()
             .map(|background| JsValue::from_str(&rgb24_to_js_string(background)))
             .unwrap_or(JsValue::NULL);
         self.js_set_cell(
@@ -71,12 +74,19 @@ impl ViewGrid for JsGrid {
 }
 
 impl JsGrid {
-    pub fn render_at<V: View<T>, T>(&mut self, view: &mut V, data: &T, offset: Coord, depth: i32) {
+    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
+        &mut self,
+        view: &mut V,
+        data: T,
+        context: ViewContext<R>,
+    ) {
         self.js_clear();
-        view.view(data, offset, depth, self);
+        view.view(data, context, self);
         self.js_render();
     }
-    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) {
-        self.render_at(view, data, Coord::new(0, 0), 0);
+
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) {
+        let size = self.size();
+        self.render_at(view, data, ViewContext::default_with_size(size))
     }
 }

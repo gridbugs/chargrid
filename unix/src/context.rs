@@ -77,7 +77,9 @@ impl<C: ColourConfig> Context<C> {
             colour_config.default_foreground(),
             colour_config.default_background(),
         )
-        .and_then(|terminal| Self::from_terminal_with_colour_config(terminal, colour_config))
+        .and_then(|terminal| {
+            Self::from_terminal_with_colour_config(terminal, colour_config)
+        })
     }
 
     pub fn from_terminal_with_colour_config(
@@ -126,21 +128,21 @@ impl<C: ColourConfig> Context<C> {
         self.terminal.wait_input_timeout(timeout)
     }
 
-    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: &T) -> Result<()> {
-        self.render_at(view, data, Coord::new(0, 0), 0)
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) -> Result<()> {
+        let size = self.size()?;
+        self.render_at(view, data, ViewContext::default_with_size(size))
     }
 
-    pub fn render_at<V: View<T>, T>(
+    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
         &mut self,
         view: &mut V,
-        data: &T,
-        offset: Coord,
-        depth: i32,
+        data: T,
+        context: ViewContext<R>,
     ) -> Result<()> {
         self.resize_if_necessary()?;
         self.grid.clear();
-        view.view(data, offset, depth, &mut self.grid);
-        self.terminal.draw_grid(&mut self.grid)
+        view.view(data, context, &mut self.grid);
+        self.terminal.draw_grid(&self.grid)
     }
 
     pub fn size(&self) -> Result<Size> {

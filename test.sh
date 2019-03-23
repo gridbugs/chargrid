@@ -40,3 +40,9 @@ npm install
 ./build_wasm.sh debug
 npx webpack
 popd
+
+pushd $DIR/examples/pager/wasm
+npm install
+./build_wasm.sh debug
+npx webpack
+popd
