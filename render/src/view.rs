@@ -138,3 +138,14 @@ pub trait View<T> {
         measure.max.to_size().unwrap() + Size::new_u16(1, 1)
     }
 }
+
+impl<'a, T, V: View<T>> View<T> for &'a mut V {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        data: T,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        (*self).view(data, context, grid)
+    }
+}

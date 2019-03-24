@@ -121,7 +121,10 @@ struct Borders {
 
 impl Borders {
     fn new() -> Self {
-        let next_piece = Border::default_with_title("next");
+        let next_piece = Border {
+            title_style: Style::new().with_foreground(colours::WHITE),
+            ..Border::default_with_title("next")
+        };
         let common = Border::default();
         let menu_instance_view = MenuInstanceView::new(MainMenuEntryView);
         Self {
@@ -340,14 +343,16 @@ impl<'a> View<&'a App> for AppView {
                 let next_piece_offset_x =
                     self.borders.common.visible_bounds(&app.tetris, context).x() as i32;
                 self.borders.common.view(&app.tetris, context, grid);
-                self.borders.next_piece.view(
-                    &app.tetris,
-                    context.add_offset(Coord {
-                        x: next_piece_offset_x,
-                        y: 0,
-                    }),
-                    grid,
-                );
+                decorate(&mut self.borders.next_piece)
+                    .transform_rgb24(|rgb24: Rgb24| rgb24.normalised_scalar_mul(255))
+                    .view(
+                        &app.tetris,
+                        context.add_offset(Coord {
+                            x: next_piece_offset_x,
+                            y: 0,
+                        }),
+                        grid,
+                    );
             }
             AppState::Menu => {
                 self.borders.menu.view(&app.main_menu, context, grid);

@@ -54,7 +54,7 @@ impl AppState {
 type Scroll = VerticalScrolled<Identity<RichTextView<wrap::Word>>>;
 
 pub struct AppView {
-    view: Aligned<Bordered<Bounded<Scroll>>>,
+    view: Aligned<FilledBackground<Bordered<Bounded<Scroll>>>>,
 }
 
 impl AppView {
@@ -78,14 +78,15 @@ impl AppView {
                     },
                     ..Border::default_with_title("Pager")
                 })
+                .fill_background(rgb24(80, 80, 0))
                 .centre(),
         }
     }
     fn scroll_mut(&mut self) -> &mut Scroll {
-        &mut self.view.view.view.view
+        &mut self.view.view.view.view.view
     }
     fn scroll(&self) -> &Scroll {
-        &self.view.view.view.view
+        &self.view.view.view.view.view
     }
 }
 
