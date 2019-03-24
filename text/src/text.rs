@@ -1,3 +1,4 @@
+use crate::default::*;
 use crate::wrap::{self, Wrap};
 use prototty_render::*;
 
@@ -9,6 +10,9 @@ pub struct TextView<W: Wrap> {
 impl<W: Wrap> TextView<W> {
     pub fn new(style: Style, wrap: W) -> Self {
         Self { style, wrap }
+    }
+    pub fn new_default_style(wrap: W) -> Self {
+        Self::new(DEFAULT_STYLE, wrap)
     }
 }
 
@@ -45,6 +49,9 @@ impl<W: Wrap> StringView<W> {
     pub fn new(style: Style, wrap: W) -> Self {
         Self { style, wrap }
     }
+    pub fn new_default_style(wrap: W) -> Self {
+        Self::new(DEFAULT_STYLE, wrap)
+    }
 }
 
 impl<'a, S, W> View<S> for StringView<W>
@@ -68,13 +75,21 @@ where
     }
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct StringViewSingleLine {
     pub style: Style,
 }
 
+impl Default for StringViewSingleLine {
+    fn default() -> Self {
+        Self {
+            style: DEFAULT_STYLE,
+        }
+    }
+}
+
 impl StringViewSingleLine {
-    pub fn new(style: Style) -> Self {
+    pub const fn new(style: Style) -> Self {
         Self { style }
     }
 }

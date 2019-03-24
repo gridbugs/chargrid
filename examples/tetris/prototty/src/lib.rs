@@ -149,20 +149,21 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
         choice: &MainMenuChoice,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> Size {
+    ) -> u32 {
         let string = match choice {
             MainMenuChoice::Play => "  Play",
             MainMenuChoice::Quit => "  Quit",
         };
         StringViewSingleLine::new(Style::default())
             .view_reporting_intended_size(string, context, grid)
+            .width()
     }
     fn selected<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         choice: &MainMenuChoice,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> Size {
+    ) -> u32 {
         let base_style = Style::new().with_bold(true);
         let rich_text = match choice {
             MainMenuChoice::Play => vec![
@@ -177,6 +178,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
         };
         RichTextViewSingleLine::new()
             .view_reporting_intended_size(&rich_text, context, grid)
+            .width()
     }
 }
 

@@ -1,7 +1,6 @@
+use crate::default::*;
 use crate::wrap::{self, Wrap};
 use prototty_render::*;
-
-pub(crate) const DEFAULT_STYLE: Style = Style::new().with_foreground(colours::WHITE);
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
@@ -120,7 +119,7 @@ where
 pub struct RichTextViewSingleLine;
 
 impl RichTextViewSingleLine {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 }

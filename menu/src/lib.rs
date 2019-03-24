@@ -1,13 +1,11 @@
 extern crate prototty_input;
 extern crate prototty_render;
-extern crate prototty_text;
 #[cfg(feature = "serialize")]
 #[macro_use]
 extern crate serde;
 
 use prototty_input::{inputs, Input, ScrollDirection};
 use prototty_render::*;
-use prototty_text::*;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
@@ -147,9 +145,6 @@ pub struct MenuInstanceView<E> {
     last_size: Size,
 }
 
-pub type StyleDistinguishedMenuInstanceView =
-    MenuInstanceView<StyleDistinguishedMenuEntryView>;
-
 impl<E> MenuInstanceView<E> {
     pub fn new(entry_view: E) -> Self {
         Self {
@@ -181,14 +176,14 @@ where
 {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        value: &'a MenuInstance<T>,
+        menu_instance: &'a MenuInstance<T>,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
         self.last_offset = context.outer_offset;
-        let mut max = Coord::new(0, 0);
-        for (i, entry) in value.menu.iter().enumerate() {
-            let size = if i == value.selected_index {
+        let mut max_width = 0;
+        for (i, entry) in menu_instance.menu.iter().enumerate() {
+            let width = if i == menu_instance.selected_index {
                 self.entry_view.selected(
                     entry,
                     context.add_offset(Coord::new(0, i as i32)),
@@ -201,10 +196,43 @@ where
                     grid,
                 )
             };
-            max.x = max.x.max(size.x() as i32);
-            max.y = max.y.max(size.y() as i32);
+            max_width = max_width.max(width);
         }
-        self.last_size = max.to_size().unwrap() + Size::new_u16(1, 1);
+        self.last_size = Size::new(max_width, menu_instance.menu.len() as u32);
+    }
+}
+
+impl<'a, L, T, E> View<(&'a MenuInstance<T>, &'a L)> for MenuInstanceView<E>
+where
+    E: MenuEntryLookupView<T, L>,
+{
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        (menu_instance, lookup): (&'a MenuInstance<T>, &'a L),
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        self.last_offset = context.outer_offset;
+        let mut max_width = 0;
+        for (i, entry) in menu_instance.menu.iter().enumerate() {
+            let width = if i == menu_instance.selected_index {
+                self.entry_view.selected(
+                    entry,
+                    lookup,
+                    context.add_offset(Coord::new(0, i as i32)),
+                    grid,
+                )
+            } else {
+                self.entry_view.normal(
+                    entry,
+                    lookup,
+                    context.add_offset(Coord::new(0, i as i32)),
+                    grid,
+                )
+            };
+            max_width = max_width.max(width);
+        }
+        self.last_size = Size::new(max_width, menu_instance.menu.len() as u32);
     }
 }
 
@@ -214,64 +242,28 @@ pub trait MenuEntryView<T> {
         entry: &T,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> Size;
+    ) -> u32;
     fn selected<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> Size;
+    ) -> u32;
 }
 
-pub struct StyleDistinguishedMenuEntryView {
-    pub normal: StringViewSingleLine,
-    pub selected: StringViewSingleLine,
-}
-
-impl StyleDistinguishedMenuEntryView {
-    pub fn new(normal: StringViewSingleLine, selected: StringViewSingleLine) -> Self {
-        Self { normal, selected }
-    }
-}
-
-impl Default for StyleDistinguishedMenuEntryView {
-    fn default() -> Self {
-        Self::new(
-            StringViewSingleLine::new(Style {
-                foreground: Some(colours::WHITE),
-                ..Default::default()
-            }),
-            StringViewSingleLine::new(Style {
-                foreground: Some(colours::BLACK),
-                background: Some(colours::WHITE),
-                ..Default::default()
-            }),
-        )
-    }
-}
-
-impl<T> MenuEntryView<T> for StyleDistinguishedMenuEntryView
-where
-    for<'a> &'a T: Into<String>,
-{
+pub trait MenuEntryLookupView<T, L> {
     fn normal<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
+        lookup: &L,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> Size {
-        let s: String = entry.into();
-        self.normal.view_reporting_intended_size(&s, context, grid)
-    }
-
+    ) -> u32;
     fn selected<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
+        lookup: &L,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> Size {
-        let s: String = entry.into();
-        self.selected
-            .view_reporting_intended_size(&s, context, grid)
-    }
+    ) -> u32;
 }
