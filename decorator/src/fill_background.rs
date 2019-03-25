@@ -29,7 +29,9 @@ impl<T, V: View<T>> View<T> for FilledBackground<V> {
                 grid.set_cell_relative(
                     coord,
                     0,
-                    ViewCell::new().with_background(self.rgb24),
+                    ViewCell::new()
+                        .with_background(self.rgb24)
+                        .with_character(' '),
                     context,
                 );
             }

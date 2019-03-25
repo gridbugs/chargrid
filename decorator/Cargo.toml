@@ -1,7 +1,7 @@
 [package]
 name = "prototty_decorator"
 description = "Prototty views for decorating other views"
-version = "0.26.1"
+version = "0.26.2"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
