@@ -2,7 +2,7 @@ use prototty_render::*;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub enum AlignX {
+pub enum AlignmentX {
     Left,
     Centre,
     Right,
@@ -10,7 +10,7 @@ pub enum AlignX {
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub enum AlignY {
+pub enum AlignmentY {
     Top,
     Centre,
     Bottom,
@@ -18,52 +18,43 @@ pub enum AlignY {
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub struct Align {
-    pub x: AlignX,
-    pub y: AlignY,
+pub struct Alignment {
+    pub x: AlignmentX,
+    pub y: AlignmentY,
 }
 
-impl Align {
-    pub fn new(x: AlignX, y: AlignY) -> Self {
+impl Alignment {
+    pub fn new(x: AlignmentX, y: AlignmentY) -> Self {
         Self { x, y }
+    }
+    pub fn centre() -> Self {
+        Self::new(AlignmentX::Centre, AlignmentY::Centre)
     }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub struct Aligned<V> {
-    pub view: V,
-    pub align: Align,
-}
+pub struct Align<V>(pub V);
 
-impl<V> Aligned<V> {
-    pub fn new(view: V, align: Align) -> Self {
-        Self { view, align }
-    }
-    pub fn centre(view: V) -> Self {
-        Self::new(view, Align::new(AlignX::Centre, AlignY::Centre))
-    }
-}
-
-impl<T: Clone, V: View<T>> View<T> for Aligned<V> {
+impl<T: Clone, V: View<T>> View<(T, Alignment)> for Align<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        data: T,
+        (data, alignment): (T, Alignment),
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        let data_size = self.view.visible_bounds(data.clone(), context);
-        let x_offset = match self.align.x {
-            AlignX::Left => 0,
-            AlignX::Centre => (context.size.x() as i32 - data_size.x() as i32) / 2,
-            AlignX::Right => context.size.x() as i32 - data_size.x() as i32,
+        let data_size = self.0.visible_bounds(data.clone(), context);
+        let x_offset = match alignment.x {
+            AlignmentX::Left => 0,
+            AlignmentX::Centre => (context.size.x() as i32 - data_size.x() as i32) / 2,
+            AlignmentX::Right => context.size.x() as i32 - data_size.x() as i32,
         };
-        let y_offset = match self.align.y {
-            AlignY::Top => 0,
-            AlignY::Centre => (context.size.y() as i32 - data_size.y() as i32) / 2,
-            AlignY::Bottom => context.size.y() as i32 - data_size.y() as i32,
+        let y_offset = match alignment.y {
+            AlignmentY::Top => 0,
+            AlignmentY::Centre => (context.size.y() as i32 - data_size.y() as i32) / 2,
+            AlignmentY::Bottom => context.size.y() as i32 - data_size.y() as i32,
         };
-        self.view.view(
+        self.0.view(
             data,
             context.add_offset(Coord::new(x_offset, y_offset)),
             grid,

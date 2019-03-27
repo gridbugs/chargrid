@@ -8,6 +8,28 @@ pub enum ControlFlow {
 pub struct AppState {
     scroll_state: VerticalScrollState,
     text: String,
+    border_info: BorderInfo,
+    bound: Size,
+    background: Rgb24,
+    alignment: Alignment,
+    scrollbar: VerticalScrollbar,
+}
+
+pub struct AppView {
+    view: Align<FillBackground<Border<Bound<VerticalScroll<RichTextView<wrap::Word>>>>>>,
+}
+
+impl AppView {
+    pub fn new() -> Self {
+        Self {
+            view: Align(FillBackground(Border(Bound(VerticalScroll::new(
+                RichTextView::new(wrap::Word::new()),
+            ))))),
+        }
+    }
+    fn scroll(&self) -> &VerticalScroll<RichTextView<wrap::Word>> {
+        &(((self.view.0).0).0).0
+    }
 }
 
 impl AppState {
@@ -15,13 +37,31 @@ impl AppState {
         Self {
             scroll_state: VerticalScrollState::new(),
             text,
+            border_info: BorderInfo {
+                title_style: Style {
+                    bold: Some(true),
+                    foreground: Some(rgb24(0, 255, 0)),
+                    background: Some(rgb24(0, 64, 0)),
+                    ..Default::default()
+                },
+                padding: BorderPadding {
+                    right: 0,
+                    left: 2,
+                    top: 1,
+                    bottom: 1,
+                },
+                ..BorderInfo::default_with_title("Pager")
+            },
+            bound: Size::new(40, 40),
+            background: rgb24(80, 80, 0),
+            alignment: Alignment::new(AlignmentX::Centre, AlignmentY::Bottom),
+            scrollbar: VerticalScrollbar::default(),
         }
     }
     pub fn tick<I>(&mut self, inputs: I, view: &AppView) -> Option<ControlFlow>
     where
         I: IntoIterator<Item = ProtottyInput>,
     {
-        self.scroll_state = view.scroll().state();
         for input in inputs {
             match input {
                 prototty_inputs::ETX
@@ -30,63 +70,30 @@ impl AppState {
                     return Some(ControlFlow::Exit);
                 }
                 ProtottyInput::MouseScroll { direction, .. } => match direction {
-                    ScrollDirection::Up => self.scroll_state.scroll_up_line(),
-                    ScrollDirection::Down => self.scroll_state.scroll_down_line(),
+                    ScrollDirection::Up => {
+                        self.scroll_state.scroll_up_line(view.scroll())
+                    }
+                    ScrollDirection::Down => {
+                        self.scroll_state.scroll_down_line(view.scroll())
+                    }
                     _ => (),
                 },
-                ProtottyInput::Up => self.scroll_state.scroll_up_line(),
-                ProtottyInput::Down => self.scroll_state.scroll_down_line(),
-                ProtottyInput::PageUp => self.scroll_state.scroll_up_page(),
-                ProtottyInput::PageDown => self.scroll_state.scroll_down_page(),
+                ProtottyInput::Up => self.scroll_state.scroll_up_line(view.scroll()),
+                ProtottyInput::Down => self.scroll_state.scroll_down_line(view.scroll()),
+                ProtottyInput::PageUp => self.scroll_state.scroll_up_page(view.scroll()),
+                ProtottyInput::PageDown => {
+                    self.scroll_state.scroll_down_page(view.scroll())
+                }
                 ProtottyInput::Home | ProtottyInput::Char('g') => {
-                    self.scroll_state.scroll_to_top()
+                    self.scroll_state.scroll_to_top(view.scroll())
                 }
                 ProtottyInput::End | ProtottyInput::Char('G') => {
-                    self.scroll_state.scroll_to_bottom()
+                    self.scroll_state.scroll_to_bottom(view.scroll())
                 }
                 _ => (),
             }
         }
         None
-    }
-}
-
-type Scroll = VerticalScrolled<Identity<RichTextView<wrap::Word>>>;
-
-pub struct AppView {
-    view: Aligned<FilledBackground<Bordered<Bounded<Scroll>>>>,
-}
-
-impl AppView {
-    pub fn new() -> Self {
-        Self {
-            view: decorate(RichTextView::new(wrap::Word::new()))
-                .vertical_scroll(VerticalScrollbar::default())
-                .bound(Size::new(40, 40))
-                .border(Border {
-                    title_style: Style {
-                        bold: Some(true),
-                        foreground: Some(rgb24(0, 255, 0)),
-                        background: Some(rgb24(0, 64, 0)),
-                        ..Default::default()
-                    },
-                    padding: BorderPadding {
-                        right: 0,
-                        left: 2,
-                        top: 1,
-                        bottom: 1,
-                    },
-                    ..Border::default_with_title("Pager")
-                })
-                .fill_background(rgb24(80, 80, 0))
-                .centre(),
-        }
-    }
-    fn scroll_mut(&mut self) -> &mut Scroll {
-        &mut self.view.view.view.view.view
-    }
-    fn scroll(&self) -> &Scroll {
-        &self.view.view.view.view.view
     }
 }
 
@@ -117,8 +124,22 @@ impl<'a> View<&'a AppState> for AppView {
                 },
             ),
         ];
-        self.scroll_mut()
-            .sync_scroll_position(&app_state.scroll_state);
-        self.view.view(rich_text, context, grid);
+        self.view.view(
+            (
+                (
+                    (
+                        (
+                            (rich_text, &app_state.scroll_state, &app_state.scrollbar),
+                            app_state.bound,
+                        ),
+                        &app_state.border_info,
+                    ),
+                    app_state.background,
+                ),
+                app_state.alignment,
+            ),
+            context,
+            grid,
+        );
     }
 }

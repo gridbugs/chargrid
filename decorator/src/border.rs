@@ -69,7 +69,7 @@ impl BorderPadding {
 /// the text appears in the top-left corner.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
-pub struct Border {
+pub struct BorderInfo {
     pub title: Option<String>,
     pub padding: BorderPadding,
     pub chars: BorderChars,
@@ -79,7 +79,7 @@ pub struct Border {
     pub title_style: Style,
 }
 
-impl Default for Border {
+impl Default for BorderInfo {
     fn default() -> Self {
         Self {
             title: None,
@@ -93,7 +93,7 @@ impl Default for Border {
     }
 }
 
-impl Border {
+impl BorderInfo {
     pub fn default_with_title<S: Into<String>>(title: S) -> Self {
         Self {
             title: Some(title.into()),
@@ -131,67 +131,57 @@ impl Border {
     }
 }
 
-pub struct Bordered<V> {
-    pub view: V,
-    pub border: Border,
-}
+pub struct Border<V>(pub V);
 
-impl<V> Bordered<V> {
-    pub fn new(view: V, border: Border) -> Self {
-        Self { view, border }
-    }
-}
-
-impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
+impl<'a, T: Clone, V: View<T>> View<(T, &'a BorderInfo)> for Border<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        data: T,
+        (data, border_info): (T, &'a BorderInfo),
         context: ViewContext<R>,
         grid: &mut G,
     ) {
         let child_context = context
-            .add_offset(self.border.child_offset())
-            .constrain_size_by(self.border.child_constrain_size_by());
-        self.view.view(data.clone(), child_context, grid);
-        let span =
-            self.border.span_offset() + self.view.visible_bounds(data, child_context);
+            .add_offset(border_info.child_offset())
+            .constrain_size_by(border_info.child_constrain_size_by());
+        self.0.view(data.clone(), child_context, grid);
+        let span = border_info.span_offset() + self.0.visible_bounds(data, child_context);
         grid.set_cell_relative(
             Coord::new(0, 0),
             0,
-            self.border.view_cell(self.border.chars.top_left),
+            border_info.view_cell(border_info.chars.top_left),
             context,
         );
         grid.set_cell_relative(
             Coord::new(span.x, 0),
             0,
-            self.border.view_cell(self.border.chars.top_right),
+            border_info.view_cell(border_info.chars.top_right),
             context,
         );
         grid.set_cell_relative(
             Coord::new(0, span.y),
             0,
-            self.border.view_cell(self.border.chars.bottom_left),
+            border_info.view_cell(border_info.chars.bottom_left),
             context,
         );
         grid.set_cell_relative(
             Coord::new(span.x, span.y),
             0,
-            self.border.view_cell(self.border.chars.bottom_right),
+            border_info.view_cell(border_info.chars.bottom_right),
             context,
         );
-        let title_offset = if let Some(title) = self.border.title.as_ref() {
+        let title_offset = if let Some(title) = border_info.title.as_ref() {
             let before = Coord::new(1, 0);
             let after = Coord::new(title.len() as i32 + 2, 0);
             grid.set_cell_relative(
                 before,
                 0,
-                self.border.view_cell(self.border.chars.before_title),
+                border_info.view_cell(border_info.chars.before_title),
                 context,
             );
             grid.set_cell_relative(
                 after,
                 0,
-                self.border.view_cell(self.border.chars.after_title),
+                border_info.view_cell(border_info.chars.after_title),
                 context,
             );
             for (index, ch) in title.chars().enumerate() {
@@ -200,7 +190,7 @@ impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
                     coord,
                     0,
                     ViewCell {
-                        style: self.border.title_style,
+                        style: border_info.title_style,
                         character: Some(ch),
                     },
                     context,
@@ -214,7 +204,7 @@ impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
             grid.set_cell_relative(
                 Coord::new(i, 0),
                 0,
-                self.border.view_cell(self.border.chars.top),
+                border_info.view_cell(border_info.chars.top),
                 context,
             );
         }
@@ -222,7 +212,7 @@ impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
             grid.set_cell_relative(
                 Coord::new(i, span.y),
                 0,
-                self.border.view_cell(self.border.chars.bottom),
+                border_info.view_cell(border_info.chars.bottom),
                 context,
             );
         }
@@ -230,24 +220,24 @@ impl<T: Clone, V: View<T>> View<T> for Bordered<V> {
             grid.set_cell_relative(
                 Coord::new(0, i),
                 0,
-                self.border.view_cell(self.border.chars.left),
+                border_info.view_cell(border_info.chars.left),
                 context,
             );
             grid.set_cell_relative(
                 Coord::new(span.x, i),
                 0,
-                self.border.view_cell(self.border.chars.right),
+                border_info.view_cell(border_info.chars.right),
                 context,
             );
         }
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
-        data: T,
+        (data, border_info): (T, &'a BorderInfo),
         context: ViewContext<R>,
     ) -> Size {
-        let bounds_of_child_with_border = self.view.visible_bounds(data, context)
-            + self.border.child_constrain_size_by();
+        let bounds_of_child_with_border =
+            self.0.visible_bounds(data, context) + border_info.child_constrain_size_by();
         let x = bounds_of_child_with_border.x().min(context.size.x());
         let y = bounds_of_child_with_border.y().min(context.size.y());
         Size::new(x, y)

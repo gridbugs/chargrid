@@ -1,37 +1,22 @@
 use prototty_render::*;
 
-pub struct TransformedRgb24<V, S> {
-    pub view: V,
-    pub transform_rgb24: S,
-}
+pub struct TransformRgb24<V>(pub V);
 
-impl<V, S> TransformedRgb24<V, S> {
-    pub fn new(view: V, transform_rgb24: S) -> Self {
-        Self {
-            view,
-            transform_rgb24,
-        }
-    }
-}
-
-impl<T, V: View<T>, S: ViewTransformRgb24> View<T> for TransformedRgb24<V, S> {
+impl<T, V: View<T>, S: ViewTransformRgb24> View<(T, S)> for TransformRgb24<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        data: T,
+        (data, transform_rgb24): (T, S),
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        self.view.view(
-            data,
-            context.compose_transform_rgb24(self.transform_rgb24),
-            grid,
-        );
+        self.0
+            .view(data, context.compose_transform_rgb24(transform_rgb24), grid);
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
-        data: T,
+        (data, _transform_rgb24): (T, S),
         context: ViewContext<R>,
     ) -> Size {
-        self.view.visible_bounds(data, context)
+        self.0.visible_bounds(data, context)
     }
 }

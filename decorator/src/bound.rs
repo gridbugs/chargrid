@@ -2,32 +2,22 @@ use prototty_render::*;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub struct Bounded<V> {
-    pub view: V,
-    pub size: Size,
-}
+pub struct Bound<V>(pub V);
 
-impl<V> Bounded<V> {
-    pub fn new(view: V, size: Size) -> Self {
-        Self { view, size }
-    }
-}
-
-impl<T, V: View<T>> View<T> for Bounded<V> {
+impl<T, V: View<T>> View<(T, Size)> for Bound<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        data: T,
+        (data, size): (T, Size),
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        self.view
-            .view(data, context.constrain_size_to(self.size), grid);
+        self.0.view(data, context.constrain_size_to(size), grid);
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
-        _data: T,
+        (_data, size): (T, Size),
         _context: ViewContext<R>,
     ) -> Size {
-        self.size
+        size
     }
 }
