@@ -34,16 +34,48 @@ impl Alignment {
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub struct Align<V>(pub V);
+pub struct Align<V> {
+    pub view: V,
+}
 
-impl<T: Clone, V: View<T>> View<(T, Alignment)> for Align<V> {
+impl<V> Align<V> {
+    pub fn new(view: V) -> Self {
+        Self { view }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
+pub struct AlignData<T> {
+    pub alignment: Alignment,
+    pub data: T,
+}
+
+impl<T> AlignData<T> {
+    pub fn new(alignment: Alignment, data: T) -> Self {
+        Self { alignment, data }
+    }
+}
+
+impl<T: Clone, V: View<T>> View<(Alignment, T)> for Align<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        (data, alignment): (T, Alignment),
+        (alignment, data): (Alignment, T),
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        let data_size = self.0.visible_bounds(data.clone(), context);
+        self.view(AlignData::new(alignment, data), context, grid);
+    }
+}
+
+impl<T: Clone, V: View<T>> View<AlignData<T>> for Align<V> {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        AlignData { data, alignment }: AlignData<T>,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        let data_size = self.view.visible_bounds(data.clone(), context);
         let x_offset = match alignment.x {
             AlignmentX::Left => 0,
             AlignmentX::Centre => (context.size.x() as i32 - data_size.x() as i32) / 2,
@@ -54,7 +86,7 @@ impl<T: Clone, V: View<T>> View<(T, Alignment)> for Align<V> {
             AlignmentY::Centre => (context.size.y() as i32 - data_size.y() as i32) / 2,
             AlignmentY::Bottom => context.size.y() as i32 - data_size.y() as i32,
         };
-        self.0.view(
+        self.view.view(
             data,
             context.add_offset(Coord::new(x_offset, y_offset)),
             grid,

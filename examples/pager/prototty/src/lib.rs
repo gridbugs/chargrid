@@ -22,13 +22,13 @@ pub struct AppView {
 impl AppView {
     pub fn new() -> Self {
         Self {
-            view: Align(FillBackground(Border(Bound(VerticalScroll::new(
+            view: Align::new(FillBackground(Border(Bound(VerticalScroll::new(
                 RichTextView::new(wrap::Word::new()),
             ))))),
         }
     }
     fn scroll(&self) -> &VerticalScroll<RichTextView<wrap::Word>> {
-        &(((self.view.0).0).0).0
+        &(((self.view.view).0).0).0
     }
 }
 
@@ -54,7 +54,7 @@ impl AppState {
             },
             bound: Size::new(40, 40),
             background: rgb24(80, 80, 0),
-            alignment: Alignment::new(AlignmentX::Centre, AlignmentY::Bottom),
+            alignment: Alignment::centre(),
             scrollbar: VerticalScrollbar::default(),
         }
     }
@@ -125,8 +125,9 @@ impl<'a> View<&'a AppState> for AppView {
             ),
         ];
         self.view.view(
-            (
-                (
+            AlignData {
+                alignment: app_state.alignment,
+                data: (
                     (
                         (
                             (rich_text, &app_state.scroll_state, &app_state.scrollbar),
@@ -136,8 +137,7 @@ impl<'a> View<&'a AppState> for AppView {
                     ),
                     app_state.background,
                 ),
-                app_state.alignment,
-            ),
+            },
             context,
             grid,
         );
