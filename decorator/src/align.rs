@@ -34,11 +34,11 @@ impl Alignment {
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub struct Align<V> {
+pub struct AlignView<V> {
     pub view: V,
 }
 
-impl<V> Align<V> {
+impl<V> AlignView<V> {
     pub fn new(view: V) -> Self {
         Self { view }
     }
@@ -51,27 +51,10 @@ pub struct AlignData<T> {
     pub data: T,
 }
 
-impl<T> AlignData<T> {
-    pub fn new(alignment: Alignment, data: T) -> Self {
-        Self { alignment, data }
-    }
-}
-
-impl<T: Clone, V: View<T>> View<(Alignment, T)> for Align<V> {
+impl<T: Clone, V: View<T>> View<AlignData<T>> for AlignView<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        (alignment, data): (Alignment, T),
-        context: ViewContext<R>,
-        grid: &mut G,
-    ) {
-        self.view(AlignData::new(alignment, data), context, grid);
-    }
-}
-
-impl<T: Clone, V: View<T>> View<AlignData<T>> for Align<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
-        &mut self,
-        AlignData { data, alignment }: AlignData<T>,
+        AlignData { alignment, data }: AlignData<T>,
         context: ViewContext<R>,
         grid: &mut G,
     ) {

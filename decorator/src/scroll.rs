@@ -1,5 +1,7 @@
 use prototty_render::*;
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
 pub struct VerticalScrollbar {
     pub style: Style,
     pub character: char,
@@ -29,8 +31,8 @@ impl VerticalScrollbar {
     }
     fn view<V, G: ViewGrid, R: ViewTransformRgb24>(
         &self,
-        state: &VerticalScrollState,
-        scroll: &VerticalScroll<V>,
+        state: VerticalScrollState,
+        scroll: &VerticalScrollView<V>,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
@@ -55,13 +57,15 @@ impl VerticalScrollbar {
     }
 }
 
-pub struct VerticalScroll<V> {
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
+pub struct VerticalScrollView<V> {
     pub view: V,
     last_rendered_inner_height: u32,
     last_rendered_outer_height: u32,
 }
 
-impl<V> VerticalScroll<V> {
+impl<V> VerticalScrollView<V> {
     pub fn new(view: V) -> Self {
         Self {
             view,
@@ -75,6 +79,7 @@ impl<V> VerticalScroll<V> {
     }
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct VerticalScrollState {
     scroll_position: usize,
@@ -84,41 +89,53 @@ impl VerticalScrollState {
     pub fn new() -> Self {
         Self { scroll_position: 0 }
     }
-    pub fn scroll_to<V>(&mut self, scroll_position: usize, scroll: &VerticalScroll<V>) {
+    pub fn scroll_to<V>(
+        &mut self,
+        scroll_position: usize,
+        scroll: &VerticalScrollView<V>,
+    ) {
         self.scroll_position = scroll_position.min(scroll.max_scroll_position());
     }
-    pub fn scroll_up_lines<V>(&mut self, num_lines: usize, scroll: &VerticalScroll<V>) {
+    pub fn scroll_up_lines<V>(
+        &mut self,
+        num_lines: usize,
+        scroll: &VerticalScrollView<V>,
+    ) {
         let _ = scroll;
         self.scroll_position = self.scroll_position.saturating_sub(num_lines);
     }
-    pub fn scroll_down_lines<V>(&mut self, num_lines: usize, scroll: &VerticalScroll<V>) {
+    pub fn scroll_down_lines<V>(
+        &mut self,
+        num_lines: usize,
+        scroll: &VerticalScrollView<V>,
+    ) {
         let scroll_position = self.scroll_position;
         self.scroll_to(scroll_position + num_lines, scroll)
     }
-    pub fn scroll_lines<V>(&mut self, num_lines: isize, scroll: &VerticalScroll<V>) {
+    pub fn scroll_lines<V>(&mut self, num_lines: isize, scroll: &VerticalScrollView<V>) {
         if num_lines < 0 {
             self.scroll_up_lines((-num_lines) as usize, scroll);
         } else {
             self.scroll_down_lines(num_lines as usize, scroll);
         }
     }
-    pub fn scroll_up_line<V>(&mut self, scroll: &VerticalScroll<V>) {
+    pub fn scroll_up_line<V>(&mut self, scroll: &VerticalScrollView<V>) {
         self.scroll_up_lines(1, scroll);
     }
-    pub fn scroll_down_line<V>(&mut self, scroll: &VerticalScroll<V>) {
+    pub fn scroll_down_line<V>(&mut self, scroll: &VerticalScrollView<V>) {
         self.scroll_down_lines(1, scroll);
     }
-    pub fn scroll_up_page<V>(&mut self, scroll: &VerticalScroll<V>) {
+    pub fn scroll_up_page<V>(&mut self, scroll: &VerticalScrollView<V>) {
         self.scroll_up_lines(scroll.last_rendered_outer_height as usize, scroll);
     }
-    pub fn scroll_down_page<V>(&mut self, scroll: &VerticalScroll<V>) {
+    pub fn scroll_down_page<V>(&mut self, scroll: &VerticalScrollView<V>) {
         self.scroll_down_lines(scroll.last_rendered_outer_height as usize, scroll);
     }
-    pub fn scroll_to_top<V>(&mut self, scroll: &VerticalScroll<V>) {
+    pub fn scroll_to_top<V>(&mut self, scroll: &VerticalScrollView<V>) {
         let _ = scroll;
         self.scroll_position = 0;
     }
-    pub fn scroll_to_bottom<V>(&mut self, scroll: &VerticalScroll<V>) {
+    pub fn scroll_to_bottom<V>(&mut self, scroll: &VerticalScrollView<V>) {
         self.scroll_position = scroll.max_scroll_position();
     }
     pub fn scroll_position(&self) -> usize {
@@ -126,12 +143,24 @@ impl VerticalScrollState {
     }
 }
 
-impl<'a, T: Clone, V: View<T>> View<(T, &'a VerticalScrollState, &'a VerticalScrollbar)>
-    for VerticalScroll<V>
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
+pub struct VerticalScrollWithScrollbarData<T> {
+    pub state: VerticalScrollState,
+    pub scrollbar: VerticalScrollbar,
+    pub data: T,
+}
+
+impl<'a, T: Clone, V: View<T>> View<VerticalScrollWithScrollbarData<T>>
+    for VerticalScrollView<V>
 {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        (data, state, scrollbar): (T, &'a VerticalScrollState, &'a VerticalScrollbar),
+        VerticalScrollWithScrollbarData {
+            state,
+            scrollbar,
+            data,
+        }: VerticalScrollWithScrollbarData<T>,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
@@ -148,7 +177,16 @@ impl<'a, T: Clone, V: View<T>> View<(T, &'a VerticalScrollState, &'a VerticalScr
     }
 }
 
-impl<'a, T: Clone, V: View<T>> View<(T, &'a VerticalScrollState)> for VerticalScroll<V> {
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
+pub struct VerticalScrollData<T> {
+    pub state: VerticalScrollState,
+    pub data: T,
+}
+
+impl<'a, T: Clone, V: View<T>> View<(T, &'a VerticalScrollState)>
+    for VerticalScrollView<V>
+{
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         (data, state): (T, &'a VerticalScrollState),

@@ -1,22 +1,47 @@
 use prototty_render::*;
 
-pub struct TransformRgb24<V>(pub V);
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
+pub struct TransformRgb24View<V> {
+    pub view: V,
+}
 
-impl<T, V: View<T>, S: ViewTransformRgb24> View<(T, S)> for TransformRgb24<V> {
+impl<V> TransformRgb24View<V> {
+    pub fn new(view: V) -> Self {
+        Self { view }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
+pub struct TransformRgb24Data<S, T> {
+    pub transform_rgb24: S,
+    pub data: T,
+}
+
+impl<T, V: View<T>, S: ViewTransformRgb24> View<TransformRgb24Data<S, T>>
+    for TransformRgb24View<V>
+{
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        (data, transform_rgb24): (T, S),
+        TransformRgb24Data {
+            transform_rgb24,
+            data,
+        }: TransformRgb24Data<S, T>,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
-        self.0
+        self.view
             .view(data, context.compose_transform_rgb24(transform_rgb24), grid);
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
-        (data, _transform_rgb24): (T, S),
+        TransformRgb24Data {
+            transform_rgb24: _,
+            data,
+        }: TransformRgb24Data<S, T>,
         context: ViewContext<R>,
     ) -> Size {
-        self.0.visible_bounds(data, context)
+        self.view.visible_bounds(data, context)
     }
 }

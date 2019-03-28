@@ -69,7 +69,7 @@ impl BorderPadding {
 /// the text appears in the top-left corner.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
-pub struct BorderInfo {
+pub struct BorderStyle {
     pub title: Option<String>,
     pub padding: BorderPadding,
     pub chars: BorderChars,
@@ -79,7 +79,7 @@ pub struct BorderInfo {
     pub title_style: Style,
 }
 
-impl Default for BorderInfo {
+impl Default for BorderStyle {
     fn default() -> Self {
         Self {
             title: None,
@@ -93,7 +93,7 @@ impl Default for BorderInfo {
     }
 }
 
-impl BorderInfo {
+impl BorderStyle {
     pub fn default_with_title<S: Into<String>>(title: S) -> Self {
         Self {
             title: Some(title.into()),
@@ -131,20 +131,38 @@ impl BorderInfo {
     }
 }
 
-pub struct Border<V>(pub V);
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy)]
+pub struct BorderView<V> {
+    pub view: V,
+}
 
-impl<'a, T: Clone, V: View<T>> View<(T, &'a BorderInfo)> for Border<V> {
+impl<V> BorderView<V> {
+    pub fn new(view: V) -> Self {
+        Self { view }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub struct BorderData<'a, T> {
+    pub border_info: &'a BorderStyle,
+    pub data: T,
+}
+
+impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        (data, border_info): (T, &'a BorderInfo),
+        BorderData { border_info, data }: BorderData<'a, T>,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
         let child_context = context
             .add_offset(border_info.child_offset())
             .constrain_size_by(border_info.child_constrain_size_by());
-        self.0.view(data.clone(), child_context, grid);
-        let span = border_info.span_offset() + self.0.visible_bounds(data, child_context);
+        self.view.view(data.clone(), child_context, grid);
+        let span =
+            border_info.span_offset() + self.view.visible_bounds(data, child_context);
         grid.set_cell_relative(
             Coord::new(0, 0),
             0,
@@ -233,11 +251,11 @@ impl<'a, T: Clone, V: View<T>> View<(T, &'a BorderInfo)> for Border<V> {
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
-        (data, border_info): (T, &'a BorderInfo),
+        BorderData { border_info, data }: BorderData<'a, T>,
         context: ViewContext<R>,
     ) -> Size {
-        let bounds_of_child_with_border =
-            self.0.visible_bounds(data, context) + border_info.child_constrain_size_by();
+        let bounds_of_child_with_border = self.view.visible_bounds(data, context)
+            + border_info.child_constrain_size_by();
         let x = bounds_of_child_with_border.x().min(context.size.x());
         let y = bounds_of_child_with_border.y().min(context.size.y());
         Size::new(x, y)
