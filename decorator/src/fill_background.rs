@@ -19,6 +19,30 @@ pub struct FillBackgroundData<T> {
     pub data: T,
 }
 
+impl<'a, T, V: View<&'a T>> View<&'a FillBackgroundData<T>> for FillBackgroundView<V> {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        &FillBackgroundData {
+            background,
+            ref data,
+        }: &'a FillBackgroundData<T>,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        self.view(FillBackgroundData { background, data }, context, grid);
+    }
+    fn visible_bounds<R: ViewTransformRgb24>(
+        &mut self,
+        &FillBackgroundData {
+            background,
+            ref data,
+        }: &'a FillBackgroundData<T>,
+        context: ViewContext<R>,
+    ) -> Size {
+        self.visible_bounds(FillBackgroundData { background, data }, context)
+    }
+}
+
 impl<T, V: View<T>> View<FillBackgroundData<T>> for FillBackgroundView<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,

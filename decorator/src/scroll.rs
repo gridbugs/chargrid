@@ -151,6 +151,31 @@ pub struct VerticalScrollWithScrollbarData<T> {
     pub data: T,
 }
 
+impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollWithScrollbarData<T>>
+    for VerticalScrollView<V>
+{
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        &VerticalScrollWithScrollbarData {
+            state,
+            scrollbar,
+            ref data,
+        }: &'a VerticalScrollWithScrollbarData<T>,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        self.view(
+            VerticalScrollWithScrollbarData {
+                state,
+                scrollbar,
+                data,
+            },
+            context,
+            grid,
+        )
+    }
+}
+
 impl<'a, T: Clone, V: View<T>> View<VerticalScrollWithScrollbarData<T>>
     for VerticalScrollView<V>
 {
@@ -184,12 +209,21 @@ pub struct VerticalScrollData<T> {
     pub data: T,
 }
 
-impl<'a, T: Clone, V: View<T>> View<(T, &'a VerticalScrollState)>
-    for VerticalScrollView<V>
-{
+impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollData<T>> for VerticalScrollView<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        (data, state): (T, &'a VerticalScrollState),
+        &VerticalScrollData { state, ref data }: &'a VerticalScrollData<T>,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        self.view(VerticalScrollData { state, data }, context, grid)
+    }
+}
+
+impl<'a, T: Clone, V: View<T>> View<VerticalScrollData<T>> for VerticalScrollView<V> {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        VerticalScrollData { state, data }: VerticalScrollData<T>,
         context: ViewContext<R>,
         grid: &mut G,
     ) {

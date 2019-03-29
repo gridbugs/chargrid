@@ -146,60 +146,84 @@ impl<V> BorderView<V> {
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct BorderData<'a, T> {
-    pub border_info: &'a BorderStyle,
+    pub style: &'a BorderStyle,
     pub data: T,
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub struct BorderWithOwnedStyleData<T> {
+    pub style: BorderStyle,
+    pub data: T,
+}
+
+impl<'a, T, V: View<&'a T>> View<&'a BorderWithOwnedStyleData<T>> for BorderView<V> {
+    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        BorderWithOwnedStyleData { style, data }: &'a BorderWithOwnedStyleData<T>,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) {
+        self.view(BorderData { style, data }, context, grid);
+    }
+    fn visible_bounds<R: ViewTransformRgb24>(
+        &mut self,
+        BorderWithOwnedStyleData { style, data }: &'a BorderWithOwnedStyleData<T>,
+        context: ViewContext<R>,
+    ) -> Size {
+        self.visible_bounds(BorderData { style, data }, context)
+    }
 }
 
 impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
-        BorderData { border_info, data }: BorderData<'a, T>,
+        BorderData { style, data }: BorderData<'a, T>,
         context: ViewContext<R>,
         grid: &mut G,
     ) {
         let child_context = context
-            .add_offset(border_info.child_offset())
-            .constrain_size_by(border_info.child_constrain_size_by());
+            .add_offset(style.child_offset())
+            .constrain_size_by(style.child_constrain_size_by());
         self.view.view(data.clone(), child_context, grid);
-        let span =
-            border_info.span_offset() + self.view.visible_bounds(data, child_context);
+        let span = style.span_offset() + self.view.visible_bounds(data, child_context);
         grid.set_cell_relative(
             Coord::new(0, 0),
             0,
-            border_info.view_cell(border_info.chars.top_left),
+            style.view_cell(style.chars.top_left),
             context,
         );
         grid.set_cell_relative(
             Coord::new(span.x, 0),
             0,
-            border_info.view_cell(border_info.chars.top_right),
+            style.view_cell(style.chars.top_right),
             context,
         );
         grid.set_cell_relative(
             Coord::new(0, span.y),
             0,
-            border_info.view_cell(border_info.chars.bottom_left),
+            style.view_cell(style.chars.bottom_left),
             context,
         );
         grid.set_cell_relative(
             Coord::new(span.x, span.y),
             0,
-            border_info.view_cell(border_info.chars.bottom_right),
+            style.view_cell(style.chars.bottom_right),
             context,
         );
-        let title_offset = if let Some(title) = border_info.title.as_ref() {
+        let title_offset = if let Some(title) = style.title.as_ref() {
             let before = Coord::new(1, 0);
             let after = Coord::new(title.len() as i32 + 2, 0);
             grid.set_cell_relative(
                 before,
                 0,
-                border_info.view_cell(border_info.chars.before_title),
+                style.view_cell(style.chars.before_title),
                 context,
             );
             grid.set_cell_relative(
                 after,
                 0,
-                border_info.view_cell(border_info.chars.after_title),
+                style.view_cell(style.chars.after_title),
                 context,
             );
             for (index, ch) in title.chars().enumerate() {
@@ -208,7 +232,7 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
                     coord,
                     0,
                     ViewCell {
-                        style: border_info.title_style,
+                        style: style.title_style,
                         character: Some(ch),
                     },
                     context,
@@ -222,7 +246,7 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
             grid.set_cell_relative(
                 Coord::new(i, 0),
                 0,
-                border_info.view_cell(border_info.chars.top),
+                style.view_cell(style.chars.top),
                 context,
             );
         }
@@ -230,7 +254,7 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
             grid.set_cell_relative(
                 Coord::new(i, span.y),
                 0,
-                border_info.view_cell(border_info.chars.bottom),
+                style.view_cell(style.chars.bottom),
                 context,
             );
         }
@@ -238,24 +262,24 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
             grid.set_cell_relative(
                 Coord::new(0, i),
                 0,
-                border_info.view_cell(border_info.chars.left),
+                style.view_cell(style.chars.left),
                 context,
             );
             grid.set_cell_relative(
                 Coord::new(span.x, i),
                 0,
-                border_info.view_cell(border_info.chars.right),
+                style.view_cell(style.chars.right),
                 context,
             );
         }
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
-        BorderData { border_info, data }: BorderData<'a, T>,
+        BorderData { style, data }: BorderData<'a, T>,
         context: ViewContext<R>,
     ) -> Size {
-        let bounds_of_child_with_border = self.view.visible_bounds(data, context)
-            + border_info.child_constrain_size_by();
+        let bounds_of_child_with_border =
+            self.view.visible_bounds(data, context) + style.child_constrain_size_by();
         let x = bounds_of_child_with_border.x().min(context.size.x());
         let y = bounds_of_child_with_border.y().min(context.size.y());
         Size::new(x, y)

@@ -8,7 +8,7 @@ pub enum ControlFlow {
 pub struct AppState {
     scroll_state: VerticalScrollState,
     text: String,
-    border_info: BorderInfo,
+    border_style: BorderStyle,
     bound: Size,
     background: Rgb24,
     alignment: Alignment,
@@ -16,19 +16,25 @@ pub struct AppState {
 }
 
 pub struct AppView {
-    view: Align<FillBackground<Border<Bound<VerticalScroll<RichTextView<wrap::Word>>>>>>,
+    view: AlignView<
+        FillBackgroundView<
+            BorderView<BoundView<VerticalScrollView<RichTextView<wrap::Word>>>>,
+        >,
+    >,
 }
 
 impl AppView {
     pub fn new() -> Self {
         Self {
-            view: Align::new(FillBackground(Border(Bound(VerticalScroll::new(
-                RichTextView::new(wrap::Word::new()),
-            ))))),
+            view: AlignView::new(FillBackgroundView::new(BorderView::new(
+                BoundView::new(VerticalScrollView::new(RichTextView::new(
+                    wrap::Word::new(),
+                ))),
+            ))),
         }
     }
-    fn scroll(&self) -> &VerticalScroll<RichTextView<wrap::Word>> {
-        &(((self.view.view).0).0).0
+    fn scroll(&self) -> &VerticalScrollView<RichTextView<wrap::Word>> {
+        &self.view.view.view.view.view
     }
 }
 
@@ -37,7 +43,7 @@ impl AppState {
         Self {
             scroll_state: VerticalScrollState::new(),
             text,
-            border_info: BorderInfo {
+            border_style: BorderStyle {
                 title_style: Style {
                     bold: Some(true),
                     foreground: Some(rgb24(0, 255, 0)),
@@ -50,7 +56,7 @@ impl AppState {
                     top: 1,
                     bottom: 1,
                 },
-                ..BorderInfo::default_with_title("Pager")
+                ..BorderStyle::default_with_title("Pager")
             },
             bound: Size::new(40, 40),
             background: rgb24(80, 80, 0),
@@ -124,22 +130,23 @@ impl<'a> View<&'a AppState> for AppView {
                 },
             ),
         ];
-        self.view.view(
-            AlignData {
-                alignment: app_state.alignment,
-                data: (
-                    (
-                        (
-                            (rich_text, &app_state.scroll_state, &app_state.scrollbar),
-                            app_state.bound,
-                        ),
-                        &app_state.border_info,
-                    ),
-                    app_state.background,
-                ),
+        let data = AlignData {
+            alignment: app_state.alignment,
+            data: FillBackgroundData {
+                background: app_state.background,
+                data: BorderData {
+                    style: &app_state.border_style,
+                    data: BoundData {
+                        size: app_state.bound,
+                        data: VerticalScrollWithScrollbarData {
+                            state: app_state.scroll_state,
+                            scrollbar: app_state.scrollbar,
+                            data: rich_text,
+                        },
+                    },
+                },
             },
-            context,
-            grid,
-        );
+        };
+        self.view.view(data, context, grid);
     }
 }
