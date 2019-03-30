@@ -143,8 +143,7 @@ impl<V> BorderView<V> {
     }
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct BorderData<'a, T> {
     pub style: &'a BorderStyle,
     pub data: T,

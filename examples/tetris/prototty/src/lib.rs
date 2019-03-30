@@ -113,25 +113,36 @@ impl<'a> View<&'a Tetris> for TetrisNextPieceView {
     }
 }
 
-struct Borders {
-    common: Bordered<TetrisBoardView>,
-    next_piece: Bordered<TetrisNextPieceView>,
-    menu: Bordered<MenuInstanceView<MainMenuEntryView>>,
+struct BorderViews {
+    common: BorderView<TetrisBoardView>,
+    next_piece: BorderView<TetrisNextPieceView>,
+    menu: BorderView<MenuInstanceView<MainMenuEntryView>>,
 }
 
-impl Borders {
+impl BorderViews {
     fn new() -> Self {
-        let next_piece = Border {
-            title_style: Style::new().with_foreground(colours::WHITE),
-            ..Border::default_with_title("next")
-        };
-        let common = Border::default();
         let menu_instance_view = MenuInstanceView::new(MainMenuEntryView);
         Self {
-            common: Bordered::new(TetrisBoardView, common.clone()),
-            next_piece: Bordered::new(TetrisNextPieceView, next_piece),
-            menu: Bordered::new(menu_instance_view, common),
+            common: BorderView::new(TetrisBoardView),
+            next_piece: BorderView::new(TetrisNextPieceView),
+            menu: BorderView::new(menu_instance_view),
         }
+    }
+}
+
+struct BorderStyles {
+    common: BorderStyle,
+    next_piece: BorderStyle,
+}
+
+impl BorderStyles {
+    pub fn new() -> Self {
+        let next_piece = BorderStyle {
+            title_style: Style::new().with_foreground(colours::WHITE),
+            ..BorderStyle::default_with_title("next")
+        };
+        let common = BorderStyle::default();
+        Self { common, next_piece }
     }
 }
 
@@ -224,6 +235,7 @@ pub struct App {
     tetris: Tetris,
     end_text: RichTextPartOwned,
     input_buffer: VecDeque<TetrisInput>,
+    border_styles: BorderStyles,
 }
 
 impl App {
@@ -241,6 +253,7 @@ impl App {
             tetris: Tetris::new(rng),
             end_text,
             input_buffer: VecDeque::with_capacity(INPUT_BUFFER_SIZE),
+            border_styles: BorderStyles::new(),
         }
     }
 
@@ -259,7 +272,7 @@ impl App {
             AppState::Menu => {
                 if let Some(menu_output) = self
                     .main_menu
-                    .tick_with_mouse(inputs, &view.borders.menu.view)
+                    .tick_with_mouse(inputs, &view.border_views.menu.view)
                 {
                     match menu_output {
                         MenuOutput::Quit => return Some(ControlFlow::Exit),
@@ -322,13 +335,13 @@ impl App {
 }
 
 pub struct AppView {
-    borders: Borders,
+    border_views: BorderViews,
 }
 
 impl AppView {
     pub fn new() -> Self {
         Self {
-            borders: Borders::new(),
+            border_views: BorderViews::new(),
         }
     }
 }
@@ -342,26 +355,56 @@ impl<'a> View<&'a App> for AppView {
     ) {
         match app.state {
             AppState::Game | AppState::GameOver => {
-                let next_piece_offset_x =
-                    self.borders.common.visible_bounds(&app.tetris, context).x() as i32;
-                self.borders.common.view(&app.tetris, context, grid);
-                decorate(&mut self.borders.next_piece)
-                    .transform_rgb24(|rgb24: Rgb24| rgb24.normalised_scalar_mul(255))
-                    .view(
-                        &app.tetris,
-                        context.add_offset(Coord {
-                            x: next_piece_offset_x,
-                            y: 0,
-                        }),
-                        grid,
-                    );
+                let next_piece_offset_x = self
+                    .border_views
+                    .common
+                    .visible_bounds(
+                        BorderData {
+                            data: &app.tetris,
+                            style: &app.border_styles.next_piece,
+                        },
+                        context,
+                    )
+                    .x() as i32;
+                self.border_views.common.view(
+                    BorderData {
+                        data: &app.tetris,
+                        style: &app.border_styles.common,
+                    },
+                    context,
+                    grid,
+                );
+                TransformRgb24View::new(&mut self.border_views.next_piece).view(
+                    TransformRgb24Data {
+                        transform_rgb24: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
+                        data: BorderData {
+                            data: &app.tetris,
+                            style: &app.border_styles.next_piece,
+                        },
+                    },
+                    context.add_offset(Coord {
+                        x: next_piece_offset_x,
+                        y: 0,
+                    }),
+                    grid,
+                );
             }
             AppState::Menu => {
-                self.borders.menu.view(&app.main_menu, context, grid);
+                self.border_views.menu.view(
+                    BorderData {
+                        style: &app.border_styles.common,
+                        data: &app.main_menu,
+                    },
+                    context,
+                    grid,
+                );
             }
             AppState::EndText => {
-                Aligned::centre(RichStringViewSingleLine).view(
-                    &app.end_text,
+                AlignView::new(RichStringViewSingleLine).view(
+                    AlignData {
+                        data: &app.end_text,
+                        alignment: Alignment::centre(),
+                    },
                     context,
                     grid,
                 );
