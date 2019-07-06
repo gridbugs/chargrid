@@ -25,6 +25,8 @@ const FONT_SCALE: gfx_glyph::Scale = gfx_glyph::Scale { x: 16.0, y: 16.0 };
 const FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(0);
 const BOLD_FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(1);
 
+pub const DEFAULT_MAX_WIDTH_IN_CELLS: u16 = 256;
+pub const DEFAULT_MAX_HEIGHT_IN_CELLS: u16 = 256;
 
 #[derive(Debug)]
 pub enum Error {
@@ -197,9 +199,10 @@ impl<'a> ContextBuilder<'a> {
         let unscaled_cell_height = cell_height as f32;
         let cell_width = unscaled_cell_width * hidpi;
         let cell_height = unscaled_cell_height * hidpi;
-        let max_grid_size = self
-            .max_grid_size
-            .unwrap_or(Size::new(MAX_WIDTH_IN_CELLS, MAX_HEIGHT_IN_CELLS));
+        let max_grid_size = self.max_grid_size.unwrap_or(Size::new_u16(
+            DEFAULT_MAX_WIDTH_IN_CELLS,
+            DEFAULT_MAX_HEIGHT_IN_CELLS,
+        ));
         let width_in_cells =
             ::std::cmp::min((window_width as f32 / cell_width) as u32, max_grid_size.x());
         let height_in_cells = ::std::cmp::min(
