@@ -6,7 +6,7 @@ use glutin;
 
 use gfx::Device;
 use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
-use glutin::dpi::{LogicalSize, PhysicalSize};
+use glutin::dpi::LogicalSize;
 use glutin::Event;
 
 use background::*;
@@ -42,7 +42,7 @@ pub struct ContextBuilder<'a> {
     font_scale: gfx_glyph::Scale,
     bold_font_scale: Option<gfx_glyph::Scale>,
     window_builder: glutin::WindowBuilder,
-    context_builder: glutin::ContextBuilder<'a>,
+    context_builder: glutin::ContextBuilder<'a, glutin::NotCurrent>,
     cell_dimensions: Option<Size>,
     underline_width: Option<u32>,
     underline_position: Option<u32>,
@@ -160,14 +160,14 @@ impl<'a> ContextBuilder<'a> {
 
     pub fn build(self) -> Result<Context<'a>> {
         let events_loop = glutin::EventsLoop::new();
-
-        let (window, device, mut factory, rtv, dsv) =
-            gfx_window_glutin::init::<ColourFormat, DepthFormat>(
-                self.window_builder,
-                self.context_builder,
-                &events_loop,
-            )
-            .expect("Failed to create window");
+        let windowed_context = self
+            .context_builder
+            .build_windowed(self.window_builder, &events_loop)
+            .expect("Failed to create windowed context");
+        let (window, device, mut factory, rtv, dsv) = gfx_window_glutin::init_existing::<
+            ColourFormat,
+            DepthFormat,
+        >(windowed_context);
         let mut encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer> =
             factory.create_command_buffer().into();
         let mut glyph_brush_builder =
@@ -290,7 +290,7 @@ impl ColourConversion for GlutinColourConversion {
 }
 
 pub struct Context<'a> {
-    window: glutin::WindowedContext,
+    window: glutin::WindowedContext<glutin::PossiblyCurrent>,
     device: gfx_device_gl::Device,
     encoder: gfx::Encoder<Resources, gfx_device_gl::CommandBuffer>,
     factory: gfx_device_gl::Factory,
@@ -431,7 +431,9 @@ impl<'a> Context<'a> {
         self.encoder.clear(&self.rtv, [0.0, 0.0, 0.0, 1.0]);
         self.background_renderer.draw(&mut self.encoder);
         self.glyph_brush
-            .draw_queued(&mut self.encoder, &self.rtv, &self.dsv)
+            .use_queue()
+            .depth_target(&self.dsv)
+            .draw(&mut self.encoder, &self.rtv)
             .map_err(Error::GfxGlyph)?;
         self.encoder.flush(&mut self.device);
         self.window
