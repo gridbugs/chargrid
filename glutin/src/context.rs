@@ -25,59 +25,6 @@ const FONT_SCALE: gfx_glyph::Scale = gfx_glyph::Scale { x: 16.0, y: 16.0 };
 const FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(0);
 const BOLD_FONT_ID: gfx_glyph::FontId = gfx_glyph::FontId(1);
 
-pub const MAX_WIDTH_IN_CELLS: u32 = 256;
-pub const MAX_HEIGHT_IN_CELLS: u32 = 256;
-
-#[derive(Debug, Clone, Copy)]
-pub struct MonitorInfo {
-    physical_size: PhysicalSize,
-    hidpi_factor: f64,
-}
-
-impl MonitorInfo {
-    fn from_monitor_id(monitor_id: glutin::MonitorId) -> Self {
-        let physical_size = monitor_id.get_dimensions();
-        let hidpi_factor = monitor_id.get_hidpi_factor();
-        Self {
-            physical_size,
-            hidpi_factor,
-        }
-    }
-    pub fn get_primary() -> Self {
-        let events_loop = glutin::EventsLoop::new();
-        let monitor_id = events_loop.get_primary_monitor();
-        Self::from_monitor_id(monitor_id)
-    }
-    pub fn get_current() -> Self {
-        let window_builder = glutin::WindowBuilder::new();
-        let context_builder = glutin::ContextBuilder::new();
-        let events_loop = glutin::EventsLoop::new();
-        let (window, _device, _factory, _rtv, _dsv) =
-            gfx_window_glutin::init::<ColourFormat, DepthFormat>(
-                window_builder,
-                context_builder,
-                &events_loop,
-            )
-            .expect("Failed to create window");
-        let monitor_id = window.get_current_monitor();
-        Self::from_monitor_id(monitor_id)
-    }
-    pub fn physical_width(&self) -> f64 {
-        self.physical_size.width
-    }
-    pub fn physical_height(&self) -> f64 {
-        self.physical_size.height
-    }
-    pub fn logical_width(&self) -> f64 {
-        self.physical_size.to_logical(self.hidpi_factor).width
-    }
-    pub fn logical_height(&self) -> f64 {
-        self.physical_size.to_logical(self.hidpi_factor).height
-    }
-    pub fn hidpi_factor(&self) -> f64 {
-        self.hidpi_factor
-    }
-}
 
 #[derive(Debug)]
 pub enum Error {
