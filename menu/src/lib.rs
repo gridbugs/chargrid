@@ -1,24 +1,26 @@
 extern crate prototty_input;
 extern crate prototty_render;
+extern crate prototty_text;
 #[cfg(feature = "serialize")]
 #[macro_use]
 extern crate serde;
 
 use prototty_input::{inputs, Input, ScrollDirection};
 use prototty_render::*;
+use prototty_text::StringViewSingleLine;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
-pub struct MenuInstance<T> {
+pub struct MenuInstance<T: Clone> {
     menu: Vec<T>,
     selected_index: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum MenuOutput<'a, T> {
+#[derive(Debug, Clone)]
+pub enum MenuOutput<T> {
     Quit,
     Cancel,
-    Finalise(&'a T),
+    Finalise(T),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -28,7 +30,7 @@ pub trait MenuIndexFromScreenCoord {
     fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize>;
 }
 
-impl<T> MenuInstance<T> {
+impl<T: Clone> MenuInstance<T> {
     pub fn new_with_selection(
         menu: Vec<T>,
         selected_index: usize,
@@ -68,8 +70,8 @@ impl<T> MenuInstance<T> {
         }
     }
 
-    pub fn selected(&self) -> &T {
-        &self.menu[self.selected_index]
+    pub fn selected(&self) -> T {
+        self.menu[self.selected_index].clone()
     }
 
     pub fn tick<I>(&mut self, inputs: I) -> Option<MenuOutput<T>>
@@ -172,6 +174,7 @@ impl<E> MenuIndexFromScreenCoord for MenuInstanceView<E> {
 
 impl<'a, T, E> View<&'a MenuInstance<T>> for MenuInstanceView<E>
 where
+    T: Clone,
     E: MenuEntryView<T>,
 {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(
@@ -204,6 +207,7 @@ where
 
 impl<'a, L, T, E> View<(&'a MenuInstance<T>, &'a L)> for MenuInstanceView<E>
 where
+    T: Clone,
     E: MenuEntryLookupView<T, L>,
 {
     fn view<G: ViewGrid, R: ViewTransformRgb24>(

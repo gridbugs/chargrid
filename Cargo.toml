@@ -44,4 +44,6 @@ members = [
     "examples/pager/unix",
     "examples/pager/glutin",
     "examples/pager/wasm",
+
+    "examples/tick-experiment",
 ]

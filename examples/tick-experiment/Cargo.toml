@@ -1,0 +1,9 @@
+[package]
+name = "tick-experiment"
+version = "0.1.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+edition = "2018"
+
+[dependencies]
+prototty_glutin = { path = "../../glutin" }
+prototty = { path = "../../prototty" }
