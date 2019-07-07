@@ -236,21 +236,29 @@ where
     }
 }
 
+pub type MenuEntryViewInfo = u32;
+
 pub trait MenuEntryView<T> {
     fn normal<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> u32;
+    ) -> MenuEntryViewInfo;
     fn selected<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> u32;
+    ) -> MenuEntryViewInfo;
 }
 
+/// Sometimes the menu entry alone is not sufficient to render the
+/// menu entry. An example is when the mappings from menu entry
+/// to (say) string is not statically known. The `lookup` argument
+/// to the methods of this trait can be used to pass some external
+/// object which knows how to map menu entries to some renderable
+/// value.
 pub trait MenuEntryLookupView<T, L> {
     fn normal<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
@@ -258,12 +266,69 @@ pub trait MenuEntryLookupView<T, L> {
         lookup: &L,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> u32;
+    ) -> MenuEntryViewInfo;
     fn selected<G: ViewGrid, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         lookup: &L,
         context: ViewContext<R>,
         grid: &mut G,
-    ) -> u32;
+    ) -> MenuEntryViewInfo;
+}
+
+/// Convenience function to simplify implementing `MenuEntryView` and
+/// `MenuEntryLookupView`.
+pub fn menu_entry_view<T, V: View<T>, G: ViewGrid, R: ViewTransformRgb24>(
+    data: T,
+    mut view: V,
+    context: ViewContext<R>,
+    grid: &mut G,
+) -> MenuEntryViewInfo {
+    view.view_reporting_intended_size(data, context, grid)
+        .width()
+}
+
+/// An implementation of `MenuEntryView` for menus whose entries
+/// can be converted into string slices.
+pub struct StrMenuEntryView {
+    pub normal: Style,
+    pub selected: Style,
+}
+
+impl StrMenuEntryView {
+    pub const fn new(normal: Style, selected: Style) -> Self {
+        Self { normal, selected }
+    }
+}
+
+impl<T> MenuEntryView<T> for StrMenuEntryView
+where
+    for<'a> &'a T: Into<&'a str>,
+{
+    fn normal<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        entry: &T,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) -> MenuEntryViewInfo {
+        menu_entry_view(
+            entry.into(),
+            StringViewSingleLine::new(self.normal),
+            context,
+            grid,
+        )
+    }
+    fn selected<G: ViewGrid, R: ViewTransformRgb24>(
+        &mut self,
+        entry: &T,
+        context: ViewContext<R>,
+        grid: &mut G,
+    ) -> MenuEntryViewInfo {
+        menu_entry_view(
+            entry.into(),
+            StringViewSingleLine::new(self.selected),
+            context,
+            grid,
+        )
+    }
 }
