@@ -8,33 +8,50 @@ mod tick_routine {
     pub trait TickRoutine<A>: Sized {
         type Return;
         type State;
-        fn tick(self, args: &mut A) -> Tick<Self::Return, Self>;
+        fn tick(self, args: A) -> Tick<Self::Return, Self>;
         fn state(&self) -> &Self::State;
         fn repeat<U, F: FnMut(Self::Return) -> Tick<U, Self>>(
             self,
             f: F,
-        ) -> Repeat<A, Self, F> {
-            Repeat {
-                t: self,
-                f,
-                a: PhantomData,
-            }
+        ) -> Repeat<Self, F> {
+            Repeat { t: self, f }
+        }
+        fn id(self) -> Id<Self> {
+            Id { t: self }
         }
     }
 
-    pub struct Repeat<A, T, F> {
-        a: PhantomData<A>,
+    pub struct Id<T> {
+        t: T,
+    }
+    impl<A, T> TickRoutine<A> for Id<T>
+    where
+        T: TickRoutine<A>,
+    {
+        type Return = T::Return;
+        type State = T::State;
+        fn tick(mut self, args: A) -> Tick<Self::Return, Self> {
+            match self.t.tick(args) {
+                Tick::Continue(c) => Tick::Continue(Id { t: c, ..self }),
+                Tick::Return(r) => Tick::Return(r),
+            }
+        }
+        fn state(&self) -> &Self::State {
+            self.t.state()
+        }
+    }
+    pub struct Repeat<T, F> {
         t: T,
         f: F,
     }
-    impl<T, U, F, A> TickRoutine<A> for Repeat<A, T, F>
+    impl<A, T, U, F> TickRoutine<A> for Repeat<T, F>
     where
         T: TickRoutine<A>,
         F: FnMut(T::Return) -> Tick<U, T>,
     {
         type Return = U;
         type State = T::State;
-        fn tick(mut self, args: &mut A) -> Tick<Self::Return, Self> {
+        fn tick(mut self, args: A) -> Tick<Self::Return, Self> {
             match self.t.tick(args) {
                 Tick::Continue(c) => Tick::Continue(Repeat { t: c, ..self }),
                 Tick::Return(r) => match (self.f)(r) {
@@ -49,6 +66,50 @@ mod tick_routine {
     }
 }
 
+use std::vec::Drain;
+use tick_routine::*;
+
+mod foo {
+    use super::tick_routine::*;
+    use std::marker::PhantomData;
+    pub struct Foo<A> {
+        a: PhantomData<A>,
+    }
+    impl<A> Foo<A> {
+        pub fn new() -> Self {
+            Self { a: PhantomData }
+        }
+    }
+    impl<'a, A> TickRoutine<&'a mut Vec<i32>> for Foo<A> {
+        type Return = i32;
+        type State = Self;
+        fn tick(self, _: &'a mut Vec<i32>) -> Tick<Self::Return, Self> {
+            Tick::Return(0)
+        }
+        fn state(&self) -> &Self::State {
+            self
+        }
+    }
+}
+
+fn main() {
+    let mut args = vec![];
+    let mut foo = foo::Foo::<i32>::new().id().id().id();
+    let mut rfoo = foo.repeat(|i| {
+        if i > 0 {
+            Tick::Continue(foo::Foo::new().id().id().id())
+        } else {
+            Tick::Return(i)
+        }
+    });
+    loop {
+        match rfoo.tick(&mut args) {
+            Tick::Return(_) => break,
+            Tick::Continue(new_foo) => rfoo = new_foo,
+        }
+    }
+}
+/*
 mod app {
     use super::tick_routine::*;
     use prototty as p;
@@ -218,9 +279,10 @@ fn main() {
             .with_cell_dimensions(p::Size::new_u16(16, 16))
             .build()
             .unwrap();
-    let mut app = app::app();
+    //let mut app = app::app();
     let mut app_view = app::AppView::new();
-    let mut input_buffer = Vec::with_capacity(64);
+    //let mut input_buffer = Vec::with_capacity(64);
+    /*
     loop {
         {
             context.buffer_input(&mut input_buffer);
@@ -236,5 +298,6 @@ fn main() {
             }
         };
         context.render(&mut app_view, app.state()).unwrap();
-    }
+    } */
 }
+*/
