@@ -34,19 +34,39 @@ mod app {
 
     pub trait TickRoutine: Sized {
         type Return;
-        type State;
-        fn tick<I>(self, inputs: I, view: &View) -> Tick<Self::Return, Self>
+        type Data;
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &View,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>;
-        fn state(&self) -> &Self::State;
-        fn repeat<U, F: FnMut(Self::Return) -> Tick<U, Self>>(
-            self,
-            f: F,
-        ) -> Repeat<Self, F> {
-            Repeat { t: self, f }
-        }
     }
 
+    struct MenuInstanceTickRoutine;
+
+    impl TickRoutine for MenuInstanceTickRoutine {
+        type Return = p::MenuOutput<MenuChoice>;
+        type Data = p::MenuInstance<MenuChoice>;
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &View,
+        ) -> Tick<Self::Return, Self>
+        where
+            I: Iterator<Item = p::Input>,
+        {
+            if let Some(menu_output) = data.tick_with_mouse(inputs, view) {
+                Tick::Return(menu_output)
+            } else {
+                Tick::Continue(self)
+            }
+        }
+    }
+    /*
     pub struct Repeat<T, F> {
         t: T,
         f: F,
@@ -57,12 +77,17 @@ mod app {
         F: FnMut(T::Return) -> Tick<U, T>,
     {
         type Return = U;
-        type State = T::State;
-        fn tick<I>(mut self, inputs: I, view: &View) -> Tick<Self::Return, Self>
+        type Data = T::Data;
+        fn tick<I>(
+            mut self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &View,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
-            match self.t.tick(inputs, view) {
+            match self.t.tick(data, inputs, view) {
                 Tick::Continue(c) => Tick::Continue(Repeat { t: c, ..self }),
                 Tick::Return(r) => match (self.f)(r) {
                     Tick::Continue(c) => Tick::Continue(Repeat { t: c, ..self }),
@@ -70,10 +95,19 @@ mod app {
                 },
             }
         }
-        fn state(&self) -> &Self::State {
-            self.t.state()
-        }
+    } */
+    /*
+    /*
+    pub enum Either<A, B> {
+        A(A),
+        B(B),
     }
+    impl<A, B> TickRoutine for Either<A, B>
+        where
+            A: TickRoutine,
+            B: TickRoutine,
+    {
+    } */
 
     impl TickRoutine for p::MenuInstance<MenuChoice> {
         type Return = (Self, p::MenuOutput<MenuChoice>);
@@ -121,11 +155,23 @@ mod app {
             })
     }
 
+    pub struct App<SM> {
+        state_machine: SM,
+    }
+
+    pub fn app_(
+    ) -> App<impl TickRoutine<Return = Return, State = p::MenuInstance<MenuChoice>>> {
+        App {
+            state_machine: app(),
+        }
+    }
+
     pub enum Return {
         Quit,
     }
+    */
 }
-
+/*
 use app::TickRoutine;
 use prototty as p;
 use prototty_glutin as pg;
@@ -154,4 +200,6 @@ fn main() {
         };
         context.render(&mut view, app.state()).unwrap();
     }
-}
+}*/
+
+fn main() {}
