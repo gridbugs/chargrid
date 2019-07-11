@@ -59,9 +59,9 @@ impl<'a, T, V: View<&'a T>> View<&'a AlignData<T>> for AlignView<V> {
             ref data,
         }: &'a AlignData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        self.view(AlignData { alignment, data }, context, grid);
+        self.view(AlignData { alignment, data }, context, frame);
     }
 }
 
@@ -70,7 +70,7 @@ impl<T: Clone, V: View<T>> View<AlignData<T>> for AlignView<V> {
         &mut self,
         AlignData { alignment, data }: AlignData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let data_size = self.view.visible_bounds(data.clone(), context);
         let x_offset = match alignment.x {
@@ -86,7 +86,7 @@ impl<T: Clone, V: View<T>> View<AlignData<T>> for AlignView<V> {
         self.view.view(
             data,
             context.add_offset(Coord::new(x_offset, y_offset)),
-            grid,
+            frame,
         );
     }
 }

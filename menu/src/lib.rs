@@ -177,7 +177,7 @@ where
         &mut self,
         menu_instance: &'a MenuInstance<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.last_offset = context.outer_offset;
         let mut max_width = 0;
@@ -186,13 +186,13 @@ where
                 self.entry_view.selected(
                     entry,
                     context.add_offset(Coord::new(0, i as i32)),
-                    grid,
+                    frame,
                 )
             } else {
                 self.entry_view.normal(
                     entry,
                     context.add_offset(Coord::new(0, i as i32)),
-                    grid,
+                    frame,
                 )
             };
             max_width = max_width.max(width);
@@ -210,7 +210,7 @@ where
         &mut self,
         (menu_instance, lookup): (&'a MenuInstance<T>, &'a L),
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.last_offset = context.outer_offset;
         let mut max_width = 0;
@@ -220,14 +220,14 @@ where
                     entry,
                     lookup,
                     context.add_offset(Coord::new(0, i as i32)),
-                    grid,
+                    frame,
                 )
             } else {
                 self.entry_view.normal(
                     entry,
                     lookup,
                     context.add_offset(Coord::new(0, i as i32)),
-                    grid,
+                    frame,
                 )
             };
             max_width = max_width.max(width);
@@ -243,13 +243,13 @@ pub trait MenuEntryView<T> {
         &mut self,
         entry: &T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> MenuEntryViewInfo;
     fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> MenuEntryViewInfo;
 }
 
@@ -265,14 +265,14 @@ pub trait MenuEntryLookupView<T, L> {
         entry: &T,
         lookup: &L,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> MenuEntryViewInfo;
     fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         lookup: &L,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> MenuEntryViewInfo;
 }
 
@@ -282,9 +282,9 @@ pub fn menu_entry_view<T, V: View<T>, F: Frame, R: ViewTransformRgb24>(
     data: T,
     mut view: V,
     context: ViewContext<R>,
-    grid: &mut G,
+    frame: &mut F,
 ) -> MenuEntryViewInfo {
-    view.view_reporting_intended_size(data, context, grid)
+    view.view_reporting_intended_size(data, context, frame)
         .width()
 }
 
@@ -309,26 +309,26 @@ where
         &mut self,
         entry: &T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> MenuEntryViewInfo {
         menu_entry_view(
             entry.into(),
             StringViewSingleLine::new(self.normal),
             context,
-            grid,
+            frame,
         )
     }
     fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> MenuEntryViewInfo {
         menu_entry_view(
             entry.into(),
             StringViewSingleLine::new(self.selected),
             context,
-            grid,
+            frame,
         )
     }
 }

@@ -108,7 +108,7 @@ impl<'a> View<&'a AppState> for AppView {
         &mut self,
         app_state: &'a AppState,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let rich_text = &[
             ("Hello, World!\nblah\nblah blah ", Style::default()),
@@ -147,6 +147,6 @@ impl<'a> View<&'a AppState> for AppView {
                 },
             },
         };
-        self.view.view(data, context, grid);
+        self.view.view(data, context, frame);
     }
 }

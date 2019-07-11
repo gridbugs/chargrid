@@ -50,21 +50,27 @@ impl OutputCell {
 
 pub struct Terminal {
     ansi: AnsiTerminal,
-    output_grid: grid_2d::Grid<OutputCell>,
+    output_frame: grid_2d::Grid<OutputCell>,
 }
 
 impl Terminal {
     pub fn new(fg: AnsiColour, bg: AnsiColour) -> Result<Self> {
         let ansi = AnsiTerminal::new()?;
         let size = ansi.size()?;
-        let output_grid = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
-        Ok(Self { ansi, output_grid })
+        let output_frame =
+            grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
+        Ok(Self { ansi, output_frame })
     }
 
-    pub fn resize_if_necessary(&mut self, fg: AnsiColour, bg: AnsiColour) -> Result<Size> {
+    pub fn resize_if_necessary(
+        &mut self,
+        fg: AnsiColour,
+        bg: AnsiColour,
+    ) -> Result<Size> {
         let size = self.ansi.size()?;
-        if size != self.output_grid.size() {
-            self.output_grid = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
+        if size != self.output_frame.size() {
+            self.output_frame =
+                grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
         }
         Ok(size)
     }
@@ -73,21 +79,23 @@ impl Terminal {
         self.ansi.size()
     }
 
-    pub fn draw_grid<C>(&mut self, grid: &mut Grid<C>) -> Result<()>
+    pub fn draw_frame<C>(&mut self, frame: &mut Grid<C>) -> Result<()>
     where
         C: ColourConversion<Colour = AnsiColour>,
     {
         self.ansi.set_cursor(Coord::new(0, 0))?;
         let mut bold = false;
         let mut underline = false;
-        let mut fg = grid.default_foreground();
-        let mut bg = grid.default_background();
+        let mut fg = frame.default_foreground();
+        let mut bg = frame.default_background();
         self.ansi.reset();
         self.ansi.clear_underline();
         self.ansi.set_foreground_colour(fg);
         self.ansi.set_background_colour(bg);
         let mut must_move_cursor = false;
-        for ((coord, cell), output_cell) in grid.enumerate().zip(self.output_grid.iter_mut()) {
+        for ((coord, cell), output_cell) in
+            frame.enumerate().zip(self.output_frame.iter_mut())
+        {
             if output_cell.matches(cell) {
                 must_move_cursor = true;
                 continue;

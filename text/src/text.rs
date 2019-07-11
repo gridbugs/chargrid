@@ -26,17 +26,17 @@ where
         &mut self,
         parts: I,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.wrap.clear();
         for part in parts {
             let part = part.as_ref();
             for character in part.chars() {
                 self.wrap
-                    .process_character(character, self.style, context, grid);
+                    .process_character(character, self.style, context, frame);
             }
         }
-        self.wrap.flush(context, grid);
+        self.wrap.flush(context, frame);
     }
 }
 
@@ -63,15 +63,15 @@ where
         &mut self,
         part: S,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.wrap.clear();
         let part = part.as_ref();
         for character in part.chars() {
             self.wrap
-                .process_character(character, self.style, context, grid);
+                .process_character(character, self.style, context, frame);
         }
-        self.wrap.flush(context, grid);
+        self.wrap.flush(context, frame);
     }
 }
 
@@ -102,9 +102,9 @@ where
         &mut self,
         part: S,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        StringView::new(self.style, wrap::None::new()).view(part, context, grid);
+        StringView::new(self.style, wrap::None::new()).view(part, context, frame);
     }
 
     fn visible_bounds<R: ViewTransformRgb24>(

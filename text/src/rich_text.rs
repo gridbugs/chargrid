@@ -101,17 +101,17 @@ where
         &mut self,
         parts: I,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.wrap.clear();
         for part in parts {
             let part: RichTextPart = (*part).into();
             for character in part.text.chars() {
                 self.wrap
-                    .process_character(character, part.style, context, grid);
+                    .process_character(character, part.style, context, frame);
             }
         }
-        self.wrap.flush(context, grid);
+        self.wrap.flush(context, frame);
     }
 }
 
@@ -133,9 +133,9 @@ where
         &mut self,
         parts: I,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        RichTextView::new(wrap::None::new()).view(parts, context, grid)
+        RichTextView::new(wrap::None::new()).view(parts, context, frame)
     }
 
     fn visible_bounds<R: ViewTransformRgb24>(
@@ -173,15 +173,15 @@ where
         &mut self,
         part: T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.wrap.clear();
         let part: RichTextPart = part.into();
         for character in part.text.chars() {
             self.wrap
-                .process_character(character, part.style, context, grid);
+                .process_character(character, part.style, context, frame);
         }
-        self.wrap.flush(context, grid);
+        self.wrap.flush(context, frame);
     }
 }
 
@@ -202,9 +202,9 @@ where
         &mut self,
         part: T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        RichStringView::new(wrap::None::new()).view(part, context, grid);
+        RichStringView::new(wrap::None::new()).view(part, context, frame);
     }
 
     fn visible_bounds<R: ViewTransformRgb24>(

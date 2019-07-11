@@ -2,8 +2,8 @@ use super::{Coord, Size};
 use crate::context::*;
 use crate::view_cell::*;
 
-fn set_cell_relative_default<G: ?Sized + Frame, R: ViewTransformRgb24>(
-    grid: &mut G,
+fn set_cell_relative_default<F: ?Sized + Frame, R: ViewTransformRgb24>(
+    frame: &mut F,
     relative_coord: Coord,
     relative_depth: i32,
     relative_cell: ViewCell,
@@ -27,11 +27,11 @@ fn set_cell_relative_default<G: ?Sized + Frame, R: ViewTransformRgb24>(
             },
             ..relative_cell
         };
-        grid.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+        frame.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }
 }
 
-/// A grid of cells
+/// A frame of animation
 pub trait Frame {
     fn set_cell_relative<R: ViewTransformRgb24>(
         &mut self,
@@ -59,14 +59,14 @@ pub trait Frame {
 }
 
 pub trait View<T> {
-    /// Update the cells in `grid` to describe how a type should be rendered.
+    /// Update the cells in `frame` to describe how a type should be rendered.
     /// This mutably borrows `self` to allow the view to contain buffers/caches which
     /// are updated during rendering.
     fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     );
 
     /// Return the size of the visible component of the element without
@@ -85,15 +85,15 @@ pub trait View<T> {
     /// size of the visible component of the element. This allows decorators to know
     /// the size of the output of a view they are decorating.
     /// By default this calls `view` keeping track of the maximum x and y
-    /// components of the relative coords of cells which are set in `grid`.
+    /// components of the relative coords of cells which are set in `frame`.
     fn view_reporting_intended_size<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> Size {
         struct Measure<'a, H> {
-            grid: &'a mut H,
+            frame: &'a mut H,
             max: Coord,
         }
         impl<'a, H: Frame> Frame for Measure<'a, H> {
@@ -120,18 +120,18 @@ pub trait View<T> {
                 absolute_depth: i32,
                 absolute_cell: ViewCell,
             ) {
-                self.grid.set_cell_absolute(
+                self.frame.set_cell_absolute(
                     absolute_coord,
                     absolute_depth,
                     absolute_cell,
                 );
             }
             fn size(&self) -> Size {
-                self.grid.size()
+                self.frame.size()
             }
         }
         let mut measure = Measure {
-            grid,
+            frame,
             max: Coord::new(0, 0),
         };
         self.view(data, context, &mut measure);
@@ -144,8 +144,8 @@ impl<'a, T, V: View<T>> View<T> for &'a mut V {
         &mut self,
         data: T,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        (*self).view(data, context, grid)
+        (*self).view(data, context, frame)
     }
 }

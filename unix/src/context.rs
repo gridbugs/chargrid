@@ -57,7 +57,7 @@ impl<C: ColourConfig> ColourConversion for UnixColourConversion<C> {
 /// An interface to a terminal for rendering `View`s, and getting input.
 pub struct Context<C: ColourConfig = DefaultColourConfig> {
     terminal: Terminal,
-    grid: Grid<UnixColourConversion<C>>,
+    frame: Grid<UnixColourConversion<C>>,
 }
 
 impl Context<DefaultColourConfig> {
@@ -90,17 +90,17 @@ impl<C: ColourConfig> Context<C> {
             colour_config.default_foreground(),
             colour_config.default_background(),
         )?;
-        let grid = Grid::new(size, UnixColourConversion(colour_config));
-        Ok(Self { terminal, grid })
+        let frame = Grid::new(size, UnixColourConversion(colour_config));
+        Ok(Self { terminal, frame })
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
         let size = self.terminal.resize_if_necessary(
-            self.grid.default_foreground(),
-            self.grid.default_background(),
+            self.frame.default_foreground(),
+            self.frame.default_background(),
         )?;
-        if size != self.grid.size() {
-            self.grid.resize(size);
+        if size != self.frame.size() {
+            self.frame.resize(size);
         }
         Ok(())
     }
@@ -140,9 +140,9 @@ impl<C: ColourConfig> Context<C> {
         context: ViewContext<R>,
     ) -> Result<()> {
         self.resize_if_necessary()?;
-        self.grid.clear();
-        view.view(data, context, &mut self.grid);
-        self.terminal.draw_grid(&mut self.grid)
+        self.frame.clear();
+        view.view(data, context, &mut self.frame);
+        self.terminal.draw_frame(&mut self.frame)
     }
 
     pub fn size(&self) -> Result<Size> {

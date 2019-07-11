@@ -34,7 +34,7 @@ impl VerticalScrollbar {
         state: VerticalScrollState,
         scroll: &VerticalScrollView<V>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         if scroll.last_rendered_inner_height > scroll.last_rendered_outer_height {
             let view_cell = ViewCell {
@@ -51,7 +51,7 @@ impl VerticalScrollbar {
             for y in 0..bar_height {
                 let bar_y = (y + bar_top) as i32;
                 let coord = Coord::new(bar_x, bar_y);
-                grid.set_cell_relative(coord, 0, view_cell, context);
+                frame.set_cell_relative(coord, 0, view_cell, context);
             }
         }
     }
@@ -162,7 +162,7 @@ impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollWithScrollbarData<T>>
             ref data,
         }: &'a VerticalScrollWithScrollbarData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.view(
             VerticalScrollWithScrollbarData {
@@ -171,7 +171,7 @@ impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollWithScrollbarData<T>>
                 data,
             },
             context,
-            grid,
+            frame,
         )
     }
 }
@@ -187,18 +187,18 @@ impl<'a, T: Clone, V: View<T>> View<VerticalScrollWithScrollbarData<T>>
             data,
         }: VerticalScrollWithScrollbarData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let inner_size = self.view.view_reporting_intended_size(
             data,
             context
                 .constrain_size_by(Size::new(1 + scrollbar.padding, 0))
                 .add_inner_offset(Coord::new(0, -(state.scroll_position as i32))),
-            grid,
+            frame,
         );
         self.last_rendered_inner_height = inner_size.height();
         self.last_rendered_outer_height = context.size.height();
-        scrollbar.view(state, self, context, grid);
+        scrollbar.view(state, self, context, frame);
     }
 }
 
@@ -214,9 +214,9 @@ impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollData<T>> for VerticalScrollVi
         &mut self,
         &VerticalScrollData { state, ref data }: &'a VerticalScrollData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        self.view(VerticalScrollData { state, data }, context, grid)
+        self.view(VerticalScrollData { state, data }, context, frame)
     }
 }
 
@@ -225,12 +225,12 @@ impl<'a, T: Clone, V: View<T>> View<VerticalScrollData<T>> for VerticalScrollVie
         &mut self,
         VerticalScrollData { state, data }: VerticalScrollData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let inner_size = self.view.view_reporting_intended_size(
             data,
             context.add_inner_offset(Coord::new(0, -(state.scroll_position as i32))),
-            grid,
+            frame,
         );
         self.last_rendered_inner_height = inner_size.height();
         self.last_rendered_outer_height = context.size.height();

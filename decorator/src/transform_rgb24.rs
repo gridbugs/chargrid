@@ -29,7 +29,7 @@ impl<'a, T, V: View<&'a T>, S: ViewTransformRgb24> View<&'a TransformRgb24Data<S
             ref data,
         }: &'a TransformRgb24Data<S, T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.view(
             TransformRgb24Data {
@@ -37,7 +37,7 @@ impl<'a, T, V: View<&'a T>, S: ViewTransformRgb24> View<&'a TransformRgb24Data<S
                 data,
             },
             context,
-            grid,
+            frame,
         )
     }
     fn visible_bounds<R: ViewTransformRgb24>(
@@ -68,10 +68,10 @@ impl<T, V: View<T>, S: ViewTransformRgb24> View<TransformRgb24Data<S, T>>
             data,
         }: TransformRgb24Data<S, T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         self.view
-            .view(data, context.compose_transform_rgb24(transform_rgb24), grid);
+            .view(data, context.compose_transform_rgb24(transform_rgb24), frame);
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,

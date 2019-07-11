@@ -27,9 +27,9 @@ impl<'a, T, V: View<&'a T>> View<&'a FillBackgroundData<T>> for FillBackgroundVi
             ref data,
         }: &'a FillBackgroundData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        self.view(FillBackgroundData { background, data }, context, grid);
+        self.view(FillBackgroundData { background, data }, context, frame);
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
@@ -48,15 +48,15 @@ impl<T, V: View<T>> View<FillBackgroundData<T>> for FillBackgroundView<V> {
         &mut self,
         FillBackgroundData { background, data }: FillBackgroundData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let size =
             self.view
-                .view_reporting_intended_size(data, context.add_depth(1), grid);
+                .view_reporting_intended_size(data, context.add_depth(1), frame);
         for y in 0..(size.height() as i32) {
             for x in 0..(size.width() as i32) {
                 let coord = Coord::new(x, y);
-                grid.set_cell_relative(
+                frame.set_cell_relative(
                     coord,
                     0,
                     ViewCell::new()

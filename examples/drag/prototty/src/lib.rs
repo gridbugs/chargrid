@@ -62,15 +62,15 @@ impl App {
 }
 
 fn draw_line<F: Frame, R: ViewTransformRgb24, I: IntoIterator<Item = Coord>>(
-    grid: &mut G,
+    frame: &mut F,
     iter: I,
     context: ViewContext<R>,
 ) {
     for coord in iter {
-        if !coord.is_valid(grid.size()) {
+        if !coord.is_valid(frame.size()) {
             break;
         }
-        grid.set_cell_relative(
+        frame.set_cell_relative(
             coord,
             0,
             ViewCell::new()
@@ -88,7 +88,7 @@ impl<'a> View<&'a App> for AppView {
         &mut self,
         app: &'a App,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let context = context
             .compose_transform_rgb24(|rgb24: Rgb24| rgb24.normalised_scalar_mul(128));
@@ -96,13 +96,13 @@ impl<'a> View<&'a App> for AppView {
             (Some(last_clicked_coord), Some(coord)) => {
                 let line = LineSegment::new(last_clicked_coord, coord);
                 match app.line_type {
-                    LineType::Normal => draw_line(grid, line.traverse(), context),
+                    LineType::Normal => draw_line(frame, line.traverse(), context),
                     LineType::Cardinal => {
-                        draw_line(grid, line.traverse_cardinal(), context)
+                        draw_line(frame, line.traverse_cardinal(), context)
                     }
                     LineType::Infinite => {
                         if let Ok(line) = line.try_infinite() {
-                            draw_line(grid, line.traverse(), context);
+                            draw_line(frame, line.traverse(), context);
                         }
                     }
                 }

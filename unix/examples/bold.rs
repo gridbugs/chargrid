@@ -11,12 +11,12 @@ impl View<()> for BoldTestView {
         &mut self,
         (): (),
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         RichStringViewSingleLine.view(
             ("Hello, World!", Style::new().with_bold(true)),
             context.add_offset(Coord::new(1, 1)),
-            grid,
+            frame,
         );
     }
 }

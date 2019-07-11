@@ -161,9 +161,9 @@ impl<'a, T, V: View<&'a T>> View<&'a BorderWithOwnedStyleData<T>> for BorderView
         &mut self,
         BorderWithOwnedStyleData { style, data }: &'a BorderWithOwnedStyleData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        self.view(BorderData { style, data }, context, grid);
+        self.view(BorderData { style, data }, context, frame);
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
@@ -179,32 +179,32 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
         &mut self,
         BorderData { style, data }: BorderData<'a, T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let child_context = context
             .add_offset(style.child_offset())
             .constrain_size_by(style.child_constrain_size_by());
-        self.view.view(data.clone(), child_context, grid);
+        self.view.view(data.clone(), child_context, frame);
         let span = style.span_offset() + self.view.visible_bounds(data, child_context);
-        grid.set_cell_relative(
+        frame.set_cell_relative(
             Coord::new(0, 0),
             0,
             style.view_cell(style.chars.top_left),
             context,
         );
-        grid.set_cell_relative(
+        frame.set_cell_relative(
             Coord::new(span.x, 0),
             0,
             style.view_cell(style.chars.top_right),
             context,
         );
-        grid.set_cell_relative(
+        frame.set_cell_relative(
             Coord::new(0, span.y),
             0,
             style.view_cell(style.chars.bottom_left),
             context,
         );
-        grid.set_cell_relative(
+        frame.set_cell_relative(
             Coord::new(span.x, span.y),
             0,
             style.view_cell(style.chars.bottom_right),
@@ -213,13 +213,13 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
         let title_offset = if let Some(title) = style.title.as_ref() {
             let before = Coord::new(1, 0);
             let after = Coord::new(title.len() as i32 + 2, 0);
-            grid.set_cell_relative(
+            frame.set_cell_relative(
                 before,
                 0,
                 style.view_cell(style.chars.before_title),
                 context,
             );
-            grid.set_cell_relative(
+            frame.set_cell_relative(
                 after,
                 0,
                 style.view_cell(style.chars.after_title),
@@ -227,7 +227,7 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
             );
             for (index, ch) in title.chars().enumerate() {
                 let coord = Coord::new(index as i32 + 2, 0);
-                grid.set_cell_relative(
+                frame.set_cell_relative(
                     coord,
                     0,
                     ViewCell {
@@ -242,7 +242,7 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
             0
         };
         for i in (1 + title_offset)..span.x {
-            grid.set_cell_relative(
+            frame.set_cell_relative(
                 Coord::new(i, 0),
                 0,
                 style.view_cell(style.chars.top),
@@ -250,7 +250,7 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
             );
         }
         for i in 1..span.x {
-            grid.set_cell_relative(
+            frame.set_cell_relative(
                 Coord::new(i, span.y),
                 0,
                 style.view_cell(style.chars.bottom),
@@ -258,13 +258,13 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
             );
         }
         for i in 1..span.y {
-            grid.set_cell_relative(
+            frame.set_cell_relative(
                 Coord::new(0, i),
                 0,
                 style.view_cell(style.chars.left),
                 context,
             );
-            grid.set_cell_relative(
+            frame.set_cell_relative(
                 Coord::new(span.x, i),
                 0,
                 style.view_cell(style.chars.right),

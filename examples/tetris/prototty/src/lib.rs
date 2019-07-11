@@ -39,7 +39,7 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
         &mut self,
         tetris: &'a Tetris,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
@@ -53,7 +53,7 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
                     cell_info.style.foreground = Some(BLANK_FOREGROUND_COLOUR);
                     cell_info.style.background = Some(BACKGROUND_COLOUR);
                 }
-                grid.set_cell_relative(
+                frame.set_cell_relative(
                     Coord::new(j as i32, i as i32),
                     0,
                     cell_info,
@@ -71,7 +71,7 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
                     background: Some(piece_colour(tetris.game_state.piece.typ)),
                 },
             };
-            grid.set_cell_relative(coord, 0, cell_info, context);
+            frame.set_cell_relative(coord, 0, cell_info, context);
         }
     }
     fn visible_bounds<R: ViewTransformRgb24>(
@@ -88,7 +88,7 @@ impl<'a> View<&'a Tetris> for TetrisNextPieceView {
         &mut self,
         tetris: &'a Tetris,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let offset = Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
@@ -101,7 +101,7 @@ impl<'a> View<&'a Tetris> for TetrisNextPieceView {
                     background: Some(piece_colour(tetris.game_state.next_piece.typ)),
                 },
             };
-            grid.set_cell_relative(offset + coord, 0, cell_info, context);
+            frame.set_cell_relative(offset + coord, 0, cell_info, context);
         }
     }
     fn visible_bounds<R: ViewTransformRgb24>(
@@ -159,21 +159,21 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
         &mut self,
         choice: &MainMenuChoice,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> u32 {
         let string = match choice {
             MainMenuChoice::Play => "  Play",
             MainMenuChoice::Quit => "  Quit",
         };
         StringViewSingleLine::new(Style::default())
-            .view_reporting_intended_size(string, context, grid)
+            .view_reporting_intended_size(string, context, frame)
             .width()
     }
     fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         choice: &MainMenuChoice,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) -> u32 {
         let base_style = Style::new().with_bold(true);
         let rich_text = match choice {
@@ -188,7 +188,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             MainMenuChoice::Quit => vec![("> Quit", base_style)],
         };
         RichTextViewSingleLine::new()
-            .view_reporting_intended_size(&rich_text, context, grid)
+            .view_reporting_intended_size(&rich_text, context, frame)
             .width()
     }
 }
@@ -351,7 +351,7 @@ impl<'a> View<&'a App> for AppView {
         &mut self,
         app: &'a App,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         match app.state {
             AppState::Game | AppState::GameOver => {
@@ -372,7 +372,7 @@ impl<'a> View<&'a App> for AppView {
                         style: &app.border_styles.common,
                     },
                     context,
-                    grid,
+                    frame,
                 );
                 TransformRgb24View::new(&mut self.border_views.next_piece).view(
                     TransformRgb24Data {
@@ -386,7 +386,7 @@ impl<'a> View<&'a App> for AppView {
                         x: next_piece_offset_x,
                         y: 0,
                     }),
-                    grid,
+                    frame,
                 );
             }
             AppState::Menu => {
@@ -396,7 +396,7 @@ impl<'a> View<&'a App> for AppView {
                         data: &app.main_menu,
                     },
                     context,
-                    grid,
+                    frame,
                 );
             }
             AppState::EndText => {
@@ -406,7 +406,7 @@ impl<'a> View<&'a App> for AppView {
                         alignment: Alignment::centre(),
                     },
                     context,
-                    grid,
+                    frame,
                 );
             }
         }

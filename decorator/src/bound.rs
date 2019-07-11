@@ -24,9 +24,9 @@ impl<'a, T, V: View<&'a T>> View<&'a BoundData<T>> for BoundView<V> {
         &mut self,
         &BoundData { size, ref data }: &'a BoundData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        self.view(BoundData { size, data }, context, grid);
+        self.view(BoundData { size, data }, context, frame);
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
@@ -42,9 +42,9 @@ impl<T, V: View<T>> View<BoundData<T>> for BoundView<V> {
         &mut self,
         BoundData { size, data }: BoundData<T>,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
-        self.view.view(data, context.constrain_size_to(size), grid);
+        self.view.view(data, context.constrain_size_to(size), frame);
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,

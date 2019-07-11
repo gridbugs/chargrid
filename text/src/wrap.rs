@@ -9,16 +9,16 @@ pub trait Wrap: private_wrap::Sealed {
         character: char,
         style: Style,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     );
     #[doc(hidden)]
     fn flush<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let _ = context;
-        let _ = grid;
+        let _ = frame;
     }
     #[doc(hidden)]
     fn num_lines(&self) -> usize;
@@ -77,7 +77,7 @@ impl Wrap for None {
         character: char,
         style: Style,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         match character {
             '\n' => {
@@ -90,7 +90,7 @@ impl Wrap for None {
                     character: Some(other),
                     style,
                 };
-                grid.set_cell_relative(self.cursor, 0, view_cell, context);
+                frame.set_cell_relative(self.cursor, 0, view_cell, context);
                 self.cursor += Coord::new(1, 0);
             }
         }
@@ -111,26 +111,26 @@ impl Wrap for Word {
         character: char,
         style: Style,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         match character {
             '\n' => {
-                self.flush(context, grid);
+                self.flush(context, frame);
                 self.cursor.x = 0;
                 self.cursor.y += 1;
             }
             '\r' => {
-                self.flush(context, grid);
+                self.flush(context, frame);
                 self.cursor.x = 0;
             }
             ' ' => {
-                self.flush(context, grid);
+                self.flush(context, frame);
                 if self.cursor.x != 0 {
                     let view_cell = ViewCell {
                         character: Some(' '),
                         style,
                     };
-                    grid.set_cell_relative(self.cursor, 0, view_cell, context);
+                    frame.set_cell_relative(self.cursor, 0, view_cell, context);
                     self.cursor.x += 1;
                     assert!(self.cursor.x <= context.size.width() as i32);
                     if self.cursor.x == context.size.width() as i32 {
@@ -153,7 +153,7 @@ impl Wrap for Word {
                     == context.size.width() as i32
                 {
                     if self.cursor.x == 0 {
-                        self.flush(context, grid);
+                        self.flush(context, frame);
                     } else {
                         self.cursor.x = 0;
                         self.cursor.y += 1;
@@ -166,10 +166,10 @@ impl Wrap for Word {
     fn flush<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         for view_cell in self.current_word_buffer.drain(..) {
-            grid.set_cell_relative(self.cursor, 0, view_cell, context);
+            frame.set_cell_relative(self.cursor, 0, view_cell, context);
             self.cursor.x += 1;
         }
         assert!(self.cursor.x <= context.size.width() as i32);
@@ -194,7 +194,7 @@ impl Wrap for Char {
         character: char,
         style: Style,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         match character {
             '\n' => {
@@ -207,7 +207,7 @@ impl Wrap for Char {
                     character: Some(other),
                     style,
                 };
-                grid.set_cell_relative(self.cursor, 0, view_cell, context);
+                frame.set_cell_relative(self.cursor, 0, view_cell, context);
                 self.cursor += Coord::new(1, 0);
                 if self.cursor.x >= context.size.width() as i32 {
                     self.cursor.x = 0;

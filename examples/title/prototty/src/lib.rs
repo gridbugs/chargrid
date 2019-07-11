@@ -16,10 +16,10 @@ impl<'a> View<&'a Title> for TitleView {
         &mut self,
         title: &'a Title,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         for (i, ch) in title.text.chars().enumerate() {
-            grid.set_cell_relative(
+            frame.set_cell_relative(
                 Coord::new(i as i32, 0),
                 0,
                 ViewCell::new()
@@ -40,11 +40,11 @@ impl<'a> View<&'a Title> for CenteredTitleView {
         &mut self,
         title: &'a Title,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         let space = ::std::cmp::max(title.width as i32 - title.text.len() as i32, 0) / 2;
         for (i, ch) in title.text.chars().enumerate() {
-            grid.set_cell_relative(
+            frame.set_cell_relative(
                 Coord::new(space + i as i32, 0),
                 0,
                 ViewCell::new()
@@ -65,12 +65,12 @@ impl<'a> View<&'a Title> for DemoTitleView {
         &mut self,
         title: &'a Title,
         context: ViewContext<R>,
-        grid: &mut G,
+        frame: &mut F,
     ) {
         // render the title left-aligned in the top-left corner
-        TitleView.view(title, context, grid);
+        TitleView.view(title, context, frame);
 
         // render the title centered 2 lines down
-        CenteredTitleView.view(title, context.add_offset(Coord::new(0, 2)), grid);
+        CenteredTitleView.view(title, context.add_offset(Coord::new(0, 2)), frame);
     }
 }
