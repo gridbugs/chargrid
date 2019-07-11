@@ -46,6 +46,8 @@ pub struct ViewContext<R: ViewTransformRgb24 = ViewTransformRgb24Identity> {
     pub size: Size,
 }
 
+pub type ViewContextDefault = ViewContext<ViewTransformRgb24Identity>;
+
 impl ViewContext<ViewTransformRgb24Identity> {
     pub fn default_with_size(size: Size) -> Self {
         Self {

@@ -1,4 +1,5 @@
 mod app {
+    use p::View;
     use prototty as p;
 
     #[derive(Clone)]
@@ -25,7 +26,7 @@ mod app {
         }
     }
 
-    pub type View = p::MenuInstanceView<p::StrMenuEntryView>;
+    pub type AppView = p::MenuInstanceView<p::StrMenuEntryView>;
 
     pub enum Tick<R, C> {
         Return(R),
@@ -39,34 +40,64 @@ mod app {
             self,
             data: &mut Self::Data,
             inputs: I,
-            view: &View,
+            view: &AppView,
         ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>;
+
+        fn view<F, R>(
+            &self,
+            data: &Self::Data,
+            view: &mut AppView,
+            context: p::ViewContext<R>,
+            frame: &mut F,
+        ) where
+            F: p::Frame,
+            R: p::ViewTransformRgb24;
+
+        fn repeat<U, F>(self, f: F) -> Repeat<Self, F>
+        where
+            F: FnMut(Self::Return) -> Tick<U, Self>,
+        {
+            Repeat { t: self, f }
+        }
     }
 
-    struct MenuInstanceTickRoutine;
+    struct MainMenuInstance;
 
-    impl TickRoutine for MenuInstanceTickRoutine {
+    impl TickRoutine for MainMenuInstance {
         type Return = p::MenuOutput<MenuChoice>;
-        type Data = p::MenuInstance<MenuChoice>;
+        type Data = AppData;
         fn tick<I>(
             self,
             data: &mut Self::Data,
             inputs: I,
-            view: &View,
+            view: &AppView,
         ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
-            if let Some(menu_output) = data.tick_with_mouse(inputs, view) {
+            if let Some(menu_output) = data.main_menu.tick_with_mouse(inputs, view) {
                 Tick::Return(menu_output)
             } else {
                 Tick::Continue(self)
             }
         }
+
+        fn view<F, R>(
+            &self,
+            data: &Self::Data,
+            view: &mut AppView,
+            context: p::ViewContext<R>,
+            frame: &mut F,
+        ) where
+            F: p::Frame,
+            R: p::ViewTransformRgb24,
+        {
+            view.view(&data.main_menu, context, frame);
+        }
     }
-    /*
+
     pub struct Repeat<T, F> {
         t: T,
         f: F,
@@ -82,7 +113,7 @@ mod app {
             mut self,
             data: &mut Self::Data,
             inputs: I,
-            view: &View,
+            view: &AppView,
         ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
@@ -95,84 +126,64 @@ mod app {
                 },
             }
         }
-    } */
-    /*
-    /*
-    pub enum Either<A, B> {
-        A(A),
-        B(B),
-    }
-    impl<A, B> TickRoutine for Either<A, B>
-        where
-            A: TickRoutine,
-            B: TickRoutine,
-    {
-    } */
 
-    impl TickRoutine for p::MenuInstance<MenuChoice> {
-        type Return = (Self, p::MenuOutput<MenuChoice>);
-        type State = Self;
-        fn tick<I>(mut self, inputs: I, view: &View) -> Tick<Self::Return, Self>
-        where
-            I: Iterator<Item = p::Input>,
+        fn view<G, R>(
+            &self,
+            data: &Self::Data,
+            view: &mut AppView,
+            context: p::ViewContext<R>,
+            frame: &mut G,
+        ) where
+            G: p::Frame,
+            R: p::ViewTransformRgb24,
         {
-            if let Some(menu_output) = self.tick_with_mouse(inputs, view) {
-                Tick::Return((self, menu_output))
-            } else {
-                Tick::Continue(self)
-            }
-        }
-        fn state(&self) -> &Self::State {
-            self
+            self.t.view(data, view, context, frame)
         }
     }
 
     pub const MENU_VIEW: p::StrMenuEntryView =
         p::StrMenuEntryView::new(p::Style::new(), p::Style::new().with_bold(true));
 
-    pub fn view() -> View {
+    pub fn view() -> AppView {
         p::MenuInstanceView::new(MENU_VIEW)
     }
 
-    pub fn app() -> impl TickRoutine<Return = Return, State = p::MenuInstance<MenuChoice>>
-    {
-        p::MenuInstance::new(MenuChoice::all())
-            .unwrap()
-            .repeat(|(menu, menu_output)| match menu_output {
-                p::MenuOutput::Quit => Tick::Return(Return::Quit),
-                p::MenuOutput::Cancel => Tick::Continue(menu),
-                p::MenuOutput::Finalise(choice) => match choice {
-                    MenuChoice::Bar => {
-                        println!("Bar");
-                        Tick::Continue(menu)
-                    }
-                    MenuChoice::Foo => {
-                        println!("Foo");
-                        Tick::Continue(menu)
-                    }
-                    MenuChoice::Quit => Tick::Return(Return::Quit),
-                },
-            })
+    pub fn tick_routine() -> impl TickRoutine<Return = Return, Data = AppData> {
+        MainMenuInstance.repeat(|menu_output| match menu_output {
+            p::MenuOutput::Quit => Tick::Return(Return::Quit),
+            p::MenuOutput::Cancel => Tick::Continue(MainMenuInstance),
+            p::MenuOutput::Finalise(choice) => match choice {
+                MenuChoice::Bar => {
+                    println!("Bar");
+                    Tick::Continue(MainMenuInstance)
+                }
+                MenuChoice::Foo => {
+                    println!("Foo");
+                    Tick::Continue(MainMenuInstance)
+                }
+                MenuChoice::Quit => Tick::Return(Return::Quit),
+            },
+        })
     }
 
-    pub struct App<SM> {
-        state_machine: SM,
+    pub struct AppData {
+        main_menu: p::MenuInstance<MenuChoice>,
     }
 
-    pub fn app_(
-    ) -> App<impl TickRoutine<Return = Return, State = p::MenuInstance<MenuChoice>>> {
-        App {
-            state_machine: app(),
+    impl AppData {
+        pub fn new() -> Self {
+            let main_menu = p::MenuInstance::new(MenuChoice::all()).unwrap();
+            Self { main_menu }
         }
     }
 
     pub enum Return {
         Quit,
     }
-    */
 }
-/*
+
 use app::TickRoutine;
+use p::Frame;
 use prototty as p;
 use prototty_glutin as pg;
 
@@ -189,17 +200,24 @@ fn main() {
             .with_cell_dimensions(p::Size::new_u16(16, 16))
             .build()
             .unwrap();
-    let mut app = app::app();
-    let mut view = app::view();
+    let mut app_data = app::AppData::new();
+    let mut tick_routine = app::tick_routine();
+    let mut app_view = app::view();
     let mut input_buffer = Vec::with_capacity(64);
     loop {
         context.buffer_input(&mut input_buffer);
-        app = match app.tick(input_buffer.drain(..), &view) {
-            app::Tick::Continue(app) => app,
-            app::Tick::Return(app::Return::Quit) => break,
-        };
-        context.render(&mut view, app.state()).unwrap();
+        tick_routine =
+            match tick_routine.tick(&mut app_data, input_buffer.drain(..), &app_view) {
+                app::Tick::Continue(tick_routine) => tick_routine,
+                app::Tick::Return(app::Return::Quit) => break,
+            };
+        let mut frame = context.frame();
+        tick_routine.view(
+            &app_data,
+            &mut app_view,
+            frame.default_context(),
+            &mut frame,
+        );
+        frame.render().unwrap();
     }
-}*/
-
-fn main() {}
+}

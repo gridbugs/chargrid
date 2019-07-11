@@ -380,22 +380,7 @@ impl<'a> Context<'a> {
         self.grid.resize(window_size_in_cells);
     }
 
-    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) -> Result<()> {
-        let size = self.size();
-        self.render_at(view, data, ViewContext::default_with_size(size))
-    }
-
-    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
-        &mut self,
-        view: &mut V,
-        data: T,
-        context: ViewContext<R>,
-    ) -> Result<()> {
-        if self.closing {
-            return Ok(());
-        }
-        self.grid.clear();
-        view.view(data, context, &mut self.grid);
+    fn render_internal(&mut self) -> Result<()> {
         {
             let mut output_cells = self.background_renderer.map_cells(&mut self.factory);
             for ((coord, cell), output_cell) in
@@ -443,7 +428,63 @@ impl<'a> Context<'a> {
         Ok(())
     }
 
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) -> Result<()> {
+        let context = self.default_context();
+        self.render_at(view, data, context)
+    }
+
+    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
+        &mut self,
+        view: &mut V,
+        data: T,
+        context: ViewContext<R>,
+    ) -> Result<()> {
+        if self.closing {
+            return Ok(());
+        }
+        self.grid.clear();
+        view.view(data, context, &mut self.grid);
+        self.render_internal()
+    }
+
     pub fn size(&self) -> Size {
         self.grid.size()
+    }
+
+    pub fn frame<'b>(&'b mut self) -> GlutinFrame<'a, 'b> {
+        self.grid.clear();
+        GlutinFrame { context: self }
+    }
+    pub fn default_context(&self) -> ViewContextDefault {
+        ViewContext::default_with_size(self.size())
+    }
+}
+
+pub struct GlutinFrame<'a, 'b> {
+    context: &'b mut Context<'a>,
+}
+
+impl<'a, 'b> GlutinFrame<'a, 'b> {
+    pub fn render(self) -> Result<()> {
+        self.context.render_internal()
+    }
+}
+
+impl<'a, 'b> Frame for GlutinFrame<'a, 'b> {
+    fn set_cell_absolute(
+        &mut self,
+        absolute_coord: Coord,
+        absolute_depth: i32,
+        absolute_cell: ViewCell,
+    ) {
+        self.context.grid.set_cell_absolute(
+            absolute_coord,
+            absolute_depth,
+            absolute_cell,
+        );
+    }
+
+    fn size(&self) -> Size {
+        self.context.grid.size()
     }
 }

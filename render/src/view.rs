@@ -56,6 +56,10 @@ pub trait Frame {
     );
 
     fn size(&self) -> Size;
+
+    fn default_context(&self) -> ViewContextDefault {
+        ViewContext::default_with_size(self.size())
+    }
 }
 
 pub trait View<T> {
@@ -68,6 +72,10 @@ pub trait View<T> {
         context: ViewContext<R>,
         frame: &mut F,
     );
+
+    fn view_default_context<F: Frame>(&mut self, data: T, frame: &mut F) {
+        self.view(data, frame.default_context(), frame)
+    }
 
     /// Return the size of the visible component of the element without
     /// rendering it.
