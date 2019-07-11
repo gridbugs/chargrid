@@ -2,7 +2,7 @@ use super::{Coord, Size};
 use crate::context::*;
 use crate::view_cell::*;
 
-fn set_cell_relative_default<G: ?Sized + ViewGrid, R: ViewTransformRgb24>(
+fn set_cell_relative_default<G: ?Sized + Frame, R: ViewTransformRgb24>(
     grid: &mut G,
     relative_coord: Coord,
     relative_depth: i32,
@@ -32,7 +32,7 @@ fn set_cell_relative_default<G: ?Sized + ViewGrid, R: ViewTransformRgb24>(
 }
 
 /// A grid of cells
-pub trait ViewGrid {
+pub trait Frame {
     fn set_cell_relative<R: ViewTransformRgb24>(
         &mut self,
         relative_coord: Coord,
@@ -62,7 +62,7 @@ pub trait View<T> {
     /// Update the cells in `grid` to describe how a type should be rendered.
     /// This mutably borrows `self` to allow the view to contain buffers/caches which
     /// are updated during rendering.
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,
@@ -86,7 +86,7 @@ pub trait View<T> {
     /// the size of the output of a view they are decorating.
     /// By default this calls `view` keeping track of the maximum x and y
     /// components of the relative coords of cells which are set in `grid`.
-    fn view_reporting_intended_size<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view_reporting_intended_size<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,
@@ -96,7 +96,7 @@ pub trait View<T> {
             grid: &'a mut H,
             max: Coord,
         }
-        impl<'a, H: ViewGrid> ViewGrid for Measure<'a, H> {
+        impl<'a, H: Frame> Frame for Measure<'a, H> {
             fn set_cell_relative<R: ViewTransformRgb24>(
                 &mut self,
                 relative_coord: Coord,
@@ -140,7 +140,7 @@ pub trait View<T> {
 }
 
 impl<'a, T, V: View<T>> View<T> for &'a mut V {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         data: T,
         context: ViewContext<R>,

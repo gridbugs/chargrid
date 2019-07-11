@@ -104,7 +104,7 @@ impl AppState {
 }
 
 impl<'a> View<&'a AppState> for AppView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         app_state: &'a AppState,
         context: ViewContext<R>,

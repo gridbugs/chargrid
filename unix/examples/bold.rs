@@ -7,7 +7,7 @@ use prototty_unix::*;
 struct BoldTestView;
 
 impl View<()> for BoldTestView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         (): (),
         context: ViewContext<R>,

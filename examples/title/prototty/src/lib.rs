@@ -12,7 +12,7 @@ pub struct TitleView;
 
 // Describe how a TitleView renders a Title by implementing View.
 impl<'a> View<&'a Title> for TitleView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         title: &'a Title,
         context: ViewContext<R>,
@@ -36,7 +36,7 @@ impl<'a> View<&'a Title> for TitleView {
 // What if we want a way to rendered titles centered within their width?
 pub struct CenteredTitleView;
 impl<'a> View<&'a Title> for CenteredTitleView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         title: &'a Title,
         context: ViewContext<R>,
@@ -61,7 +61,7 @@ impl<'a> View<&'a Title> for CenteredTitleView {
 // twice - once left aligned, an once centered:
 pub struct DemoTitleView;
 impl<'a> View<&'a Title> for DemoTitleView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         title: &'a Title,
         context: ViewContext<R>,

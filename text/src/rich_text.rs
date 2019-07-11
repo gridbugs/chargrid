@@ -97,7 +97,7 @@ where
     I: IntoIterator<Item = &'a T>,
     W: Wrap,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         parts: I,
         context: ViewContext<R>,
@@ -129,7 +129,7 @@ where
     T: 'a + Into<RichTextPart<'a>> + Copy,
     I: IntoIterator<Item = &'a T>,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         parts: I,
         context: ViewContext<R>,
@@ -169,7 +169,7 @@ where
     T: 'a + Into<RichTextPart<'a>> + Copy,
     W: Wrap,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         part: T,
         context: ViewContext<R>,
@@ -198,7 +198,7 @@ impl<'a, T> View<T> for RichStringViewSingleLine
 where
     T: 'a + Into<RichTextPart<'a>> + Copy,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         part: T,
         context: ViewContext<R>,

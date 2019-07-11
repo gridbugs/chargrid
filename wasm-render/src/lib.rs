@@ -39,7 +39,7 @@ fn rgb24_to_js_string(Rgb24 { r, g, b }: Rgb24) -> String {
     format!("rgb({},{},{})", r, g, b)
 }
 
-impl ViewGrid for JsGrid {
+impl Frame for JsGrid {
     fn set_cell_absolute(&mut self, coord: Coord, depth: i32, view_cell: ViewCell) {
         let x = coord.x;
         let y = coord.y;

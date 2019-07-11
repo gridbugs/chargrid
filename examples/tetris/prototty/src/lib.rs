@@ -35,7 +35,7 @@ fn piece_colour(typ: PieceType) -> Rgb24 {
     }
 }
 impl<'a> View<&'a Tetris> for TetrisBoardView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         tetris: &'a Tetris,
         context: ViewContext<R>,
@@ -84,7 +84,7 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
 }
 
 impl<'a> View<&'a Tetris> for TetrisNextPieceView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         tetris: &'a Tetris,
         context: ViewContext<R>,
@@ -155,7 +155,7 @@ enum MainMenuChoice {
 struct MainMenuEntryView;
 
 impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
-    fn normal<G: ViewGrid, R: ViewTransformRgb24>(
+    fn normal<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         choice: &MainMenuChoice,
         context: ViewContext<R>,
@@ -169,7 +169,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             .view_reporting_intended_size(string, context, grid)
             .width()
     }
-    fn selected<G: ViewGrid, R: ViewTransformRgb24>(
+    fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         choice: &MainMenuChoice,
         context: ViewContext<R>,
@@ -347,7 +347,7 @@ impl AppView {
 }
 
 impl<'a> View<&'a App> for AppView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         app: &'a App,
         context: ViewContext<R>,

@@ -61,7 +61,7 @@ impl App {
     }
 }
 
-fn draw_line<G: ViewGrid, R: ViewTransformRgb24, I: IntoIterator<Item = Coord>>(
+fn draw_line<F: Frame, R: ViewTransformRgb24, I: IntoIterator<Item = Coord>>(
     grid: &mut G,
     iter: I,
     context: ViewContext<R>,
@@ -84,7 +84,7 @@ fn draw_line<G: ViewGrid, R: ViewTransformRgb24, I: IntoIterator<Item = Coord>>(
 }
 
 impl<'a> View<&'a App> for AppView {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         app: &'a App,
         context: ViewContext<R>,

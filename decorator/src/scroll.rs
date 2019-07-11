@@ -29,7 +29,7 @@ impl VerticalScrollbar {
     pub fn padding(&self) -> u32 {
         self.padding
     }
-    fn view<V, G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<V, F: Frame, R: ViewTransformRgb24>(
         &self,
         state: VerticalScrollState,
         scroll: &VerticalScrollView<V>,
@@ -154,7 +154,7 @@ pub struct VerticalScrollWithScrollbarData<T> {
 impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollWithScrollbarData<T>>
     for VerticalScrollView<V>
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         &VerticalScrollWithScrollbarData {
             state,
@@ -179,7 +179,7 @@ impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollWithScrollbarData<T>>
 impl<'a, T: Clone, V: View<T>> View<VerticalScrollWithScrollbarData<T>>
     for VerticalScrollView<V>
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         VerticalScrollWithScrollbarData {
             state,
@@ -210,7 +210,7 @@ pub struct VerticalScrollData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollData<T>> for VerticalScrollView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         &VerticalScrollData { state, ref data }: &'a VerticalScrollData<T>,
         context: ViewContext<R>,
@@ -221,7 +221,7 @@ impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollData<T>> for VerticalScrollVi
 }
 
 impl<'a, T: Clone, V: View<T>> View<VerticalScrollData<T>> for VerticalScrollView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         VerticalScrollData { state, data }: VerticalScrollData<T>,
         context: ViewContext<R>,

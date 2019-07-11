@@ -22,7 +22,7 @@ where
     I: IntoIterator<Item = S>,
     W: Wrap,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         parts: I,
         context: ViewContext<R>,
@@ -59,7 +59,7 @@ where
     S: AsRef<str>,
     W: Wrap,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         part: S,
         context: ViewContext<R>,
@@ -98,7 +98,7 @@ impl<'a, S> View<S> for StringViewSingleLine
 where
     S: AsRef<str>,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         part: S,
         context: ViewContext<R>,

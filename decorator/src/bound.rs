@@ -20,7 +20,7 @@ pub struct BoundData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a BoundData<T>> for BoundView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         &BoundData { size, ref data }: &'a BoundData<T>,
         context: ViewContext<R>,
@@ -38,7 +38,7 @@ impl<'a, T, V: View<&'a T>> View<&'a BoundData<T>> for BoundView<V> {
 }
 
 impl<T, V: View<T>> View<BoundData<T>> for BoundView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         BoundData { size, data }: BoundData<T>,
         context: ViewContext<R>,

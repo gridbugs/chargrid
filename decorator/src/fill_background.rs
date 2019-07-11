@@ -20,7 +20,7 @@ pub struct FillBackgroundData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a FillBackgroundData<T>> for FillBackgroundView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         &FillBackgroundData {
             background,
@@ -44,7 +44,7 @@ impl<'a, T, V: View<&'a T>> View<&'a FillBackgroundData<T>> for FillBackgroundVi
 }
 
 impl<T, V: View<T>> View<FillBackgroundData<T>> for FillBackgroundView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         FillBackgroundData { background, data }: FillBackgroundData<T>,
         context: ViewContext<R>,

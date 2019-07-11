@@ -22,7 +22,7 @@ pub struct TransformRgb24Data<S, T> {
 impl<'a, T, V: View<&'a T>, S: ViewTransformRgb24> View<&'a TransformRgb24Data<S, T>>
     for TransformRgb24View<V>
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         &TransformRgb24Data {
             transform_rgb24,
@@ -61,7 +61,7 @@ impl<'a, T, V: View<&'a T>, S: ViewTransformRgb24> View<&'a TransformRgb24Data<S
 impl<T, V: View<T>, S: ViewTransformRgb24> View<TransformRgb24Data<S, T>>
     for TransformRgb24View<V>
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         TransformRgb24Data {
             transform_rgb24,

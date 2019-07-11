@@ -173,7 +173,7 @@ where
     T: Clone,
     E: MenuEntryView<T>,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         menu_instance: &'a MenuInstance<T>,
         context: ViewContext<R>,
@@ -206,7 +206,7 @@ where
     T: Clone,
     E: MenuEntryLookupView<T, L>,
 {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         (menu_instance, lookup): (&'a MenuInstance<T>, &'a L),
         context: ViewContext<R>,
@@ -239,13 +239,13 @@ where
 pub type MenuEntryViewInfo = u32;
 
 pub trait MenuEntryView<T> {
-    fn normal<G: ViewGrid, R: ViewTransformRgb24>(
+    fn normal<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,
         grid: &mut G,
     ) -> MenuEntryViewInfo;
-    fn selected<G: ViewGrid, R: ViewTransformRgb24>(
+    fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,
@@ -260,14 +260,14 @@ pub trait MenuEntryView<T> {
 /// object which knows how to map menu entries to some renderable
 /// value.
 pub trait MenuEntryLookupView<T, L> {
-    fn normal<G: ViewGrid, R: ViewTransformRgb24>(
+    fn normal<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         lookup: &L,
         context: ViewContext<R>,
         grid: &mut G,
     ) -> MenuEntryViewInfo;
-    fn selected<G: ViewGrid, R: ViewTransformRgb24>(
+    fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         lookup: &L,
@@ -278,7 +278,7 @@ pub trait MenuEntryLookupView<T, L> {
 
 /// Convenience function to simplify implementing `MenuEntryView` and
 /// `MenuEntryLookupView`.
-pub fn menu_entry_view<T, V: View<T>, G: ViewGrid, R: ViewTransformRgb24>(
+pub fn menu_entry_view<T, V: View<T>, F: Frame, R: ViewTransformRgb24>(
     data: T,
     mut view: V,
     context: ViewContext<R>,
@@ -305,7 +305,7 @@ impl<T> MenuEntryView<T> for StrMenuEntryView
 where
     for<'a> &'a T: Into<&'a str>,
 {
-    fn normal<G: ViewGrid, R: ViewTransformRgb24>(
+    fn normal<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,
@@ -318,7 +318,7 @@ where
             grid,
         )
     }
-    fn selected<G: ViewGrid, R: ViewTransformRgb24>(
+    fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
         context: ViewContext<R>,

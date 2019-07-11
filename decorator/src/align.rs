@@ -52,7 +52,7 @@ pub struct AlignData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a AlignData<T>> for AlignView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         &AlignData {
             alignment,
@@ -66,7 +66,7 @@ impl<'a, T, V: View<&'a T>> View<&'a AlignData<T>> for AlignView<V> {
 }
 
 impl<T: Clone, V: View<T>> View<AlignData<T>> for AlignView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         AlignData { alignment, data }: AlignData<T>,
         context: ViewContext<R>,

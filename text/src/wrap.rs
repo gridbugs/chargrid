@@ -4,7 +4,7 @@ pub trait Wrap: private_wrap::Sealed {
     #[doc(hidden)]
     fn clear(&mut self);
     #[doc(hidden)]
-    fn process_character<G: ViewGrid, R: ViewTransformRgb24>(
+    fn process_character<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         character: char,
         style: Style,
@@ -12,7 +12,7 @@ pub trait Wrap: private_wrap::Sealed {
         grid: &mut G,
     );
     #[doc(hidden)]
-    fn flush<G: ViewGrid, R: ViewTransformRgb24>(
+    fn flush<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         context: ViewContext<R>,
         grid: &mut G,
@@ -72,7 +72,7 @@ impl Wrap for None {
     fn clear(&mut self) {
         self.cursor = Coord::new(0, 0);
     }
-    fn process_character<G: ViewGrid, R: ViewTransformRgb24>(
+    fn process_character<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         character: char,
         style: Style,
@@ -106,7 +106,7 @@ impl Wrap for Word {
         self.current_word_buffer.clear();
     }
 
-    fn process_character<G: ViewGrid, R: ViewTransformRgb24>(
+    fn process_character<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         character: char,
         style: Style,
@@ -163,7 +163,7 @@ impl Wrap for Word {
         }
     }
 
-    fn flush<G: ViewGrid, R: ViewTransformRgb24>(
+    fn flush<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         context: ViewContext<R>,
         grid: &mut G,
@@ -189,7 +189,7 @@ impl Wrap for Char {
         self.cursor = Coord::new(0, 0);
     }
 
-    fn process_character<G: ViewGrid, R: ViewTransformRgb24>(
+    fn process_character<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         character: char,
         style: Style,

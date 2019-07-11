@@ -157,7 +157,7 @@ pub struct BorderWithOwnedStyleData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a BorderWithOwnedStyleData<T>> for BorderView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         BorderWithOwnedStyleData { style, data }: &'a BorderWithOwnedStyleData<T>,
         context: ViewContext<R>,
@@ -175,7 +175,7 @@ impl<'a, T, V: View<&'a T>> View<&'a BorderWithOwnedStyleData<T>> for BorderView
 }
 
 impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
-    fn view<G: ViewGrid, R: ViewTransformRgb24>(
+    fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         BorderData { style, data }: BorderData<'a, T>,
         context: ViewContext<R>,
