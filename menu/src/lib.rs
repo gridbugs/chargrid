@@ -26,8 +26,8 @@ pub enum MenuOutput<T> {
 #[derive(Debug, Clone, Copy)]
 pub struct InitialIndexOutOfBounds;
 
-pub trait MenuIndexFromScreenCoord: Copy {
-    fn menu_index_from_screen_coord(self, len: usize, coord: Coord) -> Option<usize>;
+pub trait MenuIndexFromScreenCoord {
+    fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize>;
 }
 
 impl<T: Clone> MenuInstance<T> {
@@ -93,7 +93,7 @@ impl<T: Clone> MenuInstance<T> {
         None
     }
 
-    pub fn tick_with_mouse<I, M>(&mut self, inputs: I, view: M) -> Option<MenuOutput<T>>
+    pub fn tick_with_mouse<I, M>(&mut self, inputs: I, view: &M) -> Option<MenuOutput<T>>
     where
         I: IntoIterator<Item = Input>,
         M: MenuIndexFromScreenCoord,
@@ -144,7 +144,7 @@ pub struct MenuInstanceView<E> {
 }
 
 impl<E> MenuInstanceView<E> {
-    pub fn new(entry_view: E) -> Self {
+    pub const fn new(entry_view: E) -> Self {
         Self {
             entry_view,
             last_offset: Coord::new(0, 0),
@@ -153,8 +153,8 @@ impl<E> MenuInstanceView<E> {
     }
 }
 
-impl<'a, E> MenuIndexFromScreenCoord for &'a MenuInstanceView<E> {
-    fn menu_index_from_screen_coord(self, len: usize, coord: Coord) -> Option<usize> {
+impl<E> MenuIndexFromScreenCoord for MenuInstanceView<E> {
+    fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize> {
         let rel_coord = coord - self.last_offset;
         if rel_coord.x < 0
             || rel_coord.y < 0
