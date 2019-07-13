@@ -1,0 +1,17 @@
+[package]
+name = "prototty_tick_routine"
+description = "Pseudo-synchronous composable tick-based state machines for prototty apps"
+version = "0.27.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_tick_routine"
+
+[features]
+serialize = ["prototty_render/serialize", "prototty_input/serialize"]
+
+[dependencies]
+prototty_render = { path = "../render", version = "0.27" }
+prototty_input = { path = "../input", version = "0.27" }

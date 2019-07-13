@@ -1,4 +1,5 @@
 pub mod app {
+    use p::Tick;
     use prototty as p;
     use std::marker::PhantomData;
     use std::time::Duration;
@@ -45,32 +46,6 @@ pub mod app {
                 ColourMenuChoice::Red => "Red",
                 ColourMenuChoice::Green => "Green",
                 ColourMenuChoice::Blue => "Blue",
-            }
-        }
-    }
-
-    pub enum Tick<R, C> {
-        Return(R),
-        Continue(C),
-    }
-
-    impl<R, C> Tick<R, C> {
-        pub fn map_continue<D, F>(self, f: F) -> Tick<R, D>
-        where
-            F: FnOnce(C) -> D,
-        {
-            match self {
-                Tick::Return(r) => Tick::Return(r),
-                Tick::Continue(c) => Tick::Continue(f(c)),
-            }
-        }
-        pub fn map_return<S, F>(self, f: F) -> Tick<S, C>
-        where
-            F: FnOnce(R) -> S,
-        {
-            match self {
-                Tick::Return(r) => Tick::Return(f(r)),
-                Tick::Continue(c) => Tick::Continue(c),
             }
         }
     }
@@ -749,8 +724,8 @@ fn main() {
         frame_instant = Instant::now();
         context.buffer_input(&mut input_buffer);
         tick_routine = match tick_routine.tick(&mut app_data, input_buffer.drain(..), &app_view, duration) {
-            app::Tick::Continue(tick_routine) => tick_routine,
-            app::Tick::Return(app::Return::Quit) => break,
+            p::Tick::Continue(tick_routine) => tick_routine,
+            p::Tick::Return(app::Return::Quit) => break,
         };
         let mut frame = context.frame();
         tick_routine.view(
