@@ -1,6 +1,7 @@
 pub mod app {
     use prototty as p;
     use std::marker::PhantomData;
+    use std::time::Duration;
 
     #[derive(Clone, Copy)]
     pub enum MainMenuChoice {
@@ -78,7 +79,13 @@ pub mod app {
         type Return;
         type Data;
         type View;
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>;
 
@@ -87,7 +94,7 @@ pub mod app {
             F: p::Frame,
             R: p::ViewTransformRgb24;
 
-        fn peek(self, _data: &mut Self::Data, _view: &Self::View) -> Tick<Self::Return, Self> {
+        fn peek(self, _data: &mut Self::Data) -> Tick<Self::Return, Self> {
             Tick::Continue(self)
         }
 
@@ -148,11 +155,17 @@ pub mod app {
         type Return = T;
         type Data = D;
         type View = V;
-        fn tick<I>(self, data: &mut Self::Data, _inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            _inputs: I,
+            _view: &Self::View,
+            _duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
-            self.peek(data, view)
+            self.peek(data)
         }
 
         fn view<F, R>(&self, _data: &Self::Data, _view: &mut Self::View, _context: p::ViewContext<R>, _frame: &mut F)
@@ -162,7 +175,7 @@ pub mod app {
         {
         }
 
-        fn peek(self, _data: &mut Self::Data, _view: &Self::View) -> Tick<Self::Return, Self> {
+        fn peek(self, _data: &mut Self::Data) -> Tick<Self::Return, Self> {
             Tick::Return(self.value)
         }
     }
@@ -180,12 +193,18 @@ pub mod app {
         type Data = T::Data;
         type View = T::View;
 
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
             let Self { t, f } = self;
-            match t.tick(data, inputs, view) {
+            match t.tick(data, inputs, view, duration) {
                 Tick::Continue(t) => Tick::Continue(Self { t, f }),
                 Tick::Return(r) => Tick::Return(f(r, data, view)),
             }
@@ -213,12 +232,18 @@ pub mod app {
         type Data = T::Data;
         type View = T::View;
 
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
             let Self { t, f } = self;
-            match t.tick(data, inputs, view) {
+            match t.tick(data, inputs, view, duration) {
                 Tick::Continue(t) => Tick::Continue(Self { t, f }),
                 Tick::Return(r) => Tick::Return(f(r)),
             }
@@ -248,16 +273,22 @@ pub mod app {
         type Data = T::Data;
         type View = T::View;
 
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
             match self {
-                AndThen::First { t, f } => match t.tick(data, inputs, view) {
+                AndThen::First { t, f } => match t.tick(data, inputs, view, duration) {
                     Tick::Continue(t) => Tick::Continue(AndThen::First { t, f }),
-                    Tick::Return(r) => f(r).peek(data, view).map_continue(AndThen::Second),
+                    Tick::Return(r) => f(r).peek(data).map_continue(AndThen::Second),
                 },
-                AndThen::Second(u) => u.tick(data, inputs, view).map_continue(AndThen::Second),
+                AndThen::Second(u) => u.tick(data, inputs, view, duration).map_continue(AndThen::Second),
             }
         }
 
@@ -287,13 +318,19 @@ pub mod app {
         type Data = A::Data;
         type View = A::View;
 
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
             match self {
-                Either::A(a) => a.tick(data, inputs, view).map_continue(Either::A),
-                Either::B(b) => b.tick(data, inputs, view).map_continue(Either::B),
+                Either::A(a) => a.tick(data, inputs, view, duration).map_continue(Either::A),
+                Either::B(b) => b.tick(data, inputs, view, duration).map_continue(Either::B),
             }
         }
 
@@ -340,12 +377,18 @@ pub mod app {
         type Data = S::DataInput;
         type View = S::ViewInput;
 
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
             let Self { t, selector } = self;
-            t.tick(selector.data_mut(data), inputs, selector.view(view))
+            t.tick(selector.data_mut(data), inputs, selector.view(view), duration)
                 .map_continue(|t| Self { t, selector })
         }
 
@@ -401,7 +444,13 @@ pub mod app {
         type Data = p::MenuInstance<C>;
         type View = V;
 
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            _duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -451,7 +500,13 @@ pub mod app {
         type Data = S::DataInput;
         type View = S::ViewInput;
 
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            _duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -489,12 +544,18 @@ pub mod app {
         type Data = T::Data;
         type View = T::View;
 
-        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
+        fn tick<I>(
+            self,
+            data: &mut Self::Data,
+            inputs: I,
+            view: &Self::View,
+            duration: Duration,
+        ) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
             let Self { t, mut f } = self;
-            match t.tick(data, inputs, view) {
+            match t.tick(data, inputs, view, duration) {
                 Tick::Continue(t) => Tick::Continue(Self { t, f }),
                 Tick::Return(r) => f(r).map_continue(|t| Self { t, f }),
             }
@@ -664,6 +725,7 @@ use app::TickRoutine;
 use p::Frame;
 use prototty as p;
 use prototty_glutin as pg;
+use std::time::Instant;
 
 const WINDOW_SIZE_PIXELS: p::Size = p::Size::new_u16(640, 480);
 
@@ -681,9 +743,12 @@ fn main() {
     let mut app_data = app::AppData::new();
     let mut app_view = app::AppView::new();
     let mut input_buffer = Vec::with_capacity(64);
+    let mut frame_instant = Instant::now();
     loop {
+        let duration = frame_instant.elapsed();
+        frame_instant = Instant::now();
         context.buffer_input(&mut input_buffer);
-        tick_routine = match tick_routine.tick(&mut app_data, input_buffer.drain(..), &app_view) {
+        tick_routine = match tick_routine.tick(&mut app_data, input_buffer.drain(..), &app_view, duration) {
             app::Tick::Continue(tick_routine) => tick_routine,
             app::Tick::Return(app::Return::Quit) => break,
         };
