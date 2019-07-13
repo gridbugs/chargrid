@@ -32,17 +32,11 @@ pub trait MenuIndexFromScreenCoord {
 }
 
 impl<T: Clone> MenuInstance<T> {
-    pub fn new_with_selection(
-        menu: Vec<T>,
-        selected_index: usize,
-    ) -> Result<Self, InitialIndexOutOfBounds> {
+    pub fn new_with_selection(menu: Vec<T>, selected_index: usize) -> Result<Self, InitialIndexOutOfBounds> {
         if selected_index >= menu.len() {
             Err(InitialIndexOutOfBounds)
         } else {
-            Ok(Self {
-                menu,
-                selected_index,
-            })
+            Ok(Self { menu, selected_index })
         }
     }
 
@@ -117,16 +111,12 @@ impl<T: Clone> MenuInstance<T> {
                     ..
                 } => self.down(),
                 Input::MouseMove { coord, .. } => {
-                    if let Some(index) =
-                        view.menu_index_from_screen_coord(self.menu.len(), coord)
-                    {
+                    if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
                         self.set_index(index);
                     }
                 }
                 Input::MousePress { coord, .. } => {
-                    if let Some(index) =
-                        view.menu_index_from_screen_coord(self.menu.len(), coord)
-                    {
+                    if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
                         self.set_index(index);
                         return Some(MenuOutput::Finalise(self.selected()));
                     }
@@ -157,11 +147,7 @@ impl<E> MenuInstanceView<E> {
 impl<E> MenuIndexFromScreenCoord for MenuInstanceView<E> {
     fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize> {
         let rel_coord = coord - self.last_offset;
-        if rel_coord.x < 0
-            || rel_coord.y < 0
-            || rel_coord.x >= self.last_size.x() as i32
-            || rel_coord.y >= len as i32
-        {
+        if rel_coord.x < 0 || rel_coord.y < 0 || rel_coord.x >= self.last_size.x() as i32 || rel_coord.y >= len as i32 {
             None
         } else {
             Some(rel_coord.y as usize)
@@ -184,17 +170,11 @@ where
         let mut max_width = 0;
         for (i, entry) in menu_instance.menu.iter().enumerate() {
             let width = if i == menu_instance.selected_index {
-                self.entry_view.selected(
-                    entry,
-                    context.add_offset(Coord::new(0, i as i32)),
-                    frame,
-                )
+                self.entry_view
+                    .selected(entry, context.add_offset(Coord::new(0, i as i32)), frame)
             } else {
-                self.entry_view.normal(
-                    entry,
-                    context.add_offset(Coord::new(0, i as i32)),
-                    frame,
-                )
+                self.entry_view
+                    .normal(entry, context.add_offset(Coord::new(0, i as i32)), frame)
             };
             max_width = max_width.max(width);
         }
@@ -217,19 +197,11 @@ where
         let mut max_width = 0;
         for (i, entry) in menu_instance.menu.iter().enumerate() {
             let width = if i == menu_instance.selected_index {
-                self.entry_view.selected(
-                    entry,
-                    extra,
-                    context.add_offset(Coord::new(0, i as i32)),
-                    frame,
-                )
+                self.entry_view
+                    .selected(entry, extra, context.add_offset(Coord::new(0, i as i32)), frame)
             } else {
-                self.entry_view.normal(
-                    entry,
-                    extra,
-                    context.add_offset(Coord::new(0, i as i32)),
-                    frame,
-                )
+                self.entry_view
+                    .normal(entry, extra, context.add_offset(Coord::new(0, i as i32)), frame)
             };
             max_width = max_width.max(width);
         }
@@ -285,8 +257,7 @@ pub fn menu_entry_view<T, V: View<T>, F: Frame, R: ViewTransformRgb24>(
     context: ViewContext<R>,
     frame: &mut F,
 ) -> MenuEntryViewInfo {
-    view.view_reporting_intended_size(data, context, frame)
-        .width()
+    view.view_reporting_intended_size(data, context, frame).width()
 }
 
 /// An implementation of `MenuEntryView` for menus whose entries
@@ -315,12 +286,7 @@ where
         context: ViewContext<R>,
         frame: &mut F,
     ) -> MenuEntryViewInfo {
-        menu_entry_view(
-            entry.into(),
-            StringViewSingleLine::new(self.normal),
-            context,
-            frame,
-        )
+        menu_entry_view(entry.into(), StringViewSingleLine::new(self.normal), context, frame)
     }
     fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
@@ -328,12 +294,7 @@ where
         context: ViewContext<R>,
         frame: &mut F,
     ) -> MenuEntryViewInfo {
-        menu_entry_view(
-            entry.into(),
-            StringViewSingleLine::new(self.selected),
-            context,
-            frame,
-        )
+        menu_entry_view(entry.into(), StringViewSingleLine::new(self.selected), context, frame)
     }
 }
 
@@ -341,11 +302,7 @@ pub trait ChooseStyleFromEntryExtra {
     type Extra;
     type Entry;
     fn choose_style_normal(&mut self, entry: &Self::Entry, extra: &Self::Extra) -> Style;
-    fn choose_style_selected(
-        &mut self,
-        entry: &Self::Entry,
-        extra: &Self::Extra,
-    ) -> Style;
+    fn choose_style_selected(&mut self, entry: &Self::Entry, extra: &Self::Extra) -> Style;
 }
 
 impl<T, X, C> MenuEntryExtraView<T, X> for C

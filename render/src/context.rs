@@ -21,8 +21,7 @@ impl ViewTransformRgb24 for ViewTransformRgb24Identity {
 }
 
 #[derive(Clone, Copy)]
-pub struct ViewTransformRgb24Compose<Inner: ViewTransformRgb24, Outer: ViewTransformRgb24>
-{
+pub struct ViewTransformRgb24Compose<Inner: ViewTransformRgb24, Outer: ViewTransformRgb24> {
     inner: Inner,
     outer: Outer,
 }
@@ -61,13 +60,7 @@ impl ViewContext<ViewTransformRgb24Identity> {
 }
 
 impl<R: ViewTransformRgb24> ViewContext<R> {
-    pub fn new(
-        inner_offset: Coord,
-        outer_offset: Coord,
-        depth: i32,
-        transform_rgb24: R,
-        size: Size,
-    ) -> Self {
+    pub fn new(inner_offset: Coord, outer_offset: Coord, depth: i32, transform_rgb24: R, size: Size) -> Self {
         Self {
             inner_offset,
             outer_offset,

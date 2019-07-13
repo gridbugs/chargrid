@@ -78,30 +78,16 @@ pub mod app {
         type Return;
         type Data;
         type View;
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>;
 
-        fn view<F, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut F,
-        ) where
+        fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut F)
+        where
             F: p::Frame,
             R: p::ViewTransformRgb24;
 
-        fn peek(
-            self,
-            _data: &mut Self::Data,
-            _view: &Self::View,
-        ) -> Tick<Self::Return, Self> {
+        fn peek(self, _data: &mut Self::Data, _view: &Self::View) -> Tick<Self::Return, Self> {
             Tick::Continue(self)
         }
 
@@ -162,35 +148,21 @@ pub mod app {
         type Return = T;
         type Data = D;
         type View = V;
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            _inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, _inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
             self.peek(data, view)
         }
 
-        fn view<F, R>(
-            &self,
-            _data: &Self::Data,
-            _view: &mut Self::View,
-            _context: p::ViewContext<R>,
-            _frame: &mut F,
-        ) where
+        fn view<F, R>(&self, _data: &Self::Data, _view: &mut Self::View, _context: p::ViewContext<R>, _frame: &mut F)
+        where
             F: p::Frame,
             R: p::ViewTransformRgb24,
         {
         }
 
-        fn peek(
-            self,
-            _data: &mut Self::Data,
-            _view: &Self::View,
-        ) -> Tick<Self::Return, Self> {
+        fn peek(self, _data: &mut Self::Data, _view: &Self::View) -> Tick<Self::Return, Self> {
             Tick::Return(self.value)
         }
     }
@@ -208,12 +180,7 @@ pub mod app {
         type Data = T::Data;
         type View = T::View;
 
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -224,13 +191,8 @@ pub mod app {
             }
         }
 
-        fn view<G, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut G,
-        ) where
+        fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut G)
+        where
             G: p::Frame,
             R: p::ViewTransformRgb24,
         {
@@ -251,12 +213,7 @@ pub mod app {
         type Data = T::Data;
         type View = T::View;
 
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -267,13 +224,8 @@ pub mod app {
             }
         }
 
-        fn view<G, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut G,
-        ) where
+        fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut G)
+        where
             G: p::Frame,
             R: p::ViewTransformRgb24,
         {
@@ -296,35 +248,21 @@ pub mod app {
         type Data = T::Data;
         type View = T::View;
 
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
             match self {
                 AndThen::First { t, f } => match t.tick(data, inputs, view) {
                     Tick::Continue(t) => Tick::Continue(AndThen::First { t, f }),
-                    Tick::Return(r) => {
-                        f(r).peek(data, view).map_continue(AndThen::Second)
-                    }
+                    Tick::Return(r) => f(r).peek(data, view).map_continue(AndThen::Second),
                 },
-                AndThen::Second(u) => {
-                    u.tick(data, inputs, view).map_continue(AndThen::Second)
-                }
+                AndThen::Second(u) => u.tick(data, inputs, view).map_continue(AndThen::Second),
             }
         }
 
-        fn view<G, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut G,
-        ) where
+        fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut G)
+        where
             G: p::Frame,
             R: p::ViewTransformRgb24,
         {
@@ -349,12 +287,7 @@ pub mod app {
         type Data = A::Data;
         type View = A::View;
 
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -364,13 +297,8 @@ pub mod app {
             }
         }
 
-        fn view<F, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut F,
-        ) where
+        fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut F)
+        where
             F: p::Frame,
             R: p::ViewTransformRgb24,
         {
@@ -385,20 +313,14 @@ pub mod app {
         type DataInput;
         type DataOutput;
         fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput;
-        fn data_mut<'a>(
-            &self,
-            input: &'a mut Self::DataInput,
-        ) -> &'a mut Self::DataOutput;
+        fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput;
     }
 
     pub trait SelectorView {
         type ViewInput;
         type ViewOutput;
         fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput;
-        fn view_mut<'a>(
-            &self,
-            input: &'a mut Self::ViewInput,
-        ) -> &'a mut Self::ViewOutput;
+        fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput;
     }
 
     pub trait Selector: SelectorData + SelectorView {}
@@ -418,12 +340,7 @@ pub mod app {
         type Data = S::DataInput;
         type View = S::ViewInput;
 
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -432,22 +349,13 @@ pub mod app {
                 .map_continue(|t| Self { t, selector })
         }
 
-        fn view<F, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut F,
-        ) where
+        fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut F)
+        where
             F: p::Frame,
             R: p::ViewTransformRgb24,
         {
-            self.t.view(
-                self.selector.data(data),
-                self.selector.view_mut(view),
-                context,
-                frame,
-            )
+            self.t
+                .view(self.selector.data(data), self.selector.view_mut(view), context, frame)
         }
     }
 
@@ -493,12 +401,7 @@ pub mod app {
         type Data = p::MenuInstance<C>;
         type View = V;
 
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -508,13 +411,8 @@ pub mod app {
                 Tick::Continue(self)
             }
         }
-        fn view<F, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut F,
-        ) where
+        fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut F)
+        where
             F: p::Frame,
             R: p::ViewTransformRgb24,
         {
@@ -526,14 +424,8 @@ pub mod app {
         type DataInput;
         type Choice: Clone;
         type Extra;
-        fn menu_instance<'a>(
-            &self,
-            input: &'a Self::DataInput,
-        ) -> &'a p::MenuInstance<Self::Choice>;
-        fn menu_instance_mut<'a>(
-            &self,
-            input: &'a mut Self::DataInput,
-        ) -> &'a mut p::MenuInstance<Self::Choice>;
+        fn menu_instance<'a>(&self, input: &'a Self::DataInput) -> &'a p::MenuInstance<Self::Choice>;
+        fn menu_instance_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut p::MenuInstance<Self::Choice>;
         fn extra<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Extra;
     }
 
@@ -559,12 +451,7 @@ pub mod app {
         type Data = S::DataInput;
         type View = S::ViewInput;
 
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -576,13 +463,8 @@ pub mod app {
                 Tick::Continue(self)
             }
         }
-        fn view<F, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut F,
-        ) where
+        fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut F)
+        where
             F: p::Frame,
             R: p::ViewTransformRgb24,
         {
@@ -607,12 +489,7 @@ pub mod app {
         type Data = T::Data;
         type View = T::View;
 
-        fn tick<I>(
-            self,
-            data: &mut Self::Data,
-            inputs: I,
-            view: &Self::View,
-        ) -> Tick<Self::Return, Self>
+        fn tick<I>(self, data: &mut Self::Data, inputs: I, view: &Self::View) -> Tick<Self::Return, Self>
         where
             I: Iterator<Item = p::Input>,
         {
@@ -623,13 +500,8 @@ pub mod app {
             }
         }
 
-        fn view<G, R>(
-            &self,
-            data: &Self::Data,
-            view: &mut Self::View,
-            context: p::ViewContext<R>,
-            frame: &mut G,
-        ) where
+        fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: p::ViewContext<R>, frame: &mut G)
+        where
             G: p::Frame,
             R: p::ViewTransformRgb24,
         {
@@ -637,17 +509,16 @@ pub mod app {
         }
     }
 
-    fn inner() -> impl TickRoutine<Return = Option<Return>, Data = AppData, View = AppView>
-    {
+    fn inner() -> impl TickRoutine<Return = Option<Return>, Data = AppData, View = AppView> {
         let main_menu = MenuInstanceExtraRoutine::new(SelectMainMenuExtra);
         let colour_menu = MenuInstanceRoutine::new().select(SelectColourMenu);
         main_menu.and_then(|menu_output| match menu_output {
             p::MenuOutput::Quit => Either::A(Value::new(Some(Return::Quit))),
             p::MenuOutput::Cancel => Either::A(Value::new(None)),
-            p::MenuOutput::Finalise(choice) => match choice {
-                MainMenuChoice::ChooseColour => {
-                    Either::B(colour_menu.map_side_effect(|menu_output, data, _view| {
-                        match menu_output {
+            p::MenuOutput::Finalise(choice) => {
+                match choice {
+                    MainMenuChoice::ChooseColour => Either::B(colour_menu.map_side_effect(
+                        |menu_output, data, _view| match menu_output {
                             p::MenuOutput::Quit => Some(Return::Quit),
                             p::MenuOutput::Cancel => None,
                             p::MenuOutput::Finalise(choice) => {
@@ -659,17 +530,15 @@ pub mod app {
                                 };
                                 data.main_menu_style = p::MenuEntryStylePair::new(
                                     p::Style::new().with_foreground(colour.scalar_div(2)),
-                                    p::Style::new()
-                                        .with_foreground(colour)
-                                        .with_bold(true),
+                                    p::Style::new().with_foreground(colour).with_bold(true),
                                 );
                                 None
                             }
-                        }
-                    }))
+                        },
+                    )),
+                    MainMenuChoice::Quit => Either::A(Value::new(Some(Return::Quit))),
                 }
-                MainMenuChoice::Quit => Either::A(Value::new(Some(Return::Quit))),
-            },
+            }
         })
     }
 
@@ -688,10 +557,7 @@ pub mod app {
         fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
             &input.colour_menu
         }
-        fn view_mut<'a>(
-            &self,
-            input: &'a mut Self::ViewInput,
-        ) -> &'a mut Self::ViewOutput {
+        fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
             &mut input.colour_menu
         }
     }
@@ -701,10 +567,7 @@ pub mod app {
         fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
             &input.colour_menu
         }
-        fn data_mut<'a>(
-            &self,
-            input: &'a mut Self::DataInput,
-        ) -> &'a mut Self::DataOutput {
+        fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
             &mut input.colour_menu
         }
     }
@@ -718,10 +581,7 @@ pub mod app {
         fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
             &input.main_menu
         }
-        fn view_mut<'a>(
-            &self,
-            input: &'a mut Self::ViewInput,
-        ) -> &'a mut Self::ViewOutput {
+        fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
             &mut input.main_menu
         }
     }
@@ -730,16 +590,10 @@ pub mod app {
         type Choice = MainMenuChoice;
         type Extra = p::MenuEntryStylePair;
 
-        fn menu_instance<'a>(
-            &self,
-            input: &'a Self::DataInput,
-        ) -> &'a p::MenuInstance<Self::Choice> {
+        fn menu_instance<'a>(&self, input: &'a Self::DataInput) -> &'a p::MenuInstance<Self::Choice> {
             &input.main_menu
         }
-        fn menu_instance_mut<'a>(
-            &self,
-            input: &'a mut Self::DataInput,
-        ) -> &'a mut p::MenuInstance<Self::Choice> {
+        fn menu_instance_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut p::MenuInstance<Self::Choice> {
             &mut input.main_menu
         }
         fn extra<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Extra {
@@ -752,26 +606,16 @@ pub mod app {
     }
     impl<C> ChooseMenuEntryStyle<C> {
         fn new() -> Self {
-            Self {
-                choice: PhantomData,
-            }
+            Self { choice: PhantomData }
         }
     }
     impl<C> p::ChooseStyleFromEntryExtra for ChooseMenuEntryStyle<C> {
         type Extra = p::MenuEntryStylePair;
         type Entry = C;
-        fn choose_style_normal(
-            &mut self,
-            _entry: &Self::Entry,
-            extra: &Self::Extra,
-        ) -> p::Style {
+        fn choose_style_normal(&mut self, _entry: &Self::Entry, extra: &Self::Extra) -> p::Style {
             extra.normal
         }
-        fn choose_style_selected(
-            &mut self,
-            _entry: &Self::Entry,
-            extra: &Self::Extra,
-        ) -> p::Style {
+        fn choose_style_selected(&mut self, _entry: &Self::Entry, extra: &Self::Extra) -> p::Style {
             extra.selected
         }
     }
@@ -785,10 +629,7 @@ pub mod app {
     impl AppData {
         pub fn new() -> Self {
             let main_menu = p::MenuInstance::new(MainMenuChoice::all()).unwrap();
-            let main_menu_style = p::MenuEntryStylePair::new(
-                p::Style::new(),
-                p::Style::new().with_bold(true),
-            );
+            let main_menu_style = p::MenuEntryStylePair::new(p::Style::new(), p::Style::new().with_bold(true));
             let colour_menu = p::MenuInstance::new(ColourMenuChoice::all()).unwrap();
             Self {
                 main_menu,
@@ -810,10 +651,7 @@ pub mod app {
                 p::Style::new(),
                 p::Style::new().with_bold(true),
             ));
-            Self {
-                main_menu,
-                colour_menu,
-            }
+            Self { main_menu, colour_menu }
         }
     }
 
@@ -830,27 +668,25 @@ use prototty_glutin as pg;
 const WINDOW_SIZE_PIXELS: p::Size = p::Size::new_u16(640, 480);
 
 fn main() {
-    let mut context =
-        pg::ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
-            .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
-            .with_window_dimensions(WINDOW_SIZE_PIXELS)
-            .with_min_window_dimensions(WINDOW_SIZE_PIXELS)
-            .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
-            .with_font_scale(16.0, 16.0)
-            .with_cell_dimensions(p::Size::new_u16(16, 16))
-            .build()
-            .unwrap();
+    let mut context = pg::ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
+        .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
+        .with_window_dimensions(WINDOW_SIZE_PIXELS)
+        .with_min_window_dimensions(WINDOW_SIZE_PIXELS)
+        .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
+        .with_font_scale(16.0, 16.0)
+        .with_cell_dimensions(p::Size::new_u16(16, 16))
+        .build()
+        .unwrap();
     let mut tick_routine = app::test();
     let mut app_data = app::AppData::new();
     let mut app_view = app::AppView::new();
     let mut input_buffer = Vec::with_capacity(64);
     loop {
         context.buffer_input(&mut input_buffer);
-        tick_routine =
-            match tick_routine.tick(&mut app_data, input_buffer.drain(..), &app_view) {
-                app::Tick::Continue(tick_routine) => tick_routine,
-                app::Tick::Return(app::Return::Quit) => break,
-            };
+        tick_routine = match tick_routine.tick(&mut app_data, input_buffer.drain(..), &app_view) {
+            app::Tick::Continue(tick_routine) => tick_routine,
+            app::Tick::Return(app::Return::Quit) => break,
+        };
         let mut frame = context.frame();
         tick_routine.view(
             &app_data,

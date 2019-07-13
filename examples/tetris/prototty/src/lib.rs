@@ -35,12 +35,7 @@ fn piece_colour(typ: PieceType) -> Rgb24 {
     }
 }
 impl<'a> View<&'a Tetris> for TetrisBoardView {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        tetris: &'a Tetris,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, tetris: &'a Tetris, context: ViewContext<R>, frame: &mut F) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
                 let mut cell_info = ViewCell::new().with_bold(true);
@@ -53,12 +48,7 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
                     cell_info.style.foreground = Some(BLANK_FOREGROUND_COLOUR);
                     cell_info.style.background = Some(BACKGROUND_COLOUR);
                 }
-                frame.set_cell_relative(
-                    Coord::new(j as i32, i as i32),
-                    0,
-                    cell_info,
-                    context,
-                );
+                frame.set_cell_relative(Coord::new(j as i32, i as i32), 0, cell_info, context);
             }
         }
         for coord in tetris.game_state.piece.coords.iter().cloned() {
@@ -74,22 +64,13 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
             frame.set_cell_relative(coord, 0, cell_info, context);
         }
     }
-    fn visible_bounds<R: ViewTransformRgb24>(
-        &mut self,
-        tetris: &'a Tetris,
-        _context: ViewContext<R>,
-    ) -> Size {
+    fn visible_bounds<R: ViewTransformRgb24>(&mut self, tetris: &'a Tetris, _context: ViewContext<R>) -> Size {
         tetris.size().into()
     }
 }
 
 impl<'a> View<&'a Tetris> for TetrisNextPieceView {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        tetris: &'a Tetris,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, tetris: &'a Tetris, context: ViewContext<R>, frame: &mut F) {
         let offset = Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             let cell_info = ViewCell {
@@ -104,11 +85,7 @@ impl<'a> View<&'a Tetris> for TetrisNextPieceView {
             frame.set_cell_relative(offset + coord, 0, cell_info, context);
         }
     }
-    fn visible_bounds<R: ViewTransformRgb24>(
-        &mut self,
-        _data: &'a Tetris,
-        _context: ViewContext<R>,
-    ) -> Size {
+    fn visible_bounds<R: ViewTransformRgb24>(&mut self, _data: &'a Tetris, _context: ViewContext<R>) -> Size {
         NEXT_PIECE_SIZE.into()
     }
 }
@@ -242,9 +219,7 @@ impl App {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
         let main_menu = vec![MainMenuChoice::Play, MainMenuChoice::Quit];
         let main_menu = MenuInstance::new(main_menu).unwrap();
-        let end_text_style = Style::default()
-            .with_bold(true)
-            .with_foreground(colours::RED);
+        let end_text_style = Style::default().with_bold(true).with_foreground(colours::RED);
         let end_text = RichTextPartOwned::new("YOU DIED".to_string(), end_text_style);
         Self {
             main_menu,
@@ -257,23 +232,14 @@ impl App {
         }
     }
 
-    pub fn tick<I, R>(
-        &mut self,
-        inputs: I,
-        period: Duration,
-        view: &AppView,
-        rng: &mut R,
-    ) -> Option<ControlFlow>
+    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<ControlFlow>
     where
         I: IntoIterator<Item = ProtottyInput>,
         R: Rng,
     {
         match self.state {
             AppState::Menu => {
-                if let Some(menu_output) = self
-                    .main_menu
-                    .tick_with_mouse(inputs, &view.border_views.menu.view)
-                {
+                if let Some(menu_output) = self.main_menu.tick_with_mouse(inputs, &view.border_views.menu.view) {
                     match menu_output {
                         MenuOutput::Quit => return Some(ControlFlow::Exit),
                         MenuOutput::Cancel => (),
@@ -294,21 +260,13 @@ impl App {
                             self.state = AppState::Menu;
                         }
                         ProtottyInput::Up => self.input_buffer.push_back(TetrisInput::Up),
-                        ProtottyInput::Down => {
-                            self.input_buffer.push_back(TetrisInput::Down)
-                        }
-                        ProtottyInput::Left => {
-                            self.input_buffer.push_back(TetrisInput::Left)
-                        }
-                        ProtottyInput::Right => {
-                            self.input_buffer.push_back(TetrisInput::Right)
-                        }
+                        ProtottyInput::Down => self.input_buffer.push_back(TetrisInput::Down),
+                        ProtottyInput::Left => self.input_buffer.push_back(TetrisInput::Left),
+                        ProtottyInput::Right => self.input_buffer.push_back(TetrisInput::Right),
                         _ => (),
                     }
                 }
-                if let Some(meta) =
-                    self.tetris.tick(self.input_buffer.drain(..), period, rng)
-                {
+                if let Some(meta) = self.tetris.tick(self.input_buffer.drain(..), period, rng) {
                     match meta {
                         Meta::GameOver => {
                             self.timeout = Timeout::from_millis(DEATH_ANIMATION_MILLIS);
@@ -347,12 +305,7 @@ impl AppView {
 }
 
 impl<'a> View<&'a App> for AppView {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        app: &'a App,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, app: &'a App, context: ViewContext<R>, frame: &mut F) {
         match app.state {
             AppState::Game | AppState::GameOver => {
                 let next_piece_offset_x = self

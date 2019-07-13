@@ -40,20 +40,9 @@ pub trait Frame {
         relative_cell: ViewCell,
         context: ViewContext<R>,
     ) {
-        set_cell_relative_default(
-            self,
-            relative_coord,
-            relative_depth,
-            relative_cell,
-            context,
-        );
+        set_cell_relative_default(self, relative_coord, relative_depth, relative_cell, context);
     }
-    fn set_cell_absolute(
-        &mut self,
-        absolute_coord: Coord,
-        absolute_depth: i32,
-        absolute_cell: ViewCell,
-    );
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell);
 
     fn size(&self) -> Size;
 
@@ -66,12 +55,7 @@ pub trait View<T> {
     /// Update the cells in `frame` to describe how a type should be rendered.
     /// This mutably borrows `self` to allow the view to contain buffers/caches which
     /// are updated during rendering.
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        data: T,
-        context: ViewContext<R>,
-        frame: &mut F,
-    );
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, data: T, context: ViewContext<R>, frame: &mut F);
 
     fn view_default_context<F: Frame>(&mut self, data: T, frame: &mut F) {
         self.view(data, frame.default_context(), frame)
@@ -80,11 +64,7 @@ pub trait View<T> {
     /// Return the size of the visible component of the element without
     /// rendering it.
     /// By default this is the current context size.
-    fn visible_bounds<R: ViewTransformRgb24>(
-        &mut self,
-        data: T,
-        context: ViewContext<R>,
-    ) -> Size {
+    fn visible_bounds<R: ViewTransformRgb24>(&mut self, data: T, context: ViewContext<R>) -> Size {
         let _ = data;
         context.size
     }
@@ -112,27 +92,13 @@ pub trait View<T> {
                 relative_cell: ViewCell,
                 context: ViewContext<R>,
             ) {
-                set_cell_relative_default(
-                    self,
-                    relative_coord,
-                    relative_depth,
-                    relative_cell,
-                    context,
-                );
+                set_cell_relative_default(self, relative_coord, relative_depth, relative_cell, context);
                 self.max.x = self.max.x.max(relative_coord.x);
                 self.max.y = self.max.y.max(relative_coord.y);
             }
-            fn set_cell_absolute(
-                &mut self,
-                absolute_coord: Coord,
-                absolute_depth: i32,
-                absolute_cell: ViewCell,
-            ) {
-                self.frame.set_cell_absolute(
-                    absolute_coord,
-                    absolute_depth,
-                    absolute_cell,
-                );
+            fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+                self.frame
+                    .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
             }
             fn size(&self) -> Size {
                 self.frame.size()
@@ -148,12 +114,7 @@ pub trait View<T> {
 }
 
 impl<'a, T, V: View<T>> View<T> for &'a mut V {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        data: T,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, data: T, context: ViewContext<R>, frame: &mut F) {
         (*self).view(data, context, frame)
     }
 }

@@ -7,12 +7,7 @@ use prototty_unix::*;
 struct BoldTestView;
 
 impl View<()> for BoldTestView {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        (): (),
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, (): (), context: ViewContext<R>, frame: &mut F) {
         RichStringViewSingleLine.view(
             ("Hello, World!", Style::new().with_bold(true)),
             context.add_offset(Coord::new(1, 1)),

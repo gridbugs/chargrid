@@ -12,11 +12,7 @@ pub trait Wrap: private_wrap::Sealed {
         frame: &mut F,
     );
     #[doc(hidden)]
-    fn flush<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn flush<F: Frame, R: ViewTransformRgb24>(&mut self, context: ViewContext<R>, frame: &mut F) {
         let _ = context;
         let _ = frame;
     }
@@ -145,13 +141,8 @@ impl Wrap for Word {
                     style,
                 };
                 self.current_word_buffer.push(view_cell);
-                assert!(
-                    self.cursor.x + self.current_word_buffer.len() as i32
-                        <= context.size.width() as i32
-                );
-                if self.cursor.x + self.current_word_buffer.len() as i32
-                    == context.size.width() as i32
-                {
+                assert!(self.cursor.x + self.current_word_buffer.len() as i32 <= context.size.width() as i32);
+                if self.cursor.x + self.current_word_buffer.len() as i32 == context.size.width() as i32 {
                     if self.cursor.x == 0 {
                         self.flush(context, frame);
                     } else {
@@ -163,11 +154,7 @@ impl Wrap for Word {
         }
     }
 
-    fn flush<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn flush<F: Frame, R: ViewTransformRgb24>(&mut self, context: ViewContext<R>, frame: &mut F) {
         for view_cell in self.current_word_buffer.drain(..) {
             frame.set_cell_relative(self.cursor, 0, view_cell, context);
             self.cursor.x += 1;

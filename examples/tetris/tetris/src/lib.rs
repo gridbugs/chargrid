@@ -1,10 +1,10 @@
-extern crate rand;
 extern crate grid_2d;
+extern crate rand;
 
-use std::time::Duration;
-use std::mem;
-use rand::Rng;
 use grid_2d::{Coord, Size};
+use rand::Rng;
+use std::mem;
+use std::time::Duration;
 
 const STEP_MILLIS: u64 = 500;
 const PIECE_SIZE: usize = 4;
@@ -30,12 +30,7 @@ pub struct Piece {
 
 impl Piece {
     fn new(coords: [(i32, i32); PIECE_SIZE], typ: PieceType) -> Self {
-        let coords = [
-            coords[0].into(),
-            coords[1].into(),
-            coords[2].into(),
-            coords[3].into(),
-        ];
+        let coords = [coords[0].into(), coords[1].into(), coords[2].into(), coords[3].into()];
         Self { coords, typ }
     }
 
@@ -169,7 +164,9 @@ impl Board {
         if c.x < 0 || c.y < 0 {
             return None;
         }
-        self.rows.get_mut(c.y as usize).and_then(|r| r.cells.get_mut(c.x as usize))
+        self.rows
+            .get_mut(c.y as usize)
+            .and_then(|r| r.cells.get_mut(c.x as usize))
     }
 
     fn connects(&self, piece: &Piece) -> bool {
@@ -177,15 +174,15 @@ impl Board {
             if c.y == self.size.y() as i32 - 1 {
                 return true;
             }
-            self.get(c + Coord::new(0, 1))
-                .map(|c| c.typ.is_some())
-                .unwrap_or(false)
+            self.get(c + Coord::new(0, 1)).map(|c| c.typ.is_some()).unwrap_or(false)
         })
     }
 
     fn collides(&self, piece: &Piece) -> bool {
         piece.coords.iter().any(|c| {
-            c.x < 0 || c.x >= self.size.x() as i32 || c.y >= self.size.y() as i32
+            c.x < 0
+                || c.x >= self.size.x() as i32
+                || c.y >= self.size.y() as i32
                 || self.get(*c).map(|c| c.typ.is_some()).unwrap_or(false)
         })
     }

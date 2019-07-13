@@ -11,19 +11,18 @@ fn main() {
     // Use a builder to configure how text should be rendered.
     // This assumes "Hack-Regular.ttf" and "Hack-Bold.ttf" are in your "src" directory.
     let size = Size::new(320, 240);
-    let mut context =
-        prototty_glutin::ContextBuilder::new_with_font(include_bytes!("Hack-Regular.ttf"))
-            .with_bold_font(include_bytes!("Hack-Bold.ttf"))
-            .with_window_dimensions(size)
-            .with_min_window_dimensions(size)
-            .with_max_window_dimensions(size)
-            .with_font_scale(32.0, 32.0)
-            .with_cell_dimensions(Size::new(16, 32))
-            .with_underline_position(28)
-            .with_underline_width(2)
-            .with_max_grid_size(Size::new(30, 30))
-            .build()
-            .unwrap();
+    let mut context = prototty_glutin::ContextBuilder::new_with_font(include_bytes!("Hack-Regular.ttf"))
+        .with_bold_font(include_bytes!("Hack-Bold.ttf"))
+        .with_window_dimensions(size)
+        .with_min_window_dimensions(size)
+        .with_max_window_dimensions(size)
+        .with_font_scale(32.0, 32.0)
+        .with_cell_dimensions(Size::new(16, 32))
+        .with_underline_position(28)
+        .with_underline_width(2)
+        .with_max_grid_size(Size::new(30, 30))
+        .build()
+        .unwrap();
 
     let title = Title {
         width: 20,

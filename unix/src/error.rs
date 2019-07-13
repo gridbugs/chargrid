@@ -1,7 +1,7 @@
 use std::io::Error as IoError;
 use std::str::Utf8Error;
-use term::Error as TermError;
 use term::terminfo::parm::Error as ParamError;
+use term::Error as TermError;
 
 #[derive(Debug)]
 pub enum Error {

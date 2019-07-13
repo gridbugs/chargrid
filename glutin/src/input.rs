@@ -1,11 +1,8 @@
 use glutin::dpi::{LogicalPosition, LogicalSize};
 use glutin::{
-    ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta,
-    VirtualKeyCode, WindowEvent,
+    ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent,
 };
-use prototty_input::{
-    inputs, Input, MouseButton as ProtottyMouseButton, MouseButton, ScrollDirection,
-};
+use prototty_input::{inputs, Input, MouseButton as ProtottyMouseButton, MouseButton, ScrollDirection};
 use prototty_render::Coord;
 
 pub enum InputEvent {

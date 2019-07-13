@@ -73,32 +73,21 @@ impl Context<DefaultColourConfig> {
 
 impl<C: ColourConfig> Context<C> {
     pub fn with_colour_config(mut colour_config: C) -> Result<Self> {
-        Terminal::new(
-            colour_config.default_foreground(),
-            colour_config.default_background(),
-        )
-        .and_then(|terminal| {
-            Self::from_terminal_with_colour_config(terminal, colour_config)
-        })
+        Terminal::new(colour_config.default_foreground(), colour_config.default_background())
+            .and_then(|terminal| Self::from_terminal_with_colour_config(terminal, colour_config))
     }
 
-    pub fn from_terminal_with_colour_config(
-        mut terminal: Terminal,
-        mut colour_config: C,
-    ) -> Result<Self> {
-        let size = terminal.resize_if_necessary(
-            colour_config.default_foreground(),
-            colour_config.default_background(),
-        )?;
+    pub fn from_terminal_with_colour_config(mut terminal: Terminal, mut colour_config: C) -> Result<Self> {
+        let size =
+            terminal.resize_if_necessary(colour_config.default_foreground(), colour_config.default_background())?;
         let frame = Grid::new(size, UnixColourConversion(colour_config));
         Ok(Self { terminal, frame })
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
-        let size = self.terminal.resize_if_necessary(
-            self.frame.default_foreground(),
-            self.frame.default_background(),
-        )?;
+        let size = self
+            .terminal
+            .resize_if_necessary(self.frame.default_foreground(), self.frame.default_background())?;
         if size != self.frame.size() {
             self.frame.resize(size);
         }

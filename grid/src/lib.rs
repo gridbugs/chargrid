@@ -143,16 +143,10 @@ impl<C: ColourConversion> Frame for Grid<C> {
                     cell.set_underline(underline, depth);
                 }
                 if let Some(foreground) = view_cell.foreground() {
-                    cell.set_foreground_colour(
-                        self.colour_conversion.convert_foreground_rgb24(foreground),
-                        depth,
-                    );
+                    cell.set_foreground_colour(self.colour_conversion.convert_foreground_rgb24(foreground), depth);
                 }
                 if let Some(background) = view_cell.background() {
-                    cell.set_background_colour(
-                        self.colour_conversion.convert_background_rgb24(background),
-                        depth,
-                    );
+                    cell.set_background_colour(self.colour_conversion.convert_background_rgb24(background), depth);
                 }
             }
         }

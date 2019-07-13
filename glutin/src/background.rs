@@ -66,15 +66,9 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
             )
             .expect("Failed to create pipeline");
 
-        let vertex_data: Vec<Vertex> = QUAD_COORDS
-            .iter()
-            .map(|v| Vertex {
-                corner_multiplier: *v,
-            })
-            .collect();
+        let vertex_data: Vec<Vertex> = QUAD_COORDS.iter().map(|v| Vertex { corner_multiplier: *v }).collect();
 
-        let (vertex_buffer, mut slice) =
-            factory.create_vertex_buffer_with_slice(&vertex_data, &QUAD_INDICES[..]);
+        let (vertex_buffer, mut slice) = factory.create_vertex_buffer_with_slice(&vertex_data, &QUAD_INDICES[..]);
 
         let (num_instances, instance_buffer, instance_upload) =
             Self::create_instance_buffer(cell_width, cell_height, size, factory);
@@ -107,10 +101,7 @@ impl<R: gfx::Resources> BackgroundRenderer<R> {
         }
     }
 
-    pub fn map_cells<F: gfx::Factory<R>>(
-        &mut self,
-        factory: &mut F,
-    ) -> gfx::mapping::Writer<R, Instance> {
+    pub fn map_cells<F: gfx::Factory<R>>(&mut self, factory: &mut F) -> gfx::mapping::Writer<R, Instance> {
         factory
             .write_mapping(&self.instance_upload)
             .expect("Failed to map instance upload buffer")

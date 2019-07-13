@@ -57,20 +57,14 @@ impl Terminal {
     pub fn new(fg: AnsiColour, bg: AnsiColour) -> Result<Self> {
         let ansi = AnsiTerminal::new()?;
         let size = ansi.size()?;
-        let output_frame =
-            grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
+        let output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
         Ok(Self { ansi, output_frame })
     }
 
-    pub fn resize_if_necessary(
-        &mut self,
-        fg: AnsiColour,
-        bg: AnsiColour,
-    ) -> Result<Size> {
+    pub fn resize_if_necessary(&mut self, fg: AnsiColour, bg: AnsiColour) -> Result<Size> {
         let size = self.ansi.size()?;
         if size != self.output_frame.size() {
-            self.output_frame =
-                grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
+            self.output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
         }
         Ok(size)
     }
@@ -93,9 +87,7 @@ impl Terminal {
         self.ansi.set_foreground_colour(fg);
         self.ansi.set_background_colour(bg);
         let mut must_move_cursor = false;
-        for ((coord, cell), output_cell) in
-            frame.enumerate().zip(self.output_frame.iter_mut())
-        {
+        for ((coord, cell), output_cell) in frame.enumerate().zip(self.output_frame.iter_mut()) {
             if output_cell.matches(cell) {
                 must_move_cursor = true;
                 continue;

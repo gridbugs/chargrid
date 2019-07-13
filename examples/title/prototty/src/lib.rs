@@ -12,12 +12,7 @@ pub struct TitleView;
 
 // Describe how a TitleView renders a Title by implementing View.
 impl<'a> View<&'a Title> for TitleView {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        title: &'a Title,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, title: &'a Title, context: ViewContext<R>, frame: &mut F) {
         for (i, ch) in title.text.chars().enumerate() {
             frame.set_cell_relative(
                 Coord::new(i as i32, 0),
@@ -36,12 +31,7 @@ impl<'a> View<&'a Title> for TitleView {
 // What if we want a way to rendered titles centered within their width?
 pub struct CenteredTitleView;
 impl<'a> View<&'a Title> for CenteredTitleView {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        title: &'a Title,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, title: &'a Title, context: ViewContext<R>, frame: &mut F) {
         let space = ::std::cmp::max(title.width as i32 - title.text.len() as i32, 0) / 2;
         for (i, ch) in title.text.chars().enumerate() {
             frame.set_cell_relative(
@@ -61,12 +51,7 @@ impl<'a> View<&'a Title> for CenteredTitleView {
 // twice - once left aligned, an once centered:
 pub struct DemoTitleView;
 impl<'a> View<&'a Title> for DemoTitleView {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        title: &'a Title,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, title: &'a Title, context: ViewContext<R>, frame: &mut F) {
         // render the title left-aligned in the top-left corner
         TitleView.view(title, context, frame);
 

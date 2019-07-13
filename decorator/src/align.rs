@@ -54,10 +54,7 @@ pub struct AlignData<T> {
 impl<'a, T, V: View<&'a T>> View<&'a AlignData<T>> for AlignView<V> {
     fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
-        &AlignData {
-            alignment,
-            ref data,
-        }: &'a AlignData<T>,
+        &AlignData { alignment, ref data }: &'a AlignData<T>,
         context: ViewContext<R>,
         frame: &mut F,
     ) {
@@ -83,10 +80,7 @@ impl<T: Clone, V: View<T>> View<AlignData<T>> for AlignView<V> {
             AlignmentY::Centre => (context.size.y() as i32 - data_size.y() as i32) / 2,
             AlignmentY::Bottom => context.size.y() as i32 - data_size.y() as i32,
         };
-        self.view.view(
-            data,
-            context.add_offset(Coord::new(x_offset, y_offset)),
-            frame,
-        );
+        self.view
+            .view(data, context.add_offset(Coord::new(x_offset, y_offset)), frame);
     }
 }

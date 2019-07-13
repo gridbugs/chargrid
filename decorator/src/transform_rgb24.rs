@@ -19,9 +19,7 @@ pub struct TransformRgb24Data<S, T> {
     pub data: T,
 }
 
-impl<'a, T, V: View<&'a T>, S: ViewTransformRgb24> View<&'a TransformRgb24Data<S, T>>
-    for TransformRgb24View<V>
-{
+impl<'a, T, V: View<&'a T>, S: ViewTransformRgb24> View<&'a TransformRgb24Data<S, T>> for TransformRgb24View<V> {
     fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         &TransformRgb24Data {
@@ -31,14 +29,7 @@ impl<'a, T, V: View<&'a T>, S: ViewTransformRgb24> View<&'a TransformRgb24Data<S
         context: ViewContext<R>,
         frame: &mut F,
     ) {
-        self.view(
-            TransformRgb24Data {
-                transform_rgb24,
-                data,
-            },
-            context,
-            frame,
-        )
+        self.view(TransformRgb24Data { transform_rgb24, data }, context, frame)
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
@@ -48,25 +39,14 @@ impl<'a, T, V: View<&'a T>, S: ViewTransformRgb24> View<&'a TransformRgb24Data<S
         }: &'a TransformRgb24Data<S, T>,
         context: ViewContext<R>,
     ) -> Size {
-        self.visible_bounds(
-            TransformRgb24Data {
-                transform_rgb24,
-                data,
-            },
-            context,
-        )
+        self.visible_bounds(TransformRgb24Data { transform_rgb24, data }, context)
     }
 }
 
-impl<T, V: View<T>, S: ViewTransformRgb24> View<TransformRgb24Data<S, T>>
-    for TransformRgb24View<V>
-{
+impl<T, V: View<T>, S: ViewTransformRgb24> View<TransformRgb24Data<S, T>> for TransformRgb24View<V> {
     fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
-        TransformRgb24Data {
-            transform_rgb24,
-            data,
-        }: TransformRgb24Data<S, T>,
+        TransformRgb24Data { transform_rgb24, data }: TransformRgb24Data<S, T>,
         context: ViewContext<R>,
         frame: &mut F,
     ) {

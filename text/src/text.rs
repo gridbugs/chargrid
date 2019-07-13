@@ -22,18 +22,12 @@ where
     I: IntoIterator<Item = S>,
     W: Wrap,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        parts: I,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, parts: I, context: ViewContext<R>, frame: &mut F) {
         self.wrap.clear();
         for part in parts {
             let part = part.as_ref();
             for character in part.chars() {
-                self.wrap
-                    .process_character(character, self.style, context, frame);
+                self.wrap.process_character(character, self.style, context, frame);
             }
         }
         self.wrap.flush(context, frame);
@@ -59,17 +53,11 @@ where
     S: AsRef<str>,
     W: Wrap,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        part: S,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, part: S, context: ViewContext<R>, frame: &mut F) {
         self.wrap.clear();
         let part = part.as_ref();
         for character in part.chars() {
-            self.wrap
-                .process_character(character, self.style, context, frame);
+            self.wrap.process_character(character, self.style, context, frame);
         }
         self.wrap.flush(context, frame);
     }
@@ -82,9 +70,7 @@ pub struct StringViewSingleLine {
 
 impl Default for StringViewSingleLine {
     fn default() -> Self {
-        Self {
-            style: DEFAULT_STYLE,
-        }
+        Self { style: DEFAULT_STYLE }
     }
 }
 
@@ -98,20 +84,11 @@ impl<'a, S> View<S> for StringViewSingleLine
 where
     S: AsRef<str>,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(
-        &mut self,
-        part: S,
-        context: ViewContext<R>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, part: S, context: ViewContext<R>, frame: &mut F) {
         StringView::new(self.style, wrap::None::new()).view(part, context, frame);
     }
 
-    fn visible_bounds<R: ViewTransformRgb24>(
-        &mut self,
-        part: S,
-        _context: ViewContext<R>,
-    ) -> Size {
+    fn visible_bounds<R: ViewTransformRgb24>(&mut self, part: S, _context: ViewContext<R>) -> Size {
         let part = part.as_ref();
         let width = part.len() as u32;
         Size::new(width, 1)

@@ -170,7 +170,6 @@ impl LowLevel {
 
 impl Drop for LowLevel {
     fn drop(&mut self) {
-        self.teardown()
-            .expect("Failed to reset terminal to original settings");
+        self.teardown().expect("Failed to reset terminal to original settings");
     }
 }

@@ -30,10 +30,7 @@ pub struct WasmStorage(MonoStorage<JsByteStorage>);
 impl WasmStorage {
     pub fn new(js_byte_storage: JsByteStorage) -> Self {
         let existing_data = js_byte_storage.js_load();
-        WasmStorage(MonoStorage::from_bytes_or_empty(
-            &existing_data,
-            js_byte_storage,
-        ))
+        WasmStorage(MonoStorage::from_bytes_or_empty(&existing_data, js_byte_storage))
     }
 }
 

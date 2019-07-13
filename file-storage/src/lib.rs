@@ -79,8 +79,7 @@ impl Storage for FileStorage {
     {
         let mut file = File::open(self.full_path(key)).map_err(|_| LoadError::NoSuchKey)?;
         let mut contents = Vec::new();
-        file.read_to_end(&mut contents)
-            .map_err(|_| LoadError::IoError)?;
+        file.read_to_end(&mut contents).map_err(|_| LoadError::IoError)?;
         Ok(contents)
     }
 
@@ -90,8 +89,7 @@ impl Storage for FileStorage {
         V: AsRef<[u8]>,
     {
         let mut file = File::create(self.full_path(key)).map_err(|_| StoreError::IoError)?;
-        file.write_all(value.as_ref())
-            .map_err(|_| StoreError::IoError)?;
+        file.write_all(value.as_ref()).map_err(|_| StoreError::IoError)?;
         Ok(())
     }
 

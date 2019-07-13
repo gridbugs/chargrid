@@ -63,10 +63,7 @@ impl<S: StoreBytes> Storage for MonoStorage<S> {
     where
         K: AsRef<str>,
     {
-        self.table
-            .get(key.as_ref())
-            .cloned()
-            .ok_or(LoadError::NoSuchKey)
+        self.table.get(key.as_ref()).cloned().ok_or(LoadError::NoSuchKey)
     }
 
     fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreError>
@@ -76,10 +73,7 @@ impl<S: StoreBytes> Storage for MonoStorage<S> {
     {
         {
             let slice = value.as_ref();
-            let buf = self
-                .table
-                .entry(key.as_ref().to_string())
-                .or_insert_with(Vec::new);
+            let buf = self.table.entry(key.as_ref().to_string()).or_insert_with(Vec::new);
             buf.resize(slice.len(), 0);
             buf.copy_from_slice(slice);
         }

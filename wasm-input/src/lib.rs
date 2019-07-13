@@ -30,92 +30,65 @@ impl InputBuffer {
     }
 
     pub fn push_mouse_scroll_up(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_scroll(
-            Coord::new(x, y),
-            ScrollDirection::Up,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_scroll(Coord::new(x, y), ScrollDirection::Up));
     }
 
     pub fn push_mouse_scroll_down(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_scroll(
-            Coord::new(x, y),
-            ScrollDirection::Down,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_scroll(Coord::new(x, y), ScrollDirection::Down));
     }
 
     pub fn push_mouse_scroll_left(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_scroll(
-            Coord::new(x, y),
-            ScrollDirection::Left,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_scroll(Coord::new(x, y), ScrollDirection::Left));
     }
 
     pub fn push_mouse_scroll_right(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_scroll(
-            Coord::new(x, y),
-            ScrollDirection::Right,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_scroll(Coord::new(x, y), ScrollDirection::Right));
     }
 
     pub fn push_mouse_move_none(&mut self, x: i32, y: i32) {
-        self.inputs
-            .push(from_js_event_mouse_move(Coord::new(x, y), None));
+        self.inputs.push(from_js_event_mouse_move(Coord::new(x, y), None));
     }
     pub fn push_mouse_move_left(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_move(
-            Coord::new(x, y),
-            Some(MouseButton::Left),
-        ));
+        self.inputs
+            .push(from_js_event_mouse_move(Coord::new(x, y), Some(MouseButton::Left)));
     }
     pub fn push_mouse_move_right(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_move(
-            Coord::new(x, y),
-            Some(MouseButton::Right),
-        ));
+        self.inputs
+            .push(from_js_event_mouse_move(Coord::new(x, y), Some(MouseButton::Right)));
     }
     pub fn push_mouse_move_middle(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_move(
-            Coord::new(x, y),
-            Some(MouseButton::Middle),
-        ));
+        self.inputs
+            .push(from_js_event_mouse_move(Coord::new(x, y), Some(MouseButton::Middle)));
     }
 
     pub fn push_mouse_press_left(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_press(
-            Coord::new(x, y),
-            MouseButton::Left,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_press(Coord::new(x, y), MouseButton::Left));
     }
     pub fn push_mouse_press_right(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_press(
-            Coord::new(x, y),
-            MouseButton::Right,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_press(Coord::new(x, y), MouseButton::Right));
     }
     pub fn push_mouse_press_middle(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_press(
-            Coord::new(x, y),
-            MouseButton::Middle,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_press(Coord::new(x, y), MouseButton::Middle));
     }
 
     pub fn push_mouse_release_left(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_release(
-            Coord::new(x, y),
-            MouseButton::Left,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_release(Coord::new(x, y), MouseButton::Left));
     }
     pub fn push_mouse_release_right(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_release(
-            Coord::new(x, y),
-            MouseButton::Right,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_release(Coord::new(x, y), MouseButton::Right));
     }
     pub fn push_mouse_release_middle(&mut self, x: i32, y: i32) {
-        self.inputs.push(from_js_event_mouse_release(
-            Coord::new(x, y),
-            MouseButton::Middle,
-        ));
+        self.inputs
+            .push(from_js_event_mouse_release(Coord::new(x, y), MouseButton::Middle));
     }
 }
 

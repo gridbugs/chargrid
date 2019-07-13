@@ -47,14 +47,8 @@ impl Frame for JsGrid {
             .character()
             .map(|character| JsValue::from_str(&character.to_string()))
             .unwrap_or(JsValue::NULL);
-        let bold = view_cell
-            .bold()
-            .map(JsValue::from_bool)
-            .unwrap_or(JsValue::NULL);
-        let underline = view_cell
-            .underline()
-            .map(JsValue::from_bool)
-            .unwrap_or(JsValue::NULL);
+        let bold = view_cell.bold().map(JsValue::from_bool).unwrap_or(JsValue::NULL);
+        let underline = view_cell.underline().map(JsValue::from_bool).unwrap_or(JsValue::NULL);
         let foreground = view_cell
             .foreground()
             .map(|foreground| JsValue::from_str(&rgb24_to_js_string(foreground)))
@@ -63,9 +57,7 @@ impl Frame for JsGrid {
             .background()
             .map(|background| JsValue::from_str(&rgb24_to_js_string(background)))
             .unwrap_or(JsValue::NULL);
-        self.js_set_cell(
-            x, y, depth, character, bold, underline, foreground, background,
-        );
+        self.js_set_cell(x, y, depth, character, bold, underline, foreground, background);
     }
 
     fn size(&self) -> Size {
@@ -74,12 +66,7 @@ impl Frame for JsGrid {
 }
 
 impl JsGrid {
-    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
-        &mut self,
-        view: &mut V,
-        data: T,
-        context: ViewContext<R>,
-    ) {
+    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(&mut self, view: &mut V, data: T, context: ViewContext<R>) {
         self.js_clear();
         view.view(data, context, self);
         self.js_render();

@@ -22,10 +22,7 @@ pub struct FillBackgroundData<T> {
 impl<'a, T, V: View<&'a T>> View<&'a FillBackgroundData<T>> for FillBackgroundView<V> {
     fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
-        &FillBackgroundData {
-            background,
-            ref data,
-        }: &'a FillBackgroundData<T>,
+        &FillBackgroundData { background, ref data }: &'a FillBackgroundData<T>,
         context: ViewContext<R>,
         frame: &mut F,
     ) {
@@ -33,10 +30,7 @@ impl<'a, T, V: View<&'a T>> View<&'a FillBackgroundData<T>> for FillBackgroundVi
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
-        &FillBackgroundData {
-            background,
-            ref data,
-        }: &'a FillBackgroundData<T>,
+        &FillBackgroundData { background, ref data }: &'a FillBackgroundData<T>,
         context: ViewContext<R>,
     ) -> Size {
         self.visible_bounds(FillBackgroundData { background, data }, context)
@@ -50,18 +44,16 @@ impl<T, V: View<T>> View<FillBackgroundData<T>> for FillBackgroundView<V> {
         context: ViewContext<R>,
         frame: &mut F,
     ) {
-        let size =
-            self.view
-                .view_reporting_intended_size(data, context.add_depth(1), frame);
+        let size = self
+            .view
+            .view_reporting_intended_size(data, context.add_depth(1), frame);
         for y in 0..(size.height() as i32) {
             for x in 0..(size.width() as i32) {
                 let coord = Coord::new(x, y);
                 frame.set_cell_relative(
                     coord,
                     0,
-                    ViewCell::new()
-                        .with_background(background)
-                        .with_character(' '),
+                    ViewCell::new().with_background(background).with_character(' '),
                     context,
                 );
             }
@@ -69,10 +61,7 @@ impl<T, V: View<T>> View<FillBackgroundData<T>> for FillBackgroundView<V> {
     }
     fn visible_bounds<R: ViewTransformRgb24>(
         &mut self,
-        FillBackgroundData {
-            background: _,
-            data,
-        }: FillBackgroundData<T>,
+        FillBackgroundData { background: _, data }: FillBackgroundData<T>,
         context: ViewContext<R>,
     ) -> Size {
         self.view.visible_bounds(data, context)

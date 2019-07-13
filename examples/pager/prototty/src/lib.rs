@@ -16,21 +16,15 @@ pub struct AppState {
 }
 
 pub struct AppView {
-    view: AlignView<
-        FillBackgroundView<
-            BorderView<BoundView<VerticalScrollView<RichTextView<wrap::Word>>>>,
-        >,
-    >,
+    view: AlignView<FillBackgroundView<BorderView<BoundView<VerticalScrollView<RichTextView<wrap::Word>>>>>>,
 }
 
 impl AppView {
     pub fn new() -> Self {
         Self {
-            view: AlignView::new(FillBackgroundView::new(BorderView::new(
-                BoundView::new(VerticalScrollView::new(RichTextView::new(
-                    wrap::Word::new(),
-                ))),
-            ))),
+            view: AlignView::new(FillBackgroundView::new(BorderView::new(BoundView::new(
+                VerticalScrollView::new(RichTextView::new(wrap::Word::new())),
+            )))),
         }
     }
     fn scroll(&self) -> &VerticalScrollView<RichTextView<wrap::Word>> {
@@ -70,32 +64,20 @@ impl AppState {
     {
         for input in inputs {
             match input {
-                prototty_inputs::ETX
-                | prototty_inputs::ESCAPE
-                | ProtottyInput::Char('q') => {
+                prototty_inputs::ETX | prototty_inputs::ESCAPE | ProtottyInput::Char('q') => {
                     return Some(ControlFlow::Exit);
                 }
                 ProtottyInput::MouseScroll { direction, .. } => match direction {
-                    ScrollDirection::Up => {
-                        self.scroll_state.scroll_up_line(view.scroll())
-                    }
-                    ScrollDirection::Down => {
-                        self.scroll_state.scroll_down_line(view.scroll())
-                    }
+                    ScrollDirection::Up => self.scroll_state.scroll_up_line(view.scroll()),
+                    ScrollDirection::Down => self.scroll_state.scroll_down_line(view.scroll()),
                     _ => (),
                 },
                 ProtottyInput::Up => self.scroll_state.scroll_up_line(view.scroll()),
                 ProtottyInput::Down => self.scroll_state.scroll_down_line(view.scroll()),
                 ProtottyInput::PageUp => self.scroll_state.scroll_up_page(view.scroll()),
-                ProtottyInput::PageDown => {
-                    self.scroll_state.scroll_down_page(view.scroll())
-                }
-                ProtottyInput::Home | ProtottyInput::Char('g') => {
-                    self.scroll_state.scroll_to_top(view.scroll())
-                }
-                ProtottyInput::End | ProtottyInput::Char('G') => {
-                    self.scroll_state.scroll_to_bottom(view.scroll())
-                }
+                ProtottyInput::PageDown => self.scroll_state.scroll_down_page(view.scroll()),
+                ProtottyInput::Home | ProtottyInput::Char('g') => self.scroll_state.scroll_to_top(view.scroll()),
+                ProtottyInput::End | ProtottyInput::Char('G') => self.scroll_state.scroll_to_bottom(view.scroll()),
                 _ => (),
             }
         }

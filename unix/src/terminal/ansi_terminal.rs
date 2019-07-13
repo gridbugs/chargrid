@@ -46,14 +46,12 @@ impl AnsiTerminal {
         self.output_buffer.push_str(&self.ti_cache.enter_xmit);
         self.output_buffer.push_str(&self.ti_cache.hide_cursor);
         self.output_buffer.push_str(&self.ti_cache.clear);
-        self.output_buffer
-            .push_str(&self.ti_cache.enable_mouse_reporting);
+        self.output_buffer.push_str(&self.ti_cache.enable_mouse_reporting);
         self.flush_buffer().map_err(Into::into)
     }
 
     fn teardown(&mut self) -> Result<()> {
-        self.output_buffer
-            .push_str(&self.ti_cache.disable_mouse_reporting);
+        self.output_buffer.push_str(&self.ti_cache.disable_mouse_reporting);
         self.output_buffer.push_str(&self.ti_cache.exit_ca);
         self.output_buffer.push_str(&self.ti_cache.exit_xmit);
         self.output_buffer.push_str(&self.ti_cache.show_cursor);
@@ -67,11 +65,7 @@ impl AnsiTerminal {
 
     pub fn set_cursor(&mut self, coord: Coord) -> Result<()> {
         let params = &[Param::Number(coord.y), Param::Number(coord.x)];
-        let command = parm::expand(
-            self.ti_cache.set_cursor.as_bytes(),
-            params,
-            &mut self.ti_cache.vars,
-        )?;
+        let command = parm::expand(self.ti_cache.set_cursor.as_bytes(), params, &mut self.ti_cache.vars)?;
         let command_slice = ::std::str::from_utf8(&command)?;
         self.output_buffer.push_str(command_slice);
         Ok(())
@@ -135,8 +129,7 @@ impl AnsiTerminal {
         if let Some(input) = self.input_ring.pop_front() {
             return Ok(Some(input));
         }
-        self.low_level
-            .read_timeout(&mut self.input_buffer, timeout)?;
+        self.low_level.read_timeout(&mut self.input_buffer, timeout)?;
         self.drain_input_into_ring()?;
         Ok(self.input_ring.pop_front())
     }
@@ -200,9 +193,7 @@ impl AnsiTerminal {
                                     button: Err(NotSupported),
                                     coord,
                                 },
-                                MousePrefix::Scroll(direction) => {
-                                    Input::MouseScroll { direction, coord }
-                                }
+                                MousePrefix::Scroll(direction) => Input::MouseScroll { direction, coord },
                             };
                             (Some(input), Some(&rest[2..]))
                         } else {
@@ -241,7 +232,6 @@ impl AnsiTerminal {
 
 impl Drop for AnsiTerminal {
     fn drop(&mut self) {
-        self.teardown()
-            .expect("Failed to reset terminal to original settings");
+        self.teardown().expect("Failed to reset terminal to original settings");
     }
 }

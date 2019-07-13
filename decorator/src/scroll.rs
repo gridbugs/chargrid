@@ -42,11 +42,9 @@ impl VerticalScrollbar {
                 character: Some(self.character),
             };
             let bar_x = context.size.width() as i32 - 1;
-            let bar_height = (scroll.last_rendered_outer_height
-                * scroll.last_rendered_outer_height)
+            let bar_height = (scroll.last_rendered_outer_height * scroll.last_rendered_outer_height)
                 / scroll.last_rendered_inner_height;
-            let bar_top = ((scroll.last_rendered_outer_height - bar_height)
-                * state.scroll_position as u32)
+            let bar_top = ((scroll.last_rendered_outer_height - bar_height) * state.scroll_position as u32)
                 / scroll.max_scroll_position() as u32;
             for y in 0..bar_height {
                 let bar_y = (y + bar_top) as i32;
@@ -89,26 +87,14 @@ impl VerticalScrollState {
     pub fn new() -> Self {
         Self { scroll_position: 0 }
     }
-    pub fn scroll_to<V>(
-        &mut self,
-        scroll_position: usize,
-        scroll: &VerticalScrollView<V>,
-    ) {
+    pub fn scroll_to<V>(&mut self, scroll_position: usize, scroll: &VerticalScrollView<V>) {
         self.scroll_position = scroll_position.min(scroll.max_scroll_position());
     }
-    pub fn scroll_up_lines<V>(
-        &mut self,
-        num_lines: usize,
-        scroll: &VerticalScrollView<V>,
-    ) {
+    pub fn scroll_up_lines<V>(&mut self, num_lines: usize, scroll: &VerticalScrollView<V>) {
         let _ = scroll;
         self.scroll_position = self.scroll_position.saturating_sub(num_lines);
     }
-    pub fn scroll_down_lines<V>(
-        &mut self,
-        num_lines: usize,
-        scroll: &VerticalScrollView<V>,
-    ) {
+    pub fn scroll_down_lines<V>(&mut self, num_lines: usize, scroll: &VerticalScrollView<V>) {
         let scroll_position = self.scroll_position;
         self.scroll_to(scroll_position + num_lines, scroll)
     }
@@ -151,9 +137,7 @@ pub struct VerticalScrollWithScrollbarData<T> {
     pub data: T,
 }
 
-impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollWithScrollbarData<T>>
-    for VerticalScrollView<V>
-{
+impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollWithScrollbarData<T>> for VerticalScrollView<V> {
     fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         &VerticalScrollWithScrollbarData {
@@ -165,27 +149,17 @@ impl<'a, T, V: View<&'a T>> View<&'a VerticalScrollWithScrollbarData<T>>
         frame: &mut F,
     ) {
         self.view(
-            VerticalScrollWithScrollbarData {
-                state,
-                scrollbar,
-                data,
-            },
+            VerticalScrollWithScrollbarData { state, scrollbar, data },
             context,
             frame,
         )
     }
 }
 
-impl<'a, T: Clone, V: View<T>> View<VerticalScrollWithScrollbarData<T>>
-    for VerticalScrollView<V>
-{
+impl<'a, T: Clone, V: View<T>> View<VerticalScrollWithScrollbarData<T>> for VerticalScrollView<V> {
     fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
-        VerticalScrollWithScrollbarData {
-            state,
-            scrollbar,
-            data,
-        }: VerticalScrollWithScrollbarData<T>,
+        VerticalScrollWithScrollbarData { state, scrollbar, data }: VerticalScrollWithScrollbarData<T>,
         context: ViewContext<R>,
         frame: &mut F,
     ) {

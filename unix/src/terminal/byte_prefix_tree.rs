@@ -10,8 +10,7 @@ pub struct BytePrefixTree<T> {
 
 impl<T> BytePrefixTree<T> {
     pub fn new() -> Self {
-        let mut table: [Option<Box<BytePrefixTree<T>>>; ENTRIES_PER_NODE] =
-            unsafe { mem::zeroed() };
+        let mut table: [Option<Box<BytePrefixTree<T>>>; ENTRIES_PER_NODE] = unsafe { mem::zeroed() };
 
         for i in 0..ENTRIES_PER_NODE {
             table[i] = None;
@@ -74,10 +73,7 @@ mod tests {
 
         assert_eq!(tree.get_longest(b"helloworld"), Some(Found::Exact(&0)));
         assert_eq!(tree.get_longest(b"hello"), Some(Found::Exact(&1)));
-        assert_eq!(
-            tree.get_longest(b"hellowo"),
-            Some(Found::WithRemaining(&1, b"wo"))
-        );
+        assert_eq!(tree.get_longest(b"hellowo"), Some(Found::WithRemaining(&1, b"wo")));
         assert_eq!(
             tree.get_longest(b"helloworldblah"),
             Some(Found::WithRemaining(&0, b"blah"))
@@ -85,10 +81,7 @@ mod tests {
         assert_eq!(tree.get_longest(b"world"), Some(Found::Exact(&2)));
         assert_eq!(tree.get_longest(b"worl"), None);
         assert_eq!(tree.get_longest(b""), None);
-        assert_eq!(
-            tree.get_longest(b"worlds"),
-            Some(Found::WithRemaining(&2, b"s"))
-        );
+        assert_eq!(tree.get_longest(b"worlds"), Some(Found::WithRemaining(&2, b"s")));
     }
 
     #[test]
@@ -101,14 +94,8 @@ mod tests {
 
         assert_eq!(tree.get_longest(b""), Some(Found::Exact(&0)));
         assert_eq!(tree.get_longest(b"a"), Some(Found::WithRemaining(&0, b"a")));
-        assert_eq!(
-            tree.get_longest(b"ab"),
-            Some(Found::WithRemaining(&0, b"ab"))
-        );
+        assert_eq!(tree.get_longest(b"ab"), Some(Found::WithRemaining(&0, b"ab")));
         assert_eq!(tree.get_longest(b"abc"), Some(Found::Exact(&1)));
-        assert_eq!(
-            tree.get_longest(b"abcd"),
-            Some(Found::WithRemaining(&1, b"d"))
-        );
+        assert_eq!(tree.get_longest(b"abcd"), Some(Found::WithRemaining(&1, b"d")));
     }
 }

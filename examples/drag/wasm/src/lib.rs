@@ -21,11 +21,7 @@ impl WebApp {
     pub fn new(js_grid: JsGrid) -> Self {
         let app = App::default();
         let app_view = AppView;
-        Self {
-            app_view,
-            app,
-            js_grid,
-        }
+        Self { app_view, app, js_grid }
     }
 
     pub fn tick(&mut self, input_buffer: &InputBuffer) {
