@@ -388,7 +388,6 @@ impl<'a> Context<'a> {
         self.background_renderer.draw(&mut self.encoder);
         self.glyph_brush
             .use_queue()
-            .depth_target(&self.dsv)
             .draw(&mut self.encoder, &self.rtv)
             .map_err(Error::GfxGlyph)?;
         self.encoder.flush(&mut self.device);
