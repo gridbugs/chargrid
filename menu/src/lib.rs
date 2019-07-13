@@ -7,7 +7,6 @@ extern crate serde;
 
 use prototty_input::{inputs, Input, ScrollDirection};
 use prototty_render::*;
-use prototty_text::RichStringViewSingleLine;
 use prototty_text::StringViewSingleLine;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
