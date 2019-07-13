@@ -7,6 +7,7 @@ extern crate serde;
 
 use prototty_input::{inputs, Input, ScrollDirection};
 use prototty_render::*;
+use prototty_text::RichStringViewSingleLine;
 use prototty_text::StringViewSingleLine;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -201,14 +202,14 @@ where
     }
 }
 
-impl<'a, L, T, E> View<(&'a MenuInstance<T>, &'a L)> for MenuInstanceView<E>
+impl<'a, X, T, E> View<(&'a MenuInstance<T>, &'a X)> for MenuInstanceView<E>
 where
     T: Clone,
-    E: MenuEntryLookupView<T, L>,
+    E: MenuEntryExtraView<T, X>,
 {
     fn view<F: Frame, R: ViewTransformRgb24>(
         &mut self,
-        (menu_instance, lookup): (&'a MenuInstance<T>, &'a L),
+        (menu_instance, extra): (&'a MenuInstance<T>, &'a X),
         context: ViewContext<R>,
         frame: &mut F,
     ) {
@@ -218,14 +219,14 @@ where
             let width = if i == menu_instance.selected_index {
                 self.entry_view.selected(
                     entry,
-                    lookup,
+                    extra,
                     context.add_offset(Coord::new(0, i as i32)),
                     frame,
                 )
             } else {
                 self.entry_view.normal(
                     entry,
-                    lookup,
+                    extra,
                     context.add_offset(Coord::new(0, i as i32)),
                     frame,
                 )
@@ -255,29 +256,29 @@ pub trait MenuEntryView<T> {
 
 /// Sometimes the menu entry alone is not sufficient to render the
 /// menu entry. An example is when the mappings from menu entry
-/// to (say) string is not statically known. The `lookup` argument
+/// to (say) string is not statically known. The `extra` argument
 /// to the methods of this trait can be used to pass some external
 /// object which knows how to map menu entries to some renderable
 /// value.
-pub trait MenuEntryLookupView<T, L> {
+pub trait MenuEntryExtraView<T, X> {
     fn normal<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
-        lookup: &L,
+        extra: &X,
         context: ViewContext<R>,
         frame: &mut F,
     ) -> MenuEntryViewInfo;
     fn selected<F: Frame, R: ViewTransformRgb24>(
         &mut self,
         entry: &T,
-        lookup: &L,
+        extra: &X,
         context: ViewContext<R>,
         frame: &mut F,
     ) -> MenuEntryViewInfo;
 }
 
 /// Convenience function to simplify implementing `MenuEntryView` and
-/// `MenuEntryLookupView`.
+/// `MenuEntryExtraView`.
 pub fn menu_entry_view<T, V: View<T>, F: Frame, R: ViewTransformRgb24>(
     data: T,
     mut view: V,
@@ -290,18 +291,21 @@ pub fn menu_entry_view<T, V: View<T>, F: Frame, R: ViewTransformRgb24>(
 
 /// An implementation of `MenuEntryView` for menus whose entries
 /// can be converted into string slices.
-pub struct StrMenuEntryView {
+pub struct MenuEntryStylePair {
     pub normal: Style,
     pub selected: Style,
 }
 
-impl StrMenuEntryView {
+impl MenuEntryStylePair {
     pub const fn new(normal: Style, selected: Style) -> Self {
         Self { normal, selected }
     }
+    pub const fn default() -> Self {
+        Self::new(Style::new(), Style::new().with_bold(true))
+    }
 }
 
-impl<T> MenuEntryView<T> for StrMenuEntryView
+impl<T> MenuEntryView<T> for MenuEntryStylePair
 where
     for<'a> &'a T: Into<&'a str>,
 {
@@ -327,6 +331,52 @@ where
         menu_entry_view(
             entry.into(),
             StringViewSingleLine::new(self.selected),
+            context,
+            frame,
+        )
+    }
+}
+
+pub trait ChooseStyleFromEntryExtra {
+    type Extra;
+    type Entry;
+    fn choose_style_normal(&mut self, entry: &Self::Entry, extra: &Self::Extra) -> Style;
+    fn choose_style_selected(
+        &mut self,
+        entry: &Self::Entry,
+        extra: &Self::Extra,
+    ) -> Style;
+}
+
+impl<T, X, C> MenuEntryExtraView<T, X> for C
+where
+    for<'a> &'a T: Into<&'a str>,
+    C: ChooseStyleFromEntryExtra<Extra = X, Entry = T>,
+{
+    fn normal<G: Frame, R: ViewTransformRgb24>(
+        &mut self,
+        entry: &T,
+        extra: &X,
+        context: ViewContext<R>,
+        frame: &mut G,
+    ) -> MenuEntryViewInfo {
+        menu_entry_view(
+            entry.into(),
+            StringViewSingleLine::new(self.choose_style_normal(entry, extra)),
+            context,
+            frame,
+        )
+    }
+    fn selected<G: Frame, R: ViewTransformRgb24>(
+        &mut self,
+        entry: &T,
+        extra: &X,
+        context: ViewContext<R>,
+        frame: &mut G,
+    ) -> MenuEntryViewInfo {
+        menu_entry_view(
+            entry.into(),
+            StringViewSingleLine::new(self.choose_style_selected(entry, extra)),
             context,
             frame,
         )
