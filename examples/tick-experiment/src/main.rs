@@ -640,11 +640,7 @@ pub mod app {
     fn inner() -> impl TickRoutine<Return = Option<Return>, Data = AppData, View = AppView>
     {
         let main_menu = MenuInstanceExtraRoutine::new(SelectMainMenuExtra);
-        let colour_menu = MenuInstanceRoutine::<
-            ColourMenuChoice,
-            p::MenuInstanceView<p::MenuEntryStylePair>,
-        >::new()
-        .select(SelectColourMenu);
+        let colour_menu = MenuInstanceRoutine::new().select(SelectColourMenu);
         main_menu.and_then(|menu_output| match menu_output {
             p::MenuOutput::Quit => Either::A(Value::new(Some(Return::Quit))),
             p::MenuOutput::Cancel => Either::A(Value::new(None)),
