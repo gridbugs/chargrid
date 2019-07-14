@@ -14,7 +14,7 @@ where
     C: Clone,
     for<'a> V: View<&'a MenuInstance<C>>,
 {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             choice: PhantomData,
             view: PhantomData,
