@@ -30,9 +30,7 @@ impl LowLevel {
             return Err(Error::last_os_error());
         }
         let mut termios = unsafe { termios.assume_init() };
-
         let original_termios = termios.clone();
-
         termios.c_iflag &= !(libc::IGNBRK
             | libc::BRKINT
             | libc::PARMRK
@@ -47,21 +45,17 @@ impl LowLevel {
         termios.c_cflag |= libc::CS8;
         termios.c_cc[libc::VMIN] = 0;
         termios.c_cc[libc::VTIME] = 0;
-
         let res = unsafe { libc::tcsetattr(fd, libc::TCSAFLUSH, &termios) };
         if res != 0 {
             return Err(Error::last_os_error());
         }
-
         Ok(original_termios)
     }
 
     pub fn new() -> Result<Self> {
         let tty_file = OpenOptions::new().write(true).read(true).open("/dev/tty")?;
-
         let tty_fd = tty_file.as_raw_fd();
         let original_termios = Self::init_tty(tty_fd)?;
-
         Ok(Self {
             tty_file,
             original_termios,
@@ -101,12 +95,10 @@ impl LowLevel {
             tv_sec: timeout.as_secs() as libc::time_t,
             tv_nsec: timeout.subsec_nanos() as libc::c_long,
         };
-
         let mut rfds: libc::fd_set = unsafe { mem::zeroed() };
         unsafe {
             libc::FD_SET(self.tty_fd, &mut rfds);
         }
-
         let res = unsafe {
             libc::pselect(
                 self.tty_fd + 1,
@@ -117,13 +109,11 @@ impl LowLevel {
                 ptr::null_mut(),
             )
         };
-
         let num_events = if res == -1 {
             return Err(Error::last_os_error());
         } else {
             res
         };
-
         if num_events > 0 {
             self.read_polling(buf)?;
         }
@@ -135,7 +125,6 @@ impl LowLevel {
         unsafe {
             libc::FD_SET(self.tty_fd, &mut rfds);
         }
-
         let res = unsafe {
             libc::pselect(
                 self.tty_fd + 1,
@@ -146,13 +135,11 @@ impl LowLevel {
                 ptr::null_mut(),
             )
         };
-
         let num_events = if res == -1 {
             return Err(Error::last_os_error());
         } else {
             res
         };
-
         if num_events > 0 {
             self.read_polling(buf)?;
         }
@@ -161,11 +148,9 @@ impl LowLevel {
 
     fn teardown(&mut self) -> Result<()> {
         let res = unsafe { libc::tcsetattr(self.tty_fd, libc::TCSAFLUSH, &self.original_termios) };
-
         if res != 0 {
             return Err(Error::last_os_error());
         }
-
         Ok(())
     }
 }
