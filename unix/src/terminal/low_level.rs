@@ -4,6 +4,7 @@ use prototty_render::*;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::mem;
+use std::mem::MaybeUninit;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::ptr;
 use std::time::Duration;
@@ -23,11 +24,12 @@ pub struct LowLevel {
 
 impl LowLevel {
     fn init_tty(fd: RawFd) -> Result<libc::termios> {
-        let mut termios = unsafe { mem::uninitialized() };
-        let res = unsafe { libc::tcgetattr(fd, &mut termios) };
+        let mut termios = MaybeUninit::uninit();
+        let res = unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) };
         if res != 0 {
             return Err(Error::last_os_error());
         }
+        let mut termios = unsafe { termios.assume_init() };
 
         let original_termios = termios.clone();
 
