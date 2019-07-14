@@ -46,5 +46,5 @@ members = [
     "examples/pager/glutin",
     "examples/pager/wasm",
 
-    "examples/tick-experiment",
+    "examples/colour-picker",
 ]
