@@ -321,21 +321,21 @@ pub mod app {
         }
     }
 
-    pub trait SelectorData {
+    pub trait DataSelector {
         type DataInput;
         type DataOutput;
         fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput;
         fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput;
     }
 
-    pub trait SelectorView {
+    pub trait ViewSelector {
         type ViewInput;
         type ViewOutput;
         fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput;
         fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput;
     }
 
-    pub trait Selector: SelectorData + SelectorView {}
+    pub trait Selector: DataSelector + ViewSelector {}
 
     #[derive(Clone, Copy)]
     pub struct Select<T, S> {
@@ -467,7 +467,7 @@ pub mod app {
 
     impl<S> TickRoutine for MenuInstanceExtraRoutine<S>
     where
-        S: MenuInstanceExtraSelect + SelectorView,
+        S: MenuInstanceExtraSelect + ViewSelector,
         S::ViewOutput: p::MenuIndexFromScreenCoord,
         for<'a> S::ViewOutput: p::View<(&'a p::MenuInstance<S::Choice>, &'a S::Extra)>,
     {
@@ -586,7 +586,7 @@ pub mod app {
     }
 
     struct SelectColourMenu;
-    impl SelectorView for SelectColourMenu {
+    impl ViewSelector for SelectColourMenu {
         type ViewInput = AppView;
         type ViewOutput = p::MenuInstanceView<p::MenuEntryStylePair>;
 
@@ -597,7 +597,7 @@ pub mod app {
             &mut input.colour_menu
         }
     }
-    impl SelectorData for SelectColourMenu {
+    impl DataSelector for SelectColourMenu {
         type DataInput = AppData;
         type DataOutput = p::MenuInstance<ColourMenuChoice>;
         fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
@@ -610,7 +610,7 @@ pub mod app {
     impl Selector for SelectColourMenu {}
 
     struct SelectMainMenuExtra;
-    impl SelectorView for SelectMainMenuExtra {
+    impl ViewSelector for SelectMainMenuExtra {
         type ViewInput = AppView;
         type ViewOutput = p::MenuInstanceView<ChooseMenuEntryStyle<MainMenuChoice>>;
 
