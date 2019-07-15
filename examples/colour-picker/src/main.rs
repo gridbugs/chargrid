@@ -1,8 +1,7 @@
 pub mod app {
+    use p::event_routine::EventRoutine;
     use prototty as p;
-    use prototty_tick_routine as t;
     use std::marker::PhantomData;
-    use t::TickRoutine;
 
     #[derive(Clone, Copy)]
     pub enum MainMenuChoice {
@@ -50,48 +49,48 @@ pub mod app {
         }
     }
 
-    fn inner() -> impl t::TickRoutine<Return = Option<Return>, Data = AppData, View = AppView> {
-        let main_menu = p::menu_tick_routine::MenuInstanceExtraRoutine::new(SelectMainMenuExtra);
-        let colour_menu = p::menu_tick_routine::MenuInstanceRoutine::new().select(SelectColourMenu);
+    fn inner() -> impl p::event_routine::EventRoutine<Return = Option<Return>, Data = AppData, View = AppView> {
+        let main_menu = p::menu::MenuInstanceExtraRoutine::new(SelectMainMenuExtra);
+        let colour_menu = p::menu::MenuInstanceRoutine::new().select(SelectColourMenu);
         main_menu.and_then(|menu_output| match menu_output {
-            p::MenuOutput::Quit => t::Either::A(t::Value::new(Some(Return::Quit))),
-            p::MenuOutput::Cancel => t::Either::A(t::Value::new(None)),
-            p::MenuOutput::Finalise(choice) => match choice {
-                MainMenuChoice::ChooseColour => t::Either::B(colour_menu.map_side_effect(
+            p::menu::MenuOutput::Quit => p::event_routine::Either::A(p::event_routine::Value::new(Some(Return::Quit))),
+            p::menu::MenuOutput::Cancel => p::event_routine::Either::A(p::event_routine::Value::new(None)),
+            p::menu::MenuOutput::Finalise(choice) => match choice {
+                MainMenuChoice::ChooseColour => p::event_routine::Either::B(colour_menu.map_side_effect(
                     |menu_output, data, _view| match menu_output {
-                        p::MenuOutput::Quit => Some(Return::Quit),
-                        p::MenuOutput::Cancel => None,
-                        p::MenuOutput::Finalise(choice) => {
+                        p::menu::MenuOutput::Quit => Some(Return::Quit),
+                        p::menu::MenuOutput::Cancel => None,
+                        p::menu::MenuOutput::Finalise(choice) => {
                             use ColourMenuChoice::*;
                             let colour = match choice {
-                                Red => p::rgb24(255, 0, 0),
-                                Green => p::rgb24(0, 127, 0),
-                                Blue => p::rgb24(0, 63, 255),
+                                Red => p::render::rgb24(255, 0, 0),
+                                Green => p::render::rgb24(0, 127, 0),
+                                Blue => p::render::rgb24(0, 63, 255),
                             };
-                            data.main_menu_style = p::MenuEntryStylePair::new(
-                                p::Style::new().with_foreground(colour.scalar_div(2)),
-                                p::Style::new().with_foreground(colour).with_bold(true),
+                            data.main_menu_style = p::menu::MenuEntryStylePair::new(
+                                p::render::Style::new().with_foreground(colour.scalar_div(2)),
+                                p::render::Style::new().with_foreground(colour).with_bold(true),
                             );
                             None
                         }
                     },
                 )),
-                MainMenuChoice::Quit => t::Either::A(t::Value::new(Some(Return::Quit))),
+                MainMenuChoice::Quit => p::event_routine::Either::A(p::event_routine::Value::new(Some(Return::Quit))),
             },
         })
     }
 
-    pub fn test() -> impl t::TickRoutine<Return = Return, Data = AppData, View = AppView> {
+    pub fn test() -> impl p::event_routine::EventRoutine<Return = Return, Data = AppData, View = AppView> {
         inner().repeat(|event| match event {
-            Some(Return::Quit) => t::Tick::Return(Return::Quit),
-            None => t::Tick::Continue(inner()),
+            Some(Return::Quit) => p::event_routine::Handled::Return(Return::Quit),
+            None => p::event_routine::Handled::Continue(inner()),
         })
     }
 
     struct SelectColourMenu;
-    impl t::ViewSelector for SelectColourMenu {
+    impl p::event_routine::ViewSelector for SelectColourMenu {
         type ViewInput = AppView;
-        type ViewOutput = p::MenuInstanceView<p::MenuEntryStylePair>;
+        type ViewOutput = p::menu::MenuInstanceView<p::menu::MenuEntryStylePair>;
 
         fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
             &input.colour_menu
@@ -100,9 +99,9 @@ pub mod app {
             &mut input.colour_menu
         }
     }
-    impl t::DataSelector for SelectColourMenu {
+    impl p::event_routine::DataSelector for SelectColourMenu {
         type DataInput = AppData;
-        type DataOutput = p::MenuInstance<ColourMenuChoice>;
+        type DataOutput = p::menu::MenuInstance<ColourMenuChoice>;
         fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
             &input.colour_menu
         }
@@ -110,12 +109,12 @@ pub mod app {
             &mut input.colour_menu
         }
     }
-    impl t::Selector for SelectColourMenu {}
+    impl p::event_routine::Selector for SelectColourMenu {}
 
     struct SelectMainMenuExtra;
-    impl t::ViewSelector for SelectMainMenuExtra {
+    impl p::event_routine::ViewSelector for SelectMainMenuExtra {
         type ViewInput = AppView;
-        type ViewOutput = p::MenuInstanceView<ChooseMenuEntryStyle<MainMenuChoice>>;
+        type ViewOutput = p::menu::MenuInstanceView<ChooseMenuEntryStyle<MainMenuChoice>>;
 
         fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
             &input.main_menu
@@ -124,15 +123,15 @@ pub mod app {
             &mut input.main_menu
         }
     }
-    impl p::menu_tick_routine::MenuInstanceExtraSelect for SelectMainMenuExtra {
+    impl p::menu::MenuInstanceExtraSelect for SelectMainMenuExtra {
         type DataInput = AppData;
         type Choice = MainMenuChoice;
-        type Extra = p::MenuEntryStylePair;
+        type Extra = p::menu::MenuEntryStylePair;
 
-        fn menu_instance<'a>(&self, input: &'a Self::DataInput) -> &'a p::MenuInstance<Self::Choice> {
+        fn menu_instance<'a>(&self, input: &'a Self::DataInput) -> &'a p::menu::MenuInstance<Self::Choice> {
             &input.main_menu
         }
-        fn menu_instance_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut p::MenuInstance<Self::Choice> {
+        fn menu_instance_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut p::menu::MenuInstance<Self::Choice> {
             &mut input.main_menu
         }
         fn extra<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Extra {
@@ -148,28 +147,29 @@ pub mod app {
             Self { choice: PhantomData }
         }
     }
-    impl<C> p::ChooseStyleFromEntryExtra for ChooseMenuEntryStyle<C> {
-        type Extra = p::MenuEntryStylePair;
+    impl<C> p::menu::ChooseStyleFromEntryExtra for ChooseMenuEntryStyle<C> {
+        type Extra = p::menu::MenuEntryStylePair;
         type Entry = C;
-        fn choose_style_normal(&mut self, _entry: &Self::Entry, extra: &Self::Extra) -> p::Style {
+        fn choose_style_normal(&mut self, _entry: &Self::Entry, extra: &Self::Extra) -> p::render::Style {
             extra.normal
         }
-        fn choose_style_selected(&mut self, _entry: &Self::Entry, extra: &Self::Extra) -> p::Style {
+        fn choose_style_selected(&mut self, _entry: &Self::Entry, extra: &Self::Extra) -> p::render::Style {
             extra.selected
         }
     }
 
     pub struct AppData {
-        main_menu: p::MenuInstance<MainMenuChoice>,
-        main_menu_style: p::MenuEntryStylePair,
-        colour_menu: p::MenuInstance<ColourMenuChoice>,
+        main_menu: p::menu::MenuInstance<MainMenuChoice>,
+        main_menu_style: p::menu::MenuEntryStylePair,
+        colour_menu: p::menu::MenuInstance<ColourMenuChoice>,
     }
 
     impl AppData {
         pub fn new() -> Self {
-            let main_menu = p::MenuInstance::new(MainMenuChoice::all()).unwrap();
-            let main_menu_style = p::MenuEntryStylePair::new(p::Style::new(), p::Style::new().with_bold(true));
-            let colour_menu = p::MenuInstance::new(ColourMenuChoice::all()).unwrap();
+            let main_menu = p::menu::MenuInstance::new(MainMenuChoice::all()).unwrap();
+            let main_menu_style =
+                p::menu::MenuEntryStylePair::new(p::render::Style::new(), p::render::Style::new().with_bold(true));
+            let colour_menu = p::menu::MenuInstance::new(ColourMenuChoice::all()).unwrap();
             Self {
                 main_menu,
                 main_menu_style,
@@ -179,16 +179,16 @@ pub mod app {
     }
 
     pub struct AppView {
-        main_menu: p::MenuInstanceView<ChooseMenuEntryStyle<MainMenuChoice>>,
-        colour_menu: p::MenuInstanceView<p::MenuEntryStylePair>,
+        main_menu: p::menu::MenuInstanceView<ChooseMenuEntryStyle<MainMenuChoice>>,
+        colour_menu: p::menu::MenuInstanceView<p::menu::MenuEntryStylePair>,
     }
 
     impl AppView {
         pub fn new() -> Self {
-            let main_menu = p::MenuInstanceView::new(ChooseMenuEntryStyle::new());
-            let colour_menu = p::MenuInstanceView::new(p::MenuEntryStylePair::new(
-                p::Style::new(),
-                p::Style::new().with_bold(true),
+            let main_menu = p::menu::MenuInstanceView::new(ChooseMenuEntryStyle::new());
+            let colour_menu = p::menu::MenuInstanceView::new(p::menu::MenuEntryStylePair::new(
+                p::render::Style::new(),
+                p::render::Style::new().with_bold(true),
             ));
             Self { main_menu, colour_menu }
         }
@@ -199,14 +199,13 @@ pub mod app {
     }
 }
 
-use p::Frame;
+use p::event_routine::EventRoutine;
+use p::render::*;
 use prototty as p;
 use prototty_glutin as pg;
-use prototty_tick_routine as t;
 use std::time::Instant;
-use t::TickRoutine;
 
-const WINDOW_SIZE_PIXELS: p::Size = p::Size::new_u16(640, 480);
+const WINDOW_SIZE_PIXELS: p::render::Size = p::render::Size::new_u16(640, 480);
 
 fn main() {
     let mut context = pg::ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
@@ -215,10 +214,10 @@ fn main() {
         .with_min_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_font_scale(16.0, 16.0)
-        .with_cell_dimensions(p::Size::new_u16(16, 16))
+        .with_cell_dimensions(p::render::Size::new_u16(16, 16))
         .build()
         .unwrap();
-    let mut tick_routine = app::test();
+    let mut event_routine = app::test();
     let mut app_data = app::AppData::new();
     let mut app_view = app::AppView::new();
     let mut input_buffer = Vec::with_capacity(64);
@@ -227,15 +226,15 @@ fn main() {
         let duration = frame_instant.elapsed();
         frame_instant = Instant::now();
         context.buffer_input(&mut input_buffer);
-        tick_routine = match tick_routine.tick(&mut app_data, input_buffer.drain(..), &app_view, duration) {
-            t::Tick::Continue(tick_routine) => tick_routine,
-            t::Tick::Return(app::Return::Quit) => break,
+        event_routine = match event_routine.handle(&mut app_data, input_buffer.drain(..), &app_view, duration) {
+            p::event_routine::Handled::Continue(event_routine) => event_routine,
+            p::event_routine::Handled::Return(app::Return::Quit) => break,
         };
         let mut frame = context.frame();
-        tick_routine.view(
+        event_routine.view(
             &app_data,
             &mut app_view,
-            frame.default_context().add_offset(p::Coord::new(1, 1)),
+            frame.default_context().add_offset(p::render::Coord::new(1, 1)),
             &mut frame,
         );
         frame.render().unwrap();

@@ -1,5 +1,9 @@
 extern crate prototty;
-use prototty::*;
+use prototty::decorator::*;
+use prototty::input::Input as ProtottyInput;
+use prototty::input::*;
+use prototty::render::*;
+use prototty::text::*;
 
 pub enum ControlFlow {
     Exit,
@@ -64,7 +68,7 @@ impl AppState {
     {
         for input in inputs {
             match input {
-                prototty_inputs::ETX | prototty_inputs::ESCAPE | ProtottyInput::Char('q') => {
+                prototty::input::inputs::ETX | prototty::input::inputs::ESCAPE | ProtottyInput::Char('q') => {
                     return Some(ControlFlow::Exit);
                 }
                 ProtottyInput::MouseScroll { direction, .. } => match direction {

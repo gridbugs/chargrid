@@ -1,7 +1,7 @@
+extern crate prototty_event_routine;
 extern crate prototty_input;
 extern crate prototty_render;
 extern crate prototty_text;
-extern crate prototty_tick_routine;
 #[cfg(feature = "serialize")]
 #[macro_use]
 extern crate serde;
@@ -10,7 +10,8 @@ use prototty_input::{inputs, Input, ScrollDirection};
 use prototty_render::*;
 use prototty_text::StringViewSingleLine;
 
-pub mod tick_routine;
+mod event_routine;
+pub use event_routine::*;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]

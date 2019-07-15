@@ -2,8 +2,12 @@ extern crate prototty;
 extern crate rand;
 extern crate tetris;
 
-use prototty::*;
-use prototty_inputs::*;
+use prototty::decorator::*;
+use prototty::input::inputs::*;
+use prototty::input::Input as ProtottyInput;
+use prototty::menu::*;
+use prototty::render::*;
+use prototty::text::*;
 use rand::Rng;
 use std::collections::VecDeque;
 use std::time::Duration;

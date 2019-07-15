@@ -2,7 +2,8 @@ extern crate line_2d;
 extern crate prototty;
 
 use line_2d::{Coord, LineSegment};
-use prototty::*;
+use prototty::input::*;
+use prototty::render::*;
 
 #[derive(Debug, Clone, Copy)]
 enum LineType {
@@ -30,7 +31,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn update<I: IntoIterator<Item = ProtottyInput>>(&mut self, inputs: I) -> Option<Quit> {
+    pub fn update<I: IntoIterator<Item = Input>>(&mut self, inputs: I) -> Option<Quit> {
         for input in inputs {
             match input {
                 Input::MouseMove { coord, .. } => {

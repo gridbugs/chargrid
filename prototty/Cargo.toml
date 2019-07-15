@@ -27,4 +27,4 @@ prototty_storage = { path = "../storage", version = "0.27", optional = true }
 prototty_decorator = { path = "../decorator", version = "0.27" }
 prototty_text = { path = "../text", version = "0.27" }
 prototty_menu = { path = "../menu", version = "0.27" }
-prototty_tick_routine = { path = "../tick-routine", version = "0.27" }
+prototty_event_routine = { path = "../event-routine", version = "0.27" }

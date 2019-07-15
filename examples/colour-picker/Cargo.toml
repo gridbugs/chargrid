@@ -1,5 +1,5 @@
 [package]
-name = "tick-experiment"
+name = "colour-picker"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
@@ -7,4 +7,3 @@ edition = "2018"
 [dependencies]
 prototty_glutin = { path = "../../glutin" }
 prototty = { path = "../../prototty" }
-prototty_tick_routine = { path = "../../tick-routine" }

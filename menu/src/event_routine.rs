@@ -1,7 +1,7 @@
 use crate::{MenuIndexFromScreenCoord, MenuInstance, MenuOutput};
+use prototty_event_routine::{EventRoutine, Handled, ViewSelector};
 use prototty_input::Input;
 use prototty_render::{Frame, View, ViewContext, ViewTransformRgb24};
-use prototty_tick_routine::{Tick, TickRoutine, ViewSelector};
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -37,7 +37,7 @@ where
 {
 }
 
-impl<C, V> TickRoutine for MenuInstanceRoutine<C, V>
+impl<C, V> EventRoutine for MenuInstanceRoutine<C, V>
 where
     C: Clone,
     for<'a> V: View<&'a MenuInstance<C>>,
@@ -47,20 +47,20 @@ where
     type Data = MenuInstance<C>;
     type View = V;
 
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         _duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
         if let Some(menu_output) = data.tick_with_mouse(inputs, view) {
-            Tick::Return(menu_output)
+            Handled::Return(menu_output)
         } else {
-            Tick::Continue(self)
+            Handled::Continue(self)
         }
     }
     fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
@@ -93,7 +93,7 @@ where
     }
 }
 
-impl<S> TickRoutine for MenuInstanceExtraRoutine<S>
+impl<S> EventRoutine for MenuInstanceExtraRoutine<S>
 where
     S: MenuInstanceExtraSelect + ViewSelector,
     S::ViewOutput: MenuIndexFromScreenCoord,
@@ -103,22 +103,22 @@ where
     type Data = S::DataInput;
     type View = S::ViewInput;
 
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         _duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
         let menu_instance = self.s.menu_instance_mut(data);
         let menu_view = self.s.view(view);
         if let Some(menu_output) = menu_instance.tick_with_mouse(inputs, menu_view) {
-            Tick::Return(menu_output)
+            Handled::Return(menu_output)
         } else {
-            Tick::Continue(self)
+            Handled::Continue(self)
         }
     }
     fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut F)

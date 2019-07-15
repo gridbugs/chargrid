@@ -1,20 +1,20 @@
-use crate::Tick;
+use crate::Handled;
 use prototty_input::Input;
 use prototty_render::{Frame, ViewContext, ViewTransformRgb24};
 use std::marker::PhantomData;
 use std::time::Duration;
 
-pub trait TickRoutine: Sized {
+pub trait EventRoutine: Sized {
     type Return;
     type Data;
     type View;
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>;
 
@@ -23,13 +23,13 @@ pub trait TickRoutine: Sized {
         F: Frame,
         R: ViewTransformRgb24;
 
-    fn peek(self, _data: &mut Self::Data) -> Tick<Self::Return, Self> {
-        Tick::Continue(self)
+    fn peek(self, _data: &mut Self::Data) -> Handled<Self::Return, Self> {
+        Handled::Continue(self)
     }
 
     fn repeat<U, F>(self, f: F) -> Repeat<Self, F>
     where
-        F: FnMut(Self::Return) -> Tick<U, Self>,
+        F: FnMut(Self::Return) -> Handled<U, Self>,
     {
         Repeat { t: self, f }
     }
@@ -43,7 +43,7 @@ pub trait TickRoutine: Sized {
 
     fn and_then<U, F>(self, f: F) -> AndThen<Self, U, F>
     where
-        U: TickRoutine<Data = Self::Data, View = Self::View>,
+        U: EventRoutine<Data = Self::Data, View = Self::View>,
         F: FnOnce(Self::Return) -> U,
     {
         AndThen::First { t: self, f }
@@ -80,17 +80,17 @@ impl<T, D, V> Value<T, D, V> {
     }
 }
 
-impl<T, D, V> TickRoutine for Value<T, D, V> {
+impl<T, D, V> EventRoutine for Value<T, D, V> {
     type Return = T;
     type Data = D;
     type View = V;
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         _inputs: I,
         _view: &Self::View,
         _duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
@@ -104,8 +104,8 @@ impl<T, D, V> TickRoutine for Value<T, D, V> {
     {
     }
 
-    fn peek(self, _data: &mut Self::Data) -> Tick<Self::Return, Self> {
-        Tick::Return(self.value)
+    fn peek(self, _data: &mut Self::Data) -> Handled<Self::Return, Self> {
+        Handled::Return(self.value)
     }
 }
 
@@ -113,29 +113,29 @@ pub struct MapSideEffect<T, F> {
     t: T,
     f: F,
 }
-impl<T, U, F> TickRoutine for MapSideEffect<T, F>
+impl<T, U, F> EventRoutine for MapSideEffect<T, F>
 where
-    T: TickRoutine,
+    T: EventRoutine,
     F: FnOnce(T::Return, &mut T::Data, &T::View) -> U,
 {
     type Return = U;
     type Data = T::Data;
     type View = T::View;
 
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
         let Self { t, f } = self;
-        match t.tick(data, inputs, view, duration) {
-            Tick::Continue(t) => Tick::Continue(Self { t, f }),
-            Tick::Return(r) => Tick::Return(f(r, data, view)),
+        match t.handle(data, inputs, view, duration) {
+            Handled::Continue(t) => Handled::Continue(Self { t, f }),
+            Handled::Return(r) => Handled::Return(f(r, data, view)),
         }
     }
 
@@ -153,29 +153,29 @@ pub struct Map<T, F> {
     f: F,
 }
 
-impl<T, U, F> TickRoutine for Map<T, F>
+impl<T, U, F> EventRoutine for Map<T, F>
 where
-    T: TickRoutine,
+    T: EventRoutine,
     F: FnOnce(T::Return) -> U,
 {
     type Return = U;
     type Data = T::Data;
     type View = T::View;
 
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
         let Self { t, f } = self;
-        match t.tick(data, inputs, view, duration) {
-            Tick::Continue(t) => Tick::Continue(Self { t, f }),
-            Tick::Return(r) => Tick::Return(f(r)),
+        match t.handle(data, inputs, view, duration) {
+            Handled::Continue(t) => Handled::Continue(Self { t, f }),
+            Handled::Return(r) => Handled::Return(f(r)),
         }
     }
 
@@ -193,32 +193,32 @@ pub enum AndThen<T, U, F> {
     Second(U),
 }
 
-impl<T, U, F> TickRoutine for AndThen<T, U, F>
+impl<T, U, F> EventRoutine for AndThen<T, U, F>
 where
-    T: TickRoutine,
-    U: TickRoutine<Data = T::Data, View = T::View>,
+    T: EventRoutine,
+    U: EventRoutine<Data = T::Data, View = T::View>,
     F: FnOnce(T::Return) -> U,
 {
     type Return = U::Return;
     type Data = T::Data;
     type View = T::View;
 
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
         match self {
-            AndThen::First { t, f } => match t.tick(data, inputs, view, duration) {
-                Tick::Continue(t) => Tick::Continue(AndThen::First { t, f }),
-                Tick::Return(r) => f(r).peek(data).map_continue(AndThen::Second),
+            AndThen::First { t, f } => match t.handle(data, inputs, view, duration) {
+                Handled::Continue(t) => Handled::Continue(AndThen::First { t, f }),
+                Handled::Return(r) => f(r).peek(data).map_continue(AndThen::Second),
             },
-            AndThen::Second(u) => u.tick(data, inputs, view, duration).map_continue(AndThen::Second),
+            AndThen::Second(u) => u.handle(data, inputs, view, duration).map_continue(AndThen::Second),
         }
     }
 
@@ -239,28 +239,28 @@ pub enum Either<A, B> {
     B(B),
 }
 
-impl<A, B> TickRoutine for Either<A, B>
+impl<A, B> EventRoutine for Either<A, B>
 where
-    A: TickRoutine,
-    B: TickRoutine<Data = A::Data, View = A::View, Return = A::Return>,
+    A: EventRoutine,
+    B: EventRoutine<Data = A::Data, View = A::View, Return = A::Return>,
 {
     type Return = A::Return;
     type Data = A::Data;
     type View = A::View;
 
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
         match self {
-            Either::A(a) => a.tick(data, inputs, view, duration).map_continue(Either::A),
-            Either::B(b) => b.tick(data, inputs, view, duration).map_continue(Either::B),
+            Either::A(a) => a.handle(data, inputs, view, duration).map_continue(Either::A),
+            Either::B(b) => b.handle(data, inputs, view, duration).map_continue(Either::B),
         }
     }
 
@@ -298,27 +298,27 @@ pub struct Select<T, S> {
     selector: S,
 }
 
-impl<T, S> TickRoutine for Select<T, S>
+impl<T, S> EventRoutine for Select<T, S>
 where
-    T: TickRoutine,
+    T: EventRoutine,
     S: Selector<DataOutput = T::Data, ViewOutput = T::View>,
 {
     type Return = T::Return;
     type Data = S::DataInput;
     type View = S::ViewInput;
 
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
         let Self { t, selector } = self;
-        t.tick(selector.data_mut(data), inputs, selector.view(view), duration)
+        t.handle(selector.data_mut(data), inputs, selector.view(view), duration)
             .map_continue(|t| Self { t, selector })
     }
 
@@ -336,29 +336,29 @@ pub struct Repeat<T, F> {
     t: T,
     f: F,
 }
-impl<T, U, F> TickRoutine for Repeat<T, F>
+impl<T, U, F> EventRoutine for Repeat<T, F>
 where
-    T: TickRoutine,
-    F: FnMut(T::Return) -> Tick<U, T>,
+    T: EventRoutine,
+    F: FnMut(T::Return) -> Handled<U, T>,
 {
     type Return = U;
     type Data = T::Data;
     type View = T::View;
 
-    fn tick<I>(
+    fn handle<I>(
         self,
         data: &mut Self::Data,
         inputs: I,
         view: &Self::View,
         duration: Duration,
-    ) -> Tick<Self::Return, Self>
+    ) -> Handled<Self::Return, Self>
     where
         I: Iterator<Item = Input>,
     {
         let Self { t, mut f } = self;
-        match t.tick(data, inputs, view, duration) {
-            Tick::Continue(t) => Tick::Continue(Self { t, f }),
-            Tick::Return(r) => f(r).map_continue(|t| Self { t, f }),
+        match t.handle(data, inputs, view, duration) {
+            Handled::Continue(t) => Handled::Continue(Self { t, f }),
+            Handled::Return(r) => f(r).map_continue(|t| Self { t, f }),
         }
     }
 
