@@ -243,16 +243,18 @@ impl App {
     {
         match self.state {
             AppState::Menu => {
-                if let Some(menu_output) = self.main_menu.tick_with_mouse(inputs, &view.border_views.menu.view) {
-                    match menu_output {
-                        MenuOutput::Quit => return Some(ControlFlow::Exit),
-                        MenuOutput::Cancel => (),
-                        MenuOutput::Finalise(selection) => match selection {
-                            MainMenuChoice::Quit => return Some(ControlFlow::Exit),
-                            MainMenuChoice::Play => {
-                                self.state = AppState::Game;
-                            }
-                        },
+                for input in inputs {
+                    if let Some(menu_output) = self.main_menu.handle_input(&view.border_views.menu.view, input) {
+                        match menu_output {
+                            MenuOutput::Quit => return Some(ControlFlow::Exit),
+                            MenuOutput::Cancel => (),
+                            MenuOutput::Finalise(selection) => match selection {
+                                MainMenuChoice::Quit => return Some(ControlFlow::Exit),
+                                MainMenuChoice::Play => {
+                                    self.state = AppState::Game;
+                                }
+                            },
+                        }
                     }
                 }
             }

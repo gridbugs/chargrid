@@ -1,7 +1,8 @@
 extern crate prototty;
 extern crate prototty_unix;
 
-use prototty::*;
+use prototty::render::*;
+use prototty::text::*;
 use prototty_unix::*;
 
 struct BoldTestView;
@@ -21,7 +22,7 @@ fn main() {
     context.render(&mut BoldTestView, ()).unwrap();
     loop {
         match context.wait_input().unwrap() {
-            prototty_inputs::ETX => break,
+            prototty::input::inputs::ETX => break,
             _ => (),
         }
     }

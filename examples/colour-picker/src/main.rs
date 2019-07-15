@@ -199,7 +199,7 @@ pub mod app {
     }
 }
 
-use p::event_routine::EventRoutine;
+use p::event_routine::{event, EventRoutine};
 use p::render::*;
 use prototty as p;
 use prototty_glutin as pg;
@@ -220,13 +220,29 @@ fn main() {
     let mut event_routine = app::test();
     let mut app_data = app::AppData::new();
     let mut app_view = app::AppView::new();
-    let mut input_buffer = Vec::with_capacity(64);
     let mut frame_instant = Instant::now();
     loop {
         let duration = frame_instant.elapsed();
         frame_instant = Instant::now();
-        context.buffer_input(&mut input_buffer);
-        event_routine = match event_routine.handle(&mut app_data, input_buffer.drain(..), &app_view, duration) {
+        event_routine = {
+            let mut maybe_event_routine = Some(event_routine);
+            context.poll_input(|input| {
+                maybe_event_routine = if let Some(event_routine) = maybe_event_routine.take() {
+                    match event_routine.handle_event(&mut app_data, &app_view, event::Input(input)) {
+                        p::event_routine::Handled::Continue(event_routine) => Some(event_routine),
+                        p::event_routine::Handled::Return(app::Return::Quit) => None,
+                    }
+                } else {
+                    None
+                };
+            });
+            if let Some(event_routine) = maybe_event_routine {
+                event_routine
+            } else {
+                break;
+            }
+        };
+        event_routine = match event_routine.handle_event(&mut app_data, &app_view, event::Frame(duration)) {
             p::event_routine::Handled::Continue(event_routine) => event_routine,
             p::event_routine::Handled::Return(app::Return::Quit) => break,
         };

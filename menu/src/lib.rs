@@ -72,60 +72,38 @@ impl<T: Clone> MenuInstance<T> {
         self.menu[self.selected_index].clone()
     }
 
-    pub fn tick<I>(&mut self, inputs: I) -> Option<MenuOutput<T>>
+    pub fn handle_input<M>(&mut self, view: &M, input: Input) -> Option<MenuOutput<T>>
     where
-        I: IntoIterator<Item = Input>,
-    {
-        for input in inputs {
-            match input {
-                inputs::ETX => return Some(MenuOutput::Quit),
-                inputs::ESCAPE => return Some(MenuOutput::Cancel),
-                inputs::RETURN => {
-                    return Some(MenuOutput::Finalise(self.selected()));
-                }
-                Input::Up => self.up(),
-                Input::Down => self.down(),
-                _ => (),
-            }
-        }
-        None
-    }
-
-    pub fn tick_with_mouse<I, M>(&mut self, inputs: I, view: &M) -> Option<MenuOutput<T>>
-    where
-        I: IntoIterator<Item = Input>,
         M: MenuIndexFromScreenCoord,
     {
-        for input in inputs {
-            match input {
-                inputs::ETX => return Some(MenuOutput::Quit),
-                inputs::ESCAPE => return Some(MenuOutput::Cancel),
-                inputs::RETURN => {
+        match input {
+            inputs::ETX => return Some(MenuOutput::Quit),
+            inputs::ESCAPE => return Some(MenuOutput::Cancel),
+            inputs::RETURN => {
+                return Some(MenuOutput::Finalise(self.selected()));
+            }
+            Input::Up
+            | Input::MouseScroll {
+                direction: ScrollDirection::Up,
+                ..
+            } => self.up(),
+            Input::Down
+            | Input::MouseScroll {
+                direction: ScrollDirection::Down,
+                ..
+            } => self.down(),
+            Input::MouseMove { coord, .. } => {
+                if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
+                    self.set_index(index);
+                }
+            }
+            Input::MousePress { coord, .. } => {
+                if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
+                    self.set_index(index);
                     return Some(MenuOutput::Finalise(self.selected()));
                 }
-                Input::Up
-                | Input::MouseScroll {
-                    direction: ScrollDirection::Up,
-                    ..
-                } => self.up(),
-                Input::Down
-                | Input::MouseScroll {
-                    direction: ScrollDirection::Down,
-                    ..
-                } => self.down(),
-                Input::MouseMove { coord, .. } => {
-                    if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
-                        self.set_index(index);
-                    }
-                }
-                Input::MousePress { coord, .. } => {
-                    if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
-                        self.set_index(index);
-                        return Some(MenuOutput::Finalise(self.selected()));
-                    }
-                }
-                _ => (),
             }
+            _ => (),
         }
         None
     }
