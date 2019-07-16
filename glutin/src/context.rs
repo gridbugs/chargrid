@@ -4,17 +4,18 @@ use gfx_glyph;
 use gfx_window_glutin;
 use glutin;
 
+use background::*;
+use formats::*;
 use gfx::Device;
 use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
 use glutin::dpi::LogicalSize;
 use glutin::Event;
-
-use background::*;
-use formats::*;
 use input::*;
+use prototty_event_routine::{event, EventRoutine, Handled};
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
+use std::time::Instant;
 
 type Resources = gfx_device_gl::Resources;
 
@@ -425,6 +426,41 @@ impl<'a> Context<'a> {
     }
     pub fn default_context(&self) -> ViewContextDefault {
         ViewContext::default_with_size(self.size())
+    }
+    pub fn run_event_routine<E>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View)
+    where
+        E: EventRoutine<Return = ()>,
+    {
+        let mut frame_instant = Instant::now();
+        loop {
+            let duration = frame_instant.elapsed();
+            frame_instant = Instant::now();
+            event_routine = {
+                let mut maybe_event_routine = Some(event_routine);
+                self.poll_input(|input| {
+                    maybe_event_routine = if let Some(event_routine) = maybe_event_routine.take() {
+                        match event_routine.handle_event(data, view, event::Input(input)) {
+                            Handled::Continue(event_routine) => Some(event_routine),
+                            Handled::Return(()) => None,
+                        }
+                    } else {
+                        None
+                    };
+                });
+                if let Some(event_routine) = maybe_event_routine {
+                    event_routine
+                } else {
+                    break;
+                }
+            };
+            event_routine = match event_routine.handle_event(data, view, event::Frame(duration)) {
+                Handled::Continue(event_routine) => event_routine,
+                Handled::Return(()) => break,
+            };
+            let mut frame = self.frame();
+            event_routine.view(data, view, frame.default_context(), &mut frame);
+            frame.render().unwrap();
+        }
     }
 }
 

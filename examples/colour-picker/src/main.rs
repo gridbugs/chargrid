@@ -1,10 +1,10 @@
-pub mod app {
+mod app {
     use p::event_routine::EventRoutine;
     use prototty as p;
     use std::marker::PhantomData;
 
     #[derive(Clone, Copy)]
-    pub enum MainMenuChoice {
+    enum MainMenuChoice {
         ChooseColour,
         Quit,
     }
@@ -26,7 +26,7 @@ pub mod app {
     }
 
     #[derive(Clone, Copy)]
-    pub enum ColourMenuChoice {
+    enum ColourMenuChoice {
         Red,
         Green,
         Blue,
@@ -49,16 +49,16 @@ pub mod app {
         }
     }
 
-    fn inner() -> impl p::event_routine::EventRoutine<Return = Option<Return>, Data = AppData, View = AppView> {
+    fn inner() -> impl p::event_routine::EventRoutine<Return = Option<()>, Data = AppData, View = AppView> {
         let main_menu = p::menu::MenuInstanceExtraRoutine::new(SelectMainMenuExtra);
         let colour_menu = p::menu::MenuInstanceRoutine::new().select(SelectColourMenu);
         main_menu.and_then(|menu_output| match menu_output {
-            p::menu::MenuOutput::Quit => p::event_routine::Either::A(p::event_routine::Value::new(Some(Return::Quit))),
+            p::menu::MenuOutput::Quit => p::event_routine::Either::A(p::event_routine::Value::new(Some(()))),
             p::menu::MenuOutput::Cancel => p::event_routine::Either::A(p::event_routine::Value::new(None)),
             p::menu::MenuOutput::Finalise(choice) => match choice {
                 MainMenuChoice::ChooseColour => p::event_routine::Either::B(colour_menu.map_side_effect(
                     |menu_output, data, _view| match menu_output {
-                        p::menu::MenuOutput::Quit => Some(Return::Quit),
+                        p::menu::MenuOutput::Quit => Some(()),
                         p::menu::MenuOutput::Cancel => None,
                         p::menu::MenuOutput::Finalise(choice) => {
                             use ColourMenuChoice::*;
@@ -75,14 +75,14 @@ pub mod app {
                         }
                     },
                 )),
-                MainMenuChoice::Quit => p::event_routine::Either::A(p::event_routine::Value::new(Some(Return::Quit))),
+                MainMenuChoice::Quit => p::event_routine::Either::A(p::event_routine::Value::new(Some(()))),
             },
         })
     }
 
-    pub fn test() -> impl p::event_routine::EventRoutine<Return = Return, Data = AppData, View = AppView> {
+    pub fn test() -> impl p::event_routine::EventRoutine<Return = (), Data = AppData, View = AppView> {
         inner().repeat(|event| match event {
-            Some(Return::Quit) => p::event_routine::Handled::Return(Return::Quit),
+            Some(()) => p::event_routine::Handled::Return(()),
             None => p::event_routine::Handled::Continue(inner()),
         })
     }
@@ -193,17 +193,10 @@ pub mod app {
             Self { main_menu, colour_menu }
         }
     }
-
-    pub enum Return {
-        Quit,
-    }
 }
 
-use p::event_routine::{event, EventRoutine};
-use p::render::*;
 use prototty as p;
 use prototty_glutin as pg;
-use std::time::Instant;
 
 const WINDOW_SIZE_PIXELS: p::render::Size = p::render::Size::new_u16(640, 480);
 
@@ -217,42 +210,7 @@ fn main() {
         .with_cell_dimensions(p::render::Size::new_u16(16, 16))
         .build()
         .unwrap();
-    let mut event_routine = app::test();
     let mut app_data = app::AppData::new();
     let mut app_view = app::AppView::new();
-    let mut frame_instant = Instant::now();
-    loop {
-        let duration = frame_instant.elapsed();
-        frame_instant = Instant::now();
-        event_routine = {
-            let mut maybe_event_routine = Some(event_routine);
-            context.poll_input(|input| {
-                maybe_event_routine = if let Some(event_routine) = maybe_event_routine.take() {
-                    match event_routine.handle_event(&mut app_data, &app_view, event::Input(input)) {
-                        p::event_routine::Handled::Continue(event_routine) => Some(event_routine),
-                        p::event_routine::Handled::Return(app::Return::Quit) => None,
-                    }
-                } else {
-                    None
-                };
-            });
-            if let Some(event_routine) = maybe_event_routine {
-                event_routine
-            } else {
-                break;
-            }
-        };
-        event_routine = match event_routine.handle_event(&mut app_data, &app_view, event::Frame(duration)) {
-            p::event_routine::Handled::Continue(event_routine) => event_routine,
-            p::event_routine::Handled::Return(app::Return::Quit) => break,
-        };
-        let mut frame = context.frame();
-        event_routine.view(
-            &app_data,
-            &mut app_view,
-            frame.default_context().add_offset(p::render::Coord::new(1, 1)),
-            &mut frame,
-        );
-        frame.render().unwrap();
-    }
+    context.run_event_routine(app::test(), &mut app_data, &mut app_view);
 }

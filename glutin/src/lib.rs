@@ -4,6 +4,7 @@ extern crate gfx_device_gl;
 extern crate gfx_glyph;
 extern crate gfx_window_glutin;
 extern crate glutin;
+pub extern crate prototty_event_routine;
 #[cfg(feature = "storage")]
 extern crate prototty_file_storage;
 extern crate prototty_grid;
