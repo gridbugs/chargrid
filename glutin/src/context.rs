@@ -427,9 +427,9 @@ impl<'a> Context<'a> {
     pub fn default_context(&self) -> ViewContextDefault {
         ViewContext::default_with_size(self.size())
     }
-    pub fn run_event_routine<E>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View)
+    pub fn run_event_routine<E>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> E::Return
     where
-        E: EventRoutine<Return = ()>,
+        E: EventRoutine,
     {
         let mut frame_instant = Instant::now();
         loop {
@@ -437,11 +437,15 @@ impl<'a> Context<'a> {
             frame_instant = Instant::now();
             event_routine = {
                 let mut maybe_event_routine = Some(event_routine);
+                let mut maybe_return = None;
                 self.poll_input(|input| {
                     maybe_event_routine = if let Some(event_routine) = maybe_event_routine.take() {
                         match event_routine.handle_event(data, view, event::Input(input)) {
                             Handled::Continue(event_routine) => Some(event_routine),
-                            Handled::Return(()) => None,
+                            Handled::Return(r) => {
+                                maybe_return = Some(r);
+                                None
+                            }
                         }
                     } else {
                         None
@@ -450,12 +454,12 @@ impl<'a> Context<'a> {
                 if let Some(event_routine) = maybe_event_routine {
                     event_routine
                 } else {
-                    break;
+                    return maybe_return.expect("event routine terminated without value");
                 }
             };
             event_routine = match event_routine.handle_event(data, view, event::Frame(duration)) {
                 Handled::Continue(event_routine) => event_routine,
-                Handled::Return(()) => break,
+                Handled::Return(r) => return r,
             };
             let mut frame = self.frame();
             event_routine.view(data, view, frame.default_context(), &mut frame);
