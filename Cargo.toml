@@ -46,5 +46,6 @@ members = [
     "examples/pager/glutin",
     "examples/pager/wasm",
 
-    "examples/colour-picker",
+    "examples/colour_picker/prototty",
+    "examples/colour_picker/glutin",
 ]
