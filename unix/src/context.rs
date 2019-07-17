@@ -1,9 +1,11 @@
 pub use ansi_colour::Colour as AnsiColour;
 use error::*;
+use prototty_event_routine::{event, EventRoutine, Handled};
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
-use std::time::Duration;
+use std::thread;
+use std::time::{Duration, Instant};
 use terminal::*;
 
 const DEFAULT_FG: AnsiColour = AnsiColour::from_rgb24(grey24(255));
@@ -136,5 +138,43 @@ impl<C: ColourConfig> Context<C> {
 
     pub fn size(&self) -> Result<Size> {
         self.terminal.size()
+    }
+
+    pub fn into_runner(self, frame_duration: Duration) -> EventRoutineRunner<C> {
+        EventRoutineRunner {
+            context: self,
+            frame_duration,
+        }
+    }
+}
+
+pub struct EventRoutineRunner<C: ColourConfig> {
+    context: Context<C>,
+    frame_duration: Duration,
+}
+
+impl<C: ColourConfig> EventRoutineRunner<C> {
+    pub fn run<E>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> E::Return
+    where
+        E: EventRoutine,
+    {
+        let mut frame_instant = Instant::now();
+        loop {
+            let duration = frame_instant.elapsed();
+            frame_instant = Instant::now();
+            for input in self.context.drain_input().unwrap() {
+                event_routine = match event_routine.handle_event(data, view, event::Input(input)) {
+                    Handled::Continue(event_routine) => event_routine,
+                    Handled::Return(r) => return r,
+                }
+            }
+            event_routine = match event_routine.handle_event(data, view, event::Frame(duration)) {
+                Handled::Continue(event_routine) => event_routine,
+                Handled::Return(r) => return r,
+            };
+            if let Some(time_until_next_frame) = self.frame_duration.checked_sub(frame_instant.elapsed()) {
+                thread::sleep(time_until_next_frame);
+            }
+        }
     }
 }

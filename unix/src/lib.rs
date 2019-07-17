@@ -4,6 +4,7 @@ extern crate libc;
 extern crate prototty_file_storage;
 extern crate term;
 
+pub extern crate prototty_event_routine;
 extern crate prototty_grid;
 pub extern crate prototty_input;
 pub extern crate prototty_render;
