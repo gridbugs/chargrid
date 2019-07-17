@@ -119,6 +119,10 @@ impl<C: ColourConfig> Context<C> {
         self.terminal.wait_input_timeout(timeout)
     }
 
+    fn render_internal(&mut self) -> Result<()> {
+        self.terminal.draw_frame(&mut self.frame)
+    }
+
     pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) -> Result<()> {
         let size = self.size()?;
         self.render_at(view, data, ViewContext::default_with_size(size))
@@ -133,7 +137,7 @@ impl<C: ColourConfig> Context<C> {
         self.resize_if_necessary()?;
         self.frame.clear();
         view.view(data, context, &mut self.frame);
-        self.terminal.draw_frame(&mut self.frame)
+        self.render_internal()
     }
 
     pub fn size(&self) -> Result<Size> {
@@ -146,6 +150,34 @@ impl<C: ColourConfig> Context<C> {
             frame_duration,
         }
     }
+
+    pub fn frame(&mut self) -> Result<UnixFrame<C>> {
+        self.resize_if_necessary()?;
+        self.frame.clear();
+        Ok(UnixFrame { context: self })
+    }
+}
+
+pub struct UnixFrame<'a, C: ColourConfig> {
+    context: &'a mut Context<C>,
+}
+
+impl<'a, C: ColourConfig> UnixFrame<'a, C> {
+    pub fn render(self) -> Result<()> {
+        self.context.render_internal()
+    }
+}
+
+impl<'a, C: ColourConfig> Frame for UnixFrame<'a, C> {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+        self.context
+            .frame
+            .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+    }
+
+    fn size(&self) -> Size {
+        self.context.frame.size()
+    }
 }
 
 pub struct EventRoutineRunner<C: ColourConfig> {
@@ -154,7 +186,7 @@ pub struct EventRoutineRunner<C: ColourConfig> {
 }
 
 impl<C: ColourConfig> EventRoutineRunner<C> {
-    pub fn run<E>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> E::Return
+    pub fn run<E>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> Result<E::Return>
     where
         E: EventRoutine,
     {
@@ -162,16 +194,19 @@ impl<C: ColourConfig> EventRoutineRunner<C> {
         loop {
             let duration = frame_instant.elapsed();
             frame_instant = Instant::now();
-            for input in self.context.drain_input().unwrap() {
+            for input in self.context.drain_input()? {
                 event_routine = match event_routine.handle_event(data, view, event::Input(input)) {
                     Handled::Continue(event_routine) => event_routine,
-                    Handled::Return(r) => return r,
+                    Handled::Return(r) => return Ok(r),
                 }
             }
             event_routine = match event_routine.handle_event(data, view, event::Frame(duration)) {
                 Handled::Continue(event_routine) => event_routine,
-                Handled::Return(r) => return r,
+                Handled::Return(r) => return Ok(r),
             };
+            let mut frame = self.context.frame()?;
+            event_routine.view(data, view, frame.default_context(), &mut frame);
+            frame.render()?;
             if let Some(time_until_next_frame) = self.frame_duration.checked_sub(frame_instant.elapsed()) {
                 thread::sleep(time_until_next_frame);
             }

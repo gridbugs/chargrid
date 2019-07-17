@@ -14,5 +14,7 @@ fn main() {
         .with_cell_dimensions(p::render::Size::new_u16(16, 16))
         .build()
         .unwrap();
-    context.run_event_routine(app::test(), &mut app::AppData::new(), &mut app::AppView::new());
+    context
+        .run_event_routine(app::test(), &mut app::AppData::new(), &mut app::AppView::new())
+        .unwrap();
 }

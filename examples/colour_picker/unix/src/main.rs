@@ -4,5 +4,7 @@ use std::time::Duration;
 
 fn main() {
     let mut runner = pu::Context::new().unwrap().into_runner(Duration::from_millis(16));
-    runner.run(app::test(), &mut app::AppData::new(), &mut app::AppView::new());
+    runner
+        .run(app::test(), &mut app::AppData::new(), &mut app::AppView::new())
+        .unwrap();
 }

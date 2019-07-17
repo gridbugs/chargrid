@@ -427,7 +427,12 @@ impl<'a> Context<'a> {
     pub fn default_context(&self) -> ViewContextDefault {
         ViewContext::default_with_size(self.size())
     }
-    pub fn run_event_routine<E>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> E::Return
+    pub fn run_event_routine<E>(
+        &mut self,
+        mut event_routine: E,
+        data: &mut E::Data,
+        view: &mut E::View,
+    ) -> Result<E::Return>
     where
         E: EventRoutine,
     {
@@ -454,16 +459,16 @@ impl<'a> Context<'a> {
                 if let Some(event_routine) = maybe_event_routine {
                     event_routine
                 } else {
-                    return maybe_return.expect("event routine terminated without value");
+                    return Ok(maybe_return.expect("event routine terminated without value"));
                 }
             };
             event_routine = match event_routine.handle_event(data, view, event::Frame(duration)) {
                 Handled::Continue(event_routine) => event_routine,
-                Handled::Return(r) => return r,
+                Handled::Return(r) => return Ok(r),
             };
             let mut frame = self.frame();
             event_routine.view(data, view, frame.default_context(), &mut frame);
-            frame.render().unwrap();
+            frame.render()?;
         }
     }
 }
