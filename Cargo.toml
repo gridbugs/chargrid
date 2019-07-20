@@ -10,6 +10,7 @@ members = [
     "glutin",
     "unix",
     "wasm",
+    "wasm2",
     "storage",
     "input",
     "file-storage",
@@ -33,6 +34,7 @@ members = [
     "examples/tetris/glutin",
     "examples/tetris/unix",
     "examples/tetris/wasm",
+    "examples/tetris/wasm2",
 
     "examples/optional_features",
 
