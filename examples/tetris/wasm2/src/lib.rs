@@ -39,13 +39,13 @@ pub fn run() -> Result<(), JsValue> {
     let mut rng = IsaacRng::from_entropy();
     let app = App::new(&mut rng);
     let app_view = AppView::new();
-    let mut web_app = WebApp {
+    let web_app = WebApp {
         rng,
         app_view,
         app,
         input_buffer: Vec::new(),
     };
-    let mut context = Context::new(Size::new(20, 20), "content");
-    run_event_handler(&mut web_app, &mut context);
+    let context = Context::new(Size::new(20, 20), "content");
+    run_event_handler(web_app, context);
     Ok(())
 }

@@ -31,4 +31,5 @@ features = [
   'WheelEvent',
   'Node',
   'HtmlHeadElement',
+  'Performance',
 ]

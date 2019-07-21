@@ -8,12 +8,25 @@ extern crate web_sys;
 
 use grid_2d::Coord;
 pub use grid_2d::Size;
+use js_sys::Function;
 use prototty_input::Input;
-use prototty_render::{Rgb24, View};
+use prototty_render::{Rgb24, View, ViewContext, ViewContextDefault, ViewTransformRgb24};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, KeyboardEvent, MouseEvent, Node, WheelEvent};
+use web_sys::{HtmlElement, KeyboardEvent, MouseEvent, Node, Performance, WheelEvent};
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+}
 
 struct WebColourConversion;
 impl prototty_grid::ColourConversion for WebColourConversion {
@@ -56,7 +69,6 @@ impl Context {
                 .unwrap()
                 .dyn_into::<HtmlElement>()
                 .unwrap();
-            element.set_inner_text(".");
             ElementCell { element }
         });
         for y in 0..size.height() {
@@ -90,7 +102,31 @@ impl Context {
         }
     }
 
-    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) {}
+    pub fn default_context(&self) -> ViewContextDefault {
+        ViewContext::default_with_size(self.prototty_grid.size())
+    }
+
+    fn render_internal(&mut self) {
+        console_log!("hi");
+        for (prototty_cell, element_cell) in self.prototty_grid.iter().zip(self.element_grid.iter_mut()) {
+            let s = match prototty_cell.character {
+                ' ' => "&nbsp;".to_string(),
+                other => other.to_string(),
+            };
+            element_cell.element.set_inner_html(&s);
+        }
+    }
+
+    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(&mut self, view: &mut V, data: T, context: ViewContext<R>) {
+        self.prototty_grid.clear();
+        view.view(data, context, &mut self.prototty_grid);
+        self.render_internal();
+    }
+
+    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) {
+        let context = self.default_context();
+        self.render_at(view, data, context);
+    }
 }
 
 pub trait EventHandler {
@@ -98,4 +134,26 @@ pub trait EventHandler {
     fn on_frame(&mut self, since_last_frame: Duration, context: &mut Context);
 }
 
-pub fn run_event_handler<E: EventHandler>(event_handler: &mut E, context: &mut Context) {}
+pub fn run_event_handler<E: EventHandler + 'static>(mut event_handler: E, mut context: Context) {
+    let window = web_sys::window().unwrap();
+    let performance = window.performance().unwrap();
+    let f: Rc<RefCell<Option<Closure<_>>>> = Rc::new(RefCell::new(None));
+    let g = f.clone();
+    let mut last_frame_time_stamp = performance.now();
+    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        let frame_time_stamp = performance.now();
+        let since_last_frame = frame_time_stamp - last_frame_time_stamp;
+        last_frame_time_stamp = frame_time_stamp;
+        event_handler.on_frame(Duration::from_millis(since_last_frame as u64), &mut context);
+        window
+            .request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+            .unwrap();
+    }) as Box<dyn FnMut()>));
+    g.borrow()
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .unchecked_ref::<Function>()
+        .call0(&JsValue::NULL)
+        .unwrap();
+}
