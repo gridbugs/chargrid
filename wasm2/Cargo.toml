@@ -32,4 +32,5 @@ features = [
   'Node',
   'HtmlHeadElement',
   'Performance',
+  'CssStyleDeclaration',
 ]

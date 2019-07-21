@@ -156,7 +156,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
         context: ViewContext<R>,
         frame: &mut F,
     ) -> u32 {
-        let base_style = Style::new().with_bold(true);
+        let base_style = Style::new().with_bold(true).with_underline(true);
         let rich_text = match choice {
             MainMenuChoice::Play => vec![
                 ("> ", base_style.with_foreground(colours::RED)),

@@ -107,13 +107,29 @@ impl Context {
     }
 
     fn render_internal(&mut self) {
-        console_log!("hi");
         for (prototty_cell, element_cell) in self.prototty_grid.iter().zip(self.element_grid.iter_mut()) {
-            let s = match prototty_cell.character {
+            let string = match prototty_cell.character {
                 ' ' => "&nbsp;".to_string(),
                 other => other.to_string(),
             };
-            element_cell.element.set_inner_html(&s);
+            element_cell.element.set_inner_html(&string);
+            let element_style = element_cell.element.style();
+            element_style
+                .set_property("color", &prototty_cell.foreground_colour)
+                .unwrap();
+            element_style
+                .set_property("background-color", &prototty_cell.background_colour)
+                .unwrap();
+            if prototty_cell.underline {
+                element_style.set_property("text-decoration", "underline").unwrap();
+            } else {
+                element_style.remove_property("text-decoration").unwrap();
+            }
+            if prototty_cell.bold {
+                element_style.set_property("font-weight", "bold").unwrap();
+            } else {
+                element_style.remove_property("font-weight").unwrap();
+            }
         }
     }
 

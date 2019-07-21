@@ -15,8 +15,8 @@ fn main() {
         .with_max_window_dimensions(size)
         .with_font_scale(16.0, 16.0)
         .with_cell_dimensions(Size::new(16, 16))
-        .with_underline_position(14)
-        .with_underline_width(2)
+        .with_underline_position(16)
+        .with_underline_width(4)
         .with_max_grid_size(Size::new(45, 25))
         .build()
         .unwrap();
