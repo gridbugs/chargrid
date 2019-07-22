@@ -40,3 +40,8 @@ pushd $DIR/examples/pager/wasm
 npm install
 npm run build -- --mode development
 popd
+
+pushd $DIR/examples/colour_picker/wasm
+npm install
+npm run build -- --mode development
+popd
