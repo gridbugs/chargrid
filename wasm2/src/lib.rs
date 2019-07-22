@@ -11,11 +11,13 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
-use prototty_input::{Input, MouseButton, ScrollDirection};
+use prototty_grid::ColourConversion;
+pub use prototty_input::Input;
+use prototty_input::{MouseButton, ScrollDirection};
 use prototty_render::{Rgb24, View, ViewContext, ViewContextDefault, ViewTransformRgb24};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::time::Duration;
+pub use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlElement, KeyboardEvent, MouseEvent, Node, WheelEvent};
@@ -33,23 +35,50 @@ macro_rules! console_log {
 
 struct WebColourConversion;
 impl prototty_grid::ColourConversion for WebColourConversion {
-    type Colour = String;
-    fn convert_foreground_rgb24(&mut self, Rgb24 { r, g, b }: Rgb24) -> Self::Colour {
-        format!("rgb({},{},{})", r, g, b)
+    type Colour = Rgb24;
+    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+        rgb24
     }
-    fn convert_background_rgb24(&mut self, Rgb24 { r, g, b }: Rgb24) -> Self::Colour {
-        format!("rgb({},{},{})", r, g, b)
+    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+        rgb24
     }
     fn default_foreground(&mut self) -> Self::Colour {
-        "rgb(255,255,255)".to_string()
+        Rgb24::new(255, 255, 255)
     }
     fn default_background(&mut self) -> Self::Colour {
-        "rgb(0,0,0)".to_string()
+        Rgb24::new(0, 0, 0)
     }
+}
+
+fn rgb24_to_web_colour(Rgb24 { r, g, b }: Rgb24) -> String {
+    format!("rgb({},{},{})", r, g, b)
 }
 
 struct ElementCell {
     element: HtmlElement,
+    character: char,
+    bold: bool,
+    underline: bool,
+    foreground_colour: Rgb24,
+    background_colour: Rgb24,
+}
+
+impl ElementCell {
+    fn with_element(element: HtmlElement) -> Self {
+        element.set_inner_html("&nbsp;");
+        let element_style = element.style();
+        element_style.set_property("color", "rgb(255,255,255)").unwrap();
+        element_style.set_property("background-color", "rgb(0,0,0)").unwrap();
+        element_style.set_property("display", "inline-block").unwrap();
+        Self {
+            element,
+            character: ' ',
+            bold: false,
+            underline: false,
+            foreground_colour: WebColourConversion.default_foreground(),
+            background_colour: WebColourConversion.default_background(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -105,8 +134,7 @@ impl Context {
                 .unwrap()
                 .dyn_into::<HtmlElement>()
                 .unwrap();
-            element.set_inner_html("&nbsp;");
-            ElementCell { element }
+            ElementCell::with_element(element)
         });
         for y in 0..size.height() {
             for x in 0..size.width() {
@@ -119,20 +147,6 @@ impl Context {
                 .unwrap();
         }
         let prototty_grid = prototty_grid::Grid::new(size, WebColourConversion);
-        let style_text = format!(
-            "#{} {{
-                font-family: monospace;
-                font-size: 24px;
-            }}",
-            container
-        );
-        let style_element = document
-            .create_element("style")
-            .unwrap()
-            .dyn_into::<HtmlElement>()
-            .unwrap();
-        style_element.set_inner_text(&style_text);
-        document.head().unwrap().append_child(&style_element).unwrap();
         Self {
             element_grid,
             prototty_grid,
@@ -146,27 +160,45 @@ impl Context {
 
     fn render_internal(&mut self) {
         for (prototty_cell, element_cell) in self.prototty_grid.iter().zip(self.element_grid.iter_mut()) {
-            let string = match prototty_cell.character {
-                ' ' => "&nbsp;".to_string(),
-                other => other.to_string(),
-            };
-            element_cell.element.set_inner_html(&string);
-            let element_style = element_cell.element.style();
-            element_style
-                .set_property("color", &prototty_cell.foreground_colour)
-                .unwrap();
-            element_style
-                .set_property("background-color", &prototty_cell.background_colour)
-                .unwrap();
-            if prototty_cell.underline {
-                element_style.set_property("text-decoration", "underline").unwrap();
-            } else {
-                element_style.remove_property("text-decoration").unwrap();
+            if element_cell.character != prototty_cell.character {
+                element_cell.character = prototty_cell.character;
+                let string = match prototty_cell.character {
+                    ' ' => "&nbsp;".to_string(),
+                    other => other.to_string(),
+                };
+                element_cell.element.set_inner_html(&string);
             }
-            if prototty_cell.bold {
-                element_style.set_property("font-weight", "bold").unwrap();
-            } else {
-                element_style.remove_property("font-weight").unwrap();
+            let element_style = element_cell.element.style();
+            if element_cell.foreground_colour != prototty_cell.foreground_colour {
+                element_cell.foreground_colour = prototty_cell.foreground_colour;
+                element_style
+                    .set_property("color", &rgb24_to_web_colour(prototty_cell.foreground_colour))
+                    .unwrap();
+            }
+            if element_cell.background_colour != prototty_cell.background_colour {
+                element_cell.background_colour = prototty_cell.background_colour;
+                element_style
+                    .set_property(
+                        "background-color",
+                        &rgb24_to_web_colour(prototty_cell.background_colour),
+                    )
+                    .unwrap();
+            }
+            if element_cell.underline != prototty_cell.underline {
+                element_cell.underline = prototty_cell.underline;
+                if prototty_cell.underline {
+                    element_style.set_property("text-decoration", "underline").unwrap();
+                } else {
+                    element_style.remove_property("text-decoration").unwrap();
+                }
+            }
+            if element_cell.bold != prototty_cell.bold {
+                element_cell.bold = prototty_cell.bold;
+                if prototty_cell.bold {
+                    element_style.set_property("font-weight", "bold").unwrap();
+                } else {
+                    element_style.remove_property("font-weight").unwrap();
+                }
             }
         }
     }
