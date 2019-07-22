@@ -42,6 +42,7 @@ members = [
     "examples/drag/unix",
     "examples/drag/glutin",
     "examples/drag/wasm",
+    "examples/drag/wasm2",
 
     "examples/pager/prototty",
     "examples/pager/unix",

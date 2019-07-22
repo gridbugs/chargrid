@@ -4,11 +4,9 @@ extern crate rand_isaac;
 extern crate tetris_prototty;
 extern crate wasm_bindgen;
 
-use prototty_wasm2::prototty_input::Input;
 use prototty_wasm2::*;
 use rand::SeedableRng;
 use rand_isaac::IsaacRng;
-use std::time::Duration;
 use tetris_prototty::*;
 use wasm_bindgen::prelude::*;
 
