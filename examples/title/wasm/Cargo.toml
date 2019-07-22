@@ -1,12 +1,12 @@
 [package]
 name = "title_wasm"
 version = "0.1.0"
-authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-prototty_wasm_render = { path = "../../../wasm-render" }
+prototty_wasm = { path = "../../../wasm" }
 prototty_title = { path = "../prototty" }
 wasm-bindgen = "0.2"

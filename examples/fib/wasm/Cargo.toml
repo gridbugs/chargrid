@@ -1,5 +1,5 @@
 [package]
-name = "fib_wasm_old"
+name = "fib_wasm"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
@@ -7,6 +7,6 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
-prototty_wasm_storage = { path = "../../../wasm-storage" }
 fib = { path = "../fib" }
+prototty_wasm = { path = "../../../wasm", features = ["storage"] }
 wasm-bindgen = "0.2"

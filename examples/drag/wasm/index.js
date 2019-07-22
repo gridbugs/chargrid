@@ -1,2 +1,2 @@
-import('./pkg/drag_wasm2').catch(console.error)
+import('./pkg/drag_wasm').catch(console.error)
 document.oncontextmenu = () => false;

@@ -1,1 +1,1 @@
-import('./pkg/pager_wasm2').catch(console.error)
+import('./pkg/pager_wasm').catch(console.error)

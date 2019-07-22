@@ -9,16 +9,12 @@ members = [
     "grid",
     "glutin",
     "unix",
-    "wasm-old",
     "wasm",
     "storage",
     "input",
     "file-storage",
     "event-routine",
     "monolithic-storage",
-    "wasm-input",
-    "wasm-render",
-    "wasm-storage",
 
     "examples/title/prototty",
     "examples/title/glutin",
@@ -27,7 +23,7 @@ members = [
 
     "examples/fib/fib",
     "examples/fib/file",
-    "examples/fib/wasm-old",
+    "examples/fib/wasm",
 
     "examples/tetris/tetris",
     "examples/tetris/prototty",

@@ -1,6 +1,3 @@
-extern crate prototty_monolithic_storage;
-extern crate serde;
-extern crate wasm_bindgen;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 

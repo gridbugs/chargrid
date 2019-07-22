@@ -20,9 +20,6 @@ publish() {
     publish_single grid
     publish_single unix
     publish_single glutin
-    publish_single wasm-input
-    publish_single wasm-render
-    publish_single wasm-storage
     publish_single wasm
 }
 

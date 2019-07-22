@@ -1,1 +1,1 @@
-import('./pkg/tetris_wasm2').catch(console.error)
+import('./pkg/tetris_wasm').catch(console.error)
