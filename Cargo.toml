@@ -48,6 +48,7 @@ members = [
     "examples/pager/unix",
     "examples/pager/glutin",
     "examples/pager/wasm",
+    "examples/pager/wasm2",
 
     "examples/colour_picker/prototty",
     "examples/colour_picker/glutin",

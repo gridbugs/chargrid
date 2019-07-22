@@ -56,7 +56,7 @@ impl AppState {
                 },
                 ..BorderStyle::default_with_title("Pager")
             },
-            bound: Size::new(40, 40),
+            bound: Size::new(40, 30),
             background: rgb24(80, 80, 0),
             alignment: Alignment::centre(),
             scrollbar: VerticalScrollbar::default(),
