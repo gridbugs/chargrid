@@ -1,5 +1,6 @@
 extern crate grid_2d;
 extern crate js_sys;
+pub extern crate prototty_event_routine;
 extern crate prototty_grid;
 pub extern crate prototty_input;
 #[cfg(feature = "storage")]

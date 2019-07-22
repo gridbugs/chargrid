@@ -17,6 +17,7 @@ storage = ["prototty_storage", "prototty_monolithic_storage", "serde"]
 prototty_input = { path = "../input", version = "0.27" }
 prototty_render = { path = "../render", version = "0.27" }
 prototty_grid = { path = "../grid", version = "0.27" }
+prototty_event_routine = { path = "../event-routine", version = "0.27" }
 prototty_storage = { path = "../storage", version = "0.27", optional = true }
 prototty_monolithic_storage = { path = "../monolithic-storage", version = "0.27", optional = true }
 serde = { version = "1.0", optional = true }
