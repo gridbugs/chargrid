@@ -6,26 +6,30 @@ use drag_prototty::*;
 use prototty_wasm::*;
 use wasm_bindgen::prelude::*;
 
-pub use prototty_wasm::InputBuffer;
-
-#[wasm_bindgen]
-pub struct WebApp {
+struct WebApp {
     app_view: AppView,
     app: App,
-    js_grid: JsGrid,
+    input_buffer: Vec<Input>,
 }
 
-#[wasm_bindgen]
-impl WebApp {
-    #[wasm_bindgen(constructor)]
-    pub fn new(js_grid: JsGrid) -> Self {
-        let app = App::default();
-        let app_view = AppView;
-        Self { app_view, app, js_grid }
+impl EventHandler for WebApp {
+    fn on_input(&mut self, input: Input, _context: &mut Context) {
+        self.input_buffer.push(input);
     }
+    fn on_frame(&mut self, _since_last_frame: Duration, context: &mut Context) {
+        self.app.update(self.input_buffer.drain(..));
+        context.render(&mut self.app_view, &self.app);
+    }
+}
 
-    pub fn tick(&mut self, input_buffer: &InputBuffer) {
-        self.app.update(input_buffer.iter());
-        self.js_grid.render(&mut self.app_view, &self.app);
-    }
+#[wasm_bindgen(start)]
+pub fn run() -> Result<(), JsValue> {
+    let web_app = WebApp {
+        app_view: AppView,
+        app: App::default(),
+        input_buffer: Vec::new(),
+    };
+    let context = Context::new(Size::new(80, 40), "content");
+    run_event_handler(web_app, context);
+    Ok(())
 }

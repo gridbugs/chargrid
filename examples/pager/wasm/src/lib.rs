@@ -6,31 +6,33 @@ use pager_prototty::*;
 use prototty_wasm::*;
 use wasm_bindgen::prelude::*;
 
-pub use prototty_wasm::InputBuffer;
-
-#[wasm_bindgen]
 pub struct WebApp {
     app_view: AppView,
     app_state: AppState,
-    js_grid: JsGrid,
+    input_buffer: Vec<Input>,
 }
 
-#[wasm_bindgen]
-impl WebApp {
-    #[wasm_bindgen(constructor)]
-    pub fn new(js_grid: JsGrid) -> Self {
-        let string = include_str!("../../sample.txt").to_string();
-        let app_state = AppState::new(string);
-        let app_view = AppView::new();
-        Self {
-            app_view,
-            app_state,
-            js_grid,
-        }
+impl EventHandler for WebApp {
+    fn on_input(&mut self, input: Input, _context: &mut Context) {
+        self.input_buffer.push(input);
     }
+    fn on_frame(&mut self, _since_last_frame: Duration, context: &mut Context) {
+        self.app_state.tick(self.input_buffer.drain(..), &self.app_view);
+        context.render(&mut self.app_view, &self.app_state);
+    }
+}
 
-    pub fn tick(&mut self, input_buffer: &InputBuffer) {
-        self.app_state.tick(input_buffer.iter(), &self.app_view);
-        self.js_grid.render(&mut self.app_view, &self.app_state);
-    }
+#[wasm_bindgen(start)]
+pub fn run() -> Result<(), JsValue> {
+    let string = include_str!("../../sample.txt").to_string();
+    let app_state = AppState::new(string);
+    let app_view = AppView::new();
+    let web_app = WebApp {
+        app_view,
+        app_state,
+        input_buffer: Vec::new(),
+    };
+    let context = Context::new(Size::new(80, 40), "content");
+    run_event_handler(web_app, context);
+    Ok(())
 }

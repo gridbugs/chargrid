@@ -9,8 +9,8 @@ members = [
     "grid",
     "glutin",
     "unix",
+    "wasm-old",
     "wasm",
-    "wasm2",
     "storage",
     "input",
     "file-storage",
@@ -27,14 +27,13 @@ members = [
 
     "examples/fib/fib",
     "examples/fib/file",
-    "examples/fib/wasm",
+    "examples/fib/wasm-old",
 
     "examples/tetris/tetris",
     "examples/tetris/prototty",
     "examples/tetris/glutin",
     "examples/tetris/unix",
     "examples/tetris/wasm",
-    "examples/tetris/wasm2",
 
     "examples/optional_features",
 
@@ -42,13 +41,11 @@ members = [
     "examples/drag/unix",
     "examples/drag/glutin",
     "examples/drag/wasm",
-    "examples/drag/wasm2",
 
     "examples/pager/prototty",
     "examples/pager/unix",
     "examples/pager/glutin",
     "examples/pager/wasm",
-    "examples/pager/wasm2",
 
     "examples/colour_picker/prototty",
     "examples/colour_picker/glutin",

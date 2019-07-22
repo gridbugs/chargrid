@@ -1,44 +1,49 @@
 extern crate prototty_wasm;
 extern crate rand;
+extern crate rand_isaac;
 extern crate tetris_prototty;
 extern crate wasm_bindgen;
 
 use prototty_wasm::*;
-use rand::rngs::StdRng;
 use rand::SeedableRng;
-use std::time::Duration;
+use rand_isaac::IsaacRng;
 use tetris_prototty::*;
 use wasm_bindgen::prelude::*;
 
-pub use prototty_wasm::InputBuffer;
-
-#[wasm_bindgen]
-pub struct WebApp {
-    rng: StdRng,
+struct WebApp {
+    rng: IsaacRng,
     app_view: AppView,
     app: App,
-    js_grid: JsGrid,
+    input_buffer: Vec<Input>,
 }
 
-#[wasm_bindgen]
-impl WebApp {
-    #[wasm_bindgen(constructor)]
-    pub fn new(seed: u32, js_grid: JsGrid) -> Self {
-        let mut rng = StdRng::seed_from_u64(seed as u64);
-        let app = App::new(&mut rng);
-        let app_view = AppView::new();
-        Self {
-            rng,
-            app_view,
-            app,
-            js_grid,
-        }
+impl EventHandler for WebApp {
+    fn on_input(&mut self, input: Input, _context: &mut Context) {
+        self.input_buffer.push(input);
     }
+    fn on_frame(&mut self, since_last_frame: Duration, context: &mut Context) {
+        self.app.tick(
+            self.input_buffer.drain(..),
+            since_last_frame,
+            &self.app_view,
+            &mut self.rng,
+        );
+        context.render(&mut self.app_view, &self.app);
+    }
+}
 
-    pub fn tick(&mut self, input_buffer: &InputBuffer, period_ms: f64) {
-        let period = Duration::from_millis(period_ms as u64);
-        self.app
-            .tick(input_buffer.iter(), period, &self.app_view, &mut self.rng);
-        self.js_grid.render(&mut self.app_view, &self.app);
-    }
+#[wasm_bindgen(start)]
+pub fn run() -> Result<(), JsValue> {
+    let mut rng = IsaacRng::from_entropy();
+    let app = App::new(&mut rng);
+    let app_view = AppView::new();
+    let web_app = WebApp {
+        rng,
+        app_view,
+        app,
+        input_buffer: Vec::new(),
+    };
+    let context = Context::new(Size::new(20, 20), "content");
+    run_event_handler(web_app, context);
+    Ok(())
 }
