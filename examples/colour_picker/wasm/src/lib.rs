@@ -8,7 +8,11 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
-    let context = pw::Context::new(pw::Size::new(20, 20), "content");
-    context.run_event_routine_repeating(app::test(), app::AppData::new(), app::AppView::new(), |_| app::test());
+    pw::Context::new(pw::Size::new(20, 20), "content").run_event_routine_repeating(
+        app::test(),
+        app::AppData::new(),
+        app::AppView::new(),
+        |_| app::test(),
+    );
     Ok(())
 }
