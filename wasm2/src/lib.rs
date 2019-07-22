@@ -23,9 +23,10 @@ use web_sys::{Element, HtmlElement, KeyboardEvent, MouseEvent, Node, WheelEvent}
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
+    pub fn log(s: &str);
 }
 
+#[macro_export]
 macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }

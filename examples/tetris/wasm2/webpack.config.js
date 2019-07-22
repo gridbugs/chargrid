@@ -8,7 +8,8 @@ module.exports = (env, argv) => {
     entry: './index.js',
       output: {
         path: path.resolve(__dirname, 'dist'),
-          filename: 'index.js',
+        filename: 'index.js',
+        webassemblyModuleFilename: "app.wasm",
       },
       plugins: [
         new HtmlWebpackPlugin({
