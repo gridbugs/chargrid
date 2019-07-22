@@ -33,4 +33,5 @@ features = [
   'HtmlHeadElement',
   'Performance',
   'CssStyleDeclaration',
+  'DomRect',
 ]
