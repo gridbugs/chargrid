@@ -11,14 +11,14 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
-use prototty_input::{Input, MouseButton};
+use prototty_input::{Input, MouseButton, ScrollDirection};
 use prototty_render::{Rgb24, View, ViewContext, ViewContextDefault, ViewTransformRgb24};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{Element, HtmlElement, KeyboardEvent, MouseEvent, Node, Performance, WheelEvent};
+use web_sys::{Element, HtmlElement, KeyboardEvent, MouseEvent, Node, WheelEvent};
 
 #[wasm_bindgen]
 extern "C" {
@@ -98,7 +98,7 @@ impl Context {
             .unwrap()
             .dyn_into::<Node>()
             .unwrap();
-        let element_grid = grid_2d::Grid::new_fn(size, |coord| {
+        let element_grid = grid_2d::Grid::new_fn(size, |_| {
             let element = document
                 .create_element("span")
                 .unwrap()
@@ -262,12 +262,12 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
         let event_handler = event_handler.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let element_display_info = context.borrow().element_display_info();
+            let mut event_handler = event_handler.borrow_mut();
+            let mut context = context.borrow_mut();
+            let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let buttons = mouse_event.buttons();
-            let mut event_handler = event_handler.borrow_mut();
-            let mut context = context.borrow_mut();
             if buttons::has_none(buttons) {
                 event_handler.on_input(Input::MouseMove { button: None, coord }, &mut *context);
             }
@@ -304,12 +304,12 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
         let event_handler = event_handler.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let element_display_info = context.borrow().element_display_info();
+            let mut event_handler = event_handler.borrow_mut();
+            let mut context = context.borrow_mut();
+            let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
-            let mut event_handler = event_handler.borrow_mut();
-            let mut context = context.borrow_mut();
             if let Some(button) = button::to_mouse_button(button) {
                 event_handler.on_input(Input::MousePress { button, coord }, &mut *context);
             }
@@ -319,12 +319,12 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
         let event_handler = event_handler.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let element_display_info = context.borrow().element_display_info();
+            let mut event_handler = event_handler.borrow_mut();
+            let mut context = context.borrow_mut();
+            let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
-            let mut event_handler = event_handler.borrow_mut();
-            let mut context = context.borrow_mut();
             if let Some(button) = button::to_mouse_button(button) {
                 event_handler.on_input(
                     Input::MouseRelease {
@@ -336,9 +336,46 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
             }
         }) as Box<dyn FnMut(JsValue)>)
     };
-
     let handle_wheel = Closure::wrap(Box::new(move |event: JsValue| {
+        let mut context = context.borrow_mut();
+        let mut event_handler = event_handler.borrow_mut();
+        let element_display_info = context.element_display_info();
         let wheel_event = event.unchecked_ref::<WheelEvent>();
+        let coord = element_display_info.mouse_coord(wheel_event.client_x(), wheel_event.client_y());
+        if wheel_event.delta_x() < 0. {
+            event_handler.on_input(
+                Input::MouseScroll {
+                    direction: ScrollDirection::Left,
+                    coord,
+                },
+                &mut *context,
+            );
+        } else if wheel_event.delta_x() > 0. {
+            event_handler.on_input(
+                Input::MouseScroll {
+                    direction: ScrollDirection::Right,
+                    coord,
+                },
+                &mut *context,
+            );
+        }
+        if wheel_event.delta_y() < 0. {
+            event_handler.on_input(
+                Input::MouseScroll {
+                    direction: ScrollDirection::Up,
+                    coord,
+                },
+                &mut *context,
+            );
+        } else if wheel_event.delta_y() > 0. {
+            event_handler.on_input(
+                Input::MouseScroll {
+                    direction: ScrollDirection::Down,
+                    coord,
+                },
+                &mut *context,
+            );
+        }
     }) as Box<dyn FnMut(JsValue)>);
     window
         .add_event_listener_with_callback("keydown", handle_keydown.as_ref().unchecked_ref())
