@@ -46,4 +46,5 @@ members = [
     "examples/colour_picker/prototty",
     "examples/colour_picker/glutin",
     "examples/colour_picker/unix",
+    "examples/colour_picker/wasm",
 ]

@@ -23,10 +23,11 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
+use prototty_event_routine::{event, EventRoutine, Handled};
 use prototty_grid::ColourConversion;
 pub use prototty_input::Input;
 use prototty_input::{MouseButton, ScrollDirection};
-use prototty_render::{Rgb24, View, ViewContext, ViewContextDefault, ViewTransformRgb24};
+use prototty_render::{Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault, ViewTransformRgb24};
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use std::time::Duration;
@@ -224,6 +225,150 @@ impl Context {
     pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) {
         let context = self.default_context();
         self.render_at(view, data, context);
+    }
+
+    pub fn frame(&mut self) -> WasmFrame {
+        self.prototty_grid.clear();
+        WasmFrame { context: self }
+    }
+
+    pub fn run_event_routine_one_shot_ignore_return<E>(self, event_routine: E, data: E::Data, view: E::View)
+    where
+        E: EventRoutine + 'static,
+    {
+        let wasm_event_routine = WasmEventRoutineOneShotIgnoreReturn {
+            event_routine: Some(event_routine),
+            data,
+            view,
+        };
+        self.run_event_handler(wasm_event_routine);
+    }
+    pub fn run_event_routine_repeating<E, F>(self, event_routine: E, data: E::Data, view: E::View, f: F)
+    where
+        E: EventRoutine + 'static,
+        F: FnMut(E::Return) -> E + 'static,
+    {
+        let wasm_event_routine = WasmEventRoutineRepeating {
+            event_routine: Some(event_routine),
+            data,
+            view,
+            f,
+        };
+        self.run_event_handler(wasm_event_routine);
+    }
+    pub fn run_event_handler<E>(self, event_handler: E)
+    where
+        E: EventHandler + 'static,
+    {
+        let event_handler = Rc::new(RefCell::new(event_handler));
+        let context = Rc::new(RefCell::new(self));
+        run_frame_handler(event_handler.clone(), context.clone());
+        run_input_handler(event_handler, context);
+    }
+}
+
+struct WasmEventRoutineOneShotIgnoreReturn<E>
+where
+    E: EventRoutine,
+{
+    event_routine: Option<E>,
+    data: E::Data,
+    view: E::View,
+}
+
+impl<E> EventHandler for WasmEventRoutineOneShotIgnoreReturn<E>
+where
+    E: EventRoutine,
+{
+    fn on_input(&mut self, input: Input, _context: &mut Context) {
+        self.event_routine = if let Some(event_routine) = self.event_routine.take() {
+            match event_routine.handle_event(&mut self.data, &mut self.view, event::Input(input)) {
+                Handled::Continue(event_routine) => Some(event_routine),
+                Handled::Return(_) => None,
+            }
+        } else {
+            None
+        };
+    }
+    fn on_frame(&mut self, since_last_frame: Duration, context: &mut Context) {
+        self.event_routine = if let Some(event_routine) = self.event_routine.take() {
+            match event_routine.handle_event(&mut self.data, &mut self.view, event::Frame(since_last_frame)) {
+                Handled::Continue(event_routine) => {
+                    let mut frame = context.frame();
+                    event_routine.view(&self.data, &mut self.view, frame.default_context(), &mut frame);
+                    frame.render();
+                    Some(event_routine)
+                }
+                Handled::Return(_) => None,
+            }
+        } else {
+            None
+        };
+    }
+}
+
+struct WasmEventRoutineRepeating<E, F>
+where
+    E: EventRoutine,
+    F: FnMut(E::Return) -> E,
+{
+    event_routine: Option<E>,
+    data: E::Data,
+    view: E::View,
+    f: F,
+}
+
+impl<E, F> EventHandler for WasmEventRoutineRepeating<E, F>
+where
+    E: EventRoutine,
+    F: FnMut(E::Return) -> E,
+{
+    fn on_input(&mut self, input: Input, _context: &mut Context) {
+        self.event_routine = if let Some(event_routine) = self.event_routine.take() {
+            match event_routine.handle_event(&mut self.data, &mut self.view, event::Input(input)) {
+                Handled::Continue(event_routine) => Some(event_routine),
+                Handled::Return(r) => Some((self.f)(r)),
+            }
+        } else {
+            None
+        };
+    }
+    fn on_frame(&mut self, since_last_frame: Duration, context: &mut Context) {
+        self.event_routine = if let Some(event_routine) = self.event_routine.take() {
+            let event_routine =
+                match event_routine.handle_event(&mut self.data, &mut self.view, event::Frame(since_last_frame)) {
+                    Handled::Continue(event_routine) => event_routine,
+                    Handled::Return(r) => (self.f)(r),
+                };
+            let mut frame = context.frame();
+            event_routine.view(&self.data, &mut self.view, frame.default_context(), &mut frame);
+            frame.render();
+            Some(event_routine)
+        } else {
+            None
+        };
+    }
+}
+
+pub struct WasmFrame<'a> {
+    context: &'a mut Context,
+}
+
+impl<'a> WasmFrame<'a> {
+    pub fn render(self) {
+        self.context.render_internal();
+    }
+}
+
+impl<'a> Frame for WasmFrame<'a> {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+        self.context
+            .prototty_grid
+            .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+    }
+
+    fn size(&self) -> Size {
+        self.context.prototty_grid.size()
     }
 }
 
@@ -442,11 +587,4 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
     handle_mouse_down.forget();
     handle_mouse_up.forget();
     handle_wheel.forget();
-}
-
-pub fn run_event_handler<E: EventHandler + 'static>(event_handler: E, context: Context) {
-    let event_handler = Rc::new(RefCell::new(event_handler));
-    let context = Rc::new(RefCell::new(context));
-    run_frame_handler(event_handler.clone(), context.clone());
-    run_input_handler(event_handler, context);
 }

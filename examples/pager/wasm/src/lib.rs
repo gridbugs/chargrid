@@ -32,7 +32,6 @@ pub fn run() -> Result<(), JsValue> {
         app_state,
         input_buffer: Vec::new(),
     };
-    let context = Context::new(Size::new(80, 40), "content");
-    run_event_handler(web_app, context);
+    Context::new(Size::new(80, 40), "content").run_event_handler(web_app);
     Ok(())
 }
