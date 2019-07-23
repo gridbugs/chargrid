@@ -45,7 +45,7 @@ pub trait EventRoutine: Sized {
         F: Frame,
         R: ViewTransformRgb24;
 
-    fn peek(self, _data: &mut Self::Data) -> Handled<Self::Return, Self> {
+    fn peek(self, _data: &mut Self::Data, _view: &Self::View) -> Handled<Self::Return, Self> {
         Handled::Continue(self)
     }
 
@@ -117,10 +117,10 @@ impl<T, D, V, E> EventRoutine for Value<T, D, V, E> {
     fn handle_event(
         self,
         data: &mut Self::Data,
-        _view: &Self::View,
+        view: &Self::View,
         _event: Self::Event,
     ) -> Handled<Self::Return, Self> {
-        self.peek(data)
+        self.peek(data, view)
     }
 
     fn view<F, R>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<R>, _frame: &mut F)
@@ -130,7 +130,7 @@ impl<T, D, V, E> EventRoutine for Value<T, D, V, E> {
     {
     }
 
-    fn peek(self, _data: &mut Self::Data) -> Handled<Self::Return, Self> {
+    fn peek(self, _data: &mut Self::Data, _view: &Self::View) -> Handled<Self::Return, Self> {
         Handled::Return(self.value)
     }
 }
@@ -164,6 +164,14 @@ where
     {
         self.t.view(data, view, context, frame)
     }
+
+    fn peek(self, data: &mut Self::Data, view: &Self::View) -> Handled<Self::Return, Self> {
+        let Self { t, f } = self;
+        match t.peek(data, view) {
+            Handled::Continue(t) => Handled::Continue(Self { t, f }),
+            Handled::Return(r) => Handled::Return(f(r, data, view)),
+        }
+    }
 }
 
 pub struct Map<T, F> {
@@ -196,6 +204,14 @@ where
     {
         self.t.view(data, view, context, frame)
     }
+
+    fn peek(self, data: &mut Self::Data, view: &Self::View) -> Handled<Self::Return, Self> {
+        let Self { t, f } = self;
+        match t.peek(data, view) {
+            Handled::Continue(t) => Handled::Continue(Self { t, f }),
+            Handled::Return(r) => Handled::Return(f(r)),
+        }
+    }
 }
 
 pub enum AndThen<T, U, F> {
@@ -218,7 +234,7 @@ where
         match self {
             AndThen::First { t, f } => match t.handle_event(data, view, event) {
                 Handled::Continue(t) => Handled::Continue(AndThen::First { t, f }),
-                Handled::Return(r) => f(r).peek(data).map_continue(AndThen::Second),
+                Handled::Return(r) => f(r).peek(data, view).map_continue(AndThen::Second),
             },
             AndThen::Second(u) => u.handle_event(data, view, event).map_continue(AndThen::Second),
         }
@@ -232,6 +248,16 @@ where
         match self {
             AndThen::First { ref t, .. } => t.view(data, view, context, frame),
             AndThen::Second(ref u) => u.view(data, view, context, frame),
+        }
+    }
+
+    fn peek(self, data: &mut Self::Data, view: &Self::View) -> Handled<Self::Return, Self> {
+        match self {
+            AndThen::First { t, f } => match t.peek(data, view) {
+                Handled::Continue(t) => Handled::Continue(AndThen::First { t, f }),
+                Handled::Return(r) => f(r).peek(data, view).map_continue(AndThen::Second),
+            },
+            AndThen::Second(u) => u.peek(data, view).map_continue(AndThen::Second),
         }
     }
 }
@@ -269,10 +295,10 @@ where
         }
     }
 
-    fn peek(self, data: &mut Self::Data) -> Handled<Self::Return, Self> {
+    fn peek(self, data: &mut Self::Data, view: &Self::View) -> Handled<Self::Return, Self> {
         match self {
-            Either::A(a) => a.peek(data).map_continue(Either::A),
-            Either::B(b) => b.peek(data).map_continue(Either::B),
+            Either::A(a) => a.peek(data, view).map_continue(Either::A),
+            Either::B(b) => b.peek(data, view).map_continue(Either::B),
         }
     }
 }
@@ -323,6 +349,12 @@ where
         self.t
             .view(self.selector.data(data), self.selector.view_mut(view), context, frame)
     }
+
+    fn peek(self, data: &mut Self::Data, view: &Self::View) -> Handled<Self::Return, Self> {
+        let Self { t, selector } = self;
+        t.peek(selector.data_mut(data), selector.view(view))
+            .map_continue(|t| Self { t, selector })
+    }
 }
 
 pub struct Repeat<T, F> {
@@ -356,6 +388,17 @@ where
         R: ViewTransformRgb24,
     {
         self.t.view(data, view, context, frame)
+    }
+
+    fn peek(self, data: &mut Self::Data, view: &Self::View) -> Handled<Self::Return, Self> {
+        let Self { t, mut f } = self;
+        match t.peek(data, view) {
+            Handled::Continue(t) => Handled::Continue(Self { t, f }),
+            Handled::Return(r) => match f(r) {
+                Handled::Continue(t) => Handled::Continue(Self { t, f }),
+                Handled::Return(r) => Handled::Return(r),
+            },
+        }
     }
 }
 
@@ -404,5 +447,9 @@ where
         R: ViewTransformRgb24,
     {
         self.0.view(data, view, context, frame)
+    }
+
+    fn peek(self, data: &mut Self::Data, view: &Self::View) -> Handled<Self::Return, Self> {
+        self.0.peek(data, view).map_continue(Self)
     }
 }
