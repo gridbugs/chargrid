@@ -1,6 +1,6 @@
 pub use ansi_colour::Colour as AnsiColour;
 use error::*;
-use prototty_event_routine::{event, EventRoutine, Handled};
+use prototty_event_routine::{EventRoutine, Handled};
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
@@ -186,21 +186,22 @@ pub struct EventRoutineRunner<C: ColourConfig> {
 }
 
 impl<C: ColourConfig> EventRoutineRunner<C> {
-    pub fn run<E>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> Result<E::Return>
+    pub fn run<E, V>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> Result<E::Return>
     where
-        E: EventRoutine,
+        E: EventRoutine<Event = V>,
+        V: From<Input> + From<Duration>,
     {
         let mut frame_instant = Instant::now();
         loop {
             let duration = frame_instant.elapsed();
             frame_instant = Instant::now();
             for input in self.context.drain_input()? {
-                event_routine = match event_routine.handle_event(data, view, event::Input(input)) {
+                event_routine = match event_routine.handle_event(data, view, input.into()) {
                     Handled::Continue(event_routine) => event_routine,
                     Handled::Return(r) => return Ok(r),
                 }
             }
-            event_routine = match event_routine.handle_event(data, view, event::Frame(duration)) {
+            event_routine = match event_routine.handle_event(data, view, duration.into()) {
                 Handled::Continue(event_routine) => event_routine,
                 Handled::Return(r) => return Ok(r),
             };

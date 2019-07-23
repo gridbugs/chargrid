@@ -1,5 +1,6 @@
 use crate::{MenuIndexFromScreenCoord, MenuInstance, MenuOutput};
-use prototty_event_routine::{Event, EventRoutine, Handled, ViewSelector};
+use prototty_event_routine::{EventRoutine, Handled, ViewSelector};
+use prototty_input::Input;
 use prototty_render::{Frame, View, ViewContext, ViewTransformRgb24};
 use std::marker::PhantomData;
 
@@ -44,17 +45,11 @@ where
     type Return = MenuOutput<C>;
     type Data = MenuInstance<C>;
     type View = V;
+    type Event = Input;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
-        if let Some(input) = event.input() {
-            if let Some(menu_output) = data.handle_input(view, input) {
-                Handled::Return(menu_output)
-            } else {
-                Handled::Continue(self)
-            }
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
+        if let Some(menu_output) = data.handle_input(view, event) {
+            Handled::Return(menu_output)
         } else {
             Handled::Continue(self)
         }
@@ -99,19 +94,13 @@ where
     type Return = MenuOutput<S::Choice>;
     type Data = S::DataInput;
     type View = S::ViewInput;
+    type Event = Input;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
-        if let Some(input) = event.input() {
-            let menu_instance = self.s.menu_instance_mut(data);
-            let menu_view = self.s.view(view);
-            if let Some(menu_output) = menu_instance.handle_input(menu_view, input) {
-                Handled::Return(menu_output)
-            } else {
-                Handled::Continue(self)
-            }
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
+        let menu_instance = self.s.menu_instance_mut(data);
+        let menu_view = self.s.view(view);
+        if let Some(menu_output) = menu_instance.handle_input(menu_view, event) {
+            Handled::Return(menu_output)
         } else {
             Handled::Continue(self)
         }

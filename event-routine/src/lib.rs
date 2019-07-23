@@ -1,8 +1,10 @@
 pub extern crate prototty_input;
 pub extern crate prototty_render;
 
+use prototty_input::Input;
 use prototty_render::{Frame, ViewContext, ViewTransformRgb24};
 use std::marker::PhantomData;
+use std::time::Duration;
 
 pub enum Handled<R, C> {
     Return(R),
@@ -30,67 +32,13 @@ impl<R, C> Handled<R, C> {
     }
 }
 
-pub mod event {
-    use prototty_input::Input as ProtottyInput;
-    use std::time::Duration;
-
-    pub struct Input(pub ProtottyInput);
-
-    pub struct Frame(pub Duration);
-
-    pub enum Dynamic {
-        Input(ProtottyInput),
-        Frame(Duration),
-    }
-
-    pub trait Trait: private::Sealed {
-        fn dynamic(self) -> Dynamic;
-        fn input(self) -> Option<ProtottyInput>;
-        fn frame(self) -> Option<Duration>;
-    }
-
-    impl Trait for Input {
-        fn dynamic(self) -> Dynamic {
-            Dynamic::Input(self.0)
-        }
-        fn input(self) -> Option<ProtottyInput> {
-            Some(self.0)
-        }
-        fn frame(self) -> Option<Duration> {
-            None
-        }
-    }
-
-    impl Trait for Frame {
-        fn dynamic(self) -> Dynamic {
-            Dynamic::Frame(self.0)
-        }
-        fn input(self) -> Option<ProtottyInput> {
-            None
-        }
-        fn frame(self) -> Option<Duration> {
-            Some(self.0)
-        }
-    }
-
-    mod private {
-        pub trait Sealed {}
-
-        impl Sealed for super::Input {}
-        impl Sealed for super::Frame {}
-    }
-}
-
-pub use event::Trait as Event;
-
 pub trait EventRoutine: Sized {
     type Return;
     type Data;
     type View;
+    type Event;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event;
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self>;
 
     fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
     where
@@ -136,33 +84,42 @@ pub trait EventRoutine: Sized {
     {
         MapSideEffect { t: self, f }
     }
+
+    fn convert_input_to_common_event(self) -> ConvertInputToCommonEvent<Self> {
+        ConvertInputToCommonEvent(self)
+    }
 }
 
-pub struct Value<T, D, V> {
+pub struct Value<T, D, V, E> {
     value: T,
     data: PhantomData<D>,
     view: PhantomData<V>,
+    event: PhantomData<E>,
 }
 
-impl<T, D, V> Value<T, D, V> {
+impl<T, D, V, E> Value<T, D, V, E> {
     pub fn new(value: T) -> Self {
         Self {
             value,
             data: PhantomData,
             view: PhantomData,
+            event: PhantomData,
         }
     }
 }
 
-impl<T, D, V> EventRoutine for Value<T, D, V> {
+impl<T, D, V, E> EventRoutine for Value<T, D, V, E> {
     type Return = T;
     type Data = D;
     type View = V;
+    type Event = E;
 
-    fn handle_event<E>(self, data: &mut Self::Data, _view: &Self::View, _event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
+    fn handle_event(
+        self,
+        data: &mut Self::Data,
+        _view: &Self::View,
+        _event: Self::Event,
+    ) -> Handled<Self::Return, Self> {
         self.peek(data)
     }
 
@@ -190,11 +147,9 @@ where
     type Return = U;
     type Data = T::Data;
     type View = T::View;
+    type Event = T::Event;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
         let Self { t, f } = self;
         match t.handle_event(data, view, event) {
             Handled::Continue(t) => Handled::Continue(Self { t, f }),
@@ -224,11 +179,9 @@ where
     type Return = U;
     type Data = T::Data;
     type View = T::View;
+    type Event = T::Event;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
         let Self { t, f } = self;
         match t.handle_event(data, view, event) {
             Handled::Continue(t) => Handled::Continue(Self { t, f }),
@@ -253,17 +206,15 @@ pub enum AndThen<T, U, F> {
 impl<T, U, F> EventRoutine for AndThen<T, U, F>
 where
     T: EventRoutine,
-    U: EventRoutine<Data = T::Data, View = T::View>,
+    U: EventRoutine<Data = T::Data, View = T::View, Event = T::Event>,
     F: FnOnce(T::Return) -> U,
 {
     type Return = U::Return;
     type Data = T::Data;
     type View = T::View;
+    type Event = T::Event;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
         match self {
             AndThen::First { t, f } => match t.handle_event(data, view, event) {
                 Handled::Continue(t) => Handled::Continue(AndThen::First { t, f }),
@@ -293,16 +244,14 @@ pub enum Either<A, B> {
 impl<A, B> EventRoutine for Either<A, B>
 where
     A: EventRoutine,
-    B: EventRoutine<Data = A::Data, View = A::View, Return = A::Return>,
+    B: EventRoutine<Data = A::Data, View = A::View, Return = A::Return, Event = A::Event>,
 {
     type Return = A::Return;
     type Data = A::Data;
     type View = A::View;
+    type Event = A::Event;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
         match self {
             Either::A(a) => a.handle_event(data, view, event).map_continue(Either::A),
             Either::B(b) => b.handle_event(data, view, event).map_continue(Either::B),
@@ -317,6 +266,13 @@ where
         match self {
             Either::A(a) => a.view(data, view, context, frame),
             Either::B(b) => b.view(data, view, context, frame),
+        }
+    }
+
+    fn peek(self, data: &mut Self::Data) -> Handled<Self::Return, Self> {
+        match self {
+            Either::A(a) => a.peek(data).map_continue(Either::A),
+            Either::B(b) => b.peek(data).map_continue(Either::B),
         }
     }
 }
@@ -351,11 +307,9 @@ where
     type Return = T::Return;
     type Data = S::DataInput;
     type View = S::ViewInput;
+    type Event = T::Event;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
         let Self { t, selector } = self;
         t.handle_event(selector.data_mut(data), selector.view(view), event)
             .map_continue(|t| Self { t, selector })
@@ -383,15 +337,16 @@ where
     type Return = U;
     type Data = T::Data;
     type View = T::View;
+    type Event = T::Event;
 
-    fn handle_event<E>(self, data: &mut Self::Data, view: &Self::View, event: E) -> Handled<Self::Return, Self>
-    where
-        E: Event,
-    {
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
         let Self { t, mut f } = self;
         match t.handle_event(data, view, event) {
             Handled::Continue(t) => Handled::Continue(Self { t, f }),
-            Handled::Return(r) => f(r).map_continue(|t| Self { t, f }),
+            Handled::Return(r) => match f(r) {
+                Handled::Continue(t) => Handled::Continue(Self { t, f }),
+                Handled::Return(r) => Handled::Return(r),
+            },
         }
     }
 
@@ -401,5 +356,53 @@ where
         R: ViewTransformRgb24,
     {
         self.t.view(data, view, context, frame)
+    }
+}
+
+pub enum CommonEvent {
+    Input(Input),
+    Frame(Duration),
+}
+
+impl From<Input> for CommonEvent {
+    fn from(input: Input) -> Self {
+        CommonEvent::Input(input)
+    }
+}
+
+impl From<Duration> for CommonEvent {
+    fn from(duration: Duration) -> Self {
+        CommonEvent::Frame(duration)
+    }
+}
+
+pub struct ConvertInputToCommonEvent<T>(T);
+
+impl<T> EventRoutine for ConvertInputToCommonEvent<T>
+where
+    T: EventRoutine<Event = Input>,
+{
+    type Return = T::Return;
+    type Data = T::Data;
+    type View = T::View;
+    type Event = CommonEvent;
+
+    fn handle_event(self, data: &mut Self::Data, view: &Self::View, event: Self::Event) -> Handled<Self::Return, Self> {
+        if let CommonEvent::Input(input) = event {
+            match self.0.handle_event(data, view, input) {
+                Handled::Continue(t) => Handled::Continue(Self(t)),
+                Handled::Return(r) => Handled::Return(r),
+            }
+        } else {
+            Handled::Continue(self)
+        }
+    }
+
+    fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut G)
+    where
+        G: Frame,
+        R: ViewTransformRgb24,
+    {
+        self.0.view(data, view, context, frame)
     }
 }

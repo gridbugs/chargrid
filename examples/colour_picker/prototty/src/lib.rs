@@ -1,4 +1,5 @@
-use prototty::event_routine::EventRoutine;
+use prototty::event_routine::{CommonEvent, EventRoutine};
+use prototty::input::Input;
 use prototty::*;
 use std::marker::PhantomData;
 
@@ -48,7 +49,7 @@ impl<'a> From<&'a ColourMenuChoice> for &'a str {
     }
 }
 
-fn inner() -> impl event_routine::EventRoutine<Return = Option<()>, Data = AppData, View = AppView> {
+fn inner() -> impl event_routine::EventRoutine<Return = Option<()>, Data = AppData, View = AppView, Event = Input> {
     let main_menu = menu::MenuInstanceExtraRoutine::new(SelectMainMenuExtra);
     let colour_menu = menu::MenuInstanceRoutine::new().select(SelectColourMenu);
     main_menu.and_then(|menu_output| match menu_output {
@@ -79,11 +80,13 @@ fn inner() -> impl event_routine::EventRoutine<Return = Option<()>, Data = AppDa
     })
 }
 
-pub fn test() -> impl event_routine::EventRoutine<Return = (), Data = AppData, View = AppView> {
-    inner().repeat(|event| match event {
-        Some(()) => event_routine::Handled::Return(()),
-        None => event_routine::Handled::Continue(inner()),
-    })
+pub fn test() -> impl event_routine::EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
+    inner()
+        .repeat(|event| match event {
+            Some(()) => event_routine::Handled::Return(()),
+            None => event_routine::Handled::Continue(inner()),
+        })
+        .convert_input_to_common_event()
 }
 
 struct SelectColourMenu;

@@ -11,11 +11,11 @@ use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
 use glutin::dpi::LogicalSize;
 use glutin::Event;
 use input::*;
-use prototty_event_routine::{event, EventRoutine, Handled};
+use prototty_event_routine::{EventRoutine, Handled};
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 type Resources = gfx_device_gl::Resources;
 
@@ -427,14 +427,15 @@ impl<'a> Context<'a> {
     pub fn default_context(&self) -> ViewContextDefault {
         ViewContext::default_with_size(self.size())
     }
-    pub fn run_event_routine<E>(
+    pub fn run_event_routine<E, V>(
         &mut self,
         mut event_routine: E,
         data: &mut E::Data,
         view: &mut E::View,
     ) -> Result<E::Return>
     where
-        E: EventRoutine,
+        E: EventRoutine<Event = V>,
+        V: From<Input> + From<Duration>,
     {
         let mut frame_instant = Instant::now();
         loop {
@@ -445,7 +446,7 @@ impl<'a> Context<'a> {
                 let mut maybe_return = None;
                 self.poll_input(|input| {
                     maybe_event_routine = if let Some(event_routine) = maybe_event_routine.take() {
-                        match event_routine.handle_event(data, view, event::Input(input)) {
+                        match event_routine.handle_event(data, view, input.into()) {
                             Handled::Continue(event_routine) => Some(event_routine),
                             Handled::Return(r) => {
                                 maybe_return = Some(r);
@@ -462,7 +463,7 @@ impl<'a> Context<'a> {
                     return Ok(maybe_return.expect("event routine terminated without value"));
                 }
             };
-            event_routine = match event_routine.handle_event(data, view, event::Frame(duration)) {
+            event_routine = match event_routine.handle_event(data, view, duration.into()) {
                 Handled::Continue(event_routine) => event_routine,
                 Handled::Return(r) => return Ok(r),
             };
