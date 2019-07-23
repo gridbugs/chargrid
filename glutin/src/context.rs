@@ -176,7 +176,7 @@ impl<'a> ContextBuilder<'a> {
         let hidpi = window.window().get_hidpi_factor() as f32;
         let window_width = (window_width as f32 * hidpi) as u32;
         let window_height = (window_height as f32 * hidpi) as u32;
-        let (cell_width, cell_height) = if let Some(cell_dimensions) = self.cell_dimensions {
+        let (raw_cell_width, raw_cell_height) = if let Some(cell_dimensions) = self.cell_dimensions {
             (cell_dimensions.x(), cell_dimensions.y())
         } else {
             let section = gfx_glyph::Section {
@@ -188,8 +188,8 @@ impl<'a> ContextBuilder<'a> {
             let rect = glyph_brush.pixel_bounds(section).ok_or(Error::FailedToMeasureFont)?;
             (rect.width() as u32, rect.height() as u32)
         };
-        let unscaled_cell_width = cell_width as f32;
-        let unscaled_cell_height = cell_height as f32;
+        let unscaled_cell_width = raw_cell_width as f32;
+        let unscaled_cell_height = raw_cell_height as f32;
         let cell_width = unscaled_cell_width * hidpi;
         let cell_height = unscaled_cell_height * hidpi;
         let max_grid_size = self
@@ -202,12 +202,12 @@ impl<'a> ContextBuilder<'a> {
         let char_buf = String::with_capacity(1);
         let underline_width = self
             .underline_width
-            .map(|w| hidpi * w as f32)
-            .unwrap_or_else(|| cell_height as f32 / UNDERLINE_WIDTH_RATIO as f32);
+            .map(|u| u as f32)
+            .unwrap_or_else(|| raw_cell_height as f32 / UNDERLINE_WIDTH_RATIO as f32);
         let underline_position = self
             .underline_position
-            .map(|w| hidpi * w as f32)
-            .unwrap_or_else(|| cell_height as f32 - (cell_height as f32 / UNDERLINE_POSITION_RATIO as f32));
+            .map(|u| u as f32)
+            .unwrap_or_else(|| raw_cell_height as f32 - (raw_cell_height as f32 / UNDERLINE_POSITION_RATIO as f32));
         let background_renderer = BackgroundRenderer::new(
             window_width,
             window_height,
