@@ -11,7 +11,7 @@ use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
 use glutin::dpi::LogicalSize;
 use glutin::Event;
 use input::*;
-use prototty_event_routine::{EventRoutine, Handled};
+use prototty_event_routine::{Event as EREvent, EventRoutine, Handled};
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
@@ -446,7 +446,7 @@ impl<'a> Context<'a> {
                 let mut maybe_return = None;
                 self.poll_input(|input| {
                     maybe_event_routine = if let Some(event_routine) = maybe_event_routine.take() {
-                        match event_routine.handle_event(data, view, input.into()) {
+                        match event_routine.handle(data, view, EREvent::new(input.into())) {
                             Handled::Continue(event_routine) => Some(event_routine),
                             Handled::Return(r) => {
                                 maybe_return = Some(r);
@@ -463,7 +463,7 @@ impl<'a> Context<'a> {
                     return Ok(maybe_return.expect("event routine terminated without value"));
                 }
             };
-            event_routine = match event_routine.handle_event(data, view, duration.into()) {
+            event_routine = match event_routine.handle(data, view, EREvent::new(duration.into())) {
                 Handled::Continue(event_routine) => event_routine,
                 Handled::Return(r) => return Ok(r),
             };

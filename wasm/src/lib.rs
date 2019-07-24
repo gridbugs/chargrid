@@ -23,7 +23,7 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
-use prototty_event_routine::{CommonEvent, EventRoutine, Handled};
+use prototty_event_routine::{CommonEvent, Event, EventRoutine, Handled};
 use prototty_grid::ColourConversion;
 pub use prototty_input::Input;
 use prototty_input::{MouseButton, ScrollDirection};
@@ -282,7 +282,7 @@ where
 {
     fn on_input(&mut self, input: Input, _context: &mut Context) {
         self.event_routine = if let Some(event_routine) = self.event_routine.take() {
-            match event_routine.handle_event(&mut self.data, &mut self.view, input.into()) {
+            match event_routine.handle(&mut self.data, &mut self.view, Event::new(input.into())) {
                 Handled::Continue(event_routine) => Some(event_routine),
                 Handled::Return(_) => None,
             }
@@ -292,7 +292,7 @@ where
     }
     fn on_frame(&mut self, since_last_frame: Duration, context: &mut Context) {
         self.event_routine = if let Some(event_routine) = self.event_routine.take() {
-            match event_routine.handle_event(&mut self.data, &mut self.view, since_last_frame.into()) {
+            match event_routine.handle(&mut self.data, &mut self.view, Event::new(since_last_frame.into())) {
                 Handled::Continue(event_routine) => {
                     let mut frame = context.frame();
                     event_routine.view(&self.data, &mut self.view, frame.default_context(), &mut frame);
@@ -325,7 +325,7 @@ where
 {
     fn on_input(&mut self, input: Input, _context: &mut Context) {
         self.event_routine = if let Some(event_routine) = self.event_routine.take() {
-            match event_routine.handle_event(&mut self.data, &mut self.view, input.into()) {
+            match event_routine.handle(&mut self.data, &mut self.view, Event::new(input.into())) {
                 Handled::Continue(event_routine) => Some(event_routine),
                 Handled::Return(r) => Some((self.f)(r)),
             }
@@ -336,7 +336,7 @@ where
     fn on_frame(&mut self, since_last_frame: Duration, context: &mut Context) {
         self.event_routine = if let Some(event_routine) = self.event_routine.take() {
             let event_routine =
-                match event_routine.handle_event(&mut self.data, &mut self.view, since_last_frame.into()) {
+                match event_routine.handle(&mut self.data, &mut self.view, Event::new(since_last_frame.into())) {
                     Handled::Continue(event_routine) => event_routine,
                     Handled::Return(r) => (self.f)(r),
                 };

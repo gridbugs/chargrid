@@ -1,6 +1,6 @@
 pub use ansi_colour::Colour as AnsiColour;
 use error::*;
-use prototty_event_routine::{EventRoutine, Handled};
+use prototty_event_routine::{Event, EventRoutine, Handled};
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
@@ -196,12 +196,12 @@ impl<C: ColourConfig> EventRoutineRunner<C> {
             let duration = frame_instant.elapsed();
             frame_instant = Instant::now();
             for input in self.context.drain_input()? {
-                event_routine = match event_routine.handle_event(data, view, input.into()) {
+                event_routine = match event_routine.handle(data, view, Event::new(input.into())) {
                     Handled::Continue(event_routine) => event_routine,
                     Handled::Return(r) => return Ok(r),
                 }
             }
-            event_routine = match event_routine.handle_event(data, view, duration.into()) {
+            event_routine = match event_routine.handle(data, view, Event::new(duration.into())) {
                 Handled::Continue(event_routine) => event_routine,
                 Handled::Return(r) => return Ok(r),
             };
