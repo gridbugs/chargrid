@@ -80,7 +80,7 @@ fn inner() -> impl event_routine::EventRoutine<Return = Option<()>, Data = AppDa
     })
 }
 
-pub fn test() -> impl event_routine::EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
+pub fn test() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
     inner()
         .repeat(|event| match event {
             Some(()) => event_routine::Handled::Return(()),

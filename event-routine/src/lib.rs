@@ -1,8 +1,8 @@
 pub extern crate prototty_input;
 pub extern crate prototty_render;
 
-use prototty_input::Input;
-use prototty_render::{Frame, ViewContext, ViewTransformRgb24};
+pub use prototty_input::Input;
+pub use prototty_render::{Frame, ViewContext, ViewTransformRgb24};
 use std::marker::PhantomData;
 use std::time::Duration;
 

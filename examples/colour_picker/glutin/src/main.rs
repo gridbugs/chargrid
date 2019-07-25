@@ -1,8 +1,7 @@
 use colour_picker_prototty as app;
-use prototty as p;
 use prototty_glutin as pg;
 
-const WINDOW_SIZE_PIXELS: p::render::Size = p::render::Size::new_u16(640, 480);
+const WINDOW_SIZE_PIXELS: pg::Size = pg::Size::new_u16(640, 480);
 
 fn main() {
     let mut context = pg::ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
@@ -11,7 +10,7 @@ fn main() {
         .with_min_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_font_scale(16.0, 16.0)
-        .with_cell_dimensions(p::render::Size::new_u16(16, 16))
+        .with_cell_dimensions(pg::Size::new_u16(16, 16))
         .build()
         .unwrap();
     context

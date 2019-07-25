@@ -59,6 +59,16 @@ pub enum Input {
     },
 }
 
+impl Input {
+    pub fn is_key(self) -> bool {
+        use Input::*;
+        match self {
+            Char(_) | Function(_) | Up | Down | Left | Right | Home | End | PageUp | PageDown | Delete => true,
+            MouseMove { .. } | MousePress { .. } | MouseRelease { .. } | MouseScroll { .. } => false,
+        }
+    }
+}
+
 pub mod inputs {
     use super::Input;
 
