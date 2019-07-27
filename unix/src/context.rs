@@ -11,78 +11,39 @@ use terminal::*;
 const DEFAULT_FG: AnsiColour = AnsiColour::from_rgb24(grey24(255));
 const DEFAULT_BG: AnsiColour = AnsiColour::from_rgb24(grey24(0));
 
-pub trait ColourConfig {
-    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour;
-    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
-        self.convert_foreground_rgb24(rgb24)
-    }
-    fn default_foreground(&mut self) -> AnsiColour {
+struct UnixColourConversion;
+
+impl ColourConversion for UnixColourConversion {
+    type Colour = AnsiColour;
+    fn default_foreground(&mut self) -> Self::Colour {
         DEFAULT_FG
     }
-    fn default_background(&mut self) -> AnsiColour {
+    fn default_background(&mut self) -> Self::Colour {
         DEFAULT_BG
     }
-}
-
-pub struct DefaultColourConfig;
-
-impl ColourConfig for DefaultColourConfig {
-    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
+    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
+        AnsiColour::from_rgb24(rgb24)
+    }
+    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
         AnsiColour::from_rgb24(rgb24)
     }
 }
 
-impl<F: FnMut(Rgb24) -> AnsiColour> ColourConfig for F {
-    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> AnsiColour {
-        (self)(rgb24)
-    }
-}
-
-struct UnixColourConversion<C>(C);
-
-impl<C: ColourConfig> ColourConversion for UnixColourConversion<C> {
-    type Colour = AnsiColour;
-    fn default_foreground(&mut self) -> Self::Colour {
-        self.0.default_foreground()
-    }
-    fn default_background(&mut self) -> Self::Colour {
-        self.0.default_background()
-    }
-    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        self.0.convert_foreground_rgb24(rgb24)
-    }
-    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        self.0.convert_background_rgb24(rgb24)
-    }
-}
-
 /// An interface to a terminal for rendering `View`s, and getting input.
-pub struct Context<C: ColourConfig = DefaultColourConfig> {
+pub struct Context {
     terminal: Terminal,
-    frame: Grid<UnixColourConversion<C>>,
+    frame: Grid<UnixColourConversion>,
 }
 
-impl Context<DefaultColourConfig> {
+impl Context {
     /// Initialise a new context using the current terminal.
     pub fn new() -> Result<Self> {
-        Self::with_colour_config(DefaultColourConfig)
+        Terminal::new(DEFAULT_FG, DEFAULT_BG).and_then(Self::from_terminal)
     }
 
-    pub fn from_terminal(terminal: Terminal) -> Result<Self> {
-        Self::from_terminal_with_colour_config(terminal, DefaultColourConfig)
-    }
-}
-
-impl<C: ColourConfig> Context<C> {
-    pub fn with_colour_config(mut colour_config: C) -> Result<Self> {
-        Terminal::new(colour_config.default_foreground(), colour_config.default_background())
-            .and_then(|terminal| Self::from_terminal_with_colour_config(terminal, colour_config))
-    }
-
-    pub fn from_terminal_with_colour_config(mut terminal: Terminal, mut colour_config: C) -> Result<Self> {
-        let size =
-            terminal.resize_if_necessary(colour_config.default_foreground(), colour_config.default_background())?;
-        let frame = Grid::new(size, UnixColourConversion(colour_config));
+    pub fn from_terminal(mut terminal: Terminal) -> Result<Self> {
+        let size = terminal.resize_if_necessary(DEFAULT_FG, DEFAULT_BG)?;
+        let frame = Grid::new(size, UnixColourConversion);
         Ok(Self { terminal, frame })
     }
 
@@ -144,31 +105,31 @@ impl<C: ColourConfig> Context<C> {
         self.terminal.size()
     }
 
-    pub fn into_runner(self, frame_duration: Duration) -> EventRoutineRunner<C> {
+    pub fn into_runner(self, frame_duration: Duration) -> EventRoutineRunner {
         EventRoutineRunner {
             context: self,
             frame_duration,
         }
     }
 
-    pub fn frame(&mut self) -> Result<UnixFrame<C>> {
+    pub fn frame(&mut self) -> Result<UnixFrame> {
         self.resize_if_necessary()?;
         self.frame.clear();
         Ok(UnixFrame { context: self })
     }
 }
 
-pub struct UnixFrame<'a, C: ColourConfig> {
-    context: &'a mut Context<C>,
+pub struct UnixFrame<'a> {
+    context: &'a mut Context,
 }
 
-impl<'a, C: ColourConfig> UnixFrame<'a, C> {
+impl<'a> UnixFrame<'a> {
     pub fn render(self) -> Result<()> {
         self.context.render_internal()
     }
 }
 
-impl<'a, C: ColourConfig> Frame for UnixFrame<'a, C> {
+impl<'a> Frame for UnixFrame<'a> {
     fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
         self.context
             .frame
@@ -180,12 +141,12 @@ impl<'a, C: ColourConfig> Frame for UnixFrame<'a, C> {
     }
 }
 
-pub struct EventRoutineRunner<C: ColourConfig> {
-    context: Context<C>,
+pub struct EventRoutineRunner {
+    context: Context,
     frame_duration: Duration,
 }
 
-impl<C: ColourConfig> EventRoutineRunner<C> {
+impl EventRoutineRunner {
     pub fn run<E, V>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> Result<E::Return>
     where
         E: EventRoutine<Event = V>,
