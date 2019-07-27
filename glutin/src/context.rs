@@ -58,7 +58,7 @@ impl<'a> ContextBuilder<'a> {
             font_scale: FONT_SCALE,
             bold_font_scale: None,
             window_builder: glutin::WindowBuilder::new(),
-            context_builder: glutin::ContextBuilder::new(),
+            context_builder: glutin::ContextBuilder::new().with_srgb(true),
             cell_dimensions: None,
             underline_width: None,
             underline_position: None,
@@ -257,14 +257,30 @@ impl<'a> ContextBuilder<'a> {
     }
 }
 
+// Disabling srgb8 with glutin doesn't seem to work, so instead it's explicitly enabled, and its
+// effect is cancelled out during rendering.
+fn reverse_gamma_correction(x: f32) -> f32 {
+    x.powf(2.2)
+}
+
+fn convert_rgb24(rgb24: Rgb24) -> [f32; 4] {
+    let [r, g, b, a] = rgb24.to_f32_rgba(1.);
+    [
+        reverse_gamma_correction(r),
+        reverse_gamma_correction(g),
+        reverse_gamma_correction(b),
+        reverse_gamma_correction(a),
+    ]
+}
+
 struct GlutinColourConversion;
 impl ColourConversion for GlutinColourConversion {
     type Colour = [f32; 4];
     fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        rgb24.to_f32_rgba(1.)
+        convert_rgb24(rgb24)
     }
     fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        rgb24.to_f32_rgba(1.)
+        convert_rgb24(rgb24)
     }
     fn default_foreground(&mut self) -> Self::Colour {
         [1.0, 1.0, 1.0, 1.0]
