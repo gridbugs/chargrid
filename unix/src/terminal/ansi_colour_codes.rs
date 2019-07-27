@@ -17,7 +17,6 @@ pub fn nearest_palette_code(Rgb24 { r, g, b }: Rgb24) -> u8 {
 
 pub fn nearest_mean_greyscale_code(Rgb24 { r, g, b }: Rgb24) -> u8 {
     let offset = (r as u16 + g as u16 + b as u16) / (GREY_SCALE_MAX_LEVEL as u16 * 3);
-    eprintln!("{:?}", offset);
     GREY_SCALE_START + offset as u8
 }
 

@@ -1,5 +1,5 @@
 pub use super::ansi_terminal::DrainInput;
-use super::ansi_terminal::{encode_colour, AnsiTerminal, EncodeColour};
+use super::ansi_terminal::{AnsiTerminal, EncodeColour};
 use error::Result;
 use prototty_grid::*;
 use prototty_input::*;

@@ -33,7 +33,10 @@ impl View<()> for ColourSquare {
                 let b = (x * 255) / size.width();
                 let mul = 255 - ((y * 255) / size.height());
                 let col = Rgb24::new(r as u8, g as u8, b as u8).normalised_scalar_mul(mul as u8);
-                let cell = ViewCell::new().with_character(' ').with_background(col);
+                let cell = ViewCell::new()
+                    .with_character(' ')
+                    .with_background(col)
+                    .with_foreground(col);
                 frame.set_cell_relative(coord, 0, cell, context);
             }
         }

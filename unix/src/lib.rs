@@ -15,6 +15,7 @@ mod terminal;
 pub use self::context::*;
 pub use self::error::*;
 pub use self::terminal::encode_colour;
+pub use self::terminal::EncodeColour;
 #[cfg(feature = "storage")]
 pub use prototty_file_storage::{FileStorage, LoadError, Storage, StoreError};
 pub use prototty_render::{grey24, rgb24, Coord, Rgb24, Size};

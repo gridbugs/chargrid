@@ -28,7 +28,7 @@ pub mod encode_colour {
     use crate::terminal::term_info_cache::TermInfoCache;
     use rgb24::Rgb24;
 
-    pub trait Trait {
+    pub trait Trait: Clone {
         fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache);
         fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache);
     }
@@ -74,10 +74,14 @@ pub mod encode_colour {
     }
 
     #[derive(Clone, Copy)]
-    pub struct TrueColour;
-    impl Trait for TrueColour {
-        fn encode_foreground(buffer: &mut String, rgb24: Rgb24, _term_info_cache: &TermInfoCache) {}
-        fn encode_background(buffer: &mut String, rgb24: Rgb24, _term_info_cache: &TermInfoCache) {}
+    pub struct XtermTrueColour;
+    impl Trait for XtermTrueColour {
+        fn encode_foreground(buffer: &mut String, Rgb24 { r, g, b }: Rgb24, _term_info_cache: &TermInfoCache) {
+            buffer.push_str(&format!("\x1B[38;2;{};{};{}m", r, g, b));
+        }
+        fn encode_background(buffer: &mut String, Rgb24 { r, g, b }: Rgb24, _term_info_cache: &TermInfoCache) {
+            buffer.push_str(&format!("\x1B[48;2;{};{};{}m", r, g, b));
+        }
     }
 }
 

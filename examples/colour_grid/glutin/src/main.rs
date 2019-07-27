@@ -9,8 +9,8 @@ fn main() {
         .with_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_min_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
-        .with_font_scale(16.0, 16.0)
-        .with_cell_dimensions(Size::new_u16(16, 16))
+        .with_font_scale(8.0, 8.0)
+        .with_cell_dimensions(Size::new_u16(8, 8))
         .build()
         .unwrap();
     context

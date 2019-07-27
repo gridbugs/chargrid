@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
-    Context::new(Size::new(20, 20), "content").run_event_routine_repeating(
+    Context::new(Size::new(100, 60), "content").run_event_routine_repeating(
         event_routine(),
         AppData::new(),
         AppView::new(),

@@ -174,7 +174,7 @@ impl EventRoutineRunner {
     where
         ER: EventRoutine<Event = V>,
         V: From<Input> + From<Duration>,
-        EC: EncodeColour + Copy,
+        EC: EncodeColour,
     {
         let mut frame_instant = Instant::now();
         loop {
@@ -192,7 +192,7 @@ impl EventRoutineRunner {
             };
             let mut frame = self.context.frame()?;
             event_routine.view(data, view, frame.default_context(), &mut frame);
-            frame.render(encode_colour)?;
+            frame.render(encode_colour.clone())?;
             if let Some(time_until_next_frame) = self.frame_duration.checked_sub(frame_instant.elapsed()) {
                 thread::sleep(time_until_next_frame);
             }
