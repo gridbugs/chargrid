@@ -52,4 +52,9 @@ members = [
     "examples/roguelike/glutin",
     "examples/roguelike/unix",
     "examples/roguelike/wasm",
+
+    "examples/colour_grid/prototty",
+    "examples/colour_grid/glutin",
+    "examples/colour_grid/unix",
+    "examples/colour_grid/wasm",
 ]
