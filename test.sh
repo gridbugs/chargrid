@@ -45,3 +45,13 @@ pushd $DIR/examples/colour_picker/wasm
 npm install
 npm run build -- --mode development
 popd
+
+pushd $DIR/examples/roguelike/wasm
+npm install
+npm run build -- --mode development
+popd
+
+pushd $DIR/examples/colour_grid/wasm
+npm install
+npm run build -- --mode development
+popd
