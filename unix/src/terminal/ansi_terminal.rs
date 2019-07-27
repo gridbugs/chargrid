@@ -67,10 +67,17 @@ pub mod encode_colour {
     }
 
     #[derive(Clone, Copy)]
+    pub struct NoColour;
+    impl Trait for NoColour {
+        fn encode_foreground(_buffer: &mut String, _rgb24: Rgb24, _term_info_cache: &TermInfoCache) {}
+        fn encode_background(_buffer: &mut String, _rgb24: Rgb24, _term_info_cache: &TermInfoCache) {}
+    }
+
+    #[derive(Clone, Copy)]
     pub struct TrueColour;
     impl Trait for TrueColour {
-        fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {}
-        fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {}
+        fn encode_foreground(buffer: &mut String, rgb24: Rgb24, _term_info_cache: &TermInfoCache) {}
+        fn encode_background(buffer: &mut String, rgb24: Rgb24, _term_info_cache: &TermInfoCache) {}
     }
 }
 
