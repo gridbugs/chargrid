@@ -1,20 +1,20 @@
 pub use super::ansi_terminal::DrainInput;
 use super::ansi_terminal::{encode_colour, AnsiTerminal, EncodeColour};
-use ansi_colour::Colour as AnsiColour;
 use error::Result;
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
+use rgb24::Rgb24;
 use std::time::Duration;
 
-type Cell = CommonCell<AnsiColour>;
+type Cell = CommonCell<Rgb24>;
 
 #[derive(Debug, Clone)]
 pub struct OutputCell {
     dirty: bool,
     ch: char,
-    fg: AnsiColour,
-    bg: AnsiColour,
+    fg: Rgb24,
+    bg: Rgb24,
     bold: bool,
     underline: bool,
 }
@@ -36,7 +36,7 @@ impl OutputCell {
         self.bold = cell.bold;
         self.underline = cell.underline;
     }
-    fn new_default(fg: AnsiColour, bg: AnsiColour) -> Self {
+    fn new_default(fg: Rgb24, bg: Rgb24) -> Self {
         Self {
             dirty: true,
             ch: ' ',
@@ -54,14 +54,14 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn new(fg: AnsiColour, bg: AnsiColour) -> Result<Self> {
+    pub fn new(fg: Rgb24, bg: Rgb24) -> Result<Self> {
         let ansi = AnsiTerminal::new()?;
         let size = ansi.size()?;
         let output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
         Ok(Self { ansi, output_frame })
     }
 
-    pub fn resize_if_necessary(&mut self, fg: AnsiColour, bg: AnsiColour) -> Result<Size> {
+    pub fn resize_if_necessary(&mut self, fg: Rgb24, bg: Rgb24) -> Result<Size> {
         let size = self.ansi.size()?;
         if size != self.output_frame.size() {
             self.output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
@@ -75,7 +75,7 @@ impl Terminal {
 
     pub fn draw_frame<C, E>(&mut self, frame: &mut Grid<C>) -> Result<()>
     where
-        C: ColourConversion<Colour = AnsiColour>,
+        C: ColourConversion<Colour = Rgb24>,
         E: EncodeColour,
     {
         self.ansi.set_cursor(Coord::new(0, 0))?;

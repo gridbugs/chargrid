@@ -1,20 +1,20 @@
-pub use ansi_colour::Colour as AnsiColour;
 use error::*;
 use prototty_event_routine::{Event, EventRoutine, Handled};
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
+use rgb24::Rgb24;
 use std::thread;
 use std::time::{Duration, Instant};
 use terminal::*;
 
-const DEFAULT_FG: AnsiColour = AnsiColour::from_rgb24(grey24(255));
-const DEFAULT_BG: AnsiColour = AnsiColour::from_rgb24(grey24(0));
+const DEFAULT_FG: Rgb24 = grey24(255);
+const DEFAULT_BG: Rgb24 = grey24(0);
 
 struct UnixColourConversion;
 
 impl ColourConversion for UnixColourConversion {
-    type Colour = AnsiColour;
+    type Colour = Rgb24;
     fn default_foreground(&mut self) -> Self::Colour {
         DEFAULT_FG
     }
@@ -22,10 +22,10 @@ impl ColourConversion for UnixColourConversion {
         DEFAULT_BG
     }
     fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        AnsiColour::from_rgb24(rgb24)
+        rgb24
     }
     fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        AnsiColour::from_rgb24(rgb24)
+        rgb24
     }
 }
 

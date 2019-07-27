@@ -1,10 +1,10 @@
 use super::byte_prefix_tree::{BytePrefixTree, Found};
 use super::low_level::LowLevel;
 use super::term_info_cache::{MousePrefix, TermInfoCache, TerminalInput};
-use ansi_colour::Colour;
 use error::Result;
 use prototty_input::*;
 use prototty_render::*;
+use rgb24::Rgb24;
 use std::collections::{vec_deque, VecDeque};
 use std::time::Duration;
 use term::terminfo::parm::{self, Param};
@@ -40,7 +40,7 @@ pub mod encode_colour {
             buffer.push_str(term_info_cache.fg_colour(Colour::from_rgb24(rgb24)));
         }
         fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
-            buffer.push_str(term_info_cache.fg_colour(Colour::from_rgb24(rgb24)));
+            buffer.push_str(term_info_cache.bg_colour(Colour::from_rgb24(rgb24)));
         }
     }
 }
@@ -95,18 +95,18 @@ impl AnsiTerminal {
         Ok(())
     }
 
-    pub fn set_foreground_colour<E>(&mut self, colour: Colour)
+    pub fn set_foreground_colour<E>(&mut self, rgb24: Rgb24)
     where
         E: EncodeColour,
     {
-        self.output_buffer.push_str(self.ti_cache.fg_colour(colour));
+        E::encode_foreground(&mut self.output_buffer, rgb24, &self.ti_cache);
     }
 
-    pub fn set_background_colour<E>(&mut self, colour: Colour)
+    pub fn set_background_colour<E>(&mut self, rgb24: Rgb24)
     where
         E: EncodeColour,
     {
-        self.output_buffer.push_str(self.ti_cache.bg_colour(colour));
+        E::encode_background(&mut self.output_buffer, rgb24, &self.ti_cache);
     }
 
     pub fn set_bold(&mut self) {
