@@ -1,5 +1,5 @@
-use super::ansi_terminal::AnsiTerminal;
 pub use super::ansi_terminal::DrainInput;
+use super::ansi_terminal::{encode_colour, AnsiTerminal, EncodeColour};
 use ansi_colour::Colour as AnsiColour;
 use error::Result;
 use prototty_grid::*;
@@ -73,9 +73,10 @@ impl Terminal {
         self.ansi.size()
     }
 
-    pub fn draw_frame<C>(&mut self, frame: &mut Grid<C>) -> Result<()>
+    pub fn draw_frame<C, E>(&mut self, frame: &mut Grid<C>) -> Result<()>
     where
         C: ColourConversion<Colour = AnsiColour>,
+        E: EncodeColour,
     {
         self.ansi.set_cursor(Coord::new(0, 0))?;
         let mut bold = false;
@@ -84,8 +85,8 @@ impl Terminal {
         let mut bg = frame.default_background();
         self.ansi.reset();
         self.ansi.clear_underline();
-        self.ansi.set_foreground_colour(fg);
-        self.ansi.set_background_colour(bg);
+        self.ansi.set_foreground_colour::<encode_colour::FromTermInfo>(fg);
+        self.ansi.set_background_colour::<encode_colour::FromTermInfo>(bg);
         let mut must_move_cursor = false;
         for ((coord, cell), output_cell) in frame.enumerate().zip(self.output_frame.iter_mut()) {
             if output_cell.matches(cell) {
@@ -106,11 +107,13 @@ impl Terminal {
                 false
             };
             if reset || cell.foreground_colour != fg {
-                self.ansi.set_foreground_colour(cell.foreground_colour);
+                self.ansi
+                    .set_foreground_colour::<encode_colour::FromTermInfo>(cell.foreground_colour);
                 fg = cell.foreground_colour;
             }
             if reset || cell.background_colour != bg {
-                self.ansi.set_background_colour(cell.background_colour);
+                self.ansi
+                    .set_background_colour::<encode_colour::FromTermInfo>(cell.background_colour);
                 bg = cell.background_colour;
             }
 

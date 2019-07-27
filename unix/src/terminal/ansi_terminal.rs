@@ -23,6 +23,30 @@ pub struct AnsiTerminal {
     input_ring: VecDeque<Input>,
 }
 
+pub mod encode_colour {
+    use crate::terminal::term_info_cache::TermInfoCache;
+    use ansi_colour::Colour;
+    use rgb24::Rgb24;
+
+    pub trait Trait {
+        fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache);
+        fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache);
+    }
+
+    #[derive(Clone, Copy)]
+    pub struct FromTermInfo;
+    impl Trait for FromTermInfo {
+        fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
+            buffer.push_str(term_info_cache.fg_colour(Colour::from_rgb24(rgb24)));
+        }
+        fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
+            buffer.push_str(term_info_cache.fg_colour(Colour::from_rgb24(rgb24)));
+        }
+    }
+}
+
+pub use self::encode_colour::Trait as EncodeColour;
+
 impl AnsiTerminal {
     pub fn new() -> Result<Self> {
         let low_level = LowLevel::new()?;
@@ -71,11 +95,17 @@ impl AnsiTerminal {
         Ok(())
     }
 
-    pub fn set_foreground_colour(&mut self, colour: Colour) {
+    pub fn set_foreground_colour<E>(&mut self, colour: Colour)
+    where
+        E: EncodeColour,
+    {
         self.output_buffer.push_str(self.ti_cache.fg_colour(colour));
     }
 
-    pub fn set_background_colour(&mut self, colour: Colour) {
+    pub fn set_background_colour<E>(&mut self, colour: Colour)
+    where
+        E: EncodeColour,
+    {
         self.output_buffer.push_str(self.ti_cache.bg_colour(colour));
     }
 

@@ -80,25 +80,39 @@ impl Context {
         self.terminal.wait_input_timeout(timeout)
     }
 
-    fn render_internal(&mut self) -> Result<()> {
-        self.terminal.draw_frame(&mut self.frame)
+    fn render_internal<E>(&mut self, encode_colour: E) -> Result<()>
+    where
+        E: EncodeColour,
+    {
+        let _ = encode_colour;
+        self.terminal.draw_frame::<_, E>(&mut self.frame)
     }
 
-    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) -> Result<()> {
+    pub fn render<V, T, E>(&mut self, view: &mut V, data: T, encode_colour: E) -> Result<()>
+    where
+        V: View<T>,
+        E: EncodeColour,
+    {
         let size = self.size()?;
-        self.render_at(view, data, ViewContext::default_with_size(size))
+        self.render_at(view, data, ViewContext::default_with_size(size), encode_colour)
     }
 
-    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
+    pub fn render_at<V, T, R, E>(
         &mut self,
         view: &mut V,
         data: T,
         context: ViewContext<R>,
-    ) -> Result<()> {
+        encode_colour: E,
+    ) -> Result<()>
+    where
+        V: View<T>,
+        R: ViewTransformRgb24,
+        E: EncodeColour,
+    {
         self.resize_if_necessary()?;
         self.frame.clear();
         view.view(data, context, &mut self.frame);
-        self.render_internal()
+        self.render_internal(encode_colour)
     }
 
     pub fn size(&self) -> Result<Size> {
@@ -124,8 +138,11 @@ pub struct UnixFrame<'a> {
 }
 
 impl<'a> UnixFrame<'a> {
-    pub fn render(self) -> Result<()> {
-        self.context.render_internal()
+    pub fn render<E>(self, encode_colour: E) -> Result<()>
+    where
+        E: EncodeColour,
+    {
+        self.context.render_internal(encode_colour)
     }
 }
 
@@ -147,10 +164,17 @@ pub struct EventRoutineRunner {
 }
 
 impl EventRoutineRunner {
-    pub fn run<E, V>(&mut self, mut event_routine: E, data: &mut E::Data, view: &mut E::View) -> Result<E::Return>
+    pub fn run<ER, V, EC>(
+        &mut self,
+        mut event_routine: ER,
+        data: &mut ER::Data,
+        view: &mut ER::View,
+        encode_colour: EC,
+    ) -> Result<ER::Return>
     where
-        E: EventRoutine<Event = V>,
+        ER: EventRoutine<Event = V>,
         V: From<Input> + From<Duration>,
+        EC: EncodeColour + Copy,
     {
         let mut frame_instant = Instant::now();
         loop {
@@ -168,7 +192,7 @@ impl EventRoutineRunner {
             };
             let mut frame = self.context.frame()?;
             event_routine.view(data, view, frame.default_context(), &mut frame);
-            frame.render()?;
+            frame.render(encode_colour)?;
             if let Some(time_until_next_frame) = self.frame_duration.checked_sub(frame_instant.elapsed()) {
                 thread::sleep(time_until_next_frame);
             }
