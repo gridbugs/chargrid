@@ -10,7 +10,7 @@ fn main() {
             event_routine(),
             &mut AppData::new(),
             &mut AppView::new(),
-            encode_colour::FromTermInfo,
+            encode_colour::FromTermInfoRgb,
         )
         .unwrap()
 }

@@ -85,8 +85,8 @@ impl Terminal {
         let mut bg = frame.default_background();
         self.ansi.reset();
         self.ansi.clear_underline();
-        self.ansi.set_foreground_colour::<encode_colour::FromTermInfo>(fg);
-        self.ansi.set_background_colour::<encode_colour::FromTermInfo>(bg);
+        self.ansi.set_foreground_colour::<E>(fg);
+        self.ansi.set_background_colour::<E>(bg);
         let mut must_move_cursor = false;
         for ((coord, cell), output_cell) in frame.enumerate().zip(self.output_frame.iter_mut()) {
             if output_cell.matches(cell) {
@@ -107,13 +107,11 @@ impl Terminal {
                 false
             };
             if reset || cell.foreground_colour != fg {
-                self.ansi
-                    .set_foreground_colour::<encode_colour::FromTermInfo>(cell.foreground_colour);
+                self.ansi.set_foreground_colour::<E>(cell.foreground_colour);
                 fg = cell.foreground_colour;
             }
             if reset || cell.background_colour != bg {
-                self.ansi
-                    .set_background_colour::<encode_colour::FromTermInfo>(cell.background_colour);
+                self.ansi.set_background_colour::<E>(cell.background_colour);
                 bg = cell.background_colour;
             }
 

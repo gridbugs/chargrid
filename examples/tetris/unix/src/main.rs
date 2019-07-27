@@ -2,7 +2,7 @@ extern crate prototty_unix;
 extern crate rand;
 extern crate tetris_prototty;
 
-use prototty_unix::{encode_colour::FromTermInfo, Context};
+use prototty_unix::{encode_colour::FromTermInfoRgb, Context};
 use std::thread;
 use std::time::Duration;
 use tetris_prototty::{App, AppView, ControlFlow};
@@ -16,7 +16,7 @@ fn main() {
     let mut app_view = AppView::new();
 
     loop {
-        context.render(&mut app_view, &app, FromTermInfo).unwrap();
+        context.render(&mut app_view, &app, FromTermInfoRgb).unwrap();
         thread::sleep(Duration::from_millis(TICK_MILLIS));
         if let Some(control_flow) = app.tick(
             context.drain_input().unwrap(),

@@ -9,7 +9,7 @@ fn main() {
             app::test(),
             &mut app::AppData::new(),
             &mut app::AppView::new(),
-            pu::encode_colour::FromTermInfo,
+            pu::encode_colour::FromTermInfoRgb,
         )
         .unwrap();
 }

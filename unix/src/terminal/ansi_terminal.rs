@@ -24,8 +24,8 @@ pub struct AnsiTerminal {
 }
 
 pub mod encode_colour {
+    use crate::terminal::ansi_colour_codes::{nearest_ansi_code, nearest_mean_greyscale_code, nearest_palette_code};
     use crate::terminal::term_info_cache::TermInfoCache;
-    use ansi_colour::Colour;
     use rgb24::Rgb24;
 
     pub trait Trait {
@@ -34,14 +34,43 @@ pub mod encode_colour {
     }
 
     #[derive(Clone, Copy)]
-    pub struct FromTermInfo;
-    impl Trait for FromTermInfo {
+    pub struct FromTermInfoRgb;
+    impl Trait for FromTermInfoRgb {
         fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
-            buffer.push_str(term_info_cache.fg_colour(Colour::from_rgb24(rgb24)));
+            buffer.push_str(term_info_cache.fg_colour(nearest_palette_code(rgb24)));
         }
         fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
-            buffer.push_str(term_info_cache.bg_colour(Colour::from_rgb24(rgb24)));
+            buffer.push_str(term_info_cache.bg_colour(nearest_palette_code(rgb24)));
         }
+    }
+
+    #[derive(Clone, Copy)]
+    pub struct FromTermInfoGreyscale;
+    impl Trait for FromTermInfoGreyscale {
+        fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
+            buffer.push_str(term_info_cache.fg_colour(nearest_mean_greyscale_code(rgb24)));
+        }
+        fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
+            buffer.push_str(term_info_cache.bg_colour(nearest_mean_greyscale_code(rgb24)));
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    pub struct FromTermInfoAnsi16Colour;
+    impl Trait for FromTermInfoAnsi16Colour {
+        fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
+            buffer.push_str(term_info_cache.fg_colour(nearest_ansi_code(rgb24)));
+        }
+        fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {
+            buffer.push_str(term_info_cache.bg_colour(nearest_ansi_code(rgb24)));
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    pub struct TrueColour;
+    impl Trait for TrueColour {
+        fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {}
+        fn encode_background(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache) {}
     }
 }
 
@@ -66,8 +95,12 @@ impl AnsiTerminal {
     }
 
     fn init(&mut self) -> Result<()> {
-        self.output_buffer.push_str(&self.ti_cache.enter_ca);
-        self.output_buffer.push_str(&self.ti_cache.enter_xmit);
+        if let Some(enter_ca) = self.ti_cache.enter_ca.as_ref() {
+            self.output_buffer.push_str(enter_ca);
+        }
+        if let Some(enter_xmit) = self.ti_cache.enter_xmit.as_ref() {
+            self.output_buffer.push_str(enter_xmit);
+        }
         self.output_buffer.push_str(&self.ti_cache.hide_cursor);
         self.output_buffer.push_str(&self.ti_cache.clear);
         self.output_buffer.push_str(&self.ti_cache.enable_mouse_reporting);
@@ -76,8 +109,12 @@ impl AnsiTerminal {
 
     fn teardown(&mut self) -> Result<()> {
         self.output_buffer.push_str(&self.ti_cache.disable_mouse_reporting);
-        self.output_buffer.push_str(&self.ti_cache.exit_ca);
-        self.output_buffer.push_str(&self.ti_cache.exit_xmit);
+        if let Some(exit_ca) = self.ti_cache.exit_ca.as_ref() {
+            self.output_buffer.push_str(exit_ca);
+        }
+        if let Some(exit_xmit) = self.ti_cache.exit_xmit.as_ref() {
+            self.output_buffer.push_str(exit_xmit);
+        }
         self.output_buffer.push_str(&self.ti_cache.show_cursor);
         self.output_buffer.push_str(&self.ti_cache.reset);
         self.flush_buffer().map_err(Into::into)

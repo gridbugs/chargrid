@@ -10,7 +10,7 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_unix"
 
 [features]
-serialize = ["prototty_render/serialize", "prototty_input/serialize", "prototty_grid/serialize", "ansi_colour/serialize"]
+serialize = ["prototty_render/serialize", "prototty_input/serialize", "prototty_grid/serialize"]
 storage = ["prototty_file_storage"]
 
 [dependencies]
@@ -21,7 +21,6 @@ prototty_event_routine = { path = "../event-routine", version = "0.27" }
 prototty_file_storage = { path = "../file-storage", version = "0.27", optional = true }
 libc = "0.2"
 term = "0.5"
-ansi_colour = "0.5"
 
 [dev-dependencies]
 prototty = { path = "../prototty", version = "0.27" }

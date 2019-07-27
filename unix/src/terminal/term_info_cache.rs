@@ -1,5 +1,4 @@
 use super::byte_prefix_tree::BytePrefixTree;
-use ansi_colour::{AllColours, Colour};
 use error::{Error, Result};
 use prototty_input::{Input, MouseButton, ScrollDirection};
 use term::terminfo::parm::{self, Param, Variables};
@@ -28,10 +27,10 @@ pub enum TerminalInput {
 }
 
 pub struct TermInfoCache {
-    pub enter_ca: String,
-    pub exit_ca: String,
-    pub enter_xmit: String,
-    pub exit_xmit: String,
+    pub enter_ca: Option<String>,
+    pub exit_ca: Option<String>,
+    pub enter_xmit: Option<String>,
+    pub exit_xmit: Option<String>,
     pub show_cursor: String,
     pub hide_cursor: String,
     pub clear: String,
@@ -78,8 +77,7 @@ impl TermInfoCache {
 
         let mut fg_colours = Vec::with_capacity(256);
         let mut bg_colours = Vec::with_capacity(256);
-        for colour in AllColours {
-            let code = colour.code() as i32;
+        for code in 0..=255 {
             let params = &[Param::Number(code)];
             fg_colours.push(::std::str::from_utf8(&parm::expand(setfg.as_bytes(), params, &mut vars)?)?.to_string());
             bg_colours.push(::std::str::from_utf8(&parm::expand(setbg.as_bytes(), params, &mut vars)?)?.to_string());
@@ -172,10 +170,10 @@ impl TermInfoCache {
         }
 
         Ok(Self {
-            enter_ca: cap("smcup")?,
-            exit_ca: cap("rmcup")?,
-            enter_xmit: cap("smkx")?,
-            exit_xmit: cap("rmkx")?,
+            enter_ca: cap("smcup").ok(),
+            exit_ca: cap("rmcup").ok(),
+            enter_xmit: cap("smkx").ok(),
+            exit_xmit: cap("rmkx").ok(),
             show_cursor: cap("cnorm")?,
             hide_cursor: cap("civis")?,
             reset: cap("sgr0")?,
@@ -193,11 +191,11 @@ impl TermInfoCache {
         })
     }
 
-    pub fn fg_colour(&self, colour: Colour) -> &str {
-        self.fg_colours[colour.code() as usize].as_str()
+    pub fn fg_colour(&self, colour: u8) -> &str {
+        self.fg_colours[colour as usize].as_str()
     }
 
-    pub fn bg_colour(&self, colour: Colour) -> &str {
-        self.bg_colours[colour.code() as usize].as_str()
+    pub fn bg_colour(&self, colour: u8) -> &str {
+        self.bg_colours[colour as usize].as_str()
     }
 }

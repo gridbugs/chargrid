@@ -1,4 +1,3 @@
-extern crate ansi_colour;
 extern crate libc;
 #[cfg(feature = "storage")]
 extern crate prototty_file_storage;

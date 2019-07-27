@@ -1,3 +1,4 @@
+mod ansi_colour_codes;
 mod ansi_terminal;
 mod byte_prefix_tree;
 mod low_level;

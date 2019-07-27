@@ -10,7 +10,7 @@ fn main() {
     let mut app_view = AppView;
     loop {
         context
-            .render(&mut app_view, &app, encode_colour::FromTermInfo)
+            .render(&mut app_view, &app, encode_colour::FromTermInfoRgb)
             .unwrap();
         if let Some(Quit) = app.update(context.drain_input().unwrap()) {
             break;

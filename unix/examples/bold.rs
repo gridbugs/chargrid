@@ -19,7 +19,9 @@ impl View<()> for BoldTestView {
 
 fn main() {
     let mut context = Context::new().unwrap();
-    context.render(&mut BoldTestView, ()).unwrap();
+    context
+        .render(&mut BoldTestView, (), encode_colour::FromTermInfoRgb)
+        .unwrap();
     loop {
         match context.wait_input().unwrap() {
             prototty::input::inputs::ETX => break,
