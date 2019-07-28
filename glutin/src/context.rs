@@ -377,26 +377,28 @@ impl<'a> Context<'a> {
         {
             let mut output_cells = self.background_renderer.map_cells(&mut self.factory);
             for ((coord, cell), output_cell) in self.grid.enumerate().zip(output_cells.iter_mut()) {
-                self.char_buf.clear();
-                self.char_buf.push(cell.character);
-                let (font_id, scale) = if cell.bold {
-                    (BOLD_FONT_ID, self.bold_font_scale)
-                } else {
-                    (FONT_ID, self.font_scale)
-                };
-                let section = gfx_glyph::Section {
-                    text: self.char_buf.as_str(),
-                    screen_position: ((coord.x as f32 * self.cell_width), (coord.y as f32 * self.cell_height)),
-                    scale,
-                    font_id,
-                    color: cell.foreground_colour,
-                    layout: Layout::default()
-                        .h_align(HorizontalAlign::Left)
-                        .v_align(VerticalAlign::Top),
-                    ..Default::default()
-                };
-                self.glyph_brush.queue(section);
-                output_cell.foreground_colour = cell.foreground_colour;
+                if cell.character != ' ' {
+                    self.char_buf.clear();
+                    self.char_buf.push(cell.character);
+                    let (font_id, scale) = if cell.bold {
+                        (BOLD_FONT_ID, self.bold_font_scale)
+                    } else {
+                        (FONT_ID, self.font_scale)
+                    };
+                    let section = gfx_glyph::Section {
+                        text: self.char_buf.as_str(),
+                        screen_position: ((coord.x as f32 * self.cell_width), (coord.y as f32 * self.cell_height)),
+                        scale,
+                        font_id,
+                        color: cell.foreground_colour,
+                        layout: Layout::default()
+                            .h_align(HorizontalAlign::Left)
+                            .v_align(VerticalAlign::Top),
+                        ..Default::default()
+                    };
+                    self.glyph_brush.queue(section);
+                    output_cell.foreground_colour = cell.foreground_colour;
+                }
                 output_cell.background_colour = cell.background_colour;
                 output_cell.underline = cell.underline as u32;
             }

@@ -58,3 +58,6 @@ members = [
     "examples/colour_grid/unix",
     "examples/colour_grid/wasm",
 ]
+
+[profile.release]
+lto = true
