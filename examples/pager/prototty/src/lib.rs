@@ -90,12 +90,7 @@ impl AppState {
 }
 
 impl<'a> View<&'a AppState> for AppView {
-    fn view<F: Frame, C: ColModify>(
-        &mut self,
-        app_state: &'a AppState,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) {
+    fn view<F: Frame, C: ColModify>(&mut self, app_state: &'a AppState, context: ViewContext<C>, frame: &mut F) {
         let rich_text = &[
             ("Hello, World!\nblah\nblah blah ", Style::default()),
             (

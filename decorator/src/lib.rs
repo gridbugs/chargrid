@@ -6,14 +6,14 @@ extern crate serde;
 mod align;
 mod border;
 mod bound;
+mod col_modify;
 mod defaults;
 mod fill_background;
 mod scroll;
-mod col_modify;
 
 pub use align::*;
 pub use border::*;
 pub use bound::*;
+pub use col_modify::*;
 pub use fill_background::*;
 pub use scroll::*;
-pub use col_modify::*;

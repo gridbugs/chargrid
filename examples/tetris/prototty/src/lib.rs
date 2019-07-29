@@ -333,8 +333,8 @@ impl<'a> View<&'a App> for AppView {
                     context,
                     frame,
                 );
-                TransformRgb24View::new(&mut self.border_views.next_piece).view(
-                    TransformRgb24Data {
+                ColModifyView::new(&mut self.border_views.next_piece).view(
+                    ColModifyData {
                         col_modify: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
                         data: BorderData {
                             data: &app.tetris,

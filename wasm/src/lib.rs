@@ -27,7 +27,7 @@ use prototty_event_routine::{CommonEvent, Event, EventRoutine, Handled};
 use prototty_grid::ColourConversion;
 pub use prototty_input::Input;
 use prototty_input::{MouseButton, ScrollDirection};
-use prototty_render::{Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault, ColModify};
+use prototty_render::{ColModify, Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault};
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use std::time::Duration;

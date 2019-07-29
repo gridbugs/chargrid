@@ -2,11 +2,11 @@ use prototty_render::*;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub struct TransformRgb24View<V> {
+pub struct ColModifyView<V> {
     pub view: V,
 }
 
-impl<V> TransformRgb24View<V> {
+impl<V> ColModifyView<V> {
     pub fn new(view: V) -> Self {
         Self { view }
     }
@@ -14,51 +14,41 @@ impl<V> TransformRgb24View<V> {
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
-pub struct TransformRgb24Data<S, T> {
+pub struct ColModifyData<S, T> {
     pub col_modify: S,
     pub data: T,
 }
 
-impl<'a, T, V: View<&'a T>, S: ColModify> View<&'a TransformRgb24Data<S, T>> for TransformRgb24View<V> {
+impl<'a, T, V: View<&'a T>, S: ColModify> View<&'a ColModifyData<S, T>> for ColModifyView<V> {
     fn view<F: Frame, C: ColModify>(
         &mut self,
-        &TransformRgb24Data {
-            col_modify,
-            ref data,
-        }: &'a TransformRgb24Data<S, T>,
+        &ColModifyData { col_modify, ref data }: &'a ColModifyData<S, T>,
         context: ViewContext<C>,
         frame: &mut F,
     ) {
-        self.view(TransformRgb24Data { col_modify, data }, context, frame)
+        self.view(ColModifyData { col_modify, data }, context, frame)
     }
     fn visible_bounds<C: ColModify>(
         &mut self,
-        &TransformRgb24Data {
-            col_modify,
-            ref data,
-        }: &'a TransformRgb24Data<S, T>,
+        &ColModifyData { col_modify, ref data }: &'a ColModifyData<S, T>,
         context: ViewContext<C>,
     ) -> Size {
-        self.visible_bounds(TransformRgb24Data { col_modify, data }, context)
+        self.visible_bounds(ColModifyData { col_modify, data }, context)
     }
 }
 
-impl<T, V: View<T>, S: ColModify> View<TransformRgb24Data<S, T>> for TransformRgb24View<V> {
+impl<T, V: View<T>, S: ColModify> View<ColModifyData<S, T>> for ColModifyView<V> {
     fn view<F: Frame, C: ColModify>(
         &mut self,
-        TransformRgb24Data { col_modify, data }: TransformRgb24Data<S, T>,
+        ColModifyData { col_modify, data }: ColModifyData<S, T>,
         context: ViewContext<C>,
         frame: &mut F,
     ) {
-        self.view
-            .view(data, context.compose_col_modify(col_modify), frame);
+        self.view.view(data, context.compose_col_modify(col_modify), frame);
     }
     fn visible_bounds<C: ColModify>(
         &mut self,
-        TransformRgb24Data {
-            col_modify: _,
-            data,
-        }: TransformRgb24Data<S, T>,
+        ColModifyData { col_modify: _, data }: ColModifyData<S, T>,
         context: ViewContext<C>,
     ) -> Size {
         self.view.visible_bounds(data, context)

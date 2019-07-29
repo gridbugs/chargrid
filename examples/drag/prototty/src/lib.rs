@@ -56,11 +56,7 @@ impl App {
     }
 }
 
-fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(
-    frame: &mut F,
-    iter: I,
-    context: ViewContext<C>,
-) {
+fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(frame: &mut F, iter: I, context: ViewContext<C>) {
     for coord in iter {
         if !coord.is_valid(frame.size()) {
             break;
