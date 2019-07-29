@@ -1,4 +1,4 @@
-use prototty_unix::{encode_colour, Context};
+use prototty_unix::{col_encode, Context};
 use roguelike_prototty::{event_routine, AppData, AppView};
 use std::time::Duration;
 
@@ -10,7 +10,7 @@ fn main() {
             event_routine(),
             &mut AppData::new(),
             &mut AppView::new(),
-            encode_colour::FromTermInfoRgb,
+            col_encode::FromTermInfoRgb,
         )
         .unwrap()
 }

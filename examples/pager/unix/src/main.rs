@@ -14,9 +14,7 @@ fn main() -> io::Result<()> {
     let mut view = AppView::new();
     let mut state = AppState::new(string);
     loop {
-        context
-            .render(&mut view, &state, encode_colour::FromTermInfoRgb)
-            .unwrap();
+        context.render(&mut view, &state, col_encode::FromTermInfoRgb).unwrap();
         let input = context.wait_input().unwrap();
         match state.tick((&[input]).iter().cloned(), &view) {
             None => (),

@@ -15,11 +15,7 @@ fn main() {
 
     // render the title using the DemoTitleView
     context
-        .render(
-            &mut DemoTitleView,
-            &title,
-            prototty_unix::encode_colour::FromTermInfoRgb,
-        )
+        .render(&mut DemoTitleView, &title, prototty_unix::col_encode::FromTermInfoRgb)
         .unwrap();
 
     // exit after a key is pressed

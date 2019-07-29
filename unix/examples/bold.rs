@@ -20,7 +20,7 @@ impl View<()> for BoldTestView {
 fn main() {
     let mut context = Context::new().unwrap();
     context
-        .render(&mut BoldTestView, (), encode_colour::FromTermInfoRgb)
+        .render(&mut BoldTestView, (), col_encode::FromTermInfoRgb)
         .unwrap();
     loop {
         match context.wait_input().unwrap() {

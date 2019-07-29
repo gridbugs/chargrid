@@ -23,7 +23,7 @@ pub struct AnsiTerminal {
     input_ring: VecDeque<Input>,
 }
 
-pub mod encode_colour {
+pub mod col_encode {
     use crate::terminal::ansi_colour_codes::{nearest_ansi_code, nearest_mean_greyscale_code, nearest_palette_code};
     use crate::terminal::term_info_cache::TermInfoCache;
     use rgb24::Rgb24;
@@ -85,7 +85,7 @@ pub mod encode_colour {
     }
 }
 
-pub use self::encode_colour::Trait as EncodeColour;
+pub use self::col_encode::Trait as ColEncode;
 
 impl AnsiTerminal {
     pub fn new() -> Result<Self> {
@@ -145,14 +145,14 @@ impl AnsiTerminal {
 
     pub fn set_foreground_colour<E>(&mut self, rgb24: Rgb24)
     where
-        E: EncodeColour,
+        E: ColEncode,
     {
         E::encode_foreground(&mut self.output_buffer, rgb24, &self.ti_cache);
     }
 
     pub fn set_background_colour<E>(&mut self, rgb24: Rgb24)
     where
-        E: EncodeColour,
+        E: ColEncode,
     {
         E::encode_background(&mut self.output_buffer, rgb24, &self.ti_cache);
     }

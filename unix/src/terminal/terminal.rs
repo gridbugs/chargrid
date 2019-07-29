@@ -1,5 +1,5 @@
 pub use super::ansi_terminal::DrainInput;
-use super::ansi_terminal::{AnsiTerminal, EncodeColour};
+use super::ansi_terminal::{AnsiTerminal, ColEncode};
 use error::Result;
 use prototty_grid::*;
 use prototty_input::*;
@@ -76,7 +76,7 @@ impl Terminal {
     pub fn draw_frame<C, E>(&mut self, frame: &mut Grid<C>) -> Result<()>
     where
         C: ColourConversion<Colour = Rgb24>,
-        E: EncodeColour,
+        E: ColEncode,
     {
         self.ansi.set_cursor(Coord::new(0, 0))?;
         let mut bold = false;

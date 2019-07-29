@@ -2,7 +2,7 @@ extern crate prototty_unix;
 extern crate rand;
 extern crate tetris_prototty;
 
-use prototty_unix::{encode_colour::FromTermInfoRgb, Context};
+use prototty_unix::{col_encode::FromTermInfoRgb, Context};
 use std::thread;
 use std::time::Duration;
 use tetris_prototty::{App, AppView, ControlFlow};
