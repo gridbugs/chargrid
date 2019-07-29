@@ -48,6 +48,7 @@ members = [
     "examples/colour_picker/unix",
     "examples/colour_picker/wasm",
 
+    "examples/roguelike/game",
     "examples/roguelike/prototty",
     "examples/roguelike/glutin",
     "examples/roguelike/unix",

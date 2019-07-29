@@ -1,9 +1,9 @@
 [package]
-name = "roguelike_prototty"
+name = "game"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
 [dependencies]
-prototty = { path = "../../../prototty" }
-game = { path = "../game" }
+grid_2d = "0.12"
+direction = "0.17"
