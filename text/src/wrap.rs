@@ -4,15 +4,15 @@ pub trait Wrap: private_wrap::Sealed {
     #[doc(hidden)]
     fn clear(&mut self);
     #[doc(hidden)]
-    fn process_character<F: Frame, R: ViewTransformRgb24>(
+    fn process_character<F: Frame, C: ColModify>(
         &mut self,
         character: char,
         style: Style,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     );
     #[doc(hidden)]
-    fn flush<F: Frame, R: ViewTransformRgb24>(&mut self, context: ViewContext<R>, frame: &mut F) {
+    fn flush<F: Frame, C: ColModify>(&mut self, context: ViewContext<C>, frame: &mut F) {
         let _ = context;
         let _ = frame;
     }
@@ -68,11 +68,11 @@ impl Wrap for None {
     fn clear(&mut self) {
         self.cursor = Coord::new(0, 0);
     }
-    fn process_character<F: Frame, R: ViewTransformRgb24>(
+    fn process_character<F: Frame, C: ColModify>(
         &mut self,
         character: char,
         style: Style,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         match character {
@@ -102,11 +102,11 @@ impl Wrap for Word {
         self.current_word_buffer.clear();
     }
 
-    fn process_character<F: Frame, R: ViewTransformRgb24>(
+    fn process_character<F: Frame, C: ColModify>(
         &mut self,
         character: char,
         style: Style,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         match character {
@@ -154,7 +154,7 @@ impl Wrap for Word {
         }
     }
 
-    fn flush<F: Frame, R: ViewTransformRgb24>(&mut self, context: ViewContext<R>, frame: &mut F) {
+    fn flush<F: Frame, C: ColModify>(&mut self, context: ViewContext<C>, frame: &mut F) {
         for view_cell in self.current_word_buffer.drain(..) {
             frame.set_cell_relative(self.cursor, 0, view_cell, context);
             self.cursor.x += 1;
@@ -176,11 +176,11 @@ impl Wrap for Char {
         self.cursor = Coord::new(0, 0);
     }
 
-    fn process_character<F: Frame, R: ViewTransformRgb24>(
+    fn process_character<F: Frame, C: ColModify>(
         &mut self,
         character: char,
         style: Style,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         match character {

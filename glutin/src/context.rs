@@ -420,11 +420,11 @@ impl<'a> Context<'a> {
         self.render_at(view, data, context)
     }
 
-    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(
+    pub fn render_at<V: View<T>, T, C: ColModify>(
         &mut self,
         view: &mut V,
         data: T,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
     ) -> Result<()> {
         if self.closing {
             return Ok(());

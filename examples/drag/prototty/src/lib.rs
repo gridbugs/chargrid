@@ -56,10 +56,10 @@ impl App {
     }
 }
 
-fn draw_line<F: Frame, R: ViewTransformRgb24, I: IntoIterator<Item = Coord>>(
+fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(
     frame: &mut F,
     iter: I,
-    context: ViewContext<R>,
+    context: ViewContext<C>,
 ) {
     for coord in iter {
         if !coord.is_valid(frame.size()) {
@@ -79,8 +79,8 @@ fn draw_line<F: Frame, R: ViewTransformRgb24, I: IntoIterator<Item = Coord>>(
 }
 
 impl<'a> View<&'a App> for AppView {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, app: &'a App, context: ViewContext<R>, frame: &mut F) {
-        let context = context.compose_transform_rgb24(|rgb24: Rgb24| rgb24.normalised_scalar_mul(128));
+    fn view<F: Frame, C: ColModify>(&mut self, app: &'a App, context: ViewContext<C>, frame: &mut F) {
+        let context = context.compose_col_modify(|rgb24: Rgb24| rgb24.normalised_scalar_mul(128));
         match (app.last_clicked_coord, app.coord) {
             (Some(last_clicked_coord), Some(coord)) => {
                 let line = LineSegment::new(last_clicked_coord, coord);

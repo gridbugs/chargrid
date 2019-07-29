@@ -90,10 +90,10 @@ impl AppState {
 }
 
 impl<'a> View<&'a AppState> for AppView {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         app_state: &'a AppState,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         let rich_text = &[

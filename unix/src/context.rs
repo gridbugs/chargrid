@@ -97,16 +97,16 @@ impl Context {
         self.render_at(view, data, ViewContext::default_with_size(size), encode_colour)
     }
 
-    pub fn render_at<V, T, R, E>(
+    pub fn render_at<V, T, C, E>(
         &mut self,
         view: &mut V,
         data: T,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         encode_colour: E,
     ) -> Result<()>
     where
         V: View<T>,
-        R: ViewTransformRgb24,
+        C: ColModify,
         E: EncodeColour,
     {
         self.resize_if_necessary()?;

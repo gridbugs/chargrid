@@ -1,7 +1,7 @@
 use crate::{MenuIndexFromScreenCoord, MenuInstance, MenuOutput};
 use prototty_event_routine::{event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled, ViewSelector};
 use prototty_input::Input;
-use prototty_render::{Frame, View, ViewContext, ViewTransformRgb24};
+use prototty_render::{ColModify, Frame, View, ViewContext};
 use std::marker::PhantomData;
 
 pub struct MenuInstanceRoutine<C, V> {
@@ -36,14 +36,14 @@ where
 {
 }
 
-impl<C, V> EventRoutine for MenuInstanceRoutine<C, V>
+impl<T, V> EventRoutine for MenuInstanceRoutine<T, V>
 where
-    C: Clone,
-    for<'a> V: View<&'a MenuInstance<C>>,
+    T: Clone,
+    for<'a> V: View<&'a MenuInstance<T>>,
     V: MenuIndexFromScreenCoord,
 {
-    type Return = MenuOutput<C>;
-    type Data = MenuInstance<C>;
+    type Return = MenuOutput<T>;
+    type Data = MenuInstance<T>;
     type View = V;
     type Event = Input;
 
@@ -60,10 +60,10 @@ where
         })
     }
 
-    fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
         F: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         view.view(&data, context, frame);
     }
@@ -116,10 +116,10 @@ where
         })
     }
 
-    fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
         F: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         let menu_view = self.s.view_mut(view);
         let menu_instance = self.s.menu_instance(data);

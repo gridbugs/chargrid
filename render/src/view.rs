@@ -2,12 +2,12 @@ use super::{Coord, Size};
 use crate::context::*;
 use crate::view_cell::*;
 
-fn set_cell_relative_default<F: ?Sized + Frame, R: ViewTransformRgb24>(
+fn set_cell_relative_default<F: ?Sized + Frame, C: ColModify>(
     frame: &mut F,
     relative_coord: Coord,
     relative_depth: i32,
     relative_cell: ViewCell,
-    context: ViewContext<R>,
+    context: ViewContext<C>,
 ) {
     let adjusted_relative_coord = relative_coord + context.inner_offset;
     if adjusted_relative_coord.is_valid(context.size) {
@@ -18,11 +18,11 @@ fn set_cell_relative_default<F: ?Sized + Frame, R: ViewTransformRgb24>(
                 foreground: relative_cell
                     .style
                     .foreground
-                    .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+                    .map(|rgb24| context.col_modify.modify(rgb24)),
                 background: relative_cell
                     .style
                     .background
-                    .map(|rgb24| context.transform_rgb24.transform(rgb24)),
+                    .map(|rgb24| context.col_modify.modify(rgb24)),
                 ..relative_cell.style
             },
             ..relative_cell
@@ -33,12 +33,12 @@ fn set_cell_relative_default<F: ?Sized + Frame, R: ViewTransformRgb24>(
 
 /// A frame of animation
 pub trait Frame {
-    fn set_cell_relative<R: ViewTransformRgb24>(
+    fn set_cell_relative<C: ColModify>(
         &mut self,
         relative_coord: Coord,
         relative_depth: i32,
         relative_cell: ViewCell,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
     ) {
         set_cell_relative_default(self, relative_coord, relative_depth, relative_cell, context);
     }
@@ -55,7 +55,7 @@ pub trait View<T> {
     /// Update the cells in `frame` to describe how a type should be rendered.
     /// This mutably borrows `self` to allow the view to contain buffers/caches which
     /// are updated during rendering.
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, data: T, context: ViewContext<R>, frame: &mut F);
+    fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F);
 
     fn view_default_context<F: Frame>(&mut self, data: T, frame: &mut F) {
         self.view(data, frame.default_context(), frame)
@@ -64,7 +64,7 @@ pub trait View<T> {
     /// Return the size of the visible component of the element without
     /// rendering it.
     /// By default this is the current context size.
-    fn visible_bounds<R: ViewTransformRgb24>(&mut self, data: T, context: ViewContext<R>) -> Size {
+    fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
         let _ = data;
         context.size
     }
@@ -74,10 +74,10 @@ pub trait View<T> {
     /// the size of the output of a view they are decorating.
     /// By default this calls `view` keeping track of the maximum x and y
     /// components of the relative coords of cells which are set in `frame`.
-    fn view_reporting_intended_size<F: Frame, R: ViewTransformRgb24>(
+    fn view_reporting_intended_size<F: Frame, C: ColModify>(
         &mut self,
         data: T,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> Size {
         struct Measure<'a, H> {
@@ -85,12 +85,12 @@ pub trait View<T> {
             max: Coord,
         }
         impl<'a, H: Frame> Frame for Measure<'a, H> {
-            fn set_cell_relative<R: ViewTransformRgb24>(
+            fn set_cell_relative<C: ColModify>(
                 &mut self,
                 relative_coord: Coord,
                 relative_depth: i32,
                 relative_cell: ViewCell,
-                context: ViewContext<R>,
+                context: ViewContext<C>,
             ) {
                 set_cell_relative_default(self, relative_coord, relative_depth, relative_cell, context);
                 self.max.x = self.max.x.max(relative_coord.x);
@@ -114,7 +114,7 @@ pub trait View<T> {
 }
 
 impl<'a, T, V: View<T>> View<T> for &'a mut V {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, data: T, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
         (*self).view(data, context, frame)
     }
 }

@@ -20,28 +20,28 @@ pub struct FillBackgroundData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a FillBackgroundData<T>> for FillBackgroundView<V> {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         &FillBackgroundData { background, ref data }: &'a FillBackgroundData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         self.view(FillBackgroundData { background, data }, context, frame);
     }
-    fn visible_bounds<R: ViewTransformRgb24>(
+    fn visible_bounds<C: ColModify>(
         &mut self,
         &FillBackgroundData { background, ref data }: &'a FillBackgroundData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
     ) -> Size {
         self.visible_bounds(FillBackgroundData { background, data }, context)
     }
 }
 
 impl<T, V: View<T>> View<FillBackgroundData<T>> for FillBackgroundView<V> {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         FillBackgroundData { background, data }: FillBackgroundData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         let size = self
@@ -59,10 +59,10 @@ impl<T, V: View<T>> View<FillBackgroundData<T>> for FillBackgroundView<V> {
             }
         }
     }
-    fn visible_bounds<R: ViewTransformRgb24>(
+    fn visible_bounds<C: ColModify>(
         &mut self,
         FillBackgroundData { background: _, data }: FillBackgroundData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
     ) -> Size {
         self.view.visible_bounds(data, context)
     }

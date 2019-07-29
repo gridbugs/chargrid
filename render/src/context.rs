@@ -1,71 +1,71 @@
 use super::{Coord, Size};
 use rgb24::Rgb24;
 
-pub trait ViewTransformRgb24: Copy {
-    fn transform(&self, rgb24: Rgb24) -> Rgb24;
+pub trait ColModify: Copy {
+    fn modify(&self, rgb24: Rgb24) -> Rgb24;
 }
 
-impl<F: Fn(Rgb24) -> Rgb24 + Copy> ViewTransformRgb24 for F {
-    fn transform(&self, rgb24: Rgb24) -> Rgb24 {
+impl<F: Fn(Rgb24) -> Rgb24 + Copy> ColModify for F {
+    fn modify(&self, rgb24: Rgb24) -> Rgb24 {
         (self)(rgb24)
     }
 }
 
 #[derive(Clone, Copy)]
-pub struct ViewTransformRgb24Identity;
+pub struct ColModifyIdentity;
 
-impl ViewTransformRgb24 for ViewTransformRgb24Identity {
-    fn transform(&self, rgb24: Rgb24) -> Rgb24 {
+impl ColModify for ColModifyIdentity {
+    fn modify(&self, rgb24: Rgb24) -> Rgb24 {
         rgb24
     }
 }
 
 #[derive(Clone, Copy)]
-pub struct ViewTransformRgb24Compose<Inner: ViewTransformRgb24, Outer: ViewTransformRgb24> {
+pub struct ColModifyCompose<Inner: ColModify, Outer: ColModify> {
     inner: Inner,
     outer: Outer,
 }
 
-impl<Inner, Outer> ViewTransformRgb24 for ViewTransformRgb24Compose<Inner, Outer>
+impl<Inner, Outer> ColModify for ColModifyCompose<Inner, Outer>
 where
-    Inner: ViewTransformRgb24,
-    Outer: ViewTransformRgb24,
+    Inner: ColModify,
+    Outer: ColModify,
 {
-    fn transform(&self, rgb24: Rgb24) -> Rgb24 {
-        self.outer.transform(self.inner.transform(rgb24))
+    fn modify(&self, rgb24: Rgb24) -> Rgb24 {
+        self.outer.modify(self.inner.modify(rgb24))
     }
 }
 
 #[derive(Clone, Copy)]
-pub struct ViewContext<R: ViewTransformRgb24 = ViewTransformRgb24Identity> {
+pub struct ViewContext<C: ColModify = ColModifyIdentity> {
     pub inner_offset: Coord,
     pub outer_offset: Coord,
     pub depth: i32,
-    pub transform_rgb24: R,
+    pub col_modify: C,
     pub size: Size,
 }
 
-pub type ViewContextDefault = ViewContext<ViewTransformRgb24Identity>;
+pub type ViewContextDefault = ViewContext<ColModifyIdentity>;
 
-impl ViewContext<ViewTransformRgb24Identity> {
+impl ViewContext<ColModifyIdentity> {
     pub fn default_with_size(size: Size) -> Self {
         Self {
             inner_offset: Coord::new(0, 0),
             outer_offset: Coord::new(0, 0),
             depth: 0,
-            transform_rgb24: ViewTransformRgb24Identity,
+            col_modify: ColModifyIdentity,
             size,
         }
     }
 }
 
-impl<R: ViewTransformRgb24> ViewContext<R> {
-    pub fn new(inner_offset: Coord, outer_offset: Coord, depth: i32, transform_rgb24: R, size: Size) -> Self {
+impl<C: ColModify> ViewContext<C> {
+    pub fn new(inner_offset: Coord, outer_offset: Coord, depth: i32, col_modify: C, size: Size) -> Self {
         Self {
             inner_offset,
             outer_offset,
             depth,
-            transform_rgb24,
+            col_modify,
             size,
         }
     }
@@ -108,14 +108,11 @@ impl<R: ViewTransformRgb24> ViewContext<R> {
         }
     }
 
-    pub fn compose_transform_rgb24<Inner: ViewTransformRgb24>(
-        self,
-        inner: Inner,
-    ) -> ViewContext<ViewTransformRgb24Compose<Inner, R>> {
+    pub fn compose_col_modify<Inner: ColModify>(self, inner: Inner) -> ViewContext<ColModifyCompose<Inner, C>> {
         ViewContext {
-            transform_rgb24: ViewTransformRgb24Compose {
+            col_modify: ColModifyCompose {
                 inner,
-                outer: self.transform_rgb24,
+                outer: self.col_modify,
             },
             inner_offset: self.inner_offset,
             outer_offset: self.outer_offset,

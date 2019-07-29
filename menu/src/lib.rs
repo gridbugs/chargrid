@@ -141,10 +141,10 @@ where
     T: Clone,
     E: MenuEntryView<T>,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         menu_instance: &'a MenuInstance<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         self.last_offset = context.outer_offset;
@@ -168,10 +168,10 @@ where
     T: Clone,
     E: MenuEntryExtraView<T, X>,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         (menu_instance, extra): (&'a MenuInstance<T>, &'a X),
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         self.last_offset = context.outer_offset;
@@ -193,16 +193,16 @@ where
 pub type MenuEntryViewInfo = u32;
 
 pub trait MenuEntryView<T> {
-    fn normal<F: Frame, R: ViewTransformRgb24>(
+    fn normal<F: Frame, C: ColModify>(
         &mut self,
         entry: &T,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> MenuEntryViewInfo;
-    fn selected<F: Frame, R: ViewTransformRgb24>(
+    fn selected<F: Frame, C: ColModify>(
         &mut self,
         entry: &T,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> MenuEntryViewInfo;
 }
@@ -214,28 +214,28 @@ pub trait MenuEntryView<T> {
 /// object which knows how to map menu entries to some renderable
 /// value.
 pub trait MenuEntryExtraView<T, X> {
-    fn normal<F: Frame, R: ViewTransformRgb24>(
+    fn normal<F: Frame, C: ColModify>(
         &mut self,
         entry: &T,
         extra: &X,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> MenuEntryViewInfo;
-    fn selected<F: Frame, R: ViewTransformRgb24>(
+    fn selected<F: Frame, C: ColModify>(
         &mut self,
         entry: &T,
         extra: &X,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> MenuEntryViewInfo;
 }
 
 /// Convenience function to simplify implementing `MenuEntryView` and
 /// `MenuEntryExtraView`.
-pub fn menu_entry_view<T, V: View<T>, F: Frame, R: ViewTransformRgb24>(
+pub fn menu_entry_view<T, V: View<T>, F: Frame, C: ColModify>(
     data: T,
     mut view: V,
-    context: ViewContext<R>,
+    context: ViewContext<C>,
     frame: &mut F,
 ) -> MenuEntryViewInfo {
     view.view_reporting_intended_size(data, context, frame).width()
@@ -261,18 +261,18 @@ impl<T> MenuEntryView<T> for MenuEntryStylePair
 where
     for<'a> &'a T: Into<&'a str>,
 {
-    fn normal<F: Frame, R: ViewTransformRgb24>(
+    fn normal<F: Frame, C: ColModify>(
         &mut self,
         entry: &T,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> MenuEntryViewInfo {
         menu_entry_view(entry.into(), StringViewSingleLine::new(self.normal), context, frame)
     }
-    fn selected<F: Frame, R: ViewTransformRgb24>(
+    fn selected<F: Frame, C: ColModify>(
         &mut self,
         entry: &T,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> MenuEntryViewInfo {
         menu_entry_view(entry.into(), StringViewSingleLine::new(self.selected), context, frame)
@@ -286,16 +286,16 @@ pub trait ChooseStyleFromEntryExtra {
     fn choose_style_selected(&mut self, entry: &Self::Entry, extra: &Self::Extra) -> Style;
 }
 
-impl<T, X, C> MenuEntryExtraView<T, X> for C
+impl<T, X, CS> MenuEntryExtraView<T, X> for CS
 where
     for<'a> &'a T: Into<&'a str>,
-    C: ChooseStyleFromEntryExtra<Extra = X, Entry = T>,
+    CS: ChooseStyleFromEntryExtra<Extra = X, Entry = T>,
 {
-    fn normal<G: Frame, R: ViewTransformRgb24>(
+    fn normal<G: Frame, C: ColModify>(
         &mut self,
         entry: &T,
         extra: &X,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut G,
     ) -> MenuEntryViewInfo {
         menu_entry_view(
@@ -305,11 +305,11 @@ where
             frame,
         )
     }
-    fn selected<G: Frame, R: ViewTransformRgb24>(
+    fn selected<G: Frame, C: ColModify>(
         &mut self,
         entry: &T,
         extra: &X,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut G,
     ) -> MenuEntryViewInfo {
         menu_entry_view(

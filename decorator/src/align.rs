@@ -52,10 +52,10 @@ pub struct AlignData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a AlignData<T>> for AlignView<V> {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         &AlignData { alignment, ref data }: &'a AlignData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         self.view(AlignData { alignment, data }, context, frame);
@@ -63,10 +63,10 @@ impl<'a, T, V: View<&'a T>> View<&'a AlignData<T>> for AlignView<V> {
 }
 
 impl<T: Clone, V: View<T>> View<AlignData<T>> for AlignView<V> {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         AlignData { alignment, data }: AlignData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         let data_size = self.view.visible_bounds(data.clone(), context);

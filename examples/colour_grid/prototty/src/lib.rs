@@ -22,7 +22,7 @@ struct PressAnyKey;
 
 pub struct ColourSquare;
 impl View<()> for ColourSquare {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, (): (), context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, (): (), context: ViewContext<C>, frame: &mut F) {
         let size = context.size;
         for y in 0..size.height() {
             for x in 0..size.width() {
@@ -65,10 +65,10 @@ impl EventRoutine for PressAnyKey {
         })
     }
 
-    fn view<F, R>(&self, _data: &Self::Data, _view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
+    fn view<F, C>(&self, _data: &Self::Data, _view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
         F: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         ColourSquare.view((), context, frame);
     }

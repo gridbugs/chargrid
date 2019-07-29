@@ -51,10 +51,10 @@ impl EventRoutine for GameEventRoutine {
         })
     }
 
-    fn view<F, R>(&self, data: &Self::Data, _view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
+    fn view<F, C>(&self, data: &Self::Data, _view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
         F: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         let ToRender { grid } = data.game.to_render();
         for (coord, cell) in grid.enumerate() {

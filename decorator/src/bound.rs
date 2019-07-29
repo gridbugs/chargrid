@@ -20,36 +20,36 @@ pub struct BoundData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a BoundData<T>> for BoundView<V> {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         &BoundData { size, ref data }: &'a BoundData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         self.view(BoundData { size, data }, context, frame);
     }
-    fn visible_bounds<R: ViewTransformRgb24>(
+    fn visible_bounds<C: ColModify>(
         &mut self,
         &BoundData { size, ref data }: &'a BoundData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
     ) -> Size {
         self.visible_bounds(BoundData { size, data }, context)
     }
 }
 
 impl<T, V: View<T>> View<BoundData<T>> for BoundView<V> {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         BoundData { size, data }: BoundData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         self.view.view(data, context.constrain_size_to(size), frame);
     }
-    fn visible_bounds<R: ViewTransformRgb24>(
+    fn visible_bounds<C: ColModify>(
         &mut self,
         BoundData { size, data: _ }: BoundData<T>,
-        _context: ViewContext<R>,
+        _context: ViewContext<C>,
     ) -> Size {
         size
     }

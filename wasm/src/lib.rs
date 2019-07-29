@@ -27,7 +27,7 @@ use prototty_event_routine::{CommonEvent, Event, EventRoutine, Handled};
 use prototty_grid::ColourConversion;
 pub use prototty_input::Input;
 use prototty_input::{MouseButton, ScrollDirection};
-use prototty_render::{Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault, ViewTransformRgb24};
+use prototty_render::{Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault, ColModify};
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use std::time::Duration;
@@ -216,7 +216,7 @@ impl Context {
         }
     }
 
-    pub fn render_at<V: View<T>, T, R: ViewTransformRgb24>(&mut self, view: &mut V, data: T, context: ViewContext<R>) {
+    pub fn render_at<V: View<T>, T, C: ColModify>(&mut self, view: &mut V, data: T, context: ViewContext<C>) {
         self.prototty_grid.clear();
         view.view(data, context, &mut self.prototty_grid);
         self.render_internal();

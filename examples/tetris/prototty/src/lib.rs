@@ -39,7 +39,7 @@ fn piece_colour(typ: PieceType) -> Rgb24 {
     }
 }
 impl<'a> View<&'a Tetris> for TetrisBoardView {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, tetris: &'a Tetris, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, tetris: &'a Tetris, context: ViewContext<C>, frame: &mut F) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
                 let mut cell_info = ViewCell::new().with_bold(true);
@@ -68,13 +68,13 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
             frame.set_cell_relative(coord, 0, cell_info, context);
         }
     }
-    fn visible_bounds<R: ViewTransformRgb24>(&mut self, tetris: &'a Tetris, _context: ViewContext<R>) -> Size {
+    fn visible_bounds<C: ColModify>(&mut self, tetris: &'a Tetris, _context: ViewContext<C>) -> Size {
         tetris.size().into()
     }
 }
 
 impl<'a> View<&'a Tetris> for TetrisNextPieceView {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, tetris: &'a Tetris, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, tetris: &'a Tetris, context: ViewContext<C>, frame: &mut F) {
         let offset = Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             let cell_info = ViewCell {
@@ -89,7 +89,7 @@ impl<'a> View<&'a Tetris> for TetrisNextPieceView {
             frame.set_cell_relative(offset + coord, 0, cell_info, context);
         }
     }
-    fn visible_bounds<R: ViewTransformRgb24>(&mut self, _data: &'a Tetris, _context: ViewContext<R>) -> Size {
+    fn visible_bounds<C: ColModify>(&mut self, _data: &'a Tetris, _context: ViewContext<C>) -> Size {
         NEXT_PIECE_SIZE.into()
     }
 }
@@ -136,10 +136,10 @@ enum MainMenuChoice {
 struct MainMenuEntryView;
 
 impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
-    fn normal<F: Frame, R: ViewTransformRgb24>(
+    fn normal<F: Frame, C: ColModify>(
         &mut self,
         choice: &MainMenuChoice,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> u32 {
         let string = match choice {
@@ -150,10 +150,10 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             .view_reporting_intended_size(string, context, frame)
             .width()
     }
-    fn selected<F: Frame, R: ViewTransformRgb24>(
+    fn selected<F: Frame, C: ColModify>(
         &mut self,
         choice: &MainMenuChoice,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) -> u32 {
         let base_style = Style::new().with_bold(true).with_underline(true);
@@ -311,7 +311,7 @@ impl AppView {
 }
 
 impl<'a> View<&'a App> for AppView {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, app: &'a App, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, app: &'a App, context: ViewContext<C>, frame: &mut F) {
         match app.state {
             AppState::Game | AppState::GameOver => {
                 let next_piece_offset_x = self
@@ -335,7 +335,7 @@ impl<'a> View<&'a App> for AppView {
                 );
                 TransformRgb24View::new(&mut self.border_views.next_piece).view(
                     TransformRgb24Data {
-                        transform_rgb24: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
+                        col_modify: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
                         data: BorderData {
                             data: &app.tetris,
                             style: &app.border_styles.next_piece,

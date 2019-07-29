@@ -2,7 +2,7 @@ pub extern crate prototty_input;
 pub extern crate prototty_render;
 
 pub use prototty_input::Input;
-pub use prototty_render::{Frame, ViewContext, ViewTransformRgb24};
+pub use prototty_render::{ColModify, Frame, ViewContext};
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -101,10 +101,10 @@ pub trait EventRoutine: Sized {
     where
         EP: EventOrPeek<Event = Self::Event>;
 
-    fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
         F: Frame,
-        R: ViewTransformRgb24;
+        C: ColModify;
 
     fn repeat<U, F>(self, f: F) -> Repeat<Self, F>
     where
@@ -178,10 +178,10 @@ impl<T, D, V, E> EventRoutine for Value<T, D, V, E> {
         Handled::Return(self.value)
     }
 
-    fn view<F, R>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<R>, _frame: &mut F)
+    fn view<F, C>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<C>, _frame: &mut F)
     where
         F: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
     }
 }
@@ -211,10 +211,10 @@ where
         }
     }
 
-    fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut G)
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
     where
         G: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         self.t.view(data, view, context, frame)
     }
@@ -246,10 +246,10 @@ where
         }
     }
 
-    fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut G)
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
     where
         G: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         self.t.view(data, view, context, frame)
     }
@@ -284,10 +284,10 @@ where
         }
     }
 
-    fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut G)
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
     where
         G: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         match self {
             AndThen::First { ref t, .. } => t.view(data, view, context, frame),
@@ -321,10 +321,10 @@ where
         }
     }
 
-    fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
         F: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         match self {
             Either::A(a) => a.view(data, view, context, frame),
@@ -374,10 +374,10 @@ where
             .map_continue(|t| Self { t, selector })
     }
 
-    fn view<F, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut F)
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
         F: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         self.t
             .view(self.selector.data(data), self.selector.view_mut(view), context, frame)
@@ -412,10 +412,10 @@ where
         }
     }
 
-    fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut G)
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
     where
         G: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         self.t.view(data, view, context, frame)
     }
@@ -463,10 +463,10 @@ where
         )
     }
 
-    fn view<G, R>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<R>, frame: &mut G)
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
     where
         G: Frame,
-        R: ViewTransformRgb24,
+        C: ColModify,
     {
         self.0.view(data, view, context, frame)
     }

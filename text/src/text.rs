@@ -22,7 +22,7 @@ where
     I: IntoIterator<Item = S>,
     W: Wrap,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, parts: I, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, parts: I, context: ViewContext<C>, frame: &mut F) {
         self.wrap.clear();
         for part in parts {
             let part = part.as_ref();
@@ -53,7 +53,7 @@ where
     S: AsRef<str>,
     W: Wrap,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, part: S, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, part: S, context: ViewContext<C>, frame: &mut F) {
         self.wrap.clear();
         let part = part.as_ref();
         for character in part.chars() {
@@ -84,11 +84,11 @@ impl<'a, S> View<S> for StringViewSingleLine
 where
     S: AsRef<str>,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, part: S, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, part: S, context: ViewContext<C>, frame: &mut F) {
         StringView::new(self.style, wrap::None::new()).view(part, context, frame);
     }
 
-    fn visible_bounds<R: ViewTransformRgb24>(&mut self, part: S, _context: ViewContext<R>) -> Size {
+    fn visible_bounds<C: ColModify>(&mut self, part: S, _context: ViewContext<C>) -> Size {
         let part = part.as_ref();
         let width = part.len() as u32;
         Size::new(width, 1)

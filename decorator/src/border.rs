@@ -157,28 +157,28 @@ pub struct BorderWithOwnedStyleData<T> {
 }
 
 impl<'a, T, V: View<&'a T>> View<&'a BorderWithOwnedStyleData<T>> for BorderView<V> {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         BorderWithOwnedStyleData { style, data }: &'a BorderWithOwnedStyleData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         self.view(BorderData { style, data }, context, frame);
     }
-    fn visible_bounds<R: ViewTransformRgb24>(
+    fn visible_bounds<C: ColModify>(
         &mut self,
         BorderWithOwnedStyleData { style, data }: &'a BorderWithOwnedStyleData<T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
     ) -> Size {
         self.visible_bounds(BorderData { style, data }, context)
     }
 }
 
 impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
-    fn view<F: Frame, R: ViewTransformRgb24>(
+    fn view<F: Frame, C: ColModify>(
         &mut self,
         BorderData { style, data }: BorderData<'a, T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
         frame: &mut F,
     ) {
         let child_context = context
@@ -237,10 +237,10 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
             frame.set_cell_relative(Coord::new(span.x, i), 0, style.view_cell(style.chars.right), context);
         }
     }
-    fn visible_bounds<R: ViewTransformRgb24>(
+    fn visible_bounds<C: ColModify>(
         &mut self,
         BorderData { style, data }: BorderData<'a, T>,
-        context: ViewContext<R>,
+        context: ViewContext<C>,
     ) -> Size {
         let bounds_of_child_with_border = self.view.visible_bounds(data, context) + style.child_constrain_size_by();
         let x = bounds_of_child_with_border.x().min(context.size.x());

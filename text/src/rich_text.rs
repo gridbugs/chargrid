@@ -97,7 +97,7 @@ where
     I: IntoIterator<Item = &'a T>,
     W: Wrap,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, parts: I, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, parts: I, context: ViewContext<C>, frame: &mut F) {
         self.wrap.clear();
         for part in parts {
             let part: RichTextPart = (*part).into();
@@ -123,11 +123,11 @@ where
     T: 'a + Into<RichTextPart<'a>> + Copy,
     I: IntoIterator<Item = &'a T>,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, parts: I, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, parts: I, context: ViewContext<C>, frame: &mut F) {
         RichTextView::new(wrap::None::new()).view(parts, context, frame)
     }
 
-    fn visible_bounds<R: ViewTransformRgb24>(&mut self, parts: I, _context: ViewContext<R>) -> Size {
+    fn visible_bounds<C: ColModify>(&mut self, parts: I, _context: ViewContext<C>) -> Size {
         let width: u32 = parts
             .into_iter()
             .map(|part| {
@@ -154,7 +154,7 @@ where
     T: 'a + Into<RichTextPart<'a>> + Copy,
     W: Wrap,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, part: T, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, part: T, context: ViewContext<C>, frame: &mut F) {
         self.wrap.clear();
         let part: RichTextPart = part.into();
         for character in part.text.chars() {
@@ -177,11 +177,11 @@ impl<'a, T> View<T> for RichStringViewSingleLine
 where
     T: 'a + Into<RichTextPart<'a>> + Copy,
 {
-    fn view<F: Frame, R: ViewTransformRgb24>(&mut self, part: T, context: ViewContext<R>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, part: T, context: ViewContext<C>, frame: &mut F) {
         RichStringView::new(wrap::None::new()).view(part, context, frame);
     }
 
-    fn visible_bounds<R: ViewTransformRgb24>(&mut self, part: T, _context: ViewContext<R>) -> Size {
+    fn visible_bounds<C: ColModify>(&mut self, part: T, _context: ViewContext<C>) -> Size {
         let part: RichTextPart = part.into();
         let width = part.text.len() as u32;
         Size::new(width, 1)
