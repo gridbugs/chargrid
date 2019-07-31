@@ -1,7 +1,9 @@
 use event_routine::*;
-use game::{Direction, Game, ToRender};
+use game::{Direction, Game};
 use prototty::*;
-use render::ViewCell;
+use render::View;
+
+mod game_view;
 
 pub struct AppData {
     game: Game,
@@ -13,11 +15,15 @@ impl AppData {
     }
 }
 
-pub struct AppView {}
+pub struct AppView {
+    game: game_view::GameView,
+}
 
 impl AppView {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            game: game_view::GameView,
+        }
     }
 }
 
@@ -51,21 +57,12 @@ impl EventRoutine for GameEventRoutine {
         })
     }
 
-    fn view<F, C>(&self, data: &Self::Data, _view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
         F: Frame,
         C: ColModify,
     {
-        let ToRender { grid } = data.game.to_render();
-        for (coord, cell) in grid.enumerate() {
-            let character = match cell.occupant {
-                None => '.',
-                Some(game::Occupant::Player) => '@',
-                Some(game::Occupant::Wall) => '#',
-            };
-            let view_cell = ViewCell::new().with_character(character);
-            frame.set_cell_relative(coord, 0, view_cell, context);
-        }
+        view.game.view(&data.game, context, frame);
     }
 }
 
