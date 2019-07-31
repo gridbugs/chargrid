@@ -1,7 +1,7 @@
 pub extern crate prototty_input;
 pub extern crate prototty_render;
 
-pub use prototty_input::Input;
+pub use prototty_input::{inputs, Input};
 pub use prototty_render::{ColModify, Frame, ViewContext};
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -421,6 +421,7 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CommonEvent {
     Input(Input),
     Frame(Duration),
@@ -470,4 +471,57 @@ where
     {
         self.0.view(data, view, context, frame)
     }
+}
+
+pub struct ReturnOnExit<T, F> {
+    t: T,
+    f: F,
+}
+
+impl<T, F> EventRoutine for ReturnOnExit<T, F>
+where
+    T: EventRoutine<Event = CommonEvent>,
+    F: FnOnce(&mut T::Data) -> T::Return,
+{
+    type Return = T::Return;
+    type Data = T::Data;
+    type View = T::View;
+    type Event = CommonEvent;
+
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        event_or_peek.with(
+            (self, data),
+            |(s, data), event| {
+                let Self { t, f } = s;
+                if event == CommonEvent::Input(inputs::ETX) {
+                    Handled::Return(f(data))
+                } else {
+                    t.handle(data, view, Event::new(event)).map_continue(|t| Self { t, f })
+                }
+            },
+            |(s, data)| {
+                let Self { t, f } = s;
+                t.handle(data, view, Peek::new()).map_continue(|t| Self { t, f })
+            },
+        )
+    }
+
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+        self.t.view(data, view, context, frame)
+    }
+}
+
+pub fn common_return_on_exit<E, F>(e: E, f: F) -> ReturnOnExit<E, F>
+where
+    E: EventRoutine,
+    F: FnOnce(&mut E::Data) -> E::Return,
+{
+    ReturnOnExit { t: e, f }
 }

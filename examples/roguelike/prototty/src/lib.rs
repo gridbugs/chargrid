@@ -45,7 +45,6 @@ impl EventRoutine for GameEventRoutine {
                     input::Input::Right => Some(game::Input::Move(Direction::East)),
                     input::Input::Up => Some(game::Input::Move(Direction::North)),
                     input::Input::Down => Some(game::Input::Move(Direction::South)),
-                    input::inputs::ETX => return Handled::Return(()),
                     _ => None,
                 };
                 if let Some(game_input) = maybe_game_input {
@@ -67,5 +66,5 @@ impl EventRoutine for GameEventRoutine {
 }
 
 pub fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
-    GameEventRoutine
+    common_return_on_exit(GameEventRoutine, |_| ())
 }
