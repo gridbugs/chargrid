@@ -1,4 +1,4 @@
-use prototty::event_routine::{CommonEvent, EventRoutine};
+use prototty::event_routine::{common_event::CommonEvent, EventRoutine};
 use prototty::input::Input;
 use prototty::*;
 use std::marker::PhantomData;

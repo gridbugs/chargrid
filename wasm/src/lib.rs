@@ -23,7 +23,7 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
-use prototty_event_routine::{CommonEvent, Event, EventRoutine, Handled};
+use prototty_event_routine::{common_event::CommonEvent, Event, EventRoutine, Handled};
 use prototty_grid::ColourConversion;
 pub use prototty_input::Input;
 use prototty_input::{MouseButton, ScrollDirection};

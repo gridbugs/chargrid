@@ -6,6 +6,8 @@ pub use prototty_render::{ColModify, Frame, ViewContext};
 use std::marker::PhantomData;
 use std::time::Duration;
 
+pub mod common_event;
+
 pub enum Handled<R, C> {
     Return(R),
     Continue(C),
@@ -142,8 +144,15 @@ pub trait EventRoutine: Sized {
         MapSideEffect { t: self, f }
     }
 
-    fn convert_input_to_common_event(self) -> ConvertInputToCommonEvent<Self> {
-        ConvertInputToCommonEvent(self)
+    fn convert_input_to_common_event(self) -> common_event::ConvertInputToCommonEvent<Self> {
+        common_event::ConvertInputToCommonEvent(self)
+    }
+
+    fn return_on_exit<F>(self, f: F) -> common_event::ReturnOnExit<Self, F>
+    where
+        F: FnOnce(&mut Self::Data) -> Self::Return,
+    {
+        common_event::ReturnOnExit { t: self, f }
     }
 }
 
@@ -419,109 +428,4 @@ where
     {
         self.t.view(data, view, context, frame)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CommonEvent {
-    Input(Input),
-    Frame(Duration),
-}
-
-impl From<Input> for CommonEvent {
-    fn from(input: Input) -> Self {
-        CommonEvent::Input(input)
-    }
-}
-
-impl From<Duration> for CommonEvent {
-    fn from(duration: Duration) -> Self {
-        CommonEvent::Frame(duration)
-    }
-}
-
-pub struct ConvertInputToCommonEvent<T>(T);
-
-impl<T> EventRoutine for ConvertInputToCommonEvent<T>
-where
-    T: EventRoutine<Event = Input>,
-{
-    type Return = T::Return;
-    type Data = T::Data;
-    type View = T::View;
-    type Event = CommonEvent;
-
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
-    where
-        EP: EventOrPeek<Event = Self::Event>,
-    {
-        event_or_peek.with(
-            self,
-            |s, event| match event {
-                CommonEvent::Input(input) => s.0.handle(data, view, Event::new(input)).map_continue(Self),
-                CommonEvent::Frame(_) => Handled::Continue(s),
-            },
-            Handled::Continue,
-        )
-    }
-
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
-        G: Frame,
-        C: ColModify,
-    {
-        self.0.view(data, view, context, frame)
-    }
-}
-
-pub struct ReturnOnExit<T, F> {
-    t: T,
-    f: F,
-}
-
-impl<T, F> EventRoutine for ReturnOnExit<T, F>
-where
-    T: EventRoutine<Event = CommonEvent>,
-    F: FnOnce(&mut T::Data) -> T::Return,
-{
-    type Return = T::Return;
-    type Data = T::Data;
-    type View = T::View;
-    type Event = CommonEvent;
-
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
-    where
-        EP: EventOrPeek<Event = Self::Event>,
-    {
-        event_or_peek.with(
-            (self, data),
-            |(s, data), event| {
-                let Self { t, f } = s;
-                if event == CommonEvent::Input(inputs::ETX) {
-                    Handled::Return(f(data))
-                } else {
-                    t.handle(data, view, Event::new(event)).map_continue(|t| Self { t, f })
-                }
-            },
-            |(s, data)| {
-                let Self { t, f } = s;
-                t.handle(data, view, Peek::new()).map_continue(|t| Self { t, f })
-            },
-        )
-    }
-
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
-        G: Frame,
-        C: ColModify,
-    {
-        self.t.view(data, view, context, frame)
-    }
-}
-
-pub fn common_return_on_exit<E, F>(e: E, f: F) -> ReturnOnExit<E, F>
-where
-    E: EventRoutine,
-    F: FnOnce(&mut E::Data) -> E::Return,
-{
-    ReturnOnExit { t: e, f }
 }

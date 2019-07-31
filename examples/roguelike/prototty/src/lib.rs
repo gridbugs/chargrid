@@ -1,3 +1,4 @@
+use common_event::*;
 use event_routine::*;
 use game::{Direction, Game};
 use prototty::*;
@@ -66,5 +67,5 @@ impl EventRoutine for GameEventRoutine {
 }
 
 pub fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
-    common_return_on_exit(GameEventRoutine, |_| ())
+    GameEventRoutine.return_on_exit(|_| ())
 }

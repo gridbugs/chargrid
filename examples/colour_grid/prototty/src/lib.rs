@@ -1,3 +1,4 @@
+use common_event::*;
 use event_routine::*;
 use prototty::*;
 use render::{Rgb24, View, ViewCell};
