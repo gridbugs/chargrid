@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 prototty = { path = "../../../prototty" }
 game = { path = "../game" }
+hashbrown = "0.5"

@@ -27,6 +27,7 @@ pub struct Game {
     player: Player,
 }
 
+#[derive(Clone)]
 pub enum Input {
     Move(Direction),
 }
