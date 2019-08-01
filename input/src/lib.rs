@@ -25,10 +25,9 @@ pub enum MouseButton {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NotSupported;
 
-/// An input event
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum Input {
+pub enum KeyboardInput {
     Char(char),
     Function(u8),
     Up,
@@ -40,6 +39,11 @@ pub enum Input {
     PageUp,
     PageDown,
     Delete,
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum MouseInput {
     MouseMove {
         button: Option<MouseButton>,
         coord: Coord,
@@ -59,22 +63,29 @@ pub enum Input {
     },
 }
 
+/// An input event
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum Input {
+    Keyboard(KeyboardInput),
+    Mouse(MouseInput),
+}
+
 impl Input {
-    pub fn is_key(self) -> bool {
-        use Input::*;
+    pub fn is_keyboard(&self) -> bool {
         match self {
-            Char(_) | Function(_) | Up | Down | Left | Right | Home | End | PageUp | PageDown | Delete => true,
-            MouseMove { .. } | MousePress { .. } | MouseRelease { .. } | MouseScroll { .. } => false,
+            &Input::Keyboard(_) => true,
+            &Input::Mouse(_) => false,
         }
     }
 }
 
-pub mod inputs {
-    use super::Input;
+pub mod keys {
+    use super::KeyboardInput;
 
-    pub const ESCAPE: Input = Input::Char('\u{1b}');
-    pub const ETX: Input = Input::Char('\u{3}');
-    pub const BACKSPACE: Input = Input::Char('\u{8}');
-    pub const TAB: Input = Input::Char('\u{9}');
-    pub const RETURN: Input = Input::Char('\u{d}');
+    pub const ESCAPE: KeyboardInput = KeyboardInput::Char('\u{1b}');
+    pub const ETX: KeyboardInput = KeyboardInput::Char('\u{3}');
+    pub const BACKSPACE: KeyboardInput = KeyboardInput::Char('\u{8}');
+    pub const TAB: KeyboardInput = KeyboardInput::Char('\u{9}');
+    pub const RETURN: KeyboardInput = KeyboardInput::Char('\u{d}');
 }

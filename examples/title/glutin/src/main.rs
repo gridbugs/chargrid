@@ -3,7 +3,7 @@ extern crate prototty_glutin;
 // Assuming the title and its views were defined here
 extern crate prototty_title;
 
-use prototty_glutin::prototty_input::inputs;
+use prototty_glutin::prototty_input::{keys, Input};
 use prototty_glutin::Size;
 use prototty_title::*;
 
@@ -36,7 +36,7 @@ fn main() {
 
         // exit after the window is closed
         context.poll_input(|input| {
-            if input == inputs::ETX {
+            if input == Input::Keyboard(keys::ETX) {
                 running = false;
             }
         });

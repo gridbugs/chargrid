@@ -2,7 +2,9 @@ use glutin::dpi::{LogicalPosition, LogicalSize};
 use glutin::{
     ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent,
 };
-use prototty_input::{inputs, Input, MouseButton as ProtottyMouseButton, MouseButton, ScrollDirection};
+use prototty_input::{
+    keys, Input, KeyboardInput, MouseButton as ProtottyMouseButton, MouseButton, MouseInput, ScrollDirection,
+};
 use prototty_render::Coord;
 
 pub enum InputEvent {
@@ -13,14 +15,14 @@ pub enum InputEvent {
 
 macro_rules! convert_char_shift {
     ($lower:expr, $upper:expr, $shift:expr) => {
-        Input::Char(if $shift { $upper } else { $lower })
+        KeyboardInput::Char(if $shift { $upper } else { $lower })
     };
 }
 
 fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input> {
     let shift = keymod.shift;
     let input = match code {
-        VirtualKeyCode::Space => Input::Char(' '),
+        VirtualKeyCode::Space => KeyboardInput::Char(' '),
         VirtualKeyCode::A => convert_char_shift!('a', 'A', shift),
         VirtualKeyCode::B => convert_char_shift!('b', 'B', shift),
         VirtualKeyCode::C => convert_char_shift!('c', 'C', shift),
@@ -48,7 +50,7 @@ fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input
         VirtualKeyCode::Y => convert_char_shift!('y', 'Y', shift),
         VirtualKeyCode::Z => convert_char_shift!('z', 'Z', shift),
         VirtualKeyCode::Key1 => convert_char_shift!('1', '!', shift),
-        VirtualKeyCode::Key2 => Input::Char('2'),
+        VirtualKeyCode::Key2 => KeyboardInput::Char('2'),
         VirtualKeyCode::Key3 => convert_char_shift!('3', '#', shift),
         VirtualKeyCode::Key4 => convert_char_shift!('4', '$', shift),
         VirtualKeyCode::Key5 => convert_char_shift!('5', '%', shift),
@@ -57,65 +59,65 @@ fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input
         VirtualKeyCode::Key8 => convert_char_shift!('8', '*', shift),
         VirtualKeyCode::Key9 => convert_char_shift!('9', '(', shift),
         VirtualKeyCode::Key0 => convert_char_shift!('0', ')', shift),
-        VirtualKeyCode::Numpad1 => Input::Char('1'),
-        VirtualKeyCode::Numpad2 => Input::Char('2'),
-        VirtualKeyCode::Numpad3 => Input::Char('3'),
-        VirtualKeyCode::Numpad4 => Input::Char('4'),
-        VirtualKeyCode::Numpad5 => Input::Char('5'),
-        VirtualKeyCode::Numpad6 => Input::Char('6'),
-        VirtualKeyCode::Numpad7 => Input::Char('7'),
-        VirtualKeyCode::Numpad8 => Input::Char('8'),
-        VirtualKeyCode::Numpad9 => Input::Char('9'),
-        VirtualKeyCode::Numpad0 => Input::Char('0'),
+        VirtualKeyCode::Numpad1 => KeyboardInput::Char('1'),
+        VirtualKeyCode::Numpad2 => KeyboardInput::Char('2'),
+        VirtualKeyCode::Numpad3 => KeyboardInput::Char('3'),
+        VirtualKeyCode::Numpad4 => KeyboardInput::Char('4'),
+        VirtualKeyCode::Numpad5 => KeyboardInput::Char('5'),
+        VirtualKeyCode::Numpad6 => KeyboardInput::Char('6'),
+        VirtualKeyCode::Numpad7 => KeyboardInput::Char('7'),
+        VirtualKeyCode::Numpad8 => KeyboardInput::Char('8'),
+        VirtualKeyCode::Numpad9 => KeyboardInput::Char('9'),
+        VirtualKeyCode::Numpad0 => KeyboardInput::Char('0'),
         VirtualKeyCode::Period => convert_char_shift!('.', '>', shift),
         VirtualKeyCode::Comma => convert_char_shift!(',', '<', shift),
         VirtualKeyCode::Slash => convert_char_shift!('/', '?', shift),
-        VirtualKeyCode::Left => Input::Left,
-        VirtualKeyCode::Right => Input::Right,
-        VirtualKeyCode::Up => Input::Up,
-        VirtualKeyCode::Down => Input::Down,
-        VirtualKeyCode::Escape => inputs::ESCAPE,
-        VirtualKeyCode::Return => inputs::RETURN,
-        VirtualKeyCode::At => Input::Char('@'),
-        VirtualKeyCode::Add => Input::Char('+'),
-        VirtualKeyCode::Subtract => Input::Char('-'),
+        VirtualKeyCode::Left => KeyboardInput::Left,
+        VirtualKeyCode::Right => KeyboardInput::Right,
+        VirtualKeyCode::Up => KeyboardInput::Up,
+        VirtualKeyCode::Down => KeyboardInput::Down,
+        VirtualKeyCode::Escape => keys::ESCAPE,
+        VirtualKeyCode::Return => keys::RETURN,
+        VirtualKeyCode::At => KeyboardInput::Char('@'),
+        VirtualKeyCode::Add => KeyboardInput::Char('+'),
+        VirtualKeyCode::Subtract => KeyboardInput::Char('-'),
         VirtualKeyCode::Equals => convert_char_shift!('=', '+', shift),
         VirtualKeyCode::Backslash => convert_char_shift!('\\', '|', shift),
         VirtualKeyCode::Grave => convert_char_shift!('`', '~', shift),
         VirtualKeyCode::Apostrophe => convert_char_shift!('\'', '"', shift),
         VirtualKeyCode::LBracket => convert_char_shift!('[', '{', shift),
         VirtualKeyCode::RBracket => convert_char_shift!(']', '}', shift),
-        VirtualKeyCode::PageUp => Input::PageUp,
-        VirtualKeyCode::PageDown => Input::PageDown,
-        VirtualKeyCode::Home => Input::Home,
-        VirtualKeyCode::End => Input::End,
-        VirtualKeyCode::F1 => Input::Function(1),
-        VirtualKeyCode::F2 => Input::Function(2),
-        VirtualKeyCode::F3 => Input::Function(3),
-        VirtualKeyCode::F4 => Input::Function(4),
-        VirtualKeyCode::F5 => Input::Function(5),
-        VirtualKeyCode::F6 => Input::Function(6),
-        VirtualKeyCode::F7 => Input::Function(7),
-        VirtualKeyCode::F8 => Input::Function(8),
-        VirtualKeyCode::F9 => Input::Function(9),
-        VirtualKeyCode::F10 => Input::Function(10),
-        VirtualKeyCode::F11 => Input::Function(11),
-        VirtualKeyCode::F12 => Input::Function(12),
-        VirtualKeyCode::F13 => Input::Function(13),
-        VirtualKeyCode::F14 => Input::Function(14),
-        VirtualKeyCode::F15 => Input::Function(15),
-        VirtualKeyCode::F16 => Input::Function(16),
-        VirtualKeyCode::F17 => Input::Function(17),
-        VirtualKeyCode::F18 => Input::Function(18),
-        VirtualKeyCode::F19 => Input::Function(19),
-        VirtualKeyCode::F20 => Input::Function(20),
-        VirtualKeyCode::F21 => Input::Function(21),
-        VirtualKeyCode::F22 => Input::Function(22),
-        VirtualKeyCode::F23 => Input::Function(23),
-        VirtualKeyCode::F24 => Input::Function(24),
+        VirtualKeyCode::PageUp => KeyboardInput::PageUp,
+        VirtualKeyCode::PageDown => KeyboardInput::PageDown,
+        VirtualKeyCode::Home => KeyboardInput::Home,
+        VirtualKeyCode::End => KeyboardInput::End,
+        VirtualKeyCode::F1 => KeyboardInput::Function(1),
+        VirtualKeyCode::F2 => KeyboardInput::Function(2),
+        VirtualKeyCode::F3 => KeyboardInput::Function(3),
+        VirtualKeyCode::F4 => KeyboardInput::Function(4),
+        VirtualKeyCode::F5 => KeyboardInput::Function(5),
+        VirtualKeyCode::F6 => KeyboardInput::Function(6),
+        VirtualKeyCode::F7 => KeyboardInput::Function(7),
+        VirtualKeyCode::F8 => KeyboardInput::Function(8),
+        VirtualKeyCode::F9 => KeyboardInput::Function(9),
+        VirtualKeyCode::F10 => KeyboardInput::Function(10),
+        VirtualKeyCode::F11 => KeyboardInput::Function(11),
+        VirtualKeyCode::F12 => KeyboardInput::Function(12),
+        VirtualKeyCode::F13 => KeyboardInput::Function(13),
+        VirtualKeyCode::F14 => KeyboardInput::Function(14),
+        VirtualKeyCode::F15 => KeyboardInput::Function(15),
+        VirtualKeyCode::F16 => KeyboardInput::Function(16),
+        VirtualKeyCode::F17 => KeyboardInput::Function(17),
+        VirtualKeyCode::F18 => KeyboardInput::Function(18),
+        VirtualKeyCode::F19 => KeyboardInput::Function(19),
+        VirtualKeyCode::F20 => KeyboardInput::Function(20),
+        VirtualKeyCode::F21 => KeyboardInput::Function(21),
+        VirtualKeyCode::F22 => KeyboardInput::Function(22),
+        VirtualKeyCode::F23 => KeyboardInput::Function(23),
+        VirtualKeyCode::F24 => KeyboardInput::Function(24),
         _ => return None,
     };
-    Some(input)
+    Some(Input::Keyboard(input))
 }
 
 pub fn convert_event(
@@ -149,10 +151,10 @@ pub fn convert_event(
             let y = (y / (cell_height as f64)) as i32;
             let coord = Coord::new(x, y);
             *last_mouse_coord = coord;
-            Some(InputEvent::Input(Input::MouseMove {
+            Some(InputEvent::Input(Input::Mouse(MouseInput::MouseMove {
                 coord,
                 button: *last_mouse_button,
-            }))
+            })))
         }
         WindowEvent::MouseInput { state, button, .. } => {
             let button = match button {
@@ -164,17 +166,17 @@ pub fn convert_event(
             let input = match state {
                 ElementState::Pressed => {
                     *last_mouse_button = Some(button);
-                    Input::MousePress {
+                    Input::Mouse(MouseInput::MousePress {
                         coord: *last_mouse_coord,
                         button,
-                    }
+                    })
                 }
                 ElementState::Released => {
                     *last_mouse_button = None;
-                    Input::MouseRelease {
+                    Input::Mouse(MouseInput::MouseRelease {
                         coord: *last_mouse_coord,
                         button: Ok(button),
-                    }
+                    })
                 }
             };
             Some(InputEvent::Input(input))
@@ -195,10 +197,10 @@ pub fn convert_event(
             } else {
                 return None;
             };
-            Some(InputEvent::Input(Input::MouseScroll {
+            Some(InputEvent::Input(Input::Mouse(MouseInput::MouseScroll {
                 direction,
                 coord: *last_mouse_coord,
-            }))
+            })))
         }
         _ => None,
     }

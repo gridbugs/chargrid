@@ -1,7 +1,7 @@
 extern crate prototty;
 use prototty::decorator::*;
-use prototty::input::Input as ProtottyInput;
 use prototty::input::*;
+use prototty::input::{keys, Input, KeyboardInput};
 use prototty::render::*;
 use prototty::text::*;
 
@@ -64,24 +64,30 @@ impl AppState {
     }
     pub fn tick<I>(&mut self, inputs: I, view: &AppView) -> Option<ControlFlow>
     where
-        I: IntoIterator<Item = ProtottyInput>,
+        I: IntoIterator<Item = Input>,
     {
         for input in inputs {
             match input {
-                prototty::input::inputs::ETX | prototty::input::inputs::ESCAPE | ProtottyInput::Char('q') => {
+                Input::Keyboard(keys::ETX)
+                | Input::Keyboard(keys::ESCAPE)
+                | Input::Keyboard(KeyboardInput::Char('q')) => {
                     return Some(ControlFlow::Exit);
                 }
-                ProtottyInput::MouseScroll { direction, .. } => match direction {
+                Input::Mouse(MouseInput::MouseScroll { direction, .. }) => match direction {
                     ScrollDirection::Up => self.scroll_state.scroll_up_line(view.scroll()),
                     ScrollDirection::Down => self.scroll_state.scroll_down_line(view.scroll()),
                     _ => (),
                 },
-                ProtottyInput::Up => self.scroll_state.scroll_up_line(view.scroll()),
-                ProtottyInput::Down => self.scroll_state.scroll_down_line(view.scroll()),
-                ProtottyInput::PageUp => self.scroll_state.scroll_up_page(view.scroll()),
-                ProtottyInput::PageDown => self.scroll_state.scroll_down_page(view.scroll()),
-                ProtottyInput::Home | ProtottyInput::Char('g') => self.scroll_state.scroll_to_top(view.scroll()),
-                ProtottyInput::End | ProtottyInput::Char('G') => self.scroll_state.scroll_to_bottom(view.scroll()),
+                Input::Keyboard(KeyboardInput::Up) => self.scroll_state.scroll_up_line(view.scroll()),
+                Input::Keyboard(KeyboardInput::Down) => self.scroll_state.scroll_down_line(view.scroll()),
+                Input::Keyboard(KeyboardInput::PageUp) => self.scroll_state.scroll_up_page(view.scroll()),
+                Input::Keyboard(KeyboardInput::PageDown) => self.scroll_state.scroll_down_page(view.scroll()),
+                Input::Keyboard(KeyboardInput::Home) | Input::Keyboard(KeyboardInput::Char('g')) => {
+                    self.scroll_state.scroll_to_top(view.scroll())
+                }
+                Input::Keyboard(KeyboardInput::End) | Input::Keyboard(KeyboardInput::Char('G')) => {
+                    self.scroll_state.scroll_to_bottom(view.scroll())
+                }
                 _ => (),
             }
         }

@@ -1,4 +1,5 @@
 use crate::*;
+use prototty_input::keys;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CommonEvent {
@@ -75,7 +76,7 @@ where
             (self, data),
             |(s, data), event| {
                 let Self { t, f } = s;
-                if event == CommonEvent::Input(inputs::ETX) {
+                if event == CommonEvent::Input(Input::Keyboard(keys::ETX)) {
                     Handled::Return(f(data))
                 } else {
                     t.handle(data, view, Event::new(event)).map_continue(|t| Self { t, f })

@@ -34,10 +34,10 @@ impl App {
     pub fn update<I: IntoIterator<Item = Input>>(&mut self, inputs: I) -> Option<Quit> {
         for input in inputs {
             match input {
-                Input::MouseMove { coord, .. } => {
+                Input::Mouse(MouseInput::MouseMove { coord, .. }) => {
                     self.coord = Some(coord);
                 }
-                Input::MousePress { coord, button } => {
+                Input::Mouse(MouseInput::MousePress { coord, button }) => {
                     self.last_clicked_coord = Some(coord);
                     self.line_type = match button {
                         MouseButton::Left => LineType::Normal,
@@ -45,10 +45,10 @@ impl App {
                         MouseButton::Middle => LineType::Infinite,
                     }
                 }
-                Input::MouseRelease { coord: _, button: _ } => {
+                Input::Mouse(MouseInput::MouseRelease { coord: _, button: _ }) => {
                     self.last_clicked_coord = None;
                 }
-                inputs::ETX | inputs::ESCAPE => return Some(Quit),
+                Input::Keyboard(keys::ETX) | Input::Keyboard(keys::ESCAPE) => return Some(Quit),
                 _ => (),
             }
         }

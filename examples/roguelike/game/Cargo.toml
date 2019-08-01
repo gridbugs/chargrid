@@ -5,5 +5,6 @@ authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
 [dependencies]
-grid_2d = "0.12"
-direction = "0.17"
+grid_2d = { version = "0.12", features = ["serialize"] }
+direction = { version = "0.17", features = ["serialize"] }
+serde = { version = "1.0", features = ["serde_derive"] }

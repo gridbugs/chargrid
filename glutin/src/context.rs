@@ -344,7 +344,7 @@ impl<'a> Context<'a> {
         }
         if closing {
             self.closing = true;
-            callback(inputs::ETX);
+            callback(Input::Keyboard(keys::ETX));
         }
     }
 

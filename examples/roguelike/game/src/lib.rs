@@ -1,5 +1,6 @@
 pub use direction::Direction;
 pub use grid_2d::{Coord, Grid, Size};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
 pub enum Occupant {
@@ -27,7 +28,7 @@ pub struct Game {
     player: Player,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Input {
     Move(Direction),
 }

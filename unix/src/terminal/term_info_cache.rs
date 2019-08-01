@@ -1,6 +1,6 @@
 use super::byte_prefix_tree::BytePrefixTree;
 use error::{Error, Result};
-use prototty_input::{Input, MouseButton, ScrollDirection};
+use prototty_input::{Input, KeyboardInput, MouseButton, ScrollDirection};
 use term::terminfo::parm::{self, Param, Variables};
 use term::terminfo::TermInfo;
 
@@ -102,27 +102,27 @@ impl TermInfoCache {
         };
 
         let inputs_to_escape = [
-            escseq("kf1", Input::Function(1))?,
-            escseq("kf2", Input::Function(2))?,
-            escseq("kf3", Input::Function(3))?,
-            escseq("kf4", Input::Function(4))?,
-            escseq("kf5", Input::Function(5))?,
-            escseq("kf6", Input::Function(6))?,
-            escseq("kf7", Input::Function(7))?,
-            escseq("kf8", Input::Function(8))?,
-            escseq("kf9", Input::Function(9))?,
-            escseq("kf10", Input::Function(10))?,
-            escseq("kf11", Input::Function(11))?,
-            escseq("kf12", Input::Function(12))?,
-            escseq("kcuu1", Input::Up)?,
-            escseq("kcud1", Input::Down)?,
-            escseq("kcuf1", Input::Right)?,
-            escseq("kcub1", Input::Left)?,
-            escseq("kpp", Input::PageUp)?,
-            escseq("knp", Input::PageDown)?,
-            escseq("khome", Input::Home)?,
-            escseq("kend", Input::End)?,
-            escseq("kdch1", Input::Delete)?,
+            escseq("kf1", Input::Keyboard(KeyboardInput::Function(1)))?,
+            escseq("kf2", Input::Keyboard(KeyboardInput::Function(2)))?,
+            escseq("kf3", Input::Keyboard(KeyboardInput::Function(3)))?,
+            escseq("kf4", Input::Keyboard(KeyboardInput::Function(4)))?,
+            escseq("kf5", Input::Keyboard(KeyboardInput::Function(5)))?,
+            escseq("kf6", Input::Keyboard(KeyboardInput::Function(6)))?,
+            escseq("kf7", Input::Keyboard(KeyboardInput::Function(7)))?,
+            escseq("kf8", Input::Keyboard(KeyboardInput::Function(8)))?,
+            escseq("kf9", Input::Keyboard(KeyboardInput::Function(9)))?,
+            escseq("kf10", Input::Keyboard(KeyboardInput::Function(10)))?,
+            escseq("kf11", Input::Keyboard(KeyboardInput::Function(11)))?,
+            escseq("kf12", Input::Keyboard(KeyboardInput::Function(12)))?,
+            escseq("kcuu1", Input::Keyboard(KeyboardInput::Up))?,
+            escseq("kcud1", Input::Keyboard(KeyboardInput::Down))?,
+            escseq("kcuf1", Input::Keyboard(KeyboardInput::Right))?,
+            escseq("kcub1", Input::Keyboard(KeyboardInput::Left))?,
+            escseq("kpp", Input::Keyboard(KeyboardInput::PageUp))?,
+            escseq("knp", Input::Keyboard(KeyboardInput::PageDown))?,
+            escseq("khome", Input::Keyboard(KeyboardInput::Home))?,
+            escseq("kend", Input::Keyboard(KeyboardInput::End))?,
+            escseq("kdch1", Input::Keyboard(KeyboardInput::Delete))?,
             raw_escseq("[MC", TerminalInput::MousePrefix(MousePrefix::Move(None))),
             raw_escseq("[M ", TerminalInput::MousePrefix(MousePrefix::Press(MouseButton::Left))),
             raw_escseq(

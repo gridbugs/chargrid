@@ -3,8 +3,7 @@ extern crate rand;
 extern crate tetris;
 
 use prototty::decorator::*;
-use prototty::input::inputs::*;
-use prototty::input::Input as ProtottyInput;
+use prototty::input::{keys, Input, KeyboardInput};
 use prototty::menu::*;
 use prototty::render::*;
 use prototty::text::*;
@@ -238,7 +237,7 @@ impl App {
 
     pub fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<ControlFlow>
     where
-        I: IntoIterator<Item = ProtottyInput>,
+        I: IntoIterator<Item = Input>,
         R: Rng,
     {
         match self.state {
@@ -261,14 +260,14 @@ impl App {
             AppState::Game => {
                 for input in inputs {
                     match input {
-                        ETX => return Some(ControlFlow::Exit),
-                        ESCAPE => {
+                        Input::Keyboard(keys::ETX) => return Some(ControlFlow::Exit),
+                        Input::Keyboard(keys::ESCAPE) => {
                             self.state = AppState::Menu;
                         }
-                        ProtottyInput::Up => self.input_buffer.push_back(TetrisInput::Up),
-                        ProtottyInput::Down => self.input_buffer.push_back(TetrisInput::Down),
-                        ProtottyInput::Left => self.input_buffer.push_back(TetrisInput::Left),
-                        ProtottyInput::Right => self.input_buffer.push_back(TetrisInput::Right),
+                        Input::Keyboard(KeyboardInput::Up) => self.input_buffer.push_back(TetrisInput::Up),
+                        Input::Keyboard(KeyboardInput::Down) => self.input_buffer.push_back(TetrisInput::Down),
+                        Input::Keyboard(KeyboardInput::Left) => self.input_buffer.push_back(TetrisInput::Left),
+                        Input::Keyboard(KeyboardInput::Right) => self.input_buffer.push_back(TetrisInput::Right),
                         _ => (),
                     }
                 }

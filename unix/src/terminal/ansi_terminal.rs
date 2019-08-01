@@ -255,7 +255,7 @@ impl AnsiTerminal {
         };
         let rest = if let Some(input) = term_input {
             let (input, rest) = match input {
-                TerminalInput::Char(ch) => (Some(Input::Char(ch)), rest),
+                TerminalInput::Char(ch) => (Some(Input::Keyboard(KeyboardInput::Char(ch))), rest),
                 TerminalInput::Literal(input) => (Some(input), rest),
                 TerminalInput::MousePrefix(prefix) => {
                     if let Some(rest) = rest {
@@ -265,13 +265,15 @@ impl AnsiTerminal {
                             let y = rest[1] as i32 - COORD_OFFSET;
                             let coord = Coord::new(x, y);
                             let input = match prefix {
-                                MousePrefix::Move(button) => Input::MouseMove { button, coord },
-                                MousePrefix::Press(button) => Input::MousePress { button, coord },
-                                MousePrefix::Release => Input::MouseRelease {
+                                MousePrefix::Move(button) => Input::Mouse(MouseInput::MouseMove { button, coord }),
+                                MousePrefix::Press(button) => Input::Mouse(MouseInput::MousePress { button, coord }),
+                                MousePrefix::Release => Input::Mouse(MouseInput::MouseRelease {
                                     button: Err(NotSupported),
                                     coord,
-                                },
-                                MousePrefix::Scroll(direction) => Input::MouseScroll { direction, coord },
+                                }),
+                                MousePrefix::Scroll(direction) => {
+                                    Input::Mouse(MouseInput::MouseScroll { direction, coord })
+                                }
                             };
                             (Some(input), Some(&rest[2..]))
                         } else {

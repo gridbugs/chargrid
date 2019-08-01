@@ -56,7 +56,7 @@ impl EventRoutine for PressAnyKey {
     {
         event_or_peek_with_handled(event_or_peek, self, |s, event| match event {
             CommonEvent::Input(input) => {
-                if input.is_key() {
+                if input.is_keyboard() {
                     Handled::Return(())
                 } else {
                     Handled::Continue(s)

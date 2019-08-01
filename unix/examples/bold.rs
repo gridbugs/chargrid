@@ -1,6 +1,7 @@
 extern crate prototty;
 extern crate prototty_unix;
 
+use prototty::input::*;
 use prototty::render::*;
 use prototty::text::*;
 use prototty_unix::*;
@@ -24,7 +25,7 @@ fn main() {
         .unwrap();
     loop {
         match context.wait_input().unwrap() {
-            prototty::input::inputs::ETX => break,
+            Input::Keyboard(keys::ETX) => break,
             _ => (),
         }
     }

@@ -6,7 +6,7 @@ extern crate prototty_text;
 #[macro_use]
 extern crate serde;
 
-use prototty_input::{inputs, Input, ScrollDirection};
+use prototty_input::{keys, Input, KeyboardInput, MouseInput, ScrollDirection};
 use prototty_render::*;
 use prototty_text::StringViewSingleLine;
 
@@ -77,27 +77,27 @@ impl<T: Clone> MenuInstance<T> {
         M: MenuIndexFromScreenCoord,
     {
         match input {
-            inputs::ETX => return Some(MenuOutput::Quit),
-            inputs::ESCAPE => return Some(MenuOutput::Cancel),
-            inputs::RETURN => {
+            Input::Keyboard(keys::ETX) => return Some(MenuOutput::Quit),
+            Input::Keyboard(keys::ESCAPE) => return Some(MenuOutput::Cancel),
+            Input::Keyboard(keys::RETURN) => {
                 return Some(MenuOutput::Finalise(self.selected()));
             }
-            Input::Up
-            | Input::MouseScroll {
+            Input::Keyboard(KeyboardInput::Up)
+            | Input::Mouse(MouseInput::MouseScroll {
                 direction: ScrollDirection::Up,
                 ..
-            } => self.up(),
-            Input::Down
-            | Input::MouseScroll {
+            }) => self.up(),
+            Input::Keyboard(KeyboardInput::Down)
+            | Input::Mouse(MouseInput::MouseScroll {
                 direction: ScrollDirection::Down,
                 ..
-            } => self.down(),
-            Input::MouseMove { coord, .. } => {
+            }) => self.down(),
+            Input::Mouse(MouseInput::MouseMove { coord, .. }) => {
                 if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
                     self.set_index(index);
                 }
             }
-            Input::MousePress { coord, .. } => {
+            Input::Mouse(MouseInput::MousePress { coord, .. }) => {
                 if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
                     self.set_index(index);
                     return Some(MenuOutput::Finalise(self.selected()));

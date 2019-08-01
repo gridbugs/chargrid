@@ -25,7 +25,7 @@ pub use grid_2d::Size;
 use js_sys::Function;
 use prototty_event_routine::{common_event::CommonEvent, Event, EventRoutine, Handled};
 use prototty_grid::ColourConversion;
-pub use prototty_input::Input;
+pub use prototty_input::{Input, MouseInput};
 use prototty_input::{MouseButton, ScrollDirection};
 use prototty_render::{ColModify, Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault};
 use std::cell::RefCell;
@@ -459,32 +459,35 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let buttons = mouse_event.buttons();
             if buttons::has_none(buttons) {
-                event_handler.on_input(Input::MouseMove { button: None, coord }, &mut *context);
+                event_handler.on_input(
+                    Input::Mouse(MouseInput::MouseMove { button: None, coord }),
+                    &mut *context,
+                );
             }
             if buttons::has_left(buttons) {
                 event_handler.on_input(
-                    Input::MouseMove {
+                    Input::Mouse(MouseInput::MouseMove {
                         button: Some(MouseButton::Left),
                         coord,
-                    },
+                    }),
                     &mut *context,
                 );
             }
             if buttons::has_right(buttons) {
                 event_handler.on_input(
-                    Input::MouseMove {
+                    Input::Mouse(MouseInput::MouseMove {
                         button: Some(MouseButton::Right),
                         coord,
-                    },
+                    }),
                     &mut *context,
                 );
             }
             if buttons::has_middle(buttons) {
                 event_handler.on_input(
-                    Input::MouseMove {
+                    Input::Mouse(MouseInput::MouseMove {
                         button: Some(MouseButton::Middle),
                         coord,
-                    },
+                    }),
                     &mut *context,
                 );
             }
@@ -501,7 +504,7 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
             if let Some(button) = button::to_mouse_button(button) {
-                event_handler.on_input(Input::MousePress { button, coord }, &mut *context);
+                event_handler.on_input(Input::Mouse(MouseInput::MousePress { button, coord }), &mut *context);
             }
         }) as Box<dyn FnMut(JsValue)>)
     };
@@ -517,10 +520,10 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
             let button = mouse_event.button();
             if let Some(button) = button::to_mouse_button(button) {
                 event_handler.on_input(
-                    Input::MouseRelease {
+                    Input::Mouse(MouseInput::MouseRelease {
                         button: Ok(button),
                         coord,
-                    },
+                    }),
                     &mut *context,
                 );
             }
@@ -534,35 +537,35 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
         let coord = element_display_info.mouse_coord(wheel_event.client_x(), wheel_event.client_y());
         if wheel_event.delta_x() < 0. {
             event_handler.on_input(
-                Input::MouseScroll {
+                Input::Mouse(MouseInput::MouseScroll {
                     direction: ScrollDirection::Left,
                     coord,
-                },
+                }),
                 &mut *context,
             );
         } else if wheel_event.delta_x() > 0. {
             event_handler.on_input(
-                Input::MouseScroll {
+                Input::Mouse(MouseInput::MouseScroll {
                     direction: ScrollDirection::Right,
                     coord,
-                },
+                }),
                 &mut *context,
             );
         }
         if wheel_event.delta_y() < 0. {
             event_handler.on_input(
-                Input::MouseScroll {
+                Input::Mouse(MouseInput::MouseScroll {
                     direction: ScrollDirection::Up,
                     coord,
-                },
+                }),
                 &mut *context,
             );
         } else if wheel_event.delta_y() > 0. {
             event_handler.on_input(
-                Input::MouseScroll {
+                Input::Mouse(MouseInput::MouseScroll {
                     direction: ScrollDirection::Down,
                     coord,
-                },
+                }),
                 &mut *context,
             );
         }
