@@ -63,9 +63,9 @@ fn inner() -> impl event_routine::EventRoutine<Return = Option<()>, Data = AppDa
                     menu::MenuOutput::Finalise(choice) => {
                         use ColourMenuChoice::*;
                         let colour = match choice {
-                            Red => render::rgb24(255, 0, 0),
-                            Green => render::rgb24(0, 127, 0),
-                            Blue => render::rgb24(0, 63, 255),
+                            Red => render::Rgb24::new(255, 0, 0),
+                            Green => render::Rgb24::new(0, 127, 0),
+                            Blue => render::Rgb24::new(0, 63, 255),
                         };
                         data.main_menu_style = menu::MenuEntryStylePair::new(
                             render::Style::new().with_foreground(colour.scalar_div(2)),

@@ -4,7 +4,6 @@ use error::Result;
 use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
-use rgb24::Rgb24;
 use std::time::Duration;
 
 type Cell = CommonCell<Rgb24>;

@@ -4,7 +4,6 @@ use super::term_info_cache::{MousePrefix, TermInfoCache, TerminalInput};
 use error::Result;
 use prototty_input::*;
 use prototty_render::*;
-use rgb24::Rgb24;
 use std::collections::{vec_deque, VecDeque};
 use std::time::Duration;
 use term::terminfo::parm::{self, Param};
@@ -26,7 +25,7 @@ pub struct AnsiTerminal {
 pub mod col_encode {
     use crate::terminal::ansi_colour_codes::{nearest_ansi_code, nearest_mean_greyscale_code, nearest_palette_code};
     use crate::terminal::term_info_cache::TermInfoCache;
-    use rgb24::Rgb24;
+    use prototty_render::Rgb24;
 
     pub trait Trait: Clone {
         fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache);

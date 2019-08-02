@@ -44,8 +44,8 @@ impl AppState {
             border_style: BorderStyle {
                 title_style: Style {
                     bold: Some(true),
-                    foreground: Some(rgb24(0, 255, 0)),
-                    background: Some(rgb24(0, 64, 0)),
+                    foreground: Some(Rgb24::new(0, 255, 0)),
+                    background: Some(Rgb24::new(0, 64, 0)),
                     ..Default::default()
                 },
                 padding: BorderPadding {
@@ -57,7 +57,7 @@ impl AppState {
                 ..BorderStyle::default_with_title("Pager")
             },
             bound: Size::new(40, 30),
-            background: rgb24(80, 80, 0),
+            background: Rgb24::new(80, 80, 0),
             alignment: Alignment::centre(),
             scrollbar: VerticalScrollbar::default(),
         }
@@ -102,7 +102,7 @@ impl<'a> View<&'a AppState> for AppView {
             (
                 "blue\n",
                 Style {
-                    foreground: Some(colours::BRIGHT_BLUE),
+                    foreground: Some(Rgb24::new(0, 0, 255)),
                     bold: Some(true),
                     ..Default::default()
                 },
@@ -111,7 +111,7 @@ impl<'a> View<&'a AppState> for AppView {
             (
                 app_state.text.as_ref(),
                 Style {
-                    background: Some(colours::RED),
+                    background: Some(Rgb24::new(187, 0, 0)),
                     underline: Some(true),
                     ..Default::default()
                 },

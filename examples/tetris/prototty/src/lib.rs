@@ -12,9 +12,9 @@ use std::collections::VecDeque;
 use std::time::Duration;
 use tetris::{Input as TetrisInput, Meta, PieceType, Tetris};
 
-const BLANK_FOREGROUND_COLOUR: Rgb24 = rgb24(24, 24, 24);
-const FOREGROUND_COLOUR: Rgb24 = colours::WHITE;
-const BACKGROUND_COLOUR: Rgb24 = colours::BLACK;
+const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24::new(24, 24, 24);
+const FOREGROUND_COLOUR: Rgb24 = Rgb24::new_grey(255);
+const BACKGROUND_COLOUR: Rgb24 = Rgb24::new_grey(0);
 const BLOCK_CHAR: char = '-';
 const BLANK_CHAR: char = '-';
 
@@ -28,13 +28,13 @@ struct TetrisNextPieceView;
 fn piece_colour(typ: PieceType) -> Rgb24 {
     use tetris::PieceType::*;
     match typ {
-        L => colours::RED,
-        ReverseL => colours::GREEN,
-        S => colours::BLUE,
-        Z => colours::YELLOW,
-        T => colours::MAGENTA,
-        Square => colours::CYAN,
-        Line => colours::BRIGHT_BLUE,
+        L => Rgb24::new(187, 0, 0),
+        ReverseL => Rgb24::new(0, 187, 0),
+        S => Rgb24::new(0, 0, 187),
+        Z => Rgb24::new(187, 187, 0),
+        T => Rgb24::new(187, 0, 187),
+        Square => Rgb24::new(0, 187, 187),
+        Line => Rgb24::new(85, 85, 255),
     }
 }
 impl<'a> View<&'a Tetris> for TetrisBoardView {
@@ -118,7 +118,7 @@ struct BorderStyles {
 impl BorderStyles {
     pub fn new() -> Self {
         let next_piece = BorderStyle {
-            title_style: Style::new().with_foreground(colours::WHITE),
+            title_style: Style::new().with_foreground(Rgb24::new_grey(255)),
             ..BorderStyle::default_with_title("next")
         };
         let common = BorderStyle::default();
@@ -158,12 +158,12 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
         let base_style = Style::new().with_bold(true).with_underline(true);
         let rich_text = match choice {
             MainMenuChoice::Play => vec![
-                ("> ", base_style.with_foreground(colours::RED)),
-                ("P", base_style.with_foreground(colours::YELLOW)),
-                ("l", base_style.with_foreground(colours::GREEN)),
-                ("a", base_style.with_foreground(colours::CYAN)),
-                ("y", base_style.with_foreground(colours::BLUE)),
-                ("!", base_style.with_foreground(colours::MAGENTA)),
+                ("> ", base_style.with_foreground(Rgb24::new(187, 0, 0))),
+                ("P", base_style.with_foreground(Rgb24::new(187, 187, 0))),
+                ("l", base_style.with_foreground(Rgb24::new(0, 187, 0))),
+                ("a", base_style.with_foreground(Rgb24::new(0, 187, 187))),
+                ("y", base_style.with_foreground(Rgb24::new(0, 0, 187))),
+                ("!", base_style.with_foreground(Rgb24::new(187, 0, 187))),
             ],
             MainMenuChoice::Quit => vec![("> Quit", base_style)],
         };
@@ -222,7 +222,7 @@ impl App {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
         let main_menu = vec![MainMenuChoice::Play, MainMenuChoice::Quit];
         let main_menu = MenuInstance::new(main_menu).unwrap();
-        let end_text_style = Style::default().with_bold(true).with_foreground(colours::RED);
+        let end_text_style = Style::default().with_bold(true).with_foreground(Rgb24::new(187, 0, 0));
         let end_text = RichTextPartOwned::new("YOU DIED".to_string(), end_text_style);
         Self {
             main_menu,

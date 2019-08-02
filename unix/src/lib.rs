@@ -14,4 +14,4 @@ pub use self::context::*;
 pub use self::error::*;
 pub use self::terminal::col_encode;
 pub use self::terminal::ColEncode;
-pub use prototty_render::{grey24, rgb24, Coord, Rgb24, Size};
+pub use prototty_render::{Coord, Rgb24, Size};

@@ -1,4 +1,4 @@
-use rgb24::Rgb24;
+use prototty_render::Rgb24;
 
 const RGB_START: u8 = 16;
 const RGB_MAX_FIELD: u8 = 5;

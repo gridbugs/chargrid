@@ -66,8 +66,8 @@ fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(frame: &mut 
             0,
             ViewCell::new()
                 .with_bold(true)
-                .with_background(colours::WHITE)
-                .with_foreground(colours::BLUE)
+                .with_background(Rgb24::new_grey(255))
+                .with_foreground(Rgb24::new(0, 187, 0))
                 .with_character('.'),
             context,
         );
