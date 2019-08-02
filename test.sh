@@ -9,6 +9,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cargo clean
 
 cargo test --all
+cargo test --all --features=serialize
 
 cargo clean
 
