@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate serde;
 extern crate prototty_storage;
-use prototty_storage::Storage;
+use prototty_storage::{format, Storage};
 
 const FILE_NAME: &'static str = "state";
 
@@ -29,7 +29,7 @@ pub struct App<S: Storage> {
 
 impl<S: Storage> App<S> {
     pub fn new(storage: S) -> Self {
-        let state = match storage.load(FILE_NAME).ok() {
+        let state = match storage.load(FILE_NAME, format::Yaml).ok() {
             Some(state) => state,
             None => State::new(),
         };
@@ -40,6 +40,6 @@ impl<S: Storage> App<S> {
     }
     pub fn next_and_save(&mut self) {
         self.state.next();
-        self.storage.store(FILE_NAME, &self.state).unwrap();
+        self.storage.store(FILE_NAME, &self.state, format::Yaml).unwrap();
     }
 }

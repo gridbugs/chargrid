@@ -6,4 +6,5 @@ edition = "2018"
 
 [dependencies]
 prototty_glutin = { path = "../../../glutin" }
+prototty_file_storage = { path = "../../../file-storage", features = ["yaml"] }
 roguelike_prototty = { path = "../prototty" }

@@ -6,10 +6,6 @@ pub extern crate prototty_input;
 #[cfg(feature = "storage")]
 extern crate prototty_monolithic_storage;
 pub extern crate prototty_render;
-#[cfg(feature = "storage")]
-extern crate prototty_storage;
-#[cfg(feature = "storage")]
-extern crate serde;
 extern crate wasm_bindgen;
 extern crate web_sys;
 

@@ -11,14 +11,12 @@ documentation = "https://docs.rs/prototty_glutin"
 
 [features]
 serialize = ["prototty_input/serialize", "prototty_render/serialize", "prototty_grid/serialize"]
-storage = ["prototty_file_storage"]
 
 [dependencies]
 prototty_render = { path = "../render", version = "0.27" }
 prototty_input = { path = "../input", version = "0.27" }
 prototty_grid = { path = "../grid", version = "0.27" }
 prototty_event_routine = { path = "../event-routine", version = "0.27" }
-prototty_file_storage = { path = "../file-storage", version = "0.27", optional = true }
 glutin = "0.21"
 gfx_window_glutin = "0.31"
 gfx_device_gl = "0.16"

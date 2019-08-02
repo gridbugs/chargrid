@@ -9,7 +9,11 @@ homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_file_storage"
 
+[features]
+yaml = ["prototty_storage/yaml"]
+json = ["prototty_storage/json"]
+toml = ["prototty_storage/toml"]
+bincode = ["prototty_storage/bincode"]
+
 [dependencies]
 prototty_storage = { path = "../storage", version = "0.27" }
-bincode = "1.1"
-serde = "1.0"

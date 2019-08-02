@@ -9,5 +9,13 @@ homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_storage"
 
+[features]
+yaml = ["serde_yaml"]
+json = ["serde_json"]
+
 [dependencies]
 serde = "1.0"
+serde_yaml = { version = "0.8", optional = true }
+serde_json = { version = "1.0", optional = true }
+bincode = { version = "1.1", optional = true }
+toml = { version = "0.5", optional = true }

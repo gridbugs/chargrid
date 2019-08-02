@@ -1,7 +1,9 @@
 use game::{Direction, Input as GameInput};
 use hashbrown::HashMap;
 use prototty::input::{Input, KeyboardInput};
+use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct Controls {
     keys: HashMap<KeyboardInput, GameInput>,
 }

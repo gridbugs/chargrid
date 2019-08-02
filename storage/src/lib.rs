@@ -1,51 +1,101 @@
+#[cfg(feature = "bincode")]
+extern crate bincode;
 extern crate serde;
-use serde::de::DeserializeOwned;
-use serde::ser::Serialize;
+#[cfg(feature = "json")]
+extern crate serde_json;
+#[cfg(feature = "yaml")]
+extern crate serde_yaml;
+#[cfg(feature = "toml")]
+extern crate toml;
+
+pub use serde::de::DeserializeOwned;
+pub use serde::ser::Serialize;
+
+pub mod format;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LoadError {
+pub enum RemoveError {
     IoError,
     NoSuchKey,
-    InvalidFormat,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StoreError {
+pub enum LoadRawError {
     IoError,
+    NoSuchKey,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoadError<E> {
+    Raw(LoadRawError),
+    FormatError(E),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoreRawError {
+    IoError,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoreError<E> {
+    Raw(StoreRawError),
+    FormatError(E),
+}
+
+pub trait StorageFormat {
+    type SerializeError;
+    type DeserializeError;
+
+    fn to_vec<T: ?Sized>(value: &T) -> Result<Vec<u8>, Self::SerializeError>
+    where
+        T: Serialize;
+
+    fn from_slice<T>(v: &[u8]) -> Result<T, Self::DeserializeError>
+    where
+        T: DeserializeOwned;
 }
 
 pub trait Storage {
-    fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadError>
-    where
-        K: AsRef<str>;
-
-    fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreError>
-    where
-        K: AsRef<str>,
-        V: AsRef<[u8]>;
-
-    fn remove_raw<K>(&mut self, key: K) -> Result<Vec<u8>, LoadError>
-    where
-        K: AsRef<str>;
-
     fn exists<K>(&self, key: K) -> bool
     where
         K: AsRef<str>;
 
     fn clear(&mut self);
 
-    fn load<K, T>(&self, key: K) -> Result<T, LoadError>
+    fn remove<K>(&mut self, key: K) -> Result<(), RemoveError>
     where
-        K: AsRef<str>,
-        T: DeserializeOwned;
+        K: AsRef<str>;
 
-    fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>
+    fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadRawError>
     where
-        K: AsRef<str>,
-        T: Serialize;
+        K: AsRef<str>;
 
-    fn remove<K, T>(&mut self, key: K) -> Result<T, LoadError>
+    fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreRawError>
     where
         K: AsRef<str>,
-        T: DeserializeOwned;
+        V: AsRef<[u8]>;
+
+    fn load<K, T, F>(&self, key: K, format: F) -> Result<T, LoadError<F::DeserializeError>>
+    where
+        K: AsRef<str>,
+        T: DeserializeOwned,
+        F: StorageFormat,
+    {
+        let _ = format;
+        self.load_raw(key)
+            .map_err(LoadError::Raw)
+            .and_then(|v| F::from_slice(&v).map_err(LoadError::FormatError))
+    }
+
+    fn store<K, T, F>(&mut self, key: K, value: &T, format: F) -> Result<(), StoreError<F::SerializeError>>
+    where
+        K: AsRef<str>,
+        T: Serialize,
+        F: StorageFormat,
+    {
+        let _ = format;
+        F::to_vec(value)
+            .map_err(StoreError::FormatError)
+            .and_then(|v| self.store_raw(key, v).map_err(StoreError::Raw))
+    }
 }

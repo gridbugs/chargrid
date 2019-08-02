@@ -1,10 +1,6 @@
-extern crate bincode;
 extern crate prototty_storage;
-extern crate serde;
 
-pub use prototty_storage::{LoadError, Storage, StoreError};
-use serde::de::DeserializeOwned;
-use serde::ser::Serialize;
+pub use prototty_storage::*;
 use std::env;
 use std::fs::{self, File};
 use std::io::{Read, Write};
@@ -25,7 +21,6 @@ impl FileStorage {
                 return None;
             }
         }
-
         Some(Self {
             base_path: path.as_ref().to_path_buf(),
         })
@@ -33,76 +28,18 @@ impl FileStorage {
 
     pub fn next_to_exe<P: AsRef<Path>>(relative_path: P, create: bool) -> Option<Self> {
         let mut exe_path = env::current_exe().ok()?;
-
         // remove binary's name from the path
         exe_path.pop();
-
         Self::new(exe_path.join(relative_path), create)
     }
 
-    fn full_path<S: AsRef<str>>(&self, path: S) -> PathBuf {
+    pub fn full_path<S: AsRef<str>>(&self, path: S) -> PathBuf {
         let relative_path: PathBuf = path.as_ref().into();
         self.base_path.join(relative_path)
     }
 }
 
 impl Storage for FileStorage {
-    fn load<K, T>(&self, key: K) -> Result<T, LoadError>
-    where
-        K: AsRef<str>,
-        T: DeserializeOwned,
-    {
-        bincode::deserialize(self.load_raw(key)?.as_slice()).map_err(|_| LoadError::InvalidFormat)
-    }
-
-    fn store<K, T>(&mut self, key: K, value: &T) -> Result<(), StoreError>
-    where
-        K: AsRef<str>,
-        T: Serialize,
-    {
-        let bytes = bincode::serialize(value).expect("Failed to serialize data");
-        self.store_raw(key, bytes)
-    }
-
-    fn remove<K, T>(&mut self, key: K) -> Result<T, LoadError>
-    where
-        K: AsRef<str>,
-        T: DeserializeOwned,
-    {
-        let bytes = self.remove_raw(key)?;
-        bincode::deserialize(&bytes).map_err(|_| LoadError::InvalidFormat)
-    }
-
-    fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadError>
-    where
-        K: AsRef<str>,
-    {
-        let mut file = File::open(self.full_path(key)).map_err(|_| LoadError::NoSuchKey)?;
-        let mut contents = Vec::new();
-        file.read_to_end(&mut contents).map_err(|_| LoadError::IoError)?;
-        Ok(contents)
-    }
-
-    fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreError>
-    where
-        K: AsRef<str>,
-        V: AsRef<[u8]>,
-    {
-        let mut file = File::create(self.full_path(key)).map_err(|_| StoreError::IoError)?;
-        file.write_all(value.as_ref()).map_err(|_| StoreError::IoError)?;
-        Ok(())
-    }
-
-    fn remove_raw<K>(&mut self, key: K) -> Result<Vec<u8>, LoadError>
-    where
-        K: AsRef<str>,
-    {
-        let contents = self.load_raw(&key)?;
-        let path = self.full_path(key);
-        fs::remove_file(path).expect("Failed to delete file");
-        Ok(contents)
-    }
-
     fn exists<K>(&self, key: K) -> bool
     where
         K: AsRef<str>,
@@ -113,5 +50,33 @@ impl Storage for FileStorage {
     fn clear(&mut self) {
         fs::remove_dir_all(&self.base_path).expect("Failed to remove base dir");
         fs::create_dir_all(&self.base_path).expect("Failed to create base dir");
+    }
+
+    fn remove<K>(&mut self, key: K) -> Result<(), RemoveError>
+    where
+        K: AsRef<str>,
+    {
+        let path = self.full_path(key);
+        fs::remove_file(path).map_err(|_| RemoveError::IoError)
+    }
+
+    fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadRawError>
+    where
+        K: AsRef<str>,
+    {
+        let mut file = File::open(self.full_path(key)).map_err(|_| LoadRawError::NoSuchKey)?;
+        let mut contents = Vec::new();
+        file.read_to_end(&mut contents).map_err(|_| LoadRawError::IoError)?;
+        Ok(contents)
+    }
+
+    fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreRawError>
+    where
+        K: AsRef<str>,
+        V: AsRef<[u8]>,
+    {
+        let mut file = File::create(self.full_path(key)).map_err(|_| StoreRawError::IoError)?;
+        file.write_all(value.as_ref()).map_err(|_| StoreRawError::IoError)?;
+        Ok(())
     }
 }

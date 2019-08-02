@@ -23,6 +23,7 @@ members = [
 
     "examples/fib/fib",
     "examples/fib/file",
+    "examples/fib/file-mono",
     "examples/fib/wasm",
 
     "examples/tetris/tetris",
@@ -30,8 +31,6 @@ members = [
     "examples/tetris/glutin",
     "examples/tetris/unix",
     "examples/tetris/wasm",
-
-    "examples/optional_features",
 
     "examples/drag/prototty",
     "examples/drag/unix",

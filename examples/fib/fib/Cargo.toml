@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
-prototty_storage = { path = "../../../storage" }
+prototty_storage = { path = "../../../storage", features = ["yaml"] }
 serde = { version = "1.0", features = ["serde_derive"] }

@@ -1,0 +1,16 @@
+---
+keys:
+  w:
+    Move: North
+  ',':
+    Move: North
+  a:
+    Move: West
+  s:
+    Move: South
+  o:
+    Move: South
+  d:
+    Move: East
+  e:
+    Move: East

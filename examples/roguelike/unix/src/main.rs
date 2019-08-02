@@ -1,5 +1,5 @@
 use prototty_unix::{col_encode, Context};
-use roguelike_prototty::{event_routine, AppData, AppView};
+use roguelike_prototty::{event_routine, AppData, AppView, Controls};
 use std::time::Duration;
 
 fn main() {
@@ -8,7 +8,7 @@ fn main() {
         .into_runner(Duration::from_millis(16))
         .run(
             event_routine(),
-            &mut AppData::new(),
+            &mut AppData::new(Controls::default()),
             &mut AppView::new(),
             col_encode::FromTermInfoRgb,
         )

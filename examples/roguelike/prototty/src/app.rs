@@ -12,10 +12,10 @@ pub struct AppData {
 }
 
 impl AppData {
-    pub fn new() -> Self {
+    pub fn new(controls: Controls) -> Self {
         Self {
             game: Game::new(),
-            controls: Controls::default(),
+            controls,
         }
     }
 }

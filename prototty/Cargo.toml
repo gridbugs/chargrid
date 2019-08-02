@@ -18,12 +18,10 @@ serialize = [
     "prototty_menu/serialize",
 ]
 
-storage = ["prototty_storage"]
 
 [dependencies]
 prototty_render = { path = "../render", version = "0.27" }
 prototty_input = { path = "../input", version = "0.27" }
-prototty_storage = { path = "../storage", version = "0.27", optional = true }
 prototty_decorator = { path = "../decorator", version = "0.27" }
 prototty_text = { path = "../text", version = "0.27" }
 prototty_menu = { path = "../menu", version = "0.27" }

@@ -5,8 +5,6 @@ extern crate gfx_glyph;
 extern crate gfx_window_glutin;
 extern crate glutin;
 pub extern crate prototty_event_routine;
-#[cfg(feature = "storage")]
-extern crate prototty_file_storage;
 extern crate prototty_grid;
 pub extern crate prototty_input;
 pub extern crate prototty_render;
@@ -18,6 +16,3 @@ mod input;
 
 pub use context::*;
 pub use prototty_render::{Coord, Size};
-
-#[cfg(feature = "storage")]
-pub use prototty_file_storage::{FileStorage, LoadError, Storage, StoreError};

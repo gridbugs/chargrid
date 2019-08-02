@@ -10,6 +10,7 @@ cargo clean
 
 cargo test --all
 cargo test --all --features=serialize
+cargo test --manifest-path=file-storage/Cargo.toml --features=bincode,json,toml,yaml
 
 cargo clean
 
