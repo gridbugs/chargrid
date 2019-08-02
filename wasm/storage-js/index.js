@@ -7,7 +7,7 @@ export class JsByteStorage {
         return this.data;
     }
     js_clear() {
-        this.store(new Uint8Array());
+        this.js_store(new Uint8Array());
     }
     js_store(data) {
         this.data = data;
