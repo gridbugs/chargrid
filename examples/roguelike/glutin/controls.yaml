@@ -14,3 +14,11 @@ keys:
     Move: East
   e:
     Move: East
+  left:
+    Move: West
+  right:
+    Move: East
+  up:
+    Move: North
+  down:
+    Move: South
