@@ -1,6 +1,6 @@
 mod app;
 mod controls;
-mod game_view;
+mod game;
 
 pub use app::*;
 pub use controls::Controls;

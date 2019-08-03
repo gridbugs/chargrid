@@ -1,69 +1,54 @@
 use crate::controls::Controls;
-use crate::game_view;
+use crate::game::{GameData, GameEventRoutine, GameView};
 use common_event::*;
 use event_routine::*;
-use game::Game;
 use prototty::*;
-use render::View;
 
 pub struct AppData {
-    game: Game,
-    controls: Controls,
+    game: GameData,
 }
 
 impl AppData {
     pub fn new(controls: Controls) -> Self {
         Self {
-            game: Game::new(),
-            controls,
+            game: GameData::new(controls),
         }
     }
 }
 
 pub struct AppView {
-    game: game_view::GameView,
+    game: GameView,
 }
 
 impl AppView {
     pub fn new() -> Self {
-        Self {
-            game: game_view::GameView,
-        }
+        Self { game: GameView }
     }
 }
 
-struct GameEventRoutine;
-impl EventRoutine for GameEventRoutine {
-    type Return = ();
-    type Data = AppData;
-    type View = AppView;
-    type Event = CommonEvent;
-
-    fn handle<EP>(self, data: &mut Self::Data, _view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
-    where
-        EP: EventOrPeek<Event = Self::Event>,
-    {
-        event_or_peek_with_handled(event_or_peek, self, |s, event| match event {
-            CommonEvent::Input(input) => {
-                let maybe_game_input = data.controls.get(input);
-                if let Some(game_input) = maybe_game_input {
-                    data.game.handle_input(game_input);
-                }
-                Handled::Continue(s)
-            }
-            CommonEvent::Frame(_) => Handled::Continue(s),
-        })
+struct SelectGame;
+impl ViewSelector for SelectGame {
+    type ViewInput = AppView;
+    type ViewOutput = GameView;
+    fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
+        &input.game
     }
-
-    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
-    where
-        F: Frame,
-        C: ColModify,
-    {
-        view.game.view(&data.game, context, frame);
+    fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
+        &mut input.game
     }
 }
+impl DataSelector for SelectGame {
+    type DataInput = AppData;
+    type DataOutput = GameData;
+    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
+        &input.game
+    }
+    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
+        &mut input.game
+    }
+}
+impl Selector for SelectGame {}
 
 pub fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
-    GameEventRoutine.return_on_exit(|_| ())
+    GameEventRoutine.select(SelectGame).return_on_exit(|_| ())
 }
