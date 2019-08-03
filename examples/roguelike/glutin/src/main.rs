@@ -1,7 +1,9 @@
-use prototty_file_storage::{format, FileStorage, Storage};
 use prototty_glutin::{ContextBuilder, Size};
 use roguelike_prototty::{event_routine, AppData, AppView, Controls};
+use serde_yaml;
 use std::env;
+use std::fs::File;
+use std::io::Read;
 use std::path::PathBuf;
 
 const WINDOW_SIZE_PIXELS: Size = Size::new_u16(640, 480);
@@ -16,14 +18,21 @@ fn this_crate_path() -> PathBuf {
 
 const CONTROL_CONFIG: &'static str = "controls.yaml";
 
+fn load_controls() -> Option<Controls> {
+    let mut buf = Vec::new();
+    let path = this_crate_path().join(CONTROL_CONFIG);
+    let mut f = File::open(path).ok()?;
+    f.read_to_end(&mut buf).ok()?;
+    serde_yaml::from_slice(&buf).ok()
+}
+
 fn main() {
-    let storage = FileStorage::new(this_crate_path(), false).unwrap();
-    let controls = if let Ok(controls) = storage.load(CONTROL_CONFIG, format::Yaml) {
+    let controls = if let Some(controls) = load_controls() {
         controls
     } else {
         eprintln!(
             "Failed to parse control config file at {:?}. Using default controls.",
-            storage.full_path(CONTROL_CONFIG)
+            this_crate_path().join(CONTROL_CONFIG)
         );
         Controls::default()
     };
