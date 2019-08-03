@@ -358,84 +358,6 @@ where
     }
 }
 
-pub enum Either3<A, B, C> {
-    A(A),
-    B(B),
-    C(C),
-}
-
-impl<A, B, C> EventRoutine for Either3<A, B, C>
-where
-    A: EventRoutine,
-    B: EventRoutine<Data = A::Data, View = A::View, Return = A::Return, Event = A::Event>,
-    C: EventRoutine<Data = A::Data, View = A::View, Return = A::Return, Event = A::Event>,
-{
-    type Return = A::Return;
-    type Data = A::Data;
-    type View = A::View;
-    type Event = A::Event;
-
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
-    where
-        EP: EventOrPeek<Event = Self::Event>,
-    {
-        match self {
-            Either3::A(a) => a.handle(data, view, event_or_peek).map_continue(Either3::A),
-            Either3::B(b) => b.handle(data, view, event_or_peek).map_continue(Either3::B),
-            Either3::C(c) => c.handle(data, view, event_or_peek).map_continue(Either3::C),
-        }
-    }
-
-    fn view<FR, CM>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<CM>, frame: &mut FR)
-    where
-        FR: Frame,
-        CM: ColModify,
-    {
-        match self {
-            Either3::A(a) => a.view(data, view, context, frame),
-            Either3::B(b) => b.view(data, view, context, frame),
-            Either3::C(c) => c.view(data, view, context, frame),
-        }
-    }
-}
-
-pub enum Either<A, B> {
-    A(A),
-    B(B),
-}
-
-impl<A, B> EventRoutine for Either<A, B>
-where
-    A: EventRoutine,
-    B: EventRoutine<Data = A::Data, View = A::View, Return = A::Return, Event = A::Event>,
-{
-    type Return = A::Return;
-    type Data = A::Data;
-    type View = A::View;
-    type Event = A::Event;
-
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
-    where
-        EP: EventOrPeek<Event = Self::Event>,
-    {
-        match self {
-            Either::A(a) => a.handle(data, view, event_or_peek).map_continue(Either::A),
-            Either::B(b) => b.handle(data, view, event_or_peek).map_continue(Either::B),
-        }
-    }
-
-    fn view<FR, CM>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<CM>, frame: &mut FR)
-    where
-        FR: Frame,
-        CM: ColModify,
-    {
-        match self {
-            Either::A(a) => a.view(data, view, context, frame),
-            Either::B(b) => b.view(data, view, context, frame),
-        }
-    }
-}
-
 pub trait DataSelector {
     type DataInput;
     type DataOutput;
@@ -532,4 +454,73 @@ where
     F: FnOnce(&mut ER::Data) -> ER,
 {
     Value::new(()).and_then_side_effect(|(), data, _view| f(data))
+}
+
+make_either!(Either = Left | Right);
+
+#[macro_export]
+macro_rules! make_either {
+    ($type:ident = $first:ident | $($rest:ident)|*) => {
+        pub enum $type<$first, $($rest),*> {
+            $first($first),
+            $($rest($rest)),*
+        }
+        impl<$first, $($rest),*> EventRoutine for $type<$first, $($rest),*>
+            where
+                $first: EventRoutine,
+                $($rest: EventRoutine<Data = $first::Data, View = $first::View, Return = $first::Return, Event = $first::Event>),*
+        {
+            type Return = $first::Return;
+            type Data = $first::Data;
+            type View = $first::View;
+            type Event = $first::Event;
+
+            fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+            where
+                EP: EventOrPeek<Event = Self::Event>,
+            {
+                match self {
+                    $type::$first(x) => x.handle(data, view, event_or_peek).map_continue($type::$first),
+                    $($type::$rest(x) => x.handle(data, view, event_or_peek).map_continue($type::$rest)),*
+                }
+            }
+            fn view<FR, CM>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<CM>, frame: &mut FR)
+            where
+                FR: Frame,
+                CM: ColModify,
+            {
+                match self {
+                    $type::$first(x) => x.view(data, view, context, frame),
+                    $($type::$rest(x) => x.view(data, view, context, frame)),*
+                }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_selector {
+    ($type:ident ($app_data:ident -> $data_field:ident : $data_type:ty) ($app_view:ident -> $view_field:ident : $view_type:ty)) => {
+        impl DataSelector for $type {
+            type DataInput = $app_data;
+            type DataOutput = $data_type;
+            fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
+                &input.$data_field
+            }
+            fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
+                &mut input.$data_field
+            }
+        }
+        impl ViewSelector for $type {
+            type ViewInput = $app_view;
+            type ViewOutput = $view_type;
+            fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
+                &input.$view_field
+            }
+            fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
+                &mut input.$view_field
+            }
+        }
+        impl Selector for $type {}
+    };
 }

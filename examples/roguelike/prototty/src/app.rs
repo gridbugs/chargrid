@@ -13,10 +13,12 @@ enum MainMenuEntry {
 
 impl MainMenuEntry {
     fn init() -> Vec<Self> {
-        vec![MainMenuEntry::NewGame, MainMenuEntry::Quit]
+        use MainMenuEntry::*;
+        vec![NewGame, Quit]
     }
     fn pause() -> Vec<Self> {
-        vec![MainMenuEntry::Resume, MainMenuEntry::NewGame, MainMenuEntry::Quit]
+        use MainMenuEntry::*;
+        vec![Resume, NewGame, Quit]
     }
 }
 
@@ -68,86 +70,41 @@ impl AppView {
 }
 
 struct SelectGame;
-impl ViewSelector for SelectGame {
-    type ViewInput = AppView;
-    type ViewOutput = GameView;
-    fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
-        &input.game
-    }
-    fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
-        &mut input.game
-    }
+impl_selector! {
+    SelectGame
+        (AppData->game : GameData)
+        (AppView->game : GameView)
 }
-impl DataSelector for SelectGame {
-    type DataInput = AppData;
-    type DataOutput = GameData;
-    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
-        &input.game
-    }
-    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
-        &mut input.game
-    }
-}
-impl Selector for SelectGame {}
 
 struct SelectInitMenu;
-impl ViewSelector for SelectInitMenu {
-    type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<menu::MenuEntryStylePair>;
-    fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
-        &input.main_menu
-    }
-    fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
-        &mut input.main_menu
-    }
+impl_selector! {
+    SelectInitMenu
+        (AppData->init_menu : menu::MenuInstanceJustChoose<MainMenuEntry>)
+        (AppView->main_menu : menu::MenuInstanceView<menu::MenuEntryStylePair>)
 }
-impl DataSelector for SelectInitMenu {
-    type DataInput = AppData;
-    type DataOutput = menu::MenuInstanceJustChoose<MainMenuEntry>;
-    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
-        &input.init_menu
-    }
-    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
-        &mut input.init_menu
-    }
-}
-impl Selector for SelectInitMenu {}
 
 struct SelectPauseMenu;
-impl ViewSelector for SelectPauseMenu {
-    type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<menu::MenuEntryStylePair>;
-    fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
-        &input.main_menu
-    }
-    fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
-        &mut input.main_menu
-    }
+impl_selector! {
+    SelectPauseMenu
+        (AppData->pause_menu : menu::MenuInstanceJustChoose<MainMenuEntry>)
+        (AppView->main_menu : menu::MenuInstanceView<menu::MenuEntryStylePair>)
 }
-impl DataSelector for SelectPauseMenu {
-    type DataInput = AppData;
-    type DataOutput = menu::MenuInstanceJustChoose<MainMenuEntry>;
-    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
-        &input.pause_menu
-    }
-    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
-        &mut input.pause_menu
-    }
-}
-impl Selector for SelectPauseMenu {}
+
+make_either!(E3 = A | B | C);
+make_either!(E2 = A | B);
 
 struct Quit;
 
 fn main_menu() -> impl EventRoutine<Return = MainMenuEntry, Data = AppData, View = AppView, Event = CommonEvent> {
     with_data(|data: &mut AppData| {
         if data.game.has_instance() {
-            Either::A(
+            E2::A(
                 menu::MenuInstanceRoutine::new()
                     .convert_input_to_common_event()
                     .select(SelectPauseMenu),
             )
         } else {
-            Either::B(
+            E2::B(
                 menu::MenuInstanceRoutine::new()
                     .convert_input_to_common_event()
                     .select(SelectInitMenu),
@@ -162,11 +119,11 @@ fn game() -> impl EventRoutine<Return = GameReturn, Data = AppData, View = AppVi
 
 fn main_menu_cycle() -> impl EventRoutine<Return = Option<Quit>, Data = AppData, View = AppView, Event = CommonEvent> {
     main_menu().and_then_side_effect(|entry, data, _view| match entry {
-        MainMenuEntry::Quit => Either3::A(Value::new(Some(Quit))),
-        MainMenuEntry::Resume => Either3::B(game().map(|GameReturn::Pause| None)),
+        MainMenuEntry::Quit => E3::A(Value::new(Some(Quit))),
+        MainMenuEntry::Resume => E3::B(game().map(|GameReturn::Pause| None)),
         MainMenuEntry::NewGame => {
             data.game.instantiate();
-            Either3::C(game().map(|GameReturn::Pause| None))
+            E3::C(game().map(|GameReturn::Pause| None))
         }
     })
 }
