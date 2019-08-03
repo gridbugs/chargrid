@@ -53,14 +53,14 @@ fn inner() -> impl event_routine::EventRoutine<Return = Option<()>, Data = AppDa
     let main_menu = menu::MenuInstanceExtraRoutine::new(SelectMainMenuExtra);
     let colour_menu = menu::MenuInstanceRoutine::new().select(SelectColourMenu);
     main_menu.and_then(|menu_output| match menu_output {
-        menu::MenuOutput::Quit => event_routine::Either::A(event_routine::Value::new(Some(()))),
-        menu::MenuOutput::Cancel => event_routine::Either::A(event_routine::Value::new(None)),
-        menu::MenuOutput::Finalise(choice) => match choice {
+        Err(menu::Cancel::Quit) => event_routine::Either::A(event_routine::Value::new(Some(()))),
+        Err(menu::Cancel::Escape) => event_routine::Either::A(event_routine::Value::new(None)),
+        Ok(choice) => match choice {
             MainMenuChoice::ChooseColour => event_routine::Either::B(colour_menu.map_side_effect(
                 |menu_output, data, _view| match menu_output {
-                    menu::MenuOutput::Quit => Some(()),
-                    menu::MenuOutput::Cancel => None,
-                    menu::MenuOutput::Finalise(choice) => {
+                    Err(menu::Cancel::Quit) => Some(()),
+                    Err(menu::Cancel::Escape) => None,
+                    Ok(choice) => {
                         use ColourMenuChoice::*;
                         let colour = match choice {
                             Red => render::Rgb24::new(255, 0, 0),
@@ -103,7 +103,7 @@ impl event_routine::ViewSelector for SelectColourMenu {
 }
 impl event_routine::DataSelector for SelectColourMenu {
     type DataInput = AppData;
-    type DataOutput = menu::MenuInstance<ColourMenuChoice>;
+    type DataOutput = menu::MenuInstanceChooseOrCancel<ColourMenuChoice>;
     fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
         &input.colour_menu
     }
@@ -127,13 +127,13 @@ impl event_routine::ViewSelector for SelectMainMenuExtra {
 }
 impl menu::MenuInstanceExtraSelect for SelectMainMenuExtra {
     type DataInput = AppData;
-    type Choice = MainMenuChoice;
+    type Choose = menu::MenuInstanceChooseOrCancel<MainMenuChoice>;
     type Extra = menu::MenuEntryStylePair;
 
-    fn menu_instance<'a>(&self, input: &'a Self::DataInput) -> &'a menu::MenuInstance<Self::Choice> {
+    fn choose<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Choose {
         &input.main_menu
     }
-    fn menu_instance_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut menu::MenuInstance<Self::Choice> {
+    fn choose_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::Choose {
         &mut input.main_menu
     }
     fn extra<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Extra {
@@ -161,16 +161,20 @@ impl<C> menu::ChooseStyleFromEntryExtra for ChooseMenuEntryStyle<C> {
 }
 
 pub struct AppData {
-    main_menu: menu::MenuInstance<MainMenuChoice>,
+    main_menu: menu::MenuInstanceChooseOrCancel<MainMenuChoice>,
     main_menu_style: menu::MenuEntryStylePair,
-    colour_menu: menu::MenuInstance<ColourMenuChoice>,
+    colour_menu: menu::MenuInstanceChooseOrCancel<ColourMenuChoice>,
 }
 
 impl AppData {
     pub fn new() -> Self {
-        let main_menu = menu::MenuInstance::new(MainMenuChoice::all()).unwrap();
+        let main_menu = menu::MenuInstance::new(MainMenuChoice::all())
+            .unwrap()
+            .into_choose_or_cancel();
         let main_menu_style = menu::MenuEntryStylePair::new(render::Style::new(), render::Style::new().with_bold(true));
-        let colour_menu = menu::MenuInstance::new(ColourMenuChoice::all()).unwrap();
+        let colour_menu = menu::MenuInstance::new(ColourMenuChoice::all())
+            .unwrap()
+            .into_choose_or_cancel();
         Self {
             main_menu,
             main_menu_style,

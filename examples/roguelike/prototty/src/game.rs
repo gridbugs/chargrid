@@ -2,6 +2,7 @@ use crate::controls::Controls;
 use game::{Game, ToRender};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
+use prototty::input::*;
 use prototty::render::*;
 
 pub struct GameView;
@@ -21,23 +22,38 @@ impl<'a> View<&'a Game> for GameView {
     }
 }
 
-pub struct GameData {
+struct GameInstance {
     game: Game,
+}
+
+pub struct GameData {
+    instance: Option<GameInstance>,
     controls: Controls,
 }
 
 impl GameData {
     pub fn new(controls: Controls) -> Self {
         Self {
-            game: Game::new(),
+            instance: None,
             controls,
         }
+    }
+    pub fn has_instance(&self) -> bool {
+        self.instance.is_some()
+    }
+    pub fn instantiate(&mut self) {
+        self.instance = Some(GameInstance { game: Game::new() });
     }
 }
 
 pub struct GameEventRoutine;
+
+pub enum GameReturn {
+    Pause,
+}
+
 impl EventRoutine for GameEventRoutine {
-    type Return = ();
+    type Return = GameReturn;
     type Data = GameData;
     type View = GameView;
     type Event = CommonEvent;
@@ -48,9 +64,14 @@ impl EventRoutine for GameEventRoutine {
     {
         event_or_peek_with_handled(event_or_peek, self, |s, event| match event {
             CommonEvent::Input(input) => {
-                let maybe_game_input = data.controls.get(input);
-                if let Some(game_input) = maybe_game_input {
-                    data.game.handle_input(game_input);
+                if input == Input::Keyboard(keys::ESCAPE) {
+                    return Handled::Return(GameReturn::Pause);
+                }
+                if let Some(instance) = data.instance.as_mut() {
+                    let maybe_game_input = data.controls.get(input);
+                    if let Some(game_input) = maybe_game_input {
+                        instance.game.handle_input(game_input);
+                    }
                 }
                 Handled::Continue(s)
             }
@@ -63,6 +84,8 @@ impl EventRoutine for GameEventRoutine {
         F: Frame,
         C: ColModify,
     {
-        view.view(&data.game, context, frame);
+        if let Some(instance) = data.instance.as_ref() {
+            view.view(&instance.game, context, frame);
+        }
     }
 }

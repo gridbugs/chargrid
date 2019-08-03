@@ -243,11 +243,10 @@ impl App {
         match self.state {
             AppState::Menu => {
                 for input in inputs {
-                    if let Some(menu_output) = self.main_menu.handle_input(&view.border_views.menu.view, input) {
+                    if let Some(menu_output) = self.main_menu.choose_or_quit(&view.border_views.menu.view, input) {
                         match menu_output {
-                            MenuOutput::Quit => return Some(ControlFlow::Exit),
-                            MenuOutput::Cancel => (),
-                            MenuOutput::Finalise(selection) => match selection {
+                            Err(Quit) => return Some(ControlFlow::Exit),
+                            Ok(selection) => match selection {
                                 MainMenuChoice::Quit => return Some(ControlFlow::Exit),
                                 MainMenuChoice::Play => {
                                     self.state = AppState::Game;
