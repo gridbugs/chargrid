@@ -56,30 +56,26 @@ fn inner() -> impl EventRoutine<Return = Option<()>, Data = AppData, View = AppV
     main_menu.and_then(|menu_output| match menu_output {
         Err(menu::Cancel::Quit) => Either::Left(Value::new(Some(()))),
         Err(menu::Cancel::Escape) => Either::Left(Value::new(None)),
-        Ok(choice) => {
-            match choice {
-                MainMenuChoice::ChooseColour => Either::Right(colour_menu.map_side_effect(
-                    |menu_output, data, _view| match menu_output {
-                        Err(menu::Cancel::Quit) => Some(()),
-                        Err(menu::Cancel::Escape) => None,
-                        Ok(choice) => {
-                            use ColourMenuChoice::*;
-                            let colour = match choice {
-                                Red => render::Rgb24::new(255, 0, 0),
-                                Green => render::Rgb24::new(0, 127, 0),
-                                Blue => render::Rgb24::new(0, 63, 255),
-                            };
-                            data.main_menu_style = menu::MenuEntryStylePair::new(
-                                render::Style::new().with_foreground(colour.scalar_div(2)),
-                                render::Style::new().with_foreground(colour).with_bold(true),
-                            );
-                            None
-                        }
-                    },
-                )),
-                MainMenuChoice::Quit => Either::Left(Value::new(Some(()))),
-            }
-        }
+        Ok(choice) => match choice {
+            MainMenuChoice::ChooseColour => Either::Right(colour_menu.and_then(|menu_output| match menu_output {
+                Err(menu::Cancel::Quit) => Either::Left(Value::new(Some(()))),
+                Err(menu::Cancel::Escape) => Either::Left(Value::new(None)),
+                Ok(choice) => Either::Right(SideEffect::new(move |data: &mut AppData| {
+                    use ColourMenuChoice::*;
+                    let colour = match choice {
+                        Red => render::Rgb24::new(255, 0, 0),
+                        Green => render::Rgb24::new(0, 127, 0),
+                        Blue => render::Rgb24::new(0, 63, 255),
+                    };
+                    data.main_menu_style = menu::MenuEntryStylePair::new(
+                        render::Style::new().with_foreground(colour.scalar_div(2)),
+                        render::Style::new().with_foreground(colour).with_bold(true),
+                    );
+                    None
+                })),
+            })),
+            MainMenuChoice::Quit => Either::Left(Value::new(Some(()))),
+        },
     })
 }
 

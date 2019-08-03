@@ -127,15 +127,7 @@ pub trait EventRoutine: Sized {
         U: EventRoutine<Data = Self::Data, View = Self::View>,
         F: FnOnce(Self::Return) -> U,
     {
-        AndThen::First { t: self, f }
-    }
-
-    fn and_then_side_effect<U, F>(self, f: F) -> AndThenSideEffect<Self, U, F>
-    where
-        U: EventRoutine<Data = Self::Data, View = Self::View>,
-        F: FnOnce(Self::Return, &mut Self::Data, &Self::View) -> U,
-    {
-        AndThenSideEffect::First { t: self, f }
+        AndThen(AndThenPrivate::First { t: self, f })
     }
 
     fn map<F, U>(self, f: F) -> Map<Self, F>
@@ -143,13 +135,6 @@ pub trait EventRoutine: Sized {
         F: FnOnce(Self::Return) -> U,
     {
         Map { t: self, f }
-    }
-
-    fn map_side_effect<F, U>(self, f: F) -> MapSideEffect<Self, F>
-    where
-        F: FnOnce(Self::Return, &mut Self::Data, &Self::View) -> U,
-    {
-        MapSideEffect { t: self, f }
     }
 
     fn convert_input_to_common_event(self) -> common_event::ConvertInputToCommonEvent<Self> {
@@ -164,21 +149,29 @@ pub trait EventRoutine: Sized {
     }
 }
 
-pub struct Value<T, D, V, E> {
-    value: T,
+struct OneShot<T, D, V, E> {
+    field: T,
     data: PhantomData<D>,
     view: PhantomData<V>,
     event: PhantomData<E>,
 }
 
-impl<T, D, V, E> Value<T, D, V, E> {
-    pub fn new(value: T) -> Self {
+impl<T, D, V, E> OneShot<T, D, V, E> {
+    pub fn new(field: T) -> Self {
         Self {
-            value,
+            field,
             data: PhantomData,
             view: PhantomData,
             event: PhantomData,
         }
+    }
+}
+
+pub struct Value<T, D, V, E>(OneShot<T, D, V, E>);
+
+impl<T, D, V, E> Value<T, D, V, E> {
+    pub fn new(value: T) -> Self {
+        Self(OneShot::new(value))
     }
 }
 
@@ -192,7 +185,7 @@ impl<T, D, V, E> EventRoutine for Value<T, D, V, E> {
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
-        Handled::Return(self.value)
+        Handled::Return(self.0.field)
     }
 
     fn view<F, C>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<C>, _frame: &mut F)
@@ -203,28 +196,75 @@ impl<T, D, V, E> EventRoutine for Value<T, D, V, E> {
     }
 }
 
-pub struct MapSideEffect<T, F> {
-    t: T,
-    f: F,
+pub struct SideEffect<F, D, V, E>(OneShot<F, D, V, E>);
+
+impl<F, D, V, E> SideEffect<F, D, V, E> {
+    pub fn new(f: F) -> Self {
+        Self(OneShot::new(f))
+    }
 }
-impl<T, U, F> EventRoutine for MapSideEffect<T, F>
+
+impl<F, D, V, E, T> EventRoutine for SideEffect<F, D, V, E>
 where
-    T: EventRoutine,
-    F: FnOnce(T::Return, &mut T::Data, &T::View) -> U,
+    F: FnOnce(&mut D) -> T,
 {
-    type Return = U;
-    type Data = T::Data;
-    type View = T::View;
-    type Event = T::Event;
+    type Return = T;
+    type Data = D;
+    type View = V;
+    type Event = E;
+
+    fn handle<EP>(self, data: &mut Self::Data, _view: &Self::View, _event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        Handled::Return((self.0.field)(data))
+    }
+
+    fn view<G, C>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<C>, _frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+    }
+}
+
+enum SideEffectThenPrivate<F, D, V, E, U> {
+    First(OneShot<F, D, V, E>),
+    Second(U),
+}
+pub struct SideEffectThen<F, D, V, E, U>(SideEffectThenPrivate<F, D, V, E, U>);
+
+impl<F, D, V, E, U> SideEffectThen<F, D, V, E, U>
+where
+    U: EventRoutine<Data = D, View = V, Event = E>,
+    F: FnOnce(&mut D) -> U,
+{
+    pub fn new(f: F) -> Self {
+        Self(SideEffectThenPrivate::First(OneShot::new(f)))
+    }
+}
+
+impl<F, D, V, E, U> EventRoutine for SideEffectThen<F, D, V, E, U>
+where
+    U: EventRoutine<Data = D, View = V, Event = E>,
+    F: FnOnce(&mut D) -> U,
+{
+    type Return = U::Return;
+    type Data = D;
+    type View = V;
+    type Event = E;
 
     fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
-        let Self { t, f } = self;
-        match t.handle(data, view, event_or_peek) {
-            Handled::Continue(t) => Handled::Continue(Self { t, f }),
-            Handled::Return(r) => Handled::Return(f(r, data, view)),
+        match self.0 {
+            SideEffectThenPrivate::First(one_shot) => (one_shot.field)(data)
+                .handle(data, view, Peek::new())
+                .map_continue(|u| SideEffectThen(SideEffectThenPrivate::Second(u))),
+            SideEffectThenPrivate::Second(u) => u
+                .handle(data, view, event_or_peek)
+                .map_continue(|u| SideEffectThen(SideEffectThenPrivate::Second(u))),
         }
     }
 
@@ -233,7 +273,10 @@ where
         G: Frame,
         C: ColModify,
     {
-        self.t.view(data, view, context, frame)
+        match self.0 {
+            SideEffectThenPrivate::First(_) => (),
+            SideEffectThenPrivate::Second(ref u) => u.view(data, view, context, frame),
+        }
     }
 }
 
@@ -272,55 +315,12 @@ where
     }
 }
 
-pub enum AndThenSideEffect<T, U, F> {
+enum AndThenPrivate<T, U, F> {
     First { t: T, f: F },
     Second(U),
 }
 
-impl<T, U, F> EventRoutine for AndThenSideEffect<T, U, F>
-where
-    T: EventRoutine,
-    U: EventRoutine<Data = T::Data, View = T::View, Event = T::Event>,
-    F: FnOnce(T::Return, &mut T::Data, &T::View) -> U,
-{
-    type Return = U::Return;
-    type Data = T::Data;
-    type View = T::View;
-    type Event = T::Event;
-
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
-    where
-        EP: EventOrPeek<Event = Self::Event>,
-    {
-        match self {
-            AndThenSideEffect::First { t, f } => match t.handle(data, view, event_or_peek) {
-                Handled::Continue(t) => Handled::Continue(AndThenSideEffect::First { t, f }),
-                Handled::Return(r) => f(r, data, view)
-                    .handle(data, view, Peek::new())
-                    .map_continue(AndThenSideEffect::Second),
-            },
-            AndThenSideEffect::Second(u) => u
-                .handle(data, view, event_or_peek)
-                .map_continue(AndThenSideEffect::Second),
-        }
-    }
-
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
-        G: Frame,
-        C: ColModify,
-    {
-        match self {
-            AndThenSideEffect::First { ref t, .. } => t.view(data, view, context, frame),
-            AndThenSideEffect::Second(ref u) => u.view(data, view, context, frame),
-        }
-    }
-}
-
-pub enum AndThen<T, U, F> {
-    First { t: T, f: F },
-    Second(U),
-}
+pub struct AndThen<T, U, F>(AndThenPrivate<T, U, F>);
 
 impl<T, U, F> EventRoutine for AndThen<T, U, F>
 where
@@ -337,12 +337,16 @@ where
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
-        match self {
-            AndThen::First { t, f } => match t.handle(data, view, event_or_peek) {
-                Handled::Continue(t) => Handled::Continue(AndThen::First { t, f }),
-                Handled::Return(r) => f(r).handle(data, view, Peek::new()).map_continue(AndThen::Second),
+        match self.0 {
+            AndThenPrivate::First { t, f } => match t.handle(data, view, event_or_peek) {
+                Handled::Continue(t) => Handled::Continue(AndThen(AndThenPrivate::First { t, f })),
+                Handled::Return(r) => f(r)
+                    .handle(data, view, Peek::new())
+                    .map_continue(|u| AndThen(AndThenPrivate::Second(u))),
             },
-            AndThen::Second(u) => u.handle(data, view, event_or_peek).map_continue(AndThen::Second),
+            AndThenPrivate::Second(u) => u
+                .handle(data, view, event_or_peek)
+                .map_continue(|u| AndThen(AndThenPrivate::Second(u))),
         }
     }
 
@@ -351,9 +355,9 @@ where
         G: Frame,
         C: ColModify,
     {
-        match self {
-            AndThen::First { ref t, .. } => t.view(data, view, context, frame),
-            AndThen::Second(ref u) => u.view(data, view, context, frame),
+        match self.0 {
+            AndThenPrivate::First { ref t, .. } => t.view(data, view, context, frame),
+            AndThenPrivate::Second(ref u) => u.view(data, view, context, frame),
         }
     }
 }
@@ -444,16 +448,6 @@ where
     {
         self.t.view(data, view, context, frame)
     }
-}
-
-pub fn with_data<F, ER>(
-    f: F,
-) -> impl EventRoutine<Return = ER::Return, Data = ER::Data, View = ER::View, Event = ER::Event>
-where
-    ER: EventRoutine,
-    F: FnOnce(&mut ER::Data) -> ER,
-{
-    Value::new(()).and_then_side_effect(|(), data, _view| f(data))
 }
 
 make_either!(Either = Left | Right);

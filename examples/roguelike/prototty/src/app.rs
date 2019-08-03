@@ -96,7 +96,7 @@ make_either!(E2 = A | B);
 struct Quit;
 
 fn main_menu() -> impl EventRoutine<Return = MainMenuEntry, Data = AppData, View = AppView, Event = CommonEvent> {
-    with_data(|data: &mut AppData| {
+    SideEffectThen::new(|data: &mut AppData| {
         if data.game.has_instance() {
             E2::A(
                 menu::MenuInstanceRoutine::new()
@@ -118,13 +118,13 @@ fn game() -> impl EventRoutine<Return = GameReturn, Data = AppData, View = AppVi
 }
 
 fn main_menu_cycle() -> impl EventRoutine<Return = Option<Quit>, Data = AppData, View = AppView, Event = CommonEvent> {
-    main_menu().and_then_side_effect(|entry, data, _view| match entry {
+    main_menu().and_then(|entry| match entry {
         MainMenuEntry::Quit => E3::A(Value::new(Some(Quit))),
         MainMenuEntry::Resume => E3::B(game().map(|GameReturn::Pause| None)),
-        MainMenuEntry::NewGame => {
+        MainMenuEntry::NewGame => E3::C(SideEffectThen::new(|data: &mut AppData| {
             data.game.instantiate();
-            E3::C(game().map(|GameReturn::Pause| None))
-        }
+            game().map(|GameReturn::Pause| None)
+        })),
     })
 }
 
