@@ -377,7 +377,7 @@ impl<'a> Context<'a> {
         {
             let mut output_cells = self.background_renderer.map_cells(&mut self.factory);
             for ((coord, cell), output_cell) in self.grid.enumerate().zip(output_cells.iter_mut()) {
-                if cell.character != ' ' {
+                if cell.character != ' ' || cell.underline {
                     self.char_buf.clear();
                     self.char_buf.push(cell.character);
                     let (font_id, scale) = if cell.bold {
