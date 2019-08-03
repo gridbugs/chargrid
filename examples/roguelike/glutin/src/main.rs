@@ -43,6 +43,8 @@ fn main() {
         .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_font_scale(16.0, 16.0)
         .with_cell_dimensions(Size::new_u16(16, 16))
+        .with_underline_width(2)
+        .with_underline_position(14)
         .build()
         .unwrap();
     context
