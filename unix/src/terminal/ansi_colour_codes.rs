@@ -77,14 +77,14 @@ pub fn nearest_ansi_code(Rgb24 { r, g, b }: Rgb24) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use rgb24::rgb24;
+    use prototty_render::Rgb24;
 
     #[test]
     fn nearest_palette_code_all_cases() {
         for r in 0..=255 {
             for g in 0..=255 {
                 for b in 0..=255 {
-                    let c = rgb24(r, g, b);
+                    let c = Rgb24::new(r, g, b);
                     let _ = super::nearest_palette_code(c);
                 }
             }
@@ -96,7 +96,7 @@ mod tests {
         for r in 0..=255 {
             for g in 0..=255 {
                 for b in 0..=255 {
-                    let c = rgb24(r, g, b);
+                    let c = Rgb24::new(r, g, b);
                     let _ = super::nearest_ansi_code(c);
                 }
             }
@@ -108,7 +108,7 @@ mod tests {
         for r in 0..=255 {
             for g in 0..=255 {
                 for b in 0..=255 {
-                    let c = rgb24(r, g, b);
+                    let c = Rgb24::new(r, g, b);
                     let _ = super::nearest_mean_greyscale_code(c);
                 }
             }
