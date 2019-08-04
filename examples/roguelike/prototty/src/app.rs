@@ -138,8 +138,6 @@ impl<S: Storage> ViewSelector for SelectMainMenu<S> {
 }
 impl<S: Storage> Selector for SelectMainMenu<S> {}
 
-make_either!(E2 = A | B);
-
 struct Quit;
 
 fn main_menu<S: Storage>(

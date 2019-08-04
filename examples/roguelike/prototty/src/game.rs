@@ -7,8 +7,10 @@ use prototty::render::*;
 use prototty_storage::{format, Storage};
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
+use std::time::Duration;
 
 const SAVE_FILE: &'static str = "save";
+const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
 
 pub struct GameView;
 
@@ -42,6 +44,7 @@ pub struct GameData<S: Storage> {
     instance: Option<GameInstance>,
     controls: Controls,
     storage: S,
+    until_auto_save: Duration,
 }
 
 impl<S: Storage> GameData<S> {
@@ -51,6 +54,7 @@ impl<S: Storage> GameData<S> {
             instance,
             controls,
             storage,
+            until_auto_save: AUTO_SAVE_PERIOD,
         }
     }
     pub fn has_instance(&self) -> bool {
@@ -103,7 +107,15 @@ impl<S: Storage> EventRoutine for GameEventRoutine<S> {
                 }
                 Handled::Continue(s)
             }
-            CommonEvent::Frame(_) => Handled::Continue(s),
+            CommonEvent::Frame(period) => {
+                if let Some(until_auto_save) = data.until_auto_save.checked_sub(period) {
+                    data.until_auto_save = until_auto_save;
+                } else {
+                    data.save_instance();
+                    data.until_auto_save = AUTO_SAVE_PERIOD;
+                }
+                Handled::Continue(s)
+            }
         })
     }
 
