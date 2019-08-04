@@ -1,6 +1,6 @@
 use prototty_file_storage::FileStorage;
 use prototty_glutin::{ContextBuilder, Size};
-use roguelike_prototty::{event_routine, AppData, AppView, Controls};
+use roguelike_prototty::{event_routine, AppData, AppView, Controls, Frontend};
 use serde_yaml;
 use std::env;
 use std::fs::File;
@@ -53,7 +53,7 @@ fn main() {
     context
         .run_event_routine(
             event_routine(),
-            &mut AppData::new(controls, storage),
+            &mut AppData::new(Frontend::Native, controls, storage),
             &mut AppView::new(),
         )
         .unwrap();

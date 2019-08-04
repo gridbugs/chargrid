@@ -4,9 +4,11 @@ use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
 use prototty::render::*;
-use prototty_storage::Storage;
+use prototty_storage::{format, Storage};
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
+
+const SAVE_FILE: &'static str = "save";
 
 pub struct GameView;
 
@@ -39,15 +41,16 @@ impl GameInstance {
 pub struct GameData<S: Storage> {
     instance: Option<GameInstance>,
     controls: Controls,
-    _storage: S,
+    storage: S,
 }
 
 impl<S: Storage> GameData<S> {
     pub fn new(controls: Controls, storage: S) -> Self {
+        let instance = storage.load(SAVE_FILE, format::Bincode).ok();
         Self {
-            instance: None,
+            instance,
             controls,
-            _storage: storage,
+            storage,
         }
     }
     pub fn has_instance(&self) -> bool {
@@ -55,6 +58,13 @@ impl<S: Storage> GameData<S> {
     }
     pub fn instantiate(&mut self) {
         self.instance = Some(GameInstance::new());
+    }
+    pub fn save_instance(&mut self) {
+        if let Some(instance) = self.instance.as_ref() {
+            self.storage.store(SAVE_FILE, instance, format::Bincode).unwrap();
+        } else {
+            self.storage.remove(SAVE_FILE).unwrap();
+        }
     }
 }
 

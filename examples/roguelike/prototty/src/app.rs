@@ -6,11 +6,18 @@ use prototty::*;
 use prototty_storage::Storage;
 use std::marker::PhantomData;
 
+pub enum Frontend {
+    Wasm,
+    Native,
+}
+
 #[derive(Clone, Copy)]
 enum MainMenuEntry {
     NewGame,
     Resume,
     Quit,
+    Save,
+    SaveQuit,
 }
 
 impl MainMenuEntry {
@@ -18,9 +25,13 @@ impl MainMenuEntry {
         use MainMenuEntry::*;
         vec![NewGame, Quit]
     }
-    fn pause() -> Vec<Self> {
+    fn pause_native() -> Vec<Self> {
         use MainMenuEntry::*;
-        vec![Resume, NewGame, Quit]
+        vec![Resume, NewGame, SaveQuit]
+    }
+    fn pause_wasm() -> Vec<Self> {
+        use MainMenuEntry::*;
+        vec![Resume, NewGame, Save]
     }
 }
 
@@ -30,14 +41,16 @@ impl<'a> From<&'a MainMenuEntry> for &'a str {
             MainMenuEntry::NewGame => "New Game",
             MainMenuEntry::Resume => "Resume",
             MainMenuEntry::Quit => "Quit",
+            MainMenuEntry::SaveQuit => "Save and Quit",
+            MainMenuEntry::Save => "Save",
         }
     }
 }
 
 pub struct AppData<S: Storage> {
+    frontend: Frontend,
     game: GameData<S>,
-    init_menu: menu::MenuInstanceJustChoose<MainMenuEntry>,
-    pause_menu: menu::MenuInstanceJustChoose<MainMenuEntry>,
+    main_menu: menu::MenuInstanceJustChoose<MainMenuEntry>,
 }
 
 pub struct AppView {
@@ -46,13 +59,11 @@ pub struct AppView {
 }
 
 impl<S: Storage> AppData<S> {
-    pub fn new(controls: Controls, storage: S) -> Self {
+    pub fn new(frontend: Frontend, controls: Controls, storage: S) -> Self {
         Self {
+            frontend,
             game: GameData::new(controls, storage),
-            init_menu: menu::MenuInstance::new(MainMenuEntry::init())
-                .unwrap()
-                .into_just_choose(),
-            pause_menu: menu::MenuInstance::new(MainMenuEntry::pause())
+            main_menu: menu::MenuInstance::new(MainMenuEntry::init())
                 .unwrap()
                 .into_just_choose(),
         }
@@ -99,23 +110,23 @@ impl<S: Storage> ViewSelector for SelectGame<S> {
 }
 impl<S: Storage> Selector for SelectGame<S> {}
 
-struct SelectInitMenu<S: Storage>(PhantomData<S>);
-impl<S: Storage> SelectInitMenu<S> {
+struct SelectMainMenu<S: Storage>(PhantomData<S>);
+impl<S: Storage> SelectMainMenu<S> {
     fn new() -> Self {
         Self(PhantomData)
     }
 }
-impl<S: Storage> DataSelector for SelectInitMenu<S> {
+impl<S: Storage> DataSelector for SelectMainMenu<S> {
     type DataInput = AppData<S>;
     type DataOutput = menu::MenuInstanceJustChoose<MainMenuEntry>;
     fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
-        &input.init_menu
+        &input.main_menu
     }
     fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
-        &mut input.init_menu
+        &mut input.main_menu
     }
 }
-impl<S: Storage> ViewSelector for SelectInitMenu<S> {
+impl<S: Storage> ViewSelector for SelectMainMenu<S> {
     type ViewInput = AppView;
     type ViewOutput = menu::MenuInstanceView<menu::MenuEntryStylePair>;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
@@ -125,37 +136,8 @@ impl<S: Storage> ViewSelector for SelectInitMenu<S> {
         &mut input.main_menu
     }
 }
-impl<S: Storage> Selector for SelectInitMenu<S> {}
+impl<S: Storage> Selector for SelectMainMenu<S> {}
 
-struct SelectPauseMenu<S: Storage>(PhantomData<S>);
-impl<S: Storage> SelectPauseMenu<S> {
-    fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-impl<S: Storage> DataSelector for SelectPauseMenu<S> {
-    type DataInput = AppData<S>;
-    type DataOutput = menu::MenuInstanceJustChoose<MainMenuEntry>;
-    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
-        &input.pause_menu
-    }
-    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
-        &mut input.pause_menu
-    }
-}
-impl<S: Storage> ViewSelector for SelectPauseMenu<S> {
-    type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<menu::MenuEntryStylePair>;
-    fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
-        &input.main_menu
-    }
-    fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
-        &mut input.main_menu
-    }
-}
-impl<S: Storage> Selector for SelectPauseMenu<S> {}
-
-make_either!(E3 = A | B | C);
 make_either!(E2 = A | B);
 
 struct Quit;
@@ -164,18 +146,19 @@ fn main_menu<S: Storage>(
 ) -> impl EventRoutine<Return = MainMenuEntry, Data = AppData<S>, View = AppView, Event = CommonEvent> {
     SideEffectThen::new(|data: &mut AppData<S>| {
         if data.game.has_instance() {
-            E2::A(
-                menu::MenuInstanceRoutine::new()
-                    .convert_input_to_common_event()
-                    .select(SelectPauseMenu::new()),
-            )
+            let menu_entries = match data.frontend {
+                Frontend::Native => MainMenuEntry::pause_native(),
+                Frontend::Wasm => MainMenuEntry::pause_wasm(),
+            };
+            data.main_menu = menu::MenuInstance::new(menu_entries).unwrap().into_just_choose();
         } else {
-            E2::B(
-                menu::MenuInstanceRoutine::new()
-                    .convert_input_to_common_event()
-                    .select(SelectInitMenu::new()),
-            )
+            data.main_menu = menu::MenuInstance::new(MainMenuEntry::init())
+                .unwrap()
+                .into_just_choose();
         }
+        menu::MenuInstanceRoutine::new()
+            .convert_input_to_common_event()
+            .select(SelectMainMenu::new())
     })
 }
 
@@ -186,10 +169,19 @@ fn game<S: Storage>() -> impl EventRoutine<Return = GameReturn, Data = AppData<S
 
 fn main_menu_cycle<S: Storage>(
 ) -> impl EventRoutine<Return = Option<Quit>, Data = AppData<S>, View = AppView, Event = CommonEvent> {
+    make_either!(Ei = A | B | C | D | E);
     main_menu().and_then(|entry| match entry {
-        MainMenuEntry::Quit => E3::A(Value::new(Some(Quit))),
-        MainMenuEntry::Resume => E3::B(game().map(|GameReturn::Pause| None)),
-        MainMenuEntry::NewGame => E3::C(SideEffectThen::new(|data: &mut AppData<S>| {
+        MainMenuEntry::Quit => Ei::A(Value::new(Some(Quit))),
+        MainMenuEntry::SaveQuit => Ei::D(SideEffectThen::new(|data: &mut AppData<S>| {
+            data.game.save_instance();
+            Value::new(Some(Quit))
+        })),
+        MainMenuEntry::Save => Ei::E(SideEffectThen::new(|data: &mut AppData<S>| {
+            data.game.save_instance();
+            Value::new(None)
+        })),
+        MainMenuEntry::Resume => Ei::B(game().map(|GameReturn::Pause| None)),
+        MainMenuEntry::NewGame => Ei::C(SideEffectThen::new(|data: &mut AppData<S>| {
             data.game.instantiate();
             game().map(|GameReturn::Pause| None)
         })),
