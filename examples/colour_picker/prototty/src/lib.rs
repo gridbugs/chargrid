@@ -89,11 +89,28 @@ pub fn test() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, 
 }
 
 struct SelectColourMenu;
-impl_selector! {
-    SelectColourMenu
-        (AppData->colour_menu : menu::MenuInstanceChooseOrCancel<ColourMenuChoice>)
-        (AppView->colour_menu : menu::MenuInstanceView<menu::MenuEntryStylePair>)
+
+impl DataSelector for SelectColourMenu {
+    type DataInput = AppData;
+    type DataOutput = menu::MenuInstanceChooseOrCancel<ColourMenuChoice>;
+    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
+        &input.colour_menu
+    }
+    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
+        &mut input.colour_menu
+    }
 }
+impl ViewSelector for SelectColourMenu {
+    type ViewInput = AppView;
+    type ViewOutput = menu::MenuInstanceView<menu::MenuEntryStylePair>;
+    fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
+        &input.colour_menu
+    }
+    fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
+        &mut input.colour_menu
+    }
+}
+impl Selector for SelectColourMenu {}
 
 struct SelectMainMenuExtra;
 impl ViewSelector for SelectMainMenuExtra {

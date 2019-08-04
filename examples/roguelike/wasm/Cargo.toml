@@ -8,6 +8,6 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-prototty_wasm = { path = "../../../wasm" }
+prototty_wasm = { path = "../../../wasm", features = ["storage"] }
 roguelike_prototty = { path = "../prototty" }
 wasm-bindgen = "0.2"

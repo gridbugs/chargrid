@@ -4,6 +4,9 @@ use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
 use prototty::render::*;
+use prototty_storage::Storage;
+use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 
 pub struct GameView;
 
@@ -22,39 +25,54 @@ impl<'a> View<&'a Game> for GameView {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 struct GameInstance {
     game: Game,
 }
 
-pub struct GameData {
-    instance: Option<GameInstance>,
-    controls: Controls,
+impl GameInstance {
+    fn new() -> Self {
+        Self { game: Game::new() }
+    }
 }
 
-impl GameData {
-    pub fn new(controls: Controls) -> Self {
+pub struct GameData<S: Storage> {
+    instance: Option<GameInstance>,
+    controls: Controls,
+    _storage: S,
+}
+
+impl<S: Storage> GameData<S> {
+    pub fn new(controls: Controls, storage: S) -> Self {
         Self {
             instance: None,
             controls,
+            _storage: storage,
         }
     }
     pub fn has_instance(&self) -> bool {
         self.instance.is_some()
     }
     pub fn instantiate(&mut self) {
-        self.instance = Some(GameInstance { game: Game::new() });
+        self.instance = Some(GameInstance::new());
     }
 }
 
-pub struct GameEventRoutine;
+pub struct GameEventRoutine<S: Storage>(PhantomData<S>);
+
+impl<S: Storage> GameEventRoutine<S> {
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
+}
 
 pub enum GameReturn {
     Pause,
 }
 
-impl EventRoutine for GameEventRoutine {
+impl<S: Storage> EventRoutine for GameEventRoutine<S> {
     type Return = GameReturn;
-    type Data = GameData;
+    type Data = GameData<S>;
     type View = GameView;
     type Event = CommonEvent;
 

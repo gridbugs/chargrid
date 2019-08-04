@@ -1,3 +1,4 @@
+use prototty_file_storage::FileStorage;
 use prototty_glutin::{ContextBuilder, Size};
 use roguelike_prototty::{event_routine, AppData, AppView, Controls};
 use serde_yaml;
@@ -5,8 +6,6 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-
-const WINDOW_SIZE_PIXELS: Size = Size::new_u16(640, 480);
 
 fn this_crate_path() -> PathBuf {
     env::current_exe()
@@ -26,6 +25,9 @@ fn load_controls() -> Option<Controls> {
     serde_yaml::from_slice(&buf).ok()
 }
 
+const WINDOW_SIZE_PIXELS: Size = Size::new_u16(640, 480);
+const SAVE_DIR: &'static str = "save";
+
 fn main() {
     let controls = if let Some(controls) = load_controls() {
         controls
@@ -36,6 +38,7 @@ fn main() {
         );
         Controls::default()
     };
+    let storage = FileStorage::next_to_exe(SAVE_DIR, true).expect("Failed to open save dir");
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
         .with_window_dimensions(WINDOW_SIZE_PIXELS)
@@ -48,6 +51,10 @@ fn main() {
         .build()
         .unwrap();
     context
-        .run_event_routine(event_routine(), &mut AppData::new(controls), &mut AppView::new())
+        .run_event_routine(
+            event_routine(),
+            &mut AppData::new(controls, storage),
+            &mut AppView::new(),
+        )
         .unwrap();
 }

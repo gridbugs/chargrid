@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 prototty = { path = "../../../prototty", features = ["serialize"] }
+prototty_storage = { path = "../../../storage", features = ["bincode"] }
 game = { path = "../game" }
 serde = { version = "1.0", features = ["serde_derive"] }
 hashbrown = { version = "0.5", features = ["serde"] }

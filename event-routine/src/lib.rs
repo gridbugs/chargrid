@@ -491,30 +491,3 @@ macro_rules! make_either {
         }
     };
 }
-
-#[macro_export]
-macro_rules! impl_selector {
-    ($type:ident ($app_data:ident -> $data_field:ident : $data_type:ty) ($app_view:ident -> $view_field:ident : $view_type:ty)) => {
-        impl DataSelector for $type {
-            type DataInput = $app_data;
-            type DataOutput = $data_type;
-            fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
-                &input.$data_field
-            }
-            fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
-                &mut input.$data_field
-            }
-        }
-        impl ViewSelector for $type {
-            type ViewInput = $app_view;
-            type ViewOutput = $view_type;
-            fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
-                &input.$view_field
-            }
-            fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
-                &mut input.$view_field
-            }
-        }
-        impl Selector for $type {}
-    };
-}

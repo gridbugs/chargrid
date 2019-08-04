@@ -6,4 +6,5 @@ edition = "2018"
 
 [dependencies]
 prototty_unix = { path = "../../../unix" }
+prototty_file_storage = { path = "../../../file-storage" }
 roguelike_prototty = { path = "../prototty" }

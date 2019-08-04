@@ -2,17 +2,18 @@ pub use direction::Direction;
 pub use grid_2d::{Coord, Grid, Size};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Occupant {
     Player,
     Wall,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Cell {
     pub occupant: Option<Occupant>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Player {
     pub coord: Coord,
 }
@@ -23,6 +24,7 @@ impl Cell {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Game {
     grid: Grid<Cell>,
     player: Player,
