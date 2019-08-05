@@ -5,6 +5,8 @@ use prototty::event_routine::*;
 use prototty::input::*;
 use prototty::render::*;
 use prototty_storage::{format, Storage};
+use rand::{Rng, SeedableRng};
+use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -31,12 +33,21 @@ impl<'a> View<&'a Game> for GameView {
 
 #[derive(Serialize, Deserialize)]
 struct GameInstance {
+    rng: Isaac64Rng,
     game: Game,
 }
 
+pub enum RngSeed {
+    Entropy,
+    U64(u64),
+}
+
 impl GameInstance {
-    fn new() -> Self {
-        Self { game: Game::new() }
+    fn new(mut rng: Isaac64Rng) -> Self {
+        Self {
+            game: Game::new(&mut rng),
+            rng,
+        }
     }
 }
 
@@ -45,29 +56,38 @@ pub struct GameData<S: Storage> {
     controls: Controls,
     storage: S,
     until_auto_save: Duration,
+    rng_source: Isaac64Rng,
 }
 
 impl<S: Storage> GameData<S> {
-    pub fn new(controls: Controls, storage: S) -> Self {
+    pub fn new(controls: Controls, storage: S, rng_seed: RngSeed) -> Self {
         let instance = storage.load(SAVE_FILE, format::Bincode).ok();
+        let rng_source = match rng_seed {
+            RngSeed::Entropy => Isaac64Rng::from_entropy(),
+            RngSeed::U64(u64) => Isaac64Rng::seed_from_u64(u64),
+        };
         Self {
             instance,
             controls,
             storage,
             until_auto_save: AUTO_SAVE_PERIOD,
+            rng_source,
         }
     }
     pub fn has_instance(&self) -> bool {
         self.instance.is_some()
     }
     pub fn instantiate(&mut self) {
-        self.instance = Some(GameInstance::new());
+        let rng = Isaac64Rng::from_seed(self.rng_source.gen());
+        self.instance = Some(GameInstance::new(rng));
     }
     pub fn save_instance(&mut self) {
         if let Some(instance) = self.instance.as_ref() {
-            self.storage.store(SAVE_FILE, instance, format::Bincode).unwrap();
+            self.storage
+                .store(SAVE_FILE, instance, format::Bincode)
+                .expect("failed to save instance");
         } else {
-            self.storage.remove(SAVE_FILE).unwrap();
+            let _ = self.storage.remove(SAVE_FILE);
         }
     }
 }

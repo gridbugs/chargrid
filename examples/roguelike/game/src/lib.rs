@@ -1,5 +1,6 @@
 pub use direction::Direction;
 pub use grid_2d::{Coord, Grid, Size};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -36,7 +37,7 @@ pub enum Input {
 }
 
 impl Game {
-    pub fn new() -> Self {
+    pub fn new<R: Rng>(_rng: &mut R) -> Self {
         let s = include_str!("terrain.txt");
         let rows = s.split("\n").filter(|s| !s.is_empty()).collect::<Vec<_>>();
         let size = Size::new_u16(rows[0].len() as u16, rows.len() as u16);

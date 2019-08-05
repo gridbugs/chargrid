@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
+[features]
+wasm = ["rand/wasm-bindgen", "prototty/wasm_log"]
+
 [dependencies]
 prototty = { path = "../../../prototty", features = ["serialize"] }
 prototty_storage = { path = "../../../storage", features = ["bincode"] }
@@ -11,3 +14,5 @@ game = { path = "../game" }
 serde = { version = "1.0", features = ["serde_derive"] }
 hashbrown = { version = "0.5", features = ["serde"] }
 serde_yaml = "0.8"
+rand = "0.7"
+rand_isaac = { version = "0.2", features = ["serde1"] }

@@ -1,6 +1,6 @@
 use prototty_file_storage::FileStorage;
 use prototty_unix::{col_encode, Context};
-use roguelike_prototty::{event_routine, AppData, AppView, Controls, Frontend};
+use roguelike_prototty::{event_routine, AppData, AppView, Controls, Frontend, RngSeed};
 use std::time::Duration;
 
 const SAVE_DIR: &'static str = "save";
@@ -12,7 +12,7 @@ fn main() {
         .into_runner(Duration::from_millis(16))
         .run(
             event_routine(),
-            &mut AppData::new(Frontend::Native, Controls::default(), storage),
+            &mut AppData::new(Frontend::Native, Controls::default(), storage, RngSeed::Entropy),
             &mut AppView::new(),
             col_encode::FromTermInfoRgb,
         )

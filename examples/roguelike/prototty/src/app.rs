@@ -1,4 +1,5 @@
 use crate::controls::Controls;
+pub use crate::game::RngSeed;
 use crate::game::{GameData, GameEventRoutine, GameReturn, GameView};
 use common_event::*;
 use event_routine::*;
@@ -6,9 +7,16 @@ use prototty::*;
 use prototty_storage::Storage;
 use std::marker::PhantomData;
 
+#[derive(Clone, Copy)]
 pub enum Frontend {
     Wasm,
     Native,
+}
+
+#[derive(Clone, Copy)]
+enum MainMenuType {
+    Init,
+    Pause,
 }
 
 #[derive(Clone, Copy)]
@@ -21,17 +29,19 @@ enum MainMenuEntry {
 }
 
 impl MainMenuEntry {
-    fn init() -> Vec<Self> {
+    fn init(frontend: Frontend) -> Vec<Self> {
         use MainMenuEntry::*;
-        vec![NewGame, Quit]
+        match frontend {
+            Frontend::Native => vec![NewGame, Quit],
+            Frontend::Wasm => vec![NewGame],
+        }
     }
-    fn pause_native() -> Vec<Self> {
+    fn pause(frontend: Frontend) -> Vec<Self> {
         use MainMenuEntry::*;
-        vec![Resume, NewGame, SaveQuit]
-    }
-    fn pause_wasm() -> Vec<Self> {
-        use MainMenuEntry::*;
-        vec![Resume, NewGame, Save]
+        match frontend {
+            Frontend::Native => vec![Resume, NewGame, SaveQuit],
+            Frontend::Wasm => vec![Resume, NewGame, Save],
+        }
     }
 }
 
@@ -51,6 +61,7 @@ pub struct AppData<S: Storage> {
     frontend: Frontend,
     game: GameData<S>,
     main_menu: menu::MenuInstanceJustChoose<MainMenuEntry>,
+    main_menu_type: MainMenuType,
 }
 
 pub struct AppView {
@@ -59,13 +70,14 @@ pub struct AppView {
 }
 
 impl<S: Storage> AppData<S> {
-    pub fn new(frontend: Frontend, controls: Controls, storage: S) -> Self {
+    pub fn new(frontend: Frontend, controls: Controls, storage: S, rng_seed: RngSeed) -> Self {
         Self {
             frontend,
-            game: GameData::new(controls, storage),
-            main_menu: menu::MenuInstance::new(MainMenuEntry::init())
+            game: GameData::new(controls, storage, rng_seed),
+            main_menu: menu::MenuInstance::new(MainMenuEntry::init(frontend))
                 .unwrap()
                 .into_just_choose(),
+            main_menu_type: MainMenuType::Init,
         }
     }
 }
@@ -144,15 +156,25 @@ fn main_menu<S: Storage>(
 ) -> impl EventRoutine<Return = MainMenuEntry, Data = AppData<S>, View = AppView, Event = CommonEvent> {
     SideEffectThen::new(|data: &mut AppData<S>| {
         if data.game.has_instance() {
-            let menu_entries = match data.frontend {
-                Frontend::Native => MainMenuEntry::pause_native(),
-                Frontend::Wasm => MainMenuEntry::pause_wasm(),
-            };
-            data.main_menu = menu::MenuInstance::new(menu_entries).unwrap().into_just_choose();
+            match data.main_menu_type {
+                MainMenuType::Init => {
+                    data.main_menu = menu::MenuInstance::new(MainMenuEntry::pause(data.frontend))
+                        .unwrap()
+                        .into_just_choose();
+                    data.main_menu_type = MainMenuType::Pause;
+                }
+                MainMenuType::Pause => (),
+            }
         } else {
-            data.main_menu = menu::MenuInstance::new(MainMenuEntry::init())
-                .unwrap()
-                .into_just_choose();
+            match data.main_menu_type {
+                MainMenuType::Init => (),
+                MainMenuType::Pause => {
+                    data.main_menu = menu::MenuInstance::new(MainMenuEntry::init(data.frontend))
+                        .unwrap()
+                        .into_just_choose();
+                    data.main_menu_type = MainMenuType::Init;
+                }
+            }
         }
         menu::MenuInstanceRoutine::new()
             .convert_input_to_common_event()
