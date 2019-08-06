@@ -71,10 +71,10 @@ pub struct AppView {
 }
 
 impl<S: Storage> AppData<S> {
-    pub fn new(frontend: Frontend, controls: Controls, storage: S, rng_seed: RngSeed) -> Self {
+    pub fn new(frontend: Frontend, controls: Controls, storage: S, save_key: String, rng_seed: RngSeed) -> Self {
         Self {
             frontend,
-            game: GameData::new(controls, storage, rng_seed),
+            game: GameData::new(controls, storage, save_key, rng_seed),
             main_menu: menu::MenuInstance::new(MainMenuEntry::init(frontend))
                 .unwrap()
                 .into_choose_or_escape(),

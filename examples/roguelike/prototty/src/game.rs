@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use std::time::Duration;
 
-const SAVE_FILE: &'static str = "save";
 const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
 
 pub struct GameView;
@@ -37,6 +36,7 @@ struct GameInstance {
     game: Game,
 }
 
+#[derive(Clone)]
 pub enum RngSeed {
     Entropy,
     U64(u64),
@@ -56,12 +56,13 @@ pub struct GameData<S: Storage> {
     controls: Controls,
     storage: S,
     until_auto_save: Duration,
+    save_key: String,
     rng_source: Isaac64Rng,
 }
 
 impl<S: Storage> GameData<S> {
-    pub fn new(controls: Controls, storage: S, rng_seed: RngSeed) -> Self {
-        let instance = storage.load(SAVE_FILE, format::Bincode).ok();
+    pub fn new(controls: Controls, storage: S, save_key: String, rng_seed: RngSeed) -> Self {
+        let instance = storage.load(&save_key, format::Bincode).ok();
         let rng_source = match rng_seed {
             RngSeed::Entropy => Isaac64Rng::from_entropy(),
             RngSeed::U64(u64) => Isaac64Rng::seed_from_u64(u64),
@@ -71,6 +72,7 @@ impl<S: Storage> GameData<S> {
             controls,
             storage,
             until_auto_save: AUTO_SAVE_PERIOD,
+            save_key,
             rng_source,
         }
     }
@@ -84,10 +86,10 @@ impl<S: Storage> GameData<S> {
     pub fn save_instance(&mut self) {
         if let Some(instance) = self.instance.as_ref() {
             self.storage
-                .store(SAVE_FILE, instance, format::Bincode)
+                .store(&self.save_key, instance, format::Bincode)
                 .expect("failed to save instance");
         } else {
-            let _ = self.storage.remove(SAVE_FILE);
+            let _ = self.storage.remove(&self.save_key);
         }
     }
 }

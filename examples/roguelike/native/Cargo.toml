@@ -1,10 +1,11 @@
 [package]
-name = "roguelike_glutin"
+name = "roguelike_native"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
 [dependencies]
-prototty_glutin = { path = "../../../glutin" }
+simon = "0.2"
+serde_yaml = "0.8"
 roguelike_prototty = { path = "../prototty" }
-roguelike_native = { path = "../native" }
+prototty_file_storage = { path = "../../../file-storage" }
