@@ -14,7 +14,6 @@ members = [
     "input",
     "file-storage",
     "event-routine",
-    "monolithic-storage",
 
     "examples/title/prototty",
     "examples/title/glutin",
@@ -23,7 +22,6 @@ members = [
 
     "examples/fib/fib",
     "examples/fib/file",
-    "examples/fib/file-mono",
     "examples/fib/wasm",
 
     "examples/tetris/tetris",

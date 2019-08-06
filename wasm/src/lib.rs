@@ -3,16 +3,10 @@ extern crate js_sys;
 pub extern crate prototty_event_routine;
 extern crate prototty_grid;
 pub extern crate prototty_input;
-#[cfg(feature = "storage")]
-extern crate prototty_monolithic_storage;
 pub extern crate prototty_render;
+extern crate prototty_storage;
 extern crate wasm_bindgen;
 extern crate web_sys;
-
-#[cfg(feature = "storage")]
-mod storage;
-#[cfg(feature = "storage")]
-pub use storage::*;
 
 mod input;
 
@@ -24,6 +18,7 @@ use prototty_grid::ColourConversion;
 pub use prototty_input::{Input, MouseInput};
 use prototty_input::{MouseButton, ScrollDirection};
 use prototty_render::{ColModify, Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault};
+use prototty_storage::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use std::time::Duration;
@@ -586,4 +581,61 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
     handle_mouse_down.forget();
     handle_mouse_up.forget();
     handle_wheel.forget();
+}
+
+pub struct LocalStorage {
+    local_storage: web_sys::Storage,
+}
+
+impl LocalStorage {
+    pub fn new() -> Self {
+        Self {
+            local_storage: web_sys::window().unwrap().local_storage().unwrap().unwrap(),
+        }
+    }
+}
+
+impl Storage for LocalStorage {
+    fn exists<K>(&self, key: K) -> bool
+    where
+        K: AsRef<str>,
+    {
+        self.local_storage.get_item(key.as_ref()).unwrap().is_some()
+    }
+
+    fn clear(&mut self) {
+        self.local_storage.clear().unwrap()
+    }
+
+    fn remove<K>(&mut self, key: K) -> Result<(), RemoveError>
+    where
+        K: AsRef<str>,
+    {
+        self.local_storage
+            .remove_item(key.as_ref())
+            .map_err(|_| RemoveError::IoError)
+    }
+
+    fn load_raw<K>(&self, key: K) -> Result<Vec<u8>, LoadRawError>
+    where
+        K: AsRef<str>,
+    {
+        let maybe_string = self
+            .local_storage
+            .get_item(key.as_ref())
+            .map_err(|_| LoadRawError::IoError)?;
+        let string = maybe_string.ok_or(LoadRawError::NoSuchKey)?;
+        serde_json::from_str(&string).map_err(|_| LoadRawError::IoError)
+    }
+
+    fn store_raw<K, V>(&mut self, key: K, value: V) -> Result<(), StoreRawError>
+    where
+        K: AsRef<str>,
+        V: AsRef<[u8]>,
+    {
+        let string = serde_json::to_string(value.as_ref()).map_err(|_| StoreRawError::IoError)?;
+        self.local_storage
+            .set_item(key.as_ref(), &string)
+            .map_err(|_| StoreRawError::IoError)
+    }
 }

@@ -11,18 +11,17 @@ documentation = "https://docs.rs/prototty_wasm"
 
 [features]
 serialize = ["prototty_render/serialize", "prototty_input/serialize", "prototty_grid/serialize"]
-storage = ["prototty_monolithic_storage"]
 
 [dependencies]
 prototty_input = { path = "../input", version = "0.27" }
 prototty_render = { path = "../render", version = "0.27" }
 prototty_grid = { path = "../grid", version = "0.27" }
 prototty_event_routine = { path = "../event-routine", version = "0.27" }
-prototty_storage = { path = "../storage", version = "0.27", optional = true }
-prototty_monolithic_storage = { path = "../monolithic-storage", version = "0.27", optional = true }
+prototty_storage = { path = "../storage", version = "0.27" }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
 grid_2d = "0.12"
+serde_json = "1.0"
 
 [dependencies.web-sys]
 version = "0.3"
@@ -41,4 +40,5 @@ features = [
   'Performance',
   'CssStyleDeclaration',
   'DomRect',
+  'Storage',
 ]

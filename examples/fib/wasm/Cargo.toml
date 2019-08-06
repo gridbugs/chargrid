@@ -8,5 +8,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 fib = { path = "../fib" }
-prototty_wasm = { path = "../../../wasm", features = ["storage"] }
+prototty_wasm = { path = "../../../wasm" }
 wasm-bindgen = "0.2"
