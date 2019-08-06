@@ -158,6 +158,7 @@ pub trait MenuInstanceChoose {
     where
         M: MenuIndexFromScreenCoord;
     fn menu_instance(&self) -> &MenuInstance<Self::Entry>;
+    fn menu_instance_mut(&mut self) -> &mut MenuInstance<Self::Entry>;
 }
 
 pub struct MenuInstanceJustChoose<T: Clone>(MenuInstance<T>);
@@ -172,6 +173,9 @@ impl<T: Clone> MenuInstanceChoose for MenuInstanceJustChoose<T> {
     }
     fn menu_instance(&self) -> &MenuInstance<Self::Entry> {
         &self.0
+    }
+    fn menu_instance_mut(&mut self) -> &mut MenuInstance<Self::Entry> {
+        &mut self.0
     }
 }
 
@@ -188,6 +192,9 @@ impl<T: Clone> MenuInstanceChoose for MenuInstanceChooseOrEscape<T> {
     fn menu_instance(&self) -> &MenuInstance<Self::Entry> {
         &self.0
     }
+    fn menu_instance_mut(&mut self) -> &mut MenuInstance<Self::Entry> {
+        &mut self.0
+    }
 }
 
 pub struct MenuInstanceChooseOrQuit<T: Clone>(MenuInstance<T>);
@@ -203,6 +210,9 @@ impl<T: Clone> MenuInstanceChoose for MenuInstanceChooseOrQuit<T> {
     fn menu_instance(&self) -> &MenuInstance<Self::Entry> {
         &self.0
     }
+    fn menu_instance_mut(&mut self) -> &mut MenuInstance<Self::Entry> {
+        &mut self.0
+    }
 }
 
 pub struct MenuInstanceChooseOrCancel<T: Clone>(MenuInstance<T>);
@@ -217,5 +227,8 @@ impl<T: Clone> MenuInstanceChoose for MenuInstanceChooseOrCancel<T> {
     }
     fn menu_instance(&self) -> &MenuInstance<Self::Entry> {
         &self.0
+    }
+    fn menu_instance_mut(&mut self) -> &mut MenuInstance<Self::Entry> {
+        &mut self.0
     }
 }
