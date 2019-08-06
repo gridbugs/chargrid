@@ -1,4 +1,5 @@
-use prototty_file_storage::{FileStorage, IfDirectoryMissing};
+pub use prototty_file_storage::FileStorage;
+use prototty_file_storage::IfDirectoryMissing;
 use roguelike_prototty::{Controls, RngSeed};
 use simon::*;
 use std::collections::hash_map::DefaultHasher;

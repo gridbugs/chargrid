@@ -1,23 +1,76 @@
-use prototty_unix::{col_encode, Context};
-use roguelike_native::NativeCommon;
+use prototty_unix::{col_encode, ColEncode, Context, EventRoutineRunner};
+use roguelike_native::{FileStorage, NativeCommon};
 use roguelike_prototty::{event_routine, AppData, AppView, Frontend};
+use simon::*;
 use std::time::Duration;
 
+#[derive(Clone)]
+enum ColEncodeChoice {
+    TrueColour,
+    Rgb,
+    Greyscale,
+    Ansi,
+}
+
+impl ColEncodeChoice {
+    fn arg() -> ArgExt<impl Arg<Item = Self>> {
+        use ColEncodeChoice::*;
+        (args_either! {
+            flag("", "true-colour", "").some_if(TrueColour),
+            flag("", "rgb", "").some_if(Rgb),
+            flag("", "greyscale", "").some_if(Greyscale),
+            flag("", "ansi", "").some_if(Ansi),
+        })
+        .with_default(Rgb)
+    }
+}
+
+fn run<E>(mut runner: EventRoutineRunner, mut app_data: AppData<FileStorage>, mut app_view: AppView, col_encode: E)
+where
+    E: ColEncode,
+{
+    runner
+        .run(event_routine(), &mut app_data, &mut app_view, col_encode)
+        .unwrap()
+}
+
+struct Args {
+    native_common: NativeCommon,
+    col_encode_choice: ColEncodeChoice,
+}
+
+impl Args {
+    fn arg() -> ArgExt<impl Arg<Item = Self>> {
+        args_map! {
+            let {
+                native_common = NativeCommon::arg();
+                col_encode_choice = ColEncodeChoice::arg();
+            } in {
+                Self { native_common, col_encode_choice }
+            }
+        }
+    }
+}
+
 fn main() {
-    let NativeCommon {
-        rng_seed,
-        file_storage,
-        controls,
-        save_file,
-    } = NativeCommon::arg().with_help_default().parse_env_default_or_exit();
-    Context::new()
-        .unwrap()
-        .into_runner(Duration::from_millis(16))
-        .run(
-            event_routine(),
-            &mut AppData::new(Frontend::Native, controls, file_storage, save_file, rng_seed),
-            &mut AppView::new(),
-            col_encode::FromTermInfoRgb,
-        )
-        .unwrap()
+    let Args {
+        native_common:
+            NativeCommon {
+                rng_seed,
+                file_storage,
+                controls,
+                save_file,
+            },
+        col_encode_choice,
+    } = Args::arg().with_help_default().parse_env_default_or_exit();
+    let runner = Context::new().unwrap().into_runner(Duration::from_millis(16));
+    let app_data = AppData::new(Frontend::Native, controls, file_storage, save_file, rng_seed);
+    let app_view = AppView::new();
+    use ColEncodeChoice::*;
+    match col_encode_choice {
+        TrueColour => run(runner, app_data, app_view, col_encode::XtermTrueColour),
+        Rgb => run(runner, app_data, app_view, col_encode::FromTermInfoRgb),
+        Greyscale => run(runner, app_data, app_view, col_encode::FromTermInfoGreyscale),
+        Ansi => run(runner, app_data, app_view, col_encode::FromTermInfoAnsi16Colour),
+    }
 }

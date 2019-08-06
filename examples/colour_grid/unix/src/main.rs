@@ -1,8 +1,6 @@
-#[macro_use]
-extern crate simon;
-
 use colour_grid_prototty::{event_routine, AppData, AppView};
 use prototty_unix::{col_encode, ColEncode, Context, EventRoutineRunner};
+use simon::*;
 use std::time::Duration;
 
 #[derive(Clone)]
@@ -14,13 +12,13 @@ enum ColEncodeChoice {
 }
 
 impl ColEncodeChoice {
-    fn arg() -> simon::ArgExt<impl simon::Arg<Item = Self>> {
+    fn arg() -> ArgExt<impl Arg<Item = Self>> {
         use ColEncodeChoice::*;
         (args_either! {
-            simon::flag("", "true-colour", "").some_if(TrueColour),
-            simon::flag("", "rgb", "").some_if(Rgb),
-            simon::flag("", "greyscale", "").some_if(Greyscale),
-            simon::flag("", "ansi", "").some_if(Ansi),
+            flag("", "true-colour", "").some_if(TrueColour),
+            flag("", "rgb", "").some_if(Rgb),
+            flag("", "greyscale", "").some_if(Greyscale),
+            flag("", "ansi", "").some_if(Ansi),
         })
         .with_default(Rgb)
     }
