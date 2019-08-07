@@ -131,6 +131,9 @@ impl<C: ColourConversion> Grid<C> {
 
 impl<C: ColourConversion> Frame for Grid<C> {
     fn set_cell_absolute(&mut self, coord: Coord, depth: i32, view_cell: ViewCell) {
+        if depth > 50 {
+            println!("hi");
+        }
         if let Some(cell) = self.cells.get_mut(coord) {
             if cell.foreground_depth <= depth || cell.background_depth <= depth {
                 if let Some(character) = view_cell.character() {

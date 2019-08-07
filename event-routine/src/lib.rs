@@ -2,7 +2,7 @@ pub extern crate prototty_input;
 pub extern crate prototty_render;
 
 pub use prototty_input::Input;
-pub use prototty_render::{ColModify, Frame, ViewContext};
+pub use prototty_render::{ColModify, Frame, View, ViewContext};
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -146,6 +146,10 @@ pub trait EventRoutine: Sized {
         F: FnOnce(&mut Self::Data) -> Self::Return,
     {
         common_event::ReturnOnExit { t: self, f }
+    }
+
+    fn decorated_view<V>(self, v: V) -> DecoratedView<Self, V> {
+        DecoratedView { t: self, v }
     }
 }
 
@@ -447,6 +451,48 @@ where
         C: ColModify,
     {
         self.t.view(data, view, context, frame)
+    }
+}
+
+pub trait DecorateView {
+    type View;
+    type Data;
+
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify;
+}
+
+pub struct DecoratedView<T, V> {
+    t: T,
+    v: V,
+}
+
+impl<T, V> EventRoutine for DecoratedView<T, V>
+where
+    T: EventRoutine,
+    V: DecorateView<View = T::View, Data = T::Data>,
+{
+    type Return = T::Return;
+    type Data = T::Data;
+    type View = T::View;
+    type Event = T::Event;
+
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        let Self { t, v } = self;
+        t.handle(data, view, event_or_peek).map_continue(|t| Self { t, v })
+    }
+
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+        self.v.view(data, view, context, frame);
     }
 }
 

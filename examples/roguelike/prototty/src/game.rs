@@ -24,7 +24,10 @@ impl<'a> View<&'a Game> for GameView {
                 Some(game::Occupant::Player) => '@',
                 Some(game::Occupant::Wall) => '#',
             };
-            let view_cell = ViewCell::new().with_character(character);
+            let view_cell = ViewCell::new()
+                .with_character(character)
+                .with_foreground(Rgb24::new(255, 255, 255))
+                .with_background(Rgb24::new(0, 0, 0));
             frame.set_cell_relative(coord, 0, view_cell, context);
         }
     }
@@ -91,6 +94,13 @@ impl<S: Storage> GameData<S> {
         } else {
             let _ = self.storage.remove(&self.save_key);
         }
+    }
+    pub fn clear_instance(&mut self) {
+        self.instance = None;
+        self.save_instance();
+    }
+    pub fn game(&self) -> Option<&Game> {
+        self.instance.as_ref().map(|i| &i.game)
     }
 }
 

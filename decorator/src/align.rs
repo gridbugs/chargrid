@@ -84,3 +84,30 @@ impl<T: Clone, V: View<T>> View<AlignData<T>> for AlignView<V> {
             .view(data, context.add_offset(Coord::new(x_offset, y_offset)), frame);
     }
 }
+
+pub struct AlignView_<'v, V> {
+    pub view: &'v mut V,
+    pub alignment: Alignment,
+}
+
+impl<'v, V, T> View<T> for AlignView_<'v, V>
+where
+    V: View<T>,
+    T: Clone,
+{
+    fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
+        let data_size = self.view.visible_bounds(data.clone(), context);
+        let x_offset = match self.alignment.x {
+            AlignmentX::Left => 0,
+            AlignmentX::Centre => (context.size.x() as i32 - data_size.x() as i32) / 2,
+            AlignmentX::Right => context.size.x() as i32 - data_size.x() as i32,
+        };
+        let y_offset = match self.alignment.y {
+            AlignmentY::Top => 0,
+            AlignmentY::Centre => (context.size.y() as i32 - data_size.y() as i32) / 2,
+            AlignmentY::Bottom => context.size.y() as i32 - data_size.y() as i32,
+        };
+        self.view
+            .view(data, context.add_offset(Coord::new(x_offset, y_offset)), frame);
+    }
+}

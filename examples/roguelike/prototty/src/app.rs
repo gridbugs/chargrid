@@ -2,10 +2,12 @@ use crate::controls::Controls;
 pub use crate::game::RngSeed;
 use crate::game::{GameData, GameEventRoutine, GameReturn, GameView};
 use common_event::*;
+use decorator::*;
 use event_routine::*;
 use menu::MenuInstanceChoose;
 use prototty::*;
 use prototty_storage::Storage;
+use render::{Rgb24, Style};
 use std::marker::PhantomData;
 
 #[derive(Clone, Copy)]
@@ -27,6 +29,7 @@ enum MainMenuEntry {
     Quit,
     Save,
     SaveQuit,
+    Clear,
 }
 
 impl MainMenuEntry {
@@ -40,8 +43,8 @@ impl MainMenuEntry {
     fn pause(frontend: Frontend) -> Vec<Self> {
         use MainMenuEntry::*;
         match frontend {
-            Frontend::Native => vec![Resume, NewGame, SaveQuit],
-            Frontend::Wasm => vec![Resume, NewGame, Save],
+            Frontend::Native => vec![Resume, SaveQuit, NewGame, Clear],
+            Frontend::Wasm => vec![Resume, Save, NewGame, Clear],
         }
     }
 }
@@ -54,6 +57,7 @@ impl<'a> From<&'a MainMenuEntry> for &'a str {
             MainMenuEntry::Quit => "Quit",
             MainMenuEntry::SaveQuit => "Save and Quit",
             MainMenuEntry::Save => "Save",
+            MainMenuEntry::Clear => "Clear",
         }
     }
 }
@@ -151,6 +155,60 @@ impl<S: Storage> ViewSelector for SelectMainMenu<S> {
 }
 impl<S: Storage> Selector for SelectMainMenu<S> {}
 
+struct DecorateMainMenu<S>(PhantomData<S>);
+
+impl<S: Storage> DecorateMainMenu<S> {
+    fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<S: Storage> DecorateView for DecorateMainMenu<S> {
+    type View = AppView;
+    type Data = AppData<S>;
+
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+        if data.game.has_instance() {
+            AlignView_ {
+                alignment: Alignment::centre(),
+                view: &mut BorderView_ {
+                    style: &BorderStyle::default(),
+                    view: &mut FillBackgroundView_ {
+                        rgb24: Rgb24::new_grey(0),
+                        view: &mut BoundView_ {
+                            view: &mut view.main_menu,
+                            size: Size::new_u16(13, data.main_menu.menu_instance().len() as u16),
+                        },
+                    },
+                },
+            }
+            .view(data.main_menu.menu_instance(), context.add_depth(1), frame);
+            if let Some(game) = data.game.game() {
+                view.game.view(
+                    game,
+                    context.compose_col_modify(|col: Rgb24| col.saturating_scalar_mul_div(1, 3)),
+                    frame,
+                );
+            }
+        } else {
+            text::StringViewSingleLine::new(Style::new().with_bold(true)).view(
+                "Template Roguelike",
+                context.add_offset(Coord::new(1, 1)),
+                frame,
+            );
+            view.main_menu.view(
+                data.main_menu.menu_instance(),
+                context.add_offset(Coord::new(1, 3)),
+                frame,
+            );
+        }
+    }
+}
+
 struct Quit;
 
 fn main_menu<S: Storage>(
@@ -181,6 +239,7 @@ fn main_menu<S: Storage>(
         menu::MenuInstanceRoutine::new()
             .convert_input_to_common_event()
             .select(SelectMainMenu::new())
+            .decorated_view(DecorateMainMenu::new())
     })
 }
 
@@ -191,7 +250,7 @@ fn game<S: Storage>() -> impl EventRoutine<Return = GameReturn, Data = AppData<S
 
 fn main_menu_cycle<S: Storage>(
 ) -> impl EventRoutine<Return = Option<Quit>, Data = AppData<S>, View = AppView, Event = CommonEvent> {
-    make_either!(Ei = A | B | C | D | E);
+    make_either!(Ei = A | B | C | D | E | F);
     main_menu().and_then(|entry| match entry {
         Ok(MainMenuEntry::Quit) => Ei::A(Value::new(Some(Quit))),
         Ok(MainMenuEntry::SaveQuit) => Ei::D(SideEffectThen::new(|data: &mut AppData<S>| {
@@ -200,6 +259,10 @@ fn main_menu_cycle<S: Storage>(
         })),
         Ok(MainMenuEntry::Save) => Ei::E(SideEffectThen::new(|data: &mut AppData<S>| {
             data.game.save_instance();
+            Value::new(None)
+        })),
+        Ok(MainMenuEntry::Clear) => Ei::F(SideEffectThen::new(|data: &mut AppData<S>| {
+            data.game.clear_instance();
             Value::new(None)
         })),
         Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(game().map(|GameReturn::Pause| None)),

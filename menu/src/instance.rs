@@ -43,6 +43,10 @@ impl<T: Clone> MenuInstance<T> {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.menu.len()
+    }
+
     pub fn new(menu: Vec<T>) -> Result<Self, InitialIndexOutOfBounds> {
         Self::new_with_selection(menu, 0)
     }

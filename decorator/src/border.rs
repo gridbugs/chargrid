@@ -156,6 +156,79 @@ pub struct BorderWithOwnedStyleData<T> {
     pub data: T,
 }
 
+fn draw_border<F, C>(style: &BorderStyle, size: Size, context: ViewContext<C>, frame: &mut F)
+where
+    C: ColModify,
+    F: Frame,
+{
+    let span = style.span_offset() + size;
+    frame.set_cell_relative(Coord::new(0, 0), 0, style.view_cell(style.chars.top_left), context);
+    frame.set_cell_relative(
+        Coord::new(span.x, 0),
+        0,
+        style.view_cell(style.chars.top_right),
+        context,
+    );
+    frame.set_cell_relative(
+        Coord::new(0, span.y),
+        0,
+        style.view_cell(style.chars.bottom_left),
+        context,
+    );
+    frame.set_cell_relative(
+        Coord::new(span.x, span.y),
+        0,
+        style.view_cell(style.chars.bottom_right),
+        context,
+    );
+    let title_offset = if let Some(title) = style.title.as_ref() {
+        let before = Coord::new(1, 0);
+        let after = Coord::new(title.len() as i32 + 2, 0);
+        frame.set_cell_relative(before, 0, style.view_cell(style.chars.before_title), context);
+        frame.set_cell_relative(after, 0, style.view_cell(style.chars.after_title), context);
+        for (index, ch) in title.chars().enumerate() {
+            let coord = Coord::new(index as i32 + 2, 0);
+            frame.set_cell_relative(
+                coord,
+                0,
+                ViewCell {
+                    style: style.title_style,
+                    character: Some(ch),
+                },
+                context,
+            );
+        }
+        title.len() as i32 + 2
+    } else {
+        0
+    };
+    for i in (1 + title_offset)..span.x {
+        frame.set_cell_relative(Coord::new(i, 0), 0, style.view_cell(style.chars.top), context);
+    }
+    for i in 1..span.x {
+        frame.set_cell_relative(Coord::new(i, span.y), 0, style.view_cell(style.chars.bottom), context);
+    }
+    for i in 1..span.y {
+        frame.set_cell_relative(Coord::new(0, i), 0, style.view_cell(style.chars.left), context);
+        frame.set_cell_relative(Coord::new(span.x, i), 0, style.view_cell(style.chars.right), context);
+    }
+}
+
+fn border_view<V, T, F, C>(view: &mut V, data: T, style: &BorderStyle, context: ViewContext<C>, frame: &mut F)
+where
+    V: View<T>,
+    T: Clone,
+    C: ColModify,
+    F: Frame,
+{
+    let child_context = context
+        .add_offset(style.child_offset())
+        .constrain_size_by(style.child_constrain_size_by());
+    view.view(data.clone(), child_context, frame);
+    let size = view.visible_bounds(data, child_context);
+    draw_border(style, size, context, frame);
+}
+
 impl<'a, T, V: View<&'a T>> View<&'a BorderWithOwnedStyleData<T>> for BorderView<V> {
     fn view<F: Frame, C: ColModify>(
         &mut self,
@@ -181,68 +254,38 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
         context: ViewContext<C>,
         frame: &mut F,
     ) {
-        let child_context = context
-            .add_offset(style.child_offset())
-            .constrain_size_by(style.child_constrain_size_by());
-        self.view.view(data.clone(), child_context, frame);
-        let span = style.span_offset() + self.view.visible_bounds(data, child_context);
-        frame.set_cell_relative(Coord::new(0, 0), 0, style.view_cell(style.chars.top_left), context);
-        frame.set_cell_relative(
-            Coord::new(span.x, 0),
-            0,
-            style.view_cell(style.chars.top_right),
-            context,
-        );
-        frame.set_cell_relative(
-            Coord::new(0, span.y),
-            0,
-            style.view_cell(style.chars.bottom_left),
-            context,
-        );
-        frame.set_cell_relative(
-            Coord::new(span.x, span.y),
-            0,
-            style.view_cell(style.chars.bottom_right),
-            context,
-        );
-        let title_offset = if let Some(title) = style.title.as_ref() {
-            let before = Coord::new(1, 0);
-            let after = Coord::new(title.len() as i32 + 2, 0);
-            frame.set_cell_relative(before, 0, style.view_cell(style.chars.before_title), context);
-            frame.set_cell_relative(after, 0, style.view_cell(style.chars.after_title), context);
-            for (index, ch) in title.chars().enumerate() {
-                let coord = Coord::new(index as i32 + 2, 0);
-                frame.set_cell_relative(
-                    coord,
-                    0,
-                    ViewCell {
-                        style: style.title_style,
-                        character: Some(ch),
-                    },
-                    context,
-                );
-            }
-            title.len() as i32 + 2
-        } else {
-            0
-        };
-        for i in (1 + title_offset)..span.x {
-            frame.set_cell_relative(Coord::new(i, 0), 0, style.view_cell(style.chars.top), context);
-        }
-        for i in 1..span.x {
-            frame.set_cell_relative(Coord::new(i, span.y), 0, style.view_cell(style.chars.bottom), context);
-        }
-        for i in 1..span.y {
-            frame.set_cell_relative(Coord::new(0, i), 0, style.view_cell(style.chars.left), context);
-            frame.set_cell_relative(Coord::new(span.x, i), 0, style.view_cell(style.chars.right), context);
-        }
+        border_view(&mut self.view, data, style, context, frame);
     }
+
     fn visible_bounds<C: ColModify>(
         &mut self,
         BorderData { style, data }: BorderData<'a, T>,
         context: ViewContext<C>,
     ) -> Size {
         let bounds_of_child_with_border = self.view.visible_bounds(data, context) + style.child_constrain_size_by();
+        let x = bounds_of_child_with_border.x().min(context.size.x());
+        let y = bounds_of_child_with_border.y().min(context.size.y());
+        Size::new(x, y)
+    }
+}
+
+pub struct BorderView_<'v, 's, V> {
+    pub view: &'v mut V,
+    pub style: &'s BorderStyle,
+}
+
+impl<'v, 's, V, T> View<T> for BorderView_<'v, 's, V>
+where
+    V: View<T>,
+    T: Clone,
+{
+    fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
+        border_view(self.view, data, self.style, context, frame);
+    }
+
+    fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
+        let bounds_of_child_with_border =
+            self.view.visible_bounds(data, context) + self.style.child_constrain_size_by();
         let x = bounds_of_child_with_border.x().min(context.size.x());
         let y = bounds_of_child_with_border.y().min(context.size.y());
         Size::new(x, y)
