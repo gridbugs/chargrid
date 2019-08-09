@@ -500,6 +500,12 @@ impl<'a, 'b> GlutinFrame<'a, 'b> {
     pub fn render(self) -> Result<()> {
         self.context.render_internal()
     }
+    pub fn size(&self) -> Size {
+        self.context.size()
+    }
+    pub fn default_context(&self) -> ViewContextDefault {
+        ViewContext::default_with_size(self.size())
+    }
 }
 
 impl<'a, 'b> Frame for GlutinFrame<'a, 'b> {
@@ -507,9 +513,5 @@ impl<'a, 'b> Frame for GlutinFrame<'a, 'b> {
         self.context
             .grid
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
-    }
-
-    fn size(&self) -> Size {
-        self.context.grid.size()
     }
 }

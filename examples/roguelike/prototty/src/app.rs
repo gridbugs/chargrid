@@ -179,10 +179,7 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
                     style: &BorderStyle::default(),
                     view: &mut FillBackgroundView_ {
                         rgb24: Rgb24::new_grey(0),
-                        view: &mut BoundView_ {
-                            view: &mut view.main_menu,
-                            size: Size::new_u16(13, data.main_menu.menu_instance().len() as u16),
-                        },
+                        view: &mut view.main_menu,
                     },
                 },
             }

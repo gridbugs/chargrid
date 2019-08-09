@@ -22,7 +22,7 @@ fn main() {
     let mut app_view = AppView;
     loop {
         let mut frame = context.frame();
-        app_view.view_default_context(&app, &mut frame);
+        app_view.view(&app, frame.default_context(), &mut frame);
         frame.render().unwrap();
         context.buffer_input(&mut input_buffer);
         if let Some(Quit) = app.update(input_buffer.drain(..)) {

@@ -349,6 +349,12 @@ impl<'a> WasmFrame<'a> {
     pub fn render(self) {
         self.context.render_internal();
     }
+    pub fn size(&self) -> Size {
+        self.context.prototty_grid.size()
+    }
+    pub fn default_context(&self) -> ViewContextDefault {
+        ViewContext::default_with_size(self.size())
+    }
 }
 
 impl<'a> Frame for WasmFrame<'a> {
@@ -356,10 +362,6 @@ impl<'a> Frame for WasmFrame<'a> {
         self.context
             .prototty_grid
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
-    }
-
-    fn size(&self) -> Size {
-        self.context.prototty_grid.size()
     }
 }
 

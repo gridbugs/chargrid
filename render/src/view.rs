@@ -43,11 +43,59 @@ pub trait Frame {
         set_cell_relative_default(self, relative_coord, relative_depth, relative_cell, context);
     }
     fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell);
+}
 
-    fn size(&self) -> Size;
+pub struct MeasureBounds {
+    max_coord: Coord,
+}
 
-    fn default_context(&self) -> ViewContextDefault {
-        ViewContext::default_with_size(self.size())
+impl MeasureBounds {
+    pub fn new() -> Self {
+        Self {
+            max_coord: Coord::new(0, 0),
+        }
+    }
+    pub fn bounds(&self, outer_offset: Coord) -> Size {
+        (self.max_coord - outer_offset).to_size().unwrap_or(Size::new_u16(0, 0)) + Size::new_u16(1, 1)
+    }
+}
+
+impl Frame for MeasureBounds {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, _absolute_depth: i32, _absolute_cell: ViewCell) {
+        self.max_coord.x = self.max_coord.x.max(absolute_coord.x);
+        self.max_coord.y = self.max_coord.y.max(absolute_coord.y);
+    }
+}
+
+pub struct MeasureBoundsAndDraw<'a, F> {
+    frame: &'a mut F,
+    measure_bounds: MeasureBounds,
+}
+
+impl<'a, F> MeasureBoundsAndDraw<'a, F>
+where
+    F: Frame,
+{
+    pub fn new(frame: &'a mut F) -> Self {
+        Self {
+            frame,
+            measure_bounds: MeasureBounds::new(),
+        }
+    }
+    pub fn bounds(&self, outer_offset: Coord) -> Size {
+        self.measure_bounds.bounds(outer_offset)
+    }
+}
+
+impl<'a, F> Frame for MeasureBoundsAndDraw<'a, F>
+where
+    F: Frame,
+{
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+        self.frame
+            .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+        self.measure_bounds
+            .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }
 }
 
@@ -57,16 +105,10 @@ pub trait View<T> {
     /// are updated during rendering.
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F);
 
-    fn view_default_context<F: Frame>(&mut self, data: T, frame: &mut F) {
-        self.view(data, frame.default_context(), frame)
-    }
-
-    /// Return the size of the visible component of the element without
-    /// rendering it.
-    /// By default this is the current context size.
     fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
-        let _ = data;
-        context.size
+        let mut measure_bounds = MeasureBounds::new();
+        self.view(data, context, &mut measure_bounds);
+        measure_bounds.bounds(context.outer_offset)
     }
 
     /// Render an element and return the size that the element, regardless of the
@@ -80,36 +122,9 @@ pub trait View<T> {
         context: ViewContext<C>,
         frame: &mut F,
     ) -> Size {
-        struct Measure<'a, H> {
-            frame: &'a mut H,
-            max: Coord,
-        }
-        impl<'a, H: Frame> Frame for Measure<'a, H> {
-            fn set_cell_relative<C: ColModify>(
-                &mut self,
-                relative_coord: Coord,
-                relative_depth: i32,
-                relative_cell: ViewCell,
-                context: ViewContext<C>,
-            ) {
-                set_cell_relative_default(self, relative_coord, relative_depth, relative_cell, context);
-                self.max.x = self.max.x.max(relative_coord.x);
-                self.max.y = self.max.y.max(relative_coord.y);
-            }
-            fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
-                self.frame
-                    .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
-            }
-            fn size(&self) -> Size {
-                self.frame.size()
-            }
-        }
-        let mut measure = Measure {
-            frame,
-            max: Coord::new(0, 0),
-        };
-        self.view(data, context, &mut measure);
-        measure.max.to_size().unwrap() + Size::new_u16(1, 1)
+        let mut measure_bounds_and_draw = MeasureBoundsAndDraw::new(frame);
+        self.view(data, context, &mut measure_bounds_and_draw);
+        measure_bounds_and_draw.bounds(context.outer_offset)
     }
 }
 

@@ -154,8 +154,4 @@ impl<C: ColourConversion> Frame for Grid<C> {
             }
         }
     }
-
-    fn size(&self) -> Size {
-        self.cells.size()
-    }
 }
