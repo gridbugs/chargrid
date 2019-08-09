@@ -37,6 +37,19 @@ pub fn set_cell_relative_to_measure_size<F: ?Sized + Frame, C: ColModify>(
     context: ViewContext<C>,
 ) {
     let adjusted_relative_coord = relative_coord + context.inner_offset;
+    if adjusted_relative_coord.is_valid(context.size) {
+        let absolute_coord = adjusted_relative_coord + context.outer_offset;
+        const DEFAULT_CELL: ViewCell = ViewCell::new();
+        frame.set_cell_absolute(absolute_coord, 0, DEFAULT_CELL);
+    }
+}
+
+pub fn set_cell_relative_to_measure_size_ignore_context_size<F: ?Sized + Frame, C: ColModify>(
+    frame: &mut F,
+    relative_coord: Coord,
+    context: ViewContext<C>,
+) {
+    let adjusted_relative_coord = relative_coord + context.inner_offset;
     let absolute_coord = adjusted_relative_coord + context.outer_offset;
     const DEFAULT_CELL: ViewCell = ViewCell::new();
     frame.set_cell_absolute(absolute_coord, 0, DEFAULT_CELL);
@@ -56,6 +69,10 @@ pub trait Frame {
     fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell);
 }
 
+pub trait Bounds {
+    fn bounds(&self, outer_offset: Coord) -> Size;
+}
+
 #[derive(Debug)]
 pub struct MeasureBounds {
     max_coord: Coord,
@@ -67,7 +84,10 @@ impl MeasureBounds {
             max_coord: Coord::new(0, 0),
         }
     }
-    pub fn bounds(&self, outer_offset: Coord) -> Size {
+}
+
+impl Bounds for MeasureBounds {
+    fn bounds(&self, outer_offset: Coord) -> Size {
         (self.max_coord - outer_offset).to_size().unwrap_or(Size::new_u16(0, 0)) + Size::new_u16(1, 1)
     }
 }
@@ -88,29 +108,58 @@ impl Frame for MeasureBounds {
     }
 }
 
-pub struct MeasureBoundsAndDraw<'a, F> {
-    frame: &'a mut F,
-    measure_bounds: MeasureBounds,
+#[derive(Debug)]
+pub struct MeasureBoundsIgnoreContextSize(MeasureBounds);
+
+impl MeasureBoundsIgnoreContextSize {
+    pub fn new() -> Self {
+        Self(MeasureBounds::new())
+    }
 }
 
-impl<'a, F> MeasureBoundsAndDraw<'a, F>
+impl Bounds for MeasureBoundsIgnoreContextSize {
+    fn bounds(&self, outer_offset: Coord) -> Size {
+        self.0.bounds(outer_offset)
+    }
+}
+
+impl Frame for MeasureBoundsIgnoreContextSize {
+    fn set_cell_relative<C: ColModify>(
+        &mut self,
+        relative_coord: Coord,
+        _relative_depth: i32,
+        _relative_cell: ViewCell,
+        context: ViewContext<C>,
+    ) {
+        set_cell_relative_to_measure_size_ignore_context_size(self, relative_coord, context);
+    }
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+        self.0.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+    }
+}
+
+pub struct MeasureBoundsAndDraw<'a, D, M> {
+    draw: &'a mut D,
+    measure_bounds: M,
+}
+
+impl<'a, D, M> MeasureBoundsAndDraw<'a, D, M>
 where
-    F: Frame,
+    D: Frame,
+    M: Frame + Bounds,
 {
-    pub fn new(frame: &'a mut F) -> Self {
-        Self {
-            frame,
-            measure_bounds: MeasureBounds::new(),
-        }
+    pub fn new(draw: &'a mut D, measure_bounds: M) -> Self {
+        Self { draw, measure_bounds }
     }
     pub fn bounds(&self, outer_offset: Coord) -> Size {
         self.measure_bounds.bounds(outer_offset)
     }
 }
 
-impl<'a, F> Frame for MeasureBoundsAndDraw<'a, F>
+impl<'a, D, M> Frame for MeasureBoundsAndDraw<'a, D, M>
 where
-    F: Frame,
+    D: Frame,
+    M: Frame + Bounds,
 {
     fn set_cell_relative<C: ColModify>(
         &mut self,
@@ -119,13 +168,13 @@ where
         relative_cell: ViewCell,
         context: ViewContext<C>,
     ) {
-        self.frame
+        self.draw
             .set_cell_relative(relative_coord, relative_depth, relative_cell, context);
         self.measure_bounds
             .set_cell_relative(relative_coord, relative_depth, relative_cell, context);
     }
     fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
-        self.frame
+        self.draw
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
         self.measure_bounds
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
@@ -141,7 +190,7 @@ pub trait View<T> {
     fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
         let mut measure_bounds = MeasureBounds::new();
         self.view(data, context, &mut measure_bounds);
-        measure_bounds.bounds(context.outer_offset)
+        measure_bounds.bounds(context.outer_offset + context.inner_offset)
     }
 
     /// Render an element and return the size that the element, regardless of the
@@ -155,9 +204,20 @@ pub trait View<T> {
         context: ViewContext<C>,
         frame: &mut F,
     ) -> Size {
-        let mut measure_bounds_and_draw = MeasureBoundsAndDraw::new(frame);
+        let mut measure_bounds_and_draw = MeasureBoundsAndDraw::new(frame, MeasureBounds::new());
         self.view(data, context, &mut measure_bounds_and_draw);
-        measure_bounds_and_draw.bounds(context.outer_offset)
+        measure_bounds_and_draw.bounds(context.outer_offset + context.inner_offset)
+    }
+
+    fn view_reporting_intended_size_ignore_context_size<F: Frame, C: ColModify>(
+        &mut self,
+        data: T,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) -> Size {
+        let mut measure_bounds_and_draw = MeasureBoundsAndDraw::new(frame, MeasureBoundsIgnoreContextSize::new());
+        self.view(data, context, &mut measure_bounds_and_draw);
+        measure_bounds_and_draw.bounds(context.outer_offset + context.inner_offset)
     }
 }
 

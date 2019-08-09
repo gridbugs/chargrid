@@ -282,7 +282,6 @@ where
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
         border_view(self.view, data, self.style, context, frame);
     }
-
     fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
         let bounds_of_child_with_border =
             self.view.visible_bounds(data, context) + self.style.child_constrain_size_by();

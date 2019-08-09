@@ -127,7 +127,7 @@ where
     V: View<T>,
 {
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
-        let inner_size = self.view.view_reporting_intended_size(
+        let inner_size = self.view.view_reporting_intended_size_ignore_context_size(
             data,
             context
                 .constrain_size_by(Size::new(1 + self.scroll_bar_style.left_padding, 0))
@@ -136,7 +136,22 @@ where
         );
         self.limits.last_rendered_inner_height = inner_size.height();
         self.limits.last_rendered_outer_height = context.size.height();
-        println!("{:?}", self.limits);
         render_scroll_bar(self.scroll_bar_style, self.state, *self.limits, context, frame);
+    }
+
+    fn visible_bounds<C: ColModify>(&mut self, _data: T, context: ViewContext<C>) -> Size {
+        println!("aaa {:?}", context.size);
+        context.size
+    }
+
+    fn view_reporting_intended_size<F: Frame, C: ColModify>(
+        &mut self,
+        data: T,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) -> Size {
+        self.view(data, context, frame);
+        println!("bbbb {:?}", context.size);
+        context.size
     }
 }

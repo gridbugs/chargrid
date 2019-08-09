@@ -134,11 +134,23 @@ impl<'a> View<&'a AppState> for AppView {
             ),
         ];
 
-        vertical_scroll::VerticalScrollView {
-            view: &mut RichTextView::new(wrap::Word::new()),
-            limits: &mut self.vertical_scroll_limits,
-            state: app_state.vertical_scroll_state,
-            scroll_bar_style: &app_state.vertical_scroll_bar_style,
+        AlignView_ {
+            alignment: app_state.alignment,
+            view: &mut FillBackgroundView_ {
+                rgb24: app_state.background,
+                view: &mut BorderView_ {
+                    style: &app_state.border_style,
+                    view: &mut BoundView_ {
+                        size: app_state.bound,
+                        view: &mut vertical_scroll::VerticalScrollView {
+                            limits: &mut self.vertical_scroll_limits,
+                            state: app_state.vertical_scroll_state,
+                            scroll_bar_style: &app_state.vertical_scroll_bar_style,
+                            view: &mut RichTextView::new(wrap::Word::new()),
+                        },
+                    },
+                },
+            },
         }
         .view(rich_text, context, frame);
 
