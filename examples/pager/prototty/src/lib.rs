@@ -17,10 +17,13 @@ pub struct AppState {
     background: Rgb24,
     alignment: Alignment,
     scrollbar: VerticalScrollbar,
+    vertical_scroll_state: vertical_scroll::VerticalScrollState,
+    vertical_scroll_bar_style: vertical_scroll::VerticalScrollBarStyle,
 }
 
 pub struct AppView {
     view: AlignView<FillBackgroundView<BorderView<BoundView<VerticalScrollView<RichTextView<wrap::Word>>>>>>,
+    vertical_scroll_limits: vertical_scroll::VerticalScrollLimits,
 }
 
 impl AppView {
@@ -29,6 +32,7 @@ impl AppView {
             view: AlignView::new(FillBackgroundView::new(BorderView::new(BoundView::new(
                 VerticalScrollView::new(RichTextView::new(wrap::Word::new())),
             )))),
+            vertical_scroll_limits: vertical_scroll::VerticalScrollLimits::new(),
         }
     }
     fn scroll(&self) -> &VerticalScrollView<RichTextView<wrap::Word>> {
@@ -60,6 +64,8 @@ impl AppState {
             background: Rgb24::new(80, 80, 0),
             alignment: Alignment::centre(),
             scrollbar: VerticalScrollbar::default(),
+            vertical_scroll_state: vertical_scroll::VerticalScrollState::new(),
+            vertical_scroll_bar_style: vertical_scroll::VerticalScrollBarStyle::default(),
         }
     }
     pub fn tick<I>(&mut self, inputs: I, view: &AppView) -> Option<ControlFlow>
@@ -74,20 +80,30 @@ impl AppState {
                     return Some(ControlFlow::Exit);
                 }
                 Input::Mouse(MouseInput::MouseScroll { direction, .. }) => match direction {
-                    ScrollDirection::Up => self.scroll_state.scroll_up_line(view.scroll()),
-                    ScrollDirection::Down => self.scroll_state.scroll_down_line(view.scroll()),
+                    ScrollDirection::Up => self.vertical_scroll_state.scroll_up_line(&view.vertical_scroll_limits),
+                    ScrollDirection::Down => self
+                        .vertical_scroll_state
+                        .scroll_down_line(&view.vertical_scroll_limits),
                     _ => (),
                 },
-                Input::Keyboard(KeyboardInput::Up) => self.scroll_state.scroll_up_line(view.scroll()),
-                Input::Keyboard(KeyboardInput::Down) => self.scroll_state.scroll_down_line(view.scroll()),
-                Input::Keyboard(KeyboardInput::PageUp) => self.scroll_state.scroll_up_page(view.scroll()),
-                Input::Keyboard(KeyboardInput::PageDown) => self.scroll_state.scroll_down_page(view.scroll()),
+                Input::Keyboard(KeyboardInput::Up) => {
+                    self.vertical_scroll_state.scroll_up_line(&view.vertical_scroll_limits)
+                }
+                Input::Keyboard(KeyboardInput::Down) => self
+                    .vertical_scroll_state
+                    .scroll_down_line(&view.vertical_scroll_limits),
+                Input::Keyboard(KeyboardInput::PageUp) => {
+                    self.vertical_scroll_state.scroll_up_page(&view.vertical_scroll_limits)
+                }
+                Input::Keyboard(KeyboardInput::PageDown) => self
+                    .vertical_scroll_state
+                    .scroll_down_page(&view.vertical_scroll_limits),
                 Input::Keyboard(KeyboardInput::Home) | Input::Keyboard(KeyboardInput::Char('g')) => {
-                    self.scroll_state.scroll_to_top(view.scroll())
+                    self.vertical_scroll_state.scroll_to_top(&view.vertical_scroll_limits)
                 }
-                Input::Keyboard(KeyboardInput::End) | Input::Keyboard(KeyboardInput::Char('G')) => {
-                    self.scroll_state.scroll_to_bottom(view.scroll())
-                }
+                Input::Keyboard(KeyboardInput::End) | Input::Keyboard(KeyboardInput::Char('G')) => self
+                    .vertical_scroll_state
+                    .scroll_to_bottom(&view.vertical_scroll_limits),
                 _ => (),
             }
         }
@@ -117,6 +133,15 @@ impl<'a> View<&'a AppState> for AppView {
                 },
             ),
         ];
+
+        vertical_scroll::VerticalScrollView {
+            view: &mut RichTextView::new(wrap::Word::new()),
+            limits: &mut self.vertical_scroll_limits,
+            state: app_state.vertical_scroll_state,
+            scroll_bar_style: &app_state.vertical_scroll_bar_style,
+        }
+        .view(rich_text, context, frame);
+
         let data = AlignData {
             alignment: app_state.alignment,
             data: FillBackgroundData {
@@ -134,6 +159,6 @@ impl<'a> View<&'a AppState> for AppView {
                 },
             },
         };
-        self.view.view(data, context, frame);
+        //        self.view.view(data, context, frame);
     }
 }

@@ -12,7 +12,7 @@ fn main() -> io::Result<()> {
     handle.read_to_string(&mut string)?;
     let mut view = AppView::new();
     let mut state = AppState::new(string);
-    let size = Size::new(640, 960);
+    let size = Size::new(640, 480);
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
         .with_window_dimensions(size)

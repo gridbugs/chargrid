@@ -10,6 +10,7 @@ mod col_modify;
 mod defaults;
 mod fill_background;
 mod scroll;
+pub mod vertical_scroll;
 
 pub use align::*;
 pub use border::*;

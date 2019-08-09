@@ -54,3 +54,18 @@ impl<T, V: View<T>, S: ColModify> View<ColModifyData<S, T>> for ColModifyView<V>
         self.view.visible_bounds(data, context)
     }
 }
+
+pub struct ColModifyView_<'v, V, C> {
+    pub view: &'v mut V,
+    pub col_modify: C,
+}
+
+impl<'v, V, C, T> View<T> for ColModifyView_<'v, V, C>
+where
+    V: View<T>,
+    C: ColModify,
+{
+    fn view<F: Frame, C1: ColModify>(&mut self, data: T, context: ViewContext<C1>, frame: &mut F) {
+        self.view.view(data, context.compose_col_modify(self.col_modify), frame);
+    }
+}

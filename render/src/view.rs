@@ -2,7 +2,7 @@ use super::{Coord, Size};
 use crate::context::*;
 use crate::view_cell::*;
 
-fn set_cell_relative_default<F: ?Sized + Frame, C: ColModify>(
+pub fn set_cell_relative_to_draw<F: ?Sized + Frame, C: ColModify>(
     frame: &mut F,
     relative_coord: Coord,
     relative_depth: i32,
@@ -31,6 +31,17 @@ fn set_cell_relative_default<F: ?Sized + Frame, C: ColModify>(
     }
 }
 
+pub fn set_cell_relative_to_measure_size<F: ?Sized + Frame, C: ColModify>(
+    frame: &mut F,
+    relative_coord: Coord,
+    context: ViewContext<C>,
+) {
+    let adjusted_relative_coord = relative_coord + context.inner_offset;
+    let absolute_coord = adjusted_relative_coord + context.outer_offset;
+    const DEFAULT_CELL: ViewCell = ViewCell::new();
+    frame.set_cell_absolute(absolute_coord, 0, DEFAULT_CELL);
+}
+
 /// A frame of animation
 pub trait Frame {
     fn set_cell_relative<C: ColModify>(
@@ -40,11 +51,12 @@ pub trait Frame {
         relative_cell: ViewCell,
         context: ViewContext<C>,
     ) {
-        set_cell_relative_default(self, relative_coord, relative_depth, relative_cell, context);
+        set_cell_relative_to_draw(self, relative_coord, relative_depth, relative_cell, context);
     }
     fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell);
 }
 
+#[derive(Debug)]
 pub struct MeasureBounds {
     max_coord: Coord,
 }
@@ -61,6 +73,15 @@ impl MeasureBounds {
 }
 
 impl Frame for MeasureBounds {
+    fn set_cell_relative<C: ColModify>(
+        &mut self,
+        relative_coord: Coord,
+        _relative_depth: i32,
+        _relative_cell: ViewCell,
+        context: ViewContext<C>,
+    ) {
+        set_cell_relative_to_measure_size(self, relative_coord, context);
+    }
     fn set_cell_absolute(&mut self, absolute_coord: Coord, _absolute_depth: i32, _absolute_cell: ViewCell) {
         self.max_coord.x = self.max_coord.x.max(absolute_coord.x);
         self.max_coord.y = self.max_coord.y.max(absolute_coord.y);
@@ -91,6 +112,18 @@ impl<'a, F> Frame for MeasureBoundsAndDraw<'a, F>
 where
     F: Frame,
 {
+    fn set_cell_relative<C: ColModify>(
+        &mut self,
+        relative_coord: Coord,
+        relative_depth: i32,
+        relative_cell: ViewCell,
+        context: ViewContext<C>,
+    ) {
+        self.frame
+            .set_cell_relative(relative_coord, relative_depth, relative_cell, context);
+        self.measure_bounds
+            .set_cell_relative(relative_coord, relative_depth, relative_cell, context);
+    }
     fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
         self.frame
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
