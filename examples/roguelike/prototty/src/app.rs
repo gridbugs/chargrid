@@ -262,7 +262,13 @@ fn main_menu_cycle<S: Storage>(
             data.game.clear_instance();
             Value::new(None)
         })),
-        Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(game().map(|GameReturn::Pause| None)),
+        Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(SideEffectThen::new(|data: &mut AppData<S>| {
+            if data.game.has_instance() {
+                Either::Left(game().map(|GameReturn::Pause| None))
+            } else {
+                Either::Right(Value::new(None))
+            }
+        })),
         Ok(MainMenuEntry::NewGame) => Ei::C(SideEffectThen::new(|data: &mut AppData<S>| {
             data.game.instantiate();
             data.main_menu.menu_instance_mut().set_index(0);
