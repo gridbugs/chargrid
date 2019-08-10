@@ -131,31 +131,6 @@ impl BorderStyle {
     }
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy)]
-pub struct BorderView<V> {
-    pub view: V,
-}
-
-impl<V> BorderView<V> {
-    pub fn new(view: V) -> Self {
-        Self { view }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct BorderData<'a, T> {
-    pub style: &'a BorderStyle,
-    pub data: T,
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
-pub struct BorderWithOwnedStyleData<T> {
-    pub style: BorderStyle,
-    pub data: T,
-}
-
 fn draw_border<F, C>(style: &BorderStyle, size: Size, context: ViewContext<C>, frame: &mut F)
 where
     C: ColModify,
@@ -225,46 +200,6 @@ where
         .constrain_size_by(style.child_constrain_size_by());
     let size = view.view_reporting_intended_size(data, child_context, frame);
     draw_border(style, size, context, frame);
-}
-
-impl<'a, T, V: View<&'a T>> View<&'a BorderWithOwnedStyleData<T>> for BorderView<V> {
-    fn view<F: Frame, C: ColModify>(
-        &mut self,
-        BorderWithOwnedStyleData { style, data }: &'a BorderWithOwnedStyleData<T>,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) {
-        self.view(BorderData { style, data }, context, frame);
-    }
-    fn visible_bounds<C: ColModify>(
-        &mut self,
-        BorderWithOwnedStyleData { style, data }: &'a BorderWithOwnedStyleData<T>,
-        context: ViewContext<C>,
-    ) -> Size {
-        self.visible_bounds(BorderData { style, data }, context)
-    }
-}
-
-impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
-    fn view<F: Frame, C: ColModify>(
-        &mut self,
-        BorderData { style, data }: BorderData<'a, T>,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) {
-        border_view(&mut self.view, data, style, context, frame);
-    }
-
-    fn visible_bounds<C: ColModify>(
-        &mut self,
-        BorderData { style, data }: BorderData<'a, T>,
-        context: ViewContext<C>,
-    ) -> Size {
-        let bounds_of_child_with_border = self.view.visible_bounds(data, context) + style.child_constrain_size_by();
-        let x = bounds_of_child_with_border.x().min(context.size.x());
-        let y = bounds_of_child_with_border.y().min(context.size.y());
-        Size::new(x, y)
-    }
 }
 
 pub struct BorderView_<'s, V> {
