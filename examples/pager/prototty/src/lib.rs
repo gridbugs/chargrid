@@ -10,40 +10,30 @@ pub enum ControlFlow {
 }
 
 pub struct AppState {
-    scroll_state: VerticalScrollState,
     text: String,
     border_style: BorderStyle,
     bound: Size,
     background: Rgb24,
     alignment: Alignment,
-    scrollbar: VerticalScrollbar,
     vertical_scroll_state: vertical_scroll::VerticalScrollState,
     vertical_scroll_bar_style: vertical_scroll::VerticalScrollBarStyle,
 }
 
 pub struct AppView {
-    view: AlignView<FillBackgroundView<BorderView<BoundView<VerticalScrollView<RichTextView<wrap::Word>>>>>>,
     vertical_scroll_limits: vertical_scroll::VerticalScrollLimits,
 }
 
 impl AppView {
     pub fn new() -> Self {
         Self {
-            view: AlignView::new(FillBackgroundView::new(BorderView::new(BoundView::new(
-                VerticalScrollView::new(RichTextView::new(wrap::Word::new())),
-            )))),
             vertical_scroll_limits: vertical_scroll::VerticalScrollLimits::new(),
         }
-    }
-    fn scroll(&self) -> &VerticalScrollView<RichTextView<wrap::Word>> {
-        &self.view.view.view.view.view
     }
 }
 
 impl AppState {
     pub fn new(text: String) -> Self {
         Self {
-            scroll_state: VerticalScrollState::new(),
             text,
             border_style: BorderStyle {
                 title_style: Style {
@@ -63,7 +53,6 @@ impl AppState {
             bound: Size::new(40, 30),
             background: Rgb24::new(80, 80, 0),
             alignment: Alignment::centre(),
-            scrollbar: VerticalScrollbar::default(),
             vertical_scroll_state: vertical_scroll::VerticalScrollState::new(),
             vertical_scroll_bar_style: vertical_scroll::VerticalScrollBarStyle::default(),
         }
@@ -133,7 +122,6 @@ impl<'a> View<&'a AppState> for AppView {
                 },
             ),
         ];
-
         AlignView_ {
             alignment: app_state.alignment,
             view: &mut FillBackgroundView_ {
@@ -153,24 +141,5 @@ impl<'a> View<&'a AppState> for AppView {
             },
         }
         .view(rich_text, context, frame);
-
-        let data = AlignData {
-            alignment: app_state.alignment,
-            data: FillBackgroundData {
-                background: app_state.background,
-                data: BorderData {
-                    style: &app_state.border_style,
-                    data: BoundData {
-                        size: app_state.bound,
-                        data: VerticalScrollWithScrollbarData {
-                            state: app_state.scroll_state,
-                            scrollbar: app_state.scrollbar,
-                            data: rich_text,
-                        },
-                    },
-                },
-            },
-        };
-        //        self.view.view(data, context, frame);
     }
 }
