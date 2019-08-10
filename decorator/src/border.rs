@@ -202,12 +202,12 @@ where
     draw_border(style, size, context, frame);
 }
 
-pub struct BorderView_<'s, V> {
+pub struct BorderView<'s, V> {
     pub view: V,
     pub style: &'s BorderStyle,
 }
 
-impl<'s, V, T> View<T> for BorderView_<'s, V>
+impl<'s, V, T> View<T> for BorderView<'s, V>
 where
     V: View<T>,
 {

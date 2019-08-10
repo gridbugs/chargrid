@@ -122,13 +122,13 @@ impl<'a> View<&'a AppState> for AppView {
                 },
             ),
         ];
-        AlignView_ {
+        AlignView {
             alignment: app_state.alignment,
-            view: &mut FillBackgroundView_ {
+            view: &mut FillBackgroundView {
                 rgb24: app_state.background,
-                view: &mut BorderView_ {
+                view: &mut BorderView {
                     style: &app_state.border_style,
-                    view: &mut BoundView_ {
+                    view: &mut BoundView {
                         size: app_state.bound,
                         view: &mut VerticalScrollView {
                             limits: &mut self.vertical_scroll_limits,

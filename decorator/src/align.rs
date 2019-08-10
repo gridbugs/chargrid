@@ -32,12 +32,12 @@ impl Alignment {
     }
 }
 
-pub struct AlignView_<V> {
+pub struct AlignView<V> {
     pub view: V,
     pub alignment: Alignment,
 }
 
-impl<V, T> View<T> for AlignView_<V>
+impl<V, T> View<T> for AlignView<V>
 where
     V: View<T>,
     T: Clone,

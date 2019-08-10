@@ -173,11 +173,11 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
         C: ColModify,
     {
         if data.game.has_instance() {
-            AlignView_ {
+            AlignView {
                 alignment: Alignment::centre(),
-                view: BorderView_ {
+                view: BorderView {
                     style: &BorderStyle::default(),
-                    view: FillBackgroundView_ {
+                    view: FillBackgroundView {
                         rgb24: Rgb24::new_grey(0),
                         view: &mut view.main_menu,
                     },

@@ -299,16 +299,16 @@ impl<'a> View<&'a App> for AppView {
     fn view<F: Frame, C: ColModify>(&mut self, app: &'a App, context: ViewContext<C>, frame: &mut F) {
         match app.state {
             AppState::Game | AppState::GameOver => {
-                let mut view = BorderView_ {
+                let mut view = BorderView {
                     style: &app.border_styles.common,
                     view: &mut self.board,
                 };
                 let next_piece_offset_x = view.view_reporting_intended_size(&app.tetris, context, frame).x() as i32;
-                ColModifyView_ {
+                ColModifyView {
                     col_modify: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
-                    view: BorderView_ {
+                    view: BorderView {
                         style: &app.border_styles.next_piece,
-                        view: BoundView_ {
+                        view: BoundView {
                             size: Size::new(6, 4),
                             view: &mut self.next_piece,
                         },
@@ -321,9 +321,9 @@ impl<'a> View<&'a App> for AppView {
                 );;
             }
             AppState::Menu => {
-                let mut v = BorderView_ {
+                let mut v = BorderView {
                     style: &app.border_styles.common,
-                    view: BoundView_ {
+                    view: BoundView {
                         size: Size::new_u16(8, 2),
                         view: &mut self.menu_instance_view,
                     },
@@ -331,7 +331,7 @@ impl<'a> View<&'a App> for AppView {
                 v.view(&app.main_menu, context, frame);
             }
             AppState::EndText => {
-                AlignView_ {
+                AlignView {
                     alignment: Alignment::centre(),
                     view: RichStringViewSingleLine,
                 }

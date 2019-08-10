@@ -1,11 +1,11 @@
 use prototty_render::*;
 
-pub struct FillBackgroundView_<V> {
+pub struct FillBackgroundView<V> {
     pub view: V,
     pub rgb24: Rgb24,
 }
 
-impl<V, T> View<T> for FillBackgroundView_<V>
+impl<V, T> View<T> for FillBackgroundView<V>
 where
     V: View<T>,
 {

@@ -1,11 +1,11 @@
 use prototty_render::*;
 
-pub struct BoundView_<V> {
+pub struct BoundView<V> {
     pub view: V,
     pub size: Size,
 }
 
-impl<V, T> View<T> for BoundView_<V>
+impl<V, T> View<T> for BoundView<V>
 where
     V: View<T>,
 {

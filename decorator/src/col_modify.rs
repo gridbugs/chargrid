@@ -1,11 +1,11 @@
 use prototty_render::*;
 
-pub struct ColModifyView_<V, C> {
+pub struct ColModifyView<V, C> {
     pub view: V,
     pub col_modify: C,
 }
 
-impl<V, C, T> View<T> for ColModifyView_<V, C>
+impl<V, C, T> View<T> for ColModifyView<V, C>
 where
     V: View<T>,
     C: ColModify,
