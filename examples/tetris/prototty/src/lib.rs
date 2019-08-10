@@ -93,23 +93,6 @@ impl<'a> View<&'a Tetris> for TetrisNextPieceView {
     }
 }
 
-struct BorderViews {
-    common: BorderView<TetrisBoardView>,
-    next_piece: BorderView<TetrisNextPieceView>,
-    menu: BorderView<MenuInstanceView<MainMenuEntryView>>,
-}
-
-impl BorderViews {
-    fn new() -> Self {
-        let menu_instance_view = MenuInstanceView::new(MainMenuEntryView);
-        Self {
-            common: BorderView::new(TetrisBoardView),
-            next_piece: BorderView::new(TetrisNextPieceView),
-            menu: BorderView::new(menu_instance_view),
-        }
-    }
-}
-
 struct BorderStyles {
     common: BorderStyle,
     next_piece: BorderStyle,
@@ -243,7 +226,7 @@ impl App {
         match self.state {
             AppState::Menu => {
                 for input in inputs {
-                    if let Some(menu_output) = self.main_menu.choose_or_quit(&view.border_views.menu.view, input) {
+                    if let Some(menu_output) = self.main_menu.choose_or_quit(&view.menu_instance_view, input) {
                         match menu_output {
                             Err(Quit) => return Some(ControlFlow::Exit),
                             Ok(selection) => match selection {
@@ -297,13 +280,17 @@ impl App {
 }
 
 pub struct AppView {
-    border_views: BorderViews,
+    menu_instance_view: MenuInstanceView<MainMenuEntryView>,
+    board: TetrisBoardView,
+    next_piece: TetrisNextPieceView,
 }
 
 impl AppView {
     pub fn new() -> Self {
         Self {
-            border_views: BorderViews::new(),
+            menu_instance_view: MenuInstanceView::new(MainMenuEntryView),
+            board: TetrisBoardView,
+            next_piece: TetrisNextPieceView,
         }
     }
 }
@@ -312,59 +299,43 @@ impl<'a> View<&'a App> for AppView {
     fn view<F: Frame, C: ColModify>(&mut self, app: &'a App, context: ViewContext<C>, frame: &mut F) {
         match app.state {
             AppState::Game | AppState::GameOver => {
-                let next_piece_offset_x = self
-                    .border_views
-                    .common
-                    .visible_bounds(
-                        BorderData {
-                            data: &app.tetris,
-                            style: &app.border_styles.next_piece,
-                        },
-                        context,
-                    )
-                    .x() as i32;
-                self.border_views.common.view(
-                    BorderData {
-                        data: &app.tetris,
-                        style: &app.border_styles.common,
-                    },
-                    context,
-                    frame,
-                );
-                ColModifyView::new(&mut self.border_views.next_piece).view(
-                    ColModifyData {
-                        col_modify: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
-                        data: BorderData {
-                            data: &app.tetris,
-                            style: &app.border_styles.next_piece,
+                let mut view = BorderView_ {
+                    style: &app.border_styles.common,
+                    view: &mut self.board,
+                };
+                let next_piece_offset_x = view.view_reporting_intended_size(&app.tetris, context, frame).x() as i32;
+                ColModifyView_ {
+                    col_modify: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
+                    view: BorderView_ {
+                        style: &app.border_styles.next_piece,
+                        view: BoundView_ {
+                            size: Size::new(6, 4),
+                            view: &mut self.next_piece,
                         },
                     },
-                    context.add_offset(Coord {
-                        x: next_piece_offset_x,
-                        y: 0,
-                    }),
+                }
+                .view(
+                    &app.tetris,
+                    context.add_offset(Coord::new(next_piece_offset_x, 0)),
                     frame,
-                );
+                );;
             }
             AppState::Menu => {
-                self.border_views.menu.view(
-                    BorderData {
-                        style: &app.border_styles.common,
-                        data: &app.main_menu,
+                let mut v = BorderView_ {
+                    style: &app.border_styles.common,
+                    view: BoundView_ {
+                        size: Size::new_u16(8, 2),
+                        view: &mut self.menu_instance_view,
                     },
-                    context,
-                    frame,
-                );
+                };
+                v.view(&app.main_menu, context, frame);
             }
             AppState::EndText => {
-                AlignView::new(RichStringViewSingleLine).view(
-                    AlignData {
-                        data: &app.end_text,
-                        alignment: Alignment::centre(),
-                    },
-                    context,
-                    frame,
-                );
+                AlignView_ {
+                    alignment: Alignment::centre(),
+                    view: RichStringViewSingleLine,
+                }
+                .view(&app.end_text, context, frame);
             }
         }
     }

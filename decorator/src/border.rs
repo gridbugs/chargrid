@@ -217,15 +217,13 @@ where
 fn border_view<V, T, F, C>(mut view: V, data: T, style: &BorderStyle, context: ViewContext<C>, frame: &mut F)
 where
     V: View<T>,
-    T: Clone,
     C: ColModify,
     F: Frame,
 {
     let child_context = context
         .add_offset(style.child_offset())
         .constrain_size_by(style.child_constrain_size_by());
-    view.view(data.clone(), child_context, frame);
-    let size = view.visible_bounds(data, child_context);
+    let size = view.view_reporting_intended_size(data, child_context, frame);
     draw_border(style, size, context, frame);
 }
 
@@ -277,16 +275,8 @@ pub struct BorderView_<'s, V> {
 impl<'s, V, T> View<T> for BorderView_<'s, V>
 where
     V: View<T>,
-    T: Clone,
 {
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
         border_view(&mut self.view, data, self.style, context, frame);
-    }
-    fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
-        let bounds_of_child_with_border =
-            self.view.visible_bounds(data, context) + self.style.child_constrain_size_by();
-        let x = bounds_of_child_with_border.x().min(context.size.x());
-        let y = bounds_of_child_with_border.y().min(context.size.y());
-        Size::new(x, y)
     }
 }

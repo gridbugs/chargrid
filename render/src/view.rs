@@ -225,4 +225,23 @@ impl<'a, T, V: View<T>> View<T> for &'a mut V {
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
         (*self).view(data, context, frame)
     }
+    fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
+        (*self).visible_bounds(data, context)
+    }
+    fn view_reporting_intended_size<F: Frame, C: ColModify>(
+        &mut self,
+        data: T,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) -> Size {
+        (*self).view_reporting_intended_size(data, context, frame)
+    }
+    fn view_reporting_intended_size_ignore_context_size<F: Frame, C: ColModify>(
+        &mut self,
+        data: T,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) -> Size {
+        (*self).view_reporting_intended_size_ignore_context_size(data, context, frame)
+    }
 }

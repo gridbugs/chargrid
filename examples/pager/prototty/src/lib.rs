@@ -15,18 +15,18 @@ pub struct AppState {
     bound: Size,
     background: Rgb24,
     alignment: Alignment,
-    vertical_scroll_state: vertical_scroll::VerticalScrollState,
-    vertical_scroll_bar_style: vertical_scroll::VerticalScrollBarStyle,
+    vertical_scroll_state: VerticalScrollState,
+    vertical_scroll_bar_style: VerticalScrollBarStyle,
 }
 
 pub struct AppView {
-    vertical_scroll_limits: vertical_scroll::VerticalScrollLimits,
+    vertical_scroll_limits: VerticalScrollLimits,
 }
 
 impl AppView {
     pub fn new() -> Self {
         Self {
-            vertical_scroll_limits: vertical_scroll::VerticalScrollLimits::new(),
+            vertical_scroll_limits: VerticalScrollLimits::new(),
         }
     }
 }
@@ -53,8 +53,8 @@ impl AppState {
             bound: Size::new(40, 30),
             background: Rgb24::new(80, 80, 0),
             alignment: Alignment::centre(),
-            vertical_scroll_state: vertical_scroll::VerticalScrollState::new(),
-            vertical_scroll_bar_style: vertical_scroll::VerticalScrollBarStyle::default(),
+            vertical_scroll_state: VerticalScrollState::new(),
+            vertical_scroll_bar_style: VerticalScrollBarStyle::default(),
         }
     }
     pub fn tick<I>(&mut self, inputs: I, view: &AppView) -> Option<ControlFlow>
@@ -130,7 +130,7 @@ impl<'a> View<&'a AppState> for AppView {
                     style: &app_state.border_style,
                     view: &mut BoundView_ {
                         size: app_state.bound,
-                        view: &mut vertical_scroll::VerticalScrollView {
+                        view: &mut VerticalScrollView {
                             limits: &mut self.vertical_scroll_limits,
                             state: app_state.vertical_scroll_state,
                             scroll_bar_style: &app_state.vertical_scroll_bar_style,
