@@ -55,12 +55,12 @@ impl<T, V: View<T>> View<BoundData<T>> for BoundView<V> {
     }
 }
 
-pub struct BoundView_<'v, V> {
-    pub view: &'v mut V,
+pub struct BoundView_<V> {
+    pub view: V,
     pub size: Size,
 }
 
-impl<'v, T, V> View<T> for BoundView_<'v, V>
+impl<V, T> View<T> for BoundView_<V>
 where
     V: View<T>,
 {

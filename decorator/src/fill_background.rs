@@ -68,12 +68,12 @@ impl<T, V: View<T>> View<FillBackgroundData<T>> for FillBackgroundView<V> {
     }
 }
 
-pub struct FillBackgroundView_<'v, V> {
-    pub view: &'v mut V,
+pub struct FillBackgroundView_<V> {
+    pub view: V,
     pub rgb24: Rgb24,
 }
 
-impl<'v, V, T> View<T> for FillBackgroundView_<'v, V>
+impl<V, T> View<T> for FillBackgroundView_<V>
 where
     V: View<T>,
 {

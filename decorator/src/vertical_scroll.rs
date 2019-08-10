@@ -21,8 +21,8 @@ pub struct VerticalScrollState {
     scroll_position: u32,
 }
 
-pub struct VerticalScrollView<'v, 's, 'l, V> {
-    pub view: &'v mut V,
+pub struct VerticalScrollView<'s, 'l, V> {
+    pub view: V,
     pub scroll_bar_style: &'s VerticalScrollBarStyle,
     pub limits: &'l mut VerticalScrollLimits,
     pub state: VerticalScrollState,
@@ -122,7 +122,7 @@ fn render_scroll_bar<F: Frame, C: ColModify>(
     }
 }
 
-impl<'v, 's, 'l, V, T> View<T> for VerticalScrollView<'v, 's, 'l, V>
+impl<'s, 'l, V, T> View<T> for VerticalScrollView<'s, 'l, V>
 where
     V: View<T>,
 {

@@ -55,12 +55,12 @@ impl<T, V: View<T>, S: ColModify> View<ColModifyData<S, T>> for ColModifyView<V>
     }
 }
 
-pub struct ColModifyView_<'v, V, C> {
-    pub view: &'v mut V,
+pub struct ColModifyView_<V, C> {
+    pub view: V,
     pub col_modify: C,
 }
 
-impl<'v, V, C, T> View<T> for ColModifyView_<'v, V, C>
+impl<V, C, T> View<T> for ColModifyView_<V, C>
 where
     V: View<T>,
     C: ColModify,

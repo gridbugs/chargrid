@@ -214,7 +214,7 @@ where
     }
 }
 
-fn border_view<V, T, F, C>(view: &mut V, data: T, style: &BorderStyle, context: ViewContext<C>, frame: &mut F)
+fn border_view<V, T, F, C>(mut view: V, data: T, style: &BorderStyle, context: ViewContext<C>, frame: &mut F)
 where
     V: View<T>,
     T: Clone,
@@ -269,18 +269,18 @@ impl<'a, T: Clone, V: View<T>> View<BorderData<'a, T>> for BorderView<V> {
     }
 }
 
-pub struct BorderView_<'v, 's, V> {
-    pub view: &'v mut V,
+pub struct BorderView_<'s, V> {
+    pub view: V,
     pub style: &'s BorderStyle,
 }
 
-impl<'v, 's, V, T> View<T> for BorderView_<'v, 's, V>
+impl<'s, V, T> View<T> for BorderView_<'s, V>
 where
     V: View<T>,
     T: Clone,
 {
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
-        border_view(self.view, data, self.style, context, frame);
+        border_view(&mut self.view, data, self.style, context, frame);
     }
     fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
         let bounds_of_child_with_border =

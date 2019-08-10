@@ -85,12 +85,12 @@ impl<T: Clone, V: View<T>> View<AlignData<T>> for AlignView<V> {
     }
 }
 
-pub struct AlignView_<'v, V> {
-    pub view: &'v mut V,
+pub struct AlignView_<V> {
+    pub view: V,
     pub alignment: Alignment,
 }
 
-impl<'v, V, T> View<T> for AlignView_<'v, V>
+impl<V, T> View<T> for AlignView_<V>
 where
     V: View<T>,
     T: Clone,

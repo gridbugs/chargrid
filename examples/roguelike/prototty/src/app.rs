@@ -175,9 +175,9 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
         if data.game.has_instance() {
             AlignView_ {
                 alignment: Alignment::centre(),
-                view: &mut BorderView_ {
+                view: BorderView_ {
                     style: &BorderStyle::default(),
-                    view: &mut FillBackgroundView_ {
+                    view: FillBackgroundView_ {
                         rgb24: Rgb24::new_grey(0),
                         view: &mut view.main_menu,
                     },
