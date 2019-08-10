@@ -128,8 +128,8 @@ impl Wrap for Word {
                     };
                     frame.set_cell_relative(self.cursor, 0, view_cell, context);
                     self.cursor.x += 1;
-                    assert!(self.cursor.x <= context.size.width() as i32);
-                    if self.cursor.x == context.size.width() as i32 {
+                    assert!(self.cursor.x as u32 <= context.size.width());
+                    if self.cursor.x as u32 == context.size.width() {
                         self.cursor.x = 0;
                         self.cursor.y += 1;
                     }
@@ -141,8 +141,8 @@ impl Wrap for Word {
                     style,
                 };
                 self.current_word_buffer.push(view_cell);
-                assert!(self.cursor.x + self.current_word_buffer.len() as i32 <= context.size.width() as i32);
-                if self.cursor.x + self.current_word_buffer.len() as i32 == context.size.width() as i32 {
+                assert!(self.cursor.x as u32 + self.current_word_buffer.len() as u32 <= context.size.width());
+                if self.cursor.x as u32 + self.current_word_buffer.len() as u32 == context.size.width() {
                     if self.cursor.x == 0 {
                         self.flush(context, frame);
                     } else {
@@ -159,8 +159,8 @@ impl Wrap for Word {
             frame.set_cell_relative(self.cursor, 0, view_cell, context);
             self.cursor.x += 1;
         }
-        assert!(self.cursor.x <= context.size.width() as i32);
-        if self.cursor.x == context.size.width() as i32 {
+        assert!(self.cursor.x as u32 <= context.size.width());
+        if self.cursor.x as u32 == context.size.width() {
             self.cursor.x = 0;
             self.cursor.y += 1;
         }
