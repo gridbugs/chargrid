@@ -140,7 +140,6 @@ where
     }
 
     fn visible_bounds<C: ColModify>(&mut self, _data: T, context: ViewContext<C>) -> Size {
-        println!("aaa {:?}", context.size);
         context.size
     }
 
@@ -151,7 +150,6 @@ where
         frame: &mut F,
     ) -> Size {
         self.view(data, context, frame);
-        println!("bbbb {:?}", context.size);
         context.size
     }
 }
