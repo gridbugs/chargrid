@@ -305,7 +305,7 @@ impl<'a> View<&'a App> for AppView {
                 };
                 let next_piece_offset_x = view.view_size(&app.tetris, context, frame).x() as i32;
                 ColModifyView {
-                    col_modify: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
+                    col_modify: ColModifyMap(|rgb24: Rgb24| rgb24.normalised_scalar_mul(255)),
                     view: BorderView {
                         style: &app.border_styles.next_piece,
                         view: BoundView {

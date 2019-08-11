@@ -146,14 +146,8 @@ where
             let absolute_depth = relative_depth + context.depth;
             let absolute_cell = ViewCell {
                 style: Style {
-                    foreground: relative_cell
-                        .style
-                        .foreground
-                        .map(|rgb24| context.col_modify.modify(rgb24)),
-                    background: relative_cell
-                        .style
-                        .background
-                        .map(|rgb24| context.col_modify.modify(rgb24)),
+                    foreground: context.col_modify.foreground(relative_cell.style.foreground),
+                    background: context.col_modify.background(relative_cell.style.background),
                     ..relative_cell.style
                 },
                 ..relative_cell

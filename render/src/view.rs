@@ -1,4 +1,5 @@
 use super::{Coord, Size};
+use crate::col_modify::ColModify;
 use crate::context::*;
 use crate::view_cell::*;
 
@@ -14,14 +15,8 @@ fn set_cell_relative_to_draw<F: ?Sized + Frame, C: ColModify>(
         let absolute_depth = relative_depth + context.depth;
         let absolute_cell = ViewCell {
             style: Style {
-                foreground: relative_cell
-                    .style
-                    .foreground
-                    .map(|rgb24| context.col_modify.modify(rgb24)),
-                background: relative_cell
-                    .style
-                    .background
-                    .map(|rgb24| context.col_modify.modify(rgb24)),
+                foreground: context.col_modify.foreground(relative_cell.style.foreground),
+                background: context.col_modify.background(relative_cell.style.background),
                 ..relative_cell.style
             },
             ..relative_cell

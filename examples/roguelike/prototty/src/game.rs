@@ -24,10 +24,7 @@ impl<'a> View<&'a Game> for GameView {
                 Some(game::Occupant::Player) => '@',
                 Some(game::Occupant::Wall) => '#',
             };
-            let view_cell = ViewCell::new()
-                .with_character(character)
-                .with_foreground(Rgb24::new(255, 255, 255))
-                .with_background(Rgb24::new(0, 0, 0));
+            let view_cell = ViewCell::new().with_character(character);
             frame.set_cell_relative(coord, 0, view_cell, context);
         }
     }

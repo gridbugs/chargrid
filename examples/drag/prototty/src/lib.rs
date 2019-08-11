@@ -76,7 +76,7 @@ fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(frame: &mut 
 
 impl<'a> View<&'a App> for AppView {
     fn view<F: Frame, C: ColModify>(&mut self, app: &'a App, context: ViewContext<C>, frame: &mut F) {
-        let context = context.compose_col_modify(|rgb24: Rgb24| rgb24.normalised_scalar_mul(128));
+        let context = context.compose_col_modify(ColModifyMap(|rgb24: Rgb24| rgb24.normalised_scalar_mul(128)));
         match (app.last_clicked_coord, app.coord) {
             (Some(last_clicked_coord), Some(coord)) => {
                 let line = LineSegment::new(last_clicked_coord, coord);

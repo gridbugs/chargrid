@@ -1,40 +1,5 @@
 use super::{Coord, Size};
-use rgb24::Rgb24;
-
-pub trait ColModify: Copy {
-    fn modify(&self, rgb24: Rgb24) -> Rgb24;
-}
-
-impl<F: Fn(Rgb24) -> Rgb24 + Copy> ColModify for F {
-    fn modify(&self, rgb24: Rgb24) -> Rgb24 {
-        (self)(rgb24)
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct ColModifyIdentity;
-
-impl ColModify for ColModifyIdentity {
-    fn modify(&self, rgb24: Rgb24) -> Rgb24 {
-        rgb24
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct ColModifyCompose<Inner: ColModify, Outer: ColModify> {
-    inner: Inner,
-    outer: Outer,
-}
-
-impl<Inner, Outer> ColModify for ColModifyCompose<Inner, Outer>
-where
-    Inner: ColModify,
-    Outer: ColModify,
-{
-    fn modify(&self, rgb24: Rgb24) -> Rgb24 {
-        self.outer.modify(self.inner.modify(rgb24))
-    }
-}
+use crate::col_modify::{ColModify, ColModifyCompose, ColModifyIdentity};
 
 #[derive(Clone, Copy)]
 pub struct ViewContext<C: ColModify = ColModifyIdentity> {
@@ -100,10 +65,7 @@ impl<C: ColModify> ViewContext<C> {
 
     pub fn compose_col_modify<Inner: ColModify>(self, inner: Inner) -> ViewContext<ColModifyCompose<Inner, C>> {
         ViewContext {
-            col_modify: ColModifyCompose {
-                inner,
-                outer: self.col_modify,
-            },
+            col_modify: inner.compose(self.col_modify),
             offset: self.offset,
             depth: self.depth,
             size: self.size,

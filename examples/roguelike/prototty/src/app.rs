@@ -7,7 +7,7 @@ use event_routine::*;
 use menu::MenuInstanceChoose;
 use prototty::*;
 use prototty_storage::Storage;
-use render::{Rgb24, Style};
+use render::{ColModifyDefaultForeground, ColModifyMap, Rgb24, Style};
 use std::marker::PhantomData;
 
 #[derive(Clone, Copy)]
@@ -175,10 +175,10 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
         if data.game.has_instance() {
             AlignView {
                 alignment: Alignment::centre(),
-                view: BorderView {
-                    style: &BorderStyle::default(),
-                    view: FillBackgroundView {
-                        rgb24: Rgb24::new_grey(0),
+                view: FillBackgroundView {
+                    rgb24: Rgb24::new_grey(0),
+                    view: BorderView {
+                        style: &BorderStyle::default(),
                         view: &mut view.main_menu,
                     },
                 },
@@ -187,7 +187,10 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
             if let Some(game) = data.game.game() {
                 view.game.view(
                     game,
-                    context.compose_col_modify(|col: Rgb24| col.saturating_scalar_mul_div(1, 3)),
+                    context.compose_col_modify(
+                        ColModifyDefaultForeground(Rgb24::new_grey(255))
+                            .compose(ColModifyMap(|col: Rgb24| col.saturating_scalar_mul_div(1, 3))),
+                    ),
                     frame,
                 );
             }
