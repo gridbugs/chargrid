@@ -163,6 +163,22 @@ impl<S: Storage> DecorateMainMenu<S> {
     }
 }
 
+struct InitMenu<'a>(&'a mut AppView);
+impl<'a, 'b, S: Storage> View<&'a AppData<S>> for InitMenu<'b> {
+    fn view<F: Frame, C: ColModify>(&mut self, app_data: &'a AppData<S>, context: ViewContext<C>, frame: &mut F) {
+        text::StringViewSingleLine::new(Style::new().with_bold(true)).view(
+            "Template Roguelike",
+            context.add_offset(Coord::new(1, 1)),
+            frame,
+        );
+        self.0.main_menu.view(
+            app_data.main_menu.menu_instance(),
+            context.add_offset(Coord::new(1, 3)),
+            frame,
+        );
+    }
+}
+
 impl<S: Storage> DecorateView for DecorateMainMenu<S> {
     type View = AppView;
     type Data = AppData<S>;
@@ -195,16 +211,11 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
                 );
             }
         } else {
-            text::StringViewSingleLine::new(Style::new().with_bold(true)).view(
-                "Template Roguelike",
-                context.add_offset(Coord::new(1, 1)),
-                frame,
-            );
-            view.main_menu.view(
-                data.main_menu.menu_instance(),
-                context.add_offset(Coord::new(1, 3)),
-                frame,
-            );
+            AlignView {
+                view: InitMenu(view),
+                alignment: Alignment::centre(),
+            }
+            .view(&data, context, frame);
         }
     }
 }
