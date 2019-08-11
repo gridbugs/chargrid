@@ -16,8 +16,9 @@ publish() {
     publish_single menu
     publish_single prototty
     publish_single file-storage
-    publish_single monolithic-storage
     publish_single grid
+    publish_single test-grid
+    publish_single event-routine
     publish_single unix
     publish_single glutin
     publish_single wasm
