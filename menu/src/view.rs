@@ -40,7 +40,7 @@ where
         context: ViewContext<C>,
         frame: &mut F,
     ) {
-        self.last_offset = context.outer_offset;
+        self.last_offset = context.offset;
         let mut max_width = 0;
         for (i, entry) in menu_instance.menu.iter().enumerate() {
             let width = if i == menu_instance.selected_index {
@@ -67,7 +67,7 @@ where
         context: ViewContext<C>,
         frame: &mut F,
     ) {
-        self.last_offset = context.outer_offset;
+        self.last_offset = context.offset;
         let mut max_width = 0;
         for (i, entry) in menu_instance.menu.iter().enumerate() {
             let width = if i == menu_instance.selected_index {
@@ -131,7 +131,7 @@ pub fn menu_entry_view<T, V: View<T>, F: Frame, C: ColModify>(
     context: ViewContext<C>,
     frame: &mut F,
 ) -> MenuEntryViewInfo {
-    view.view_reporting_intended_size(data, context, frame).width()
+    view.view_size(data, context, frame).width()
 }
 
 /// An implementation of `MenuEntryView` for menus whose entries

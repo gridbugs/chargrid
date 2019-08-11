@@ -7,7 +7,6 @@ mod align;
 mod border;
 mod bound;
 mod col_modify;
-mod defaults;
 mod fill_background;
 mod vertical_scroll;
 

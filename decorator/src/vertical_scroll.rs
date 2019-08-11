@@ -139,10 +139,10 @@ where
         relative_cell: ViewCell,
         context: ViewContext<C>,
     ) {
-        self.max_y = self.max_y.max(relative_coord.y);
         let adjusted_relative_coord = relative_coord - self.offset;
+        self.max_y = self.max_y.max((relative_coord + context.offset).y);
         if adjusted_relative_coord.is_valid(context.size) {
-            let absolute_coord = adjusted_relative_coord + context.outer_offset;
+            let absolute_coord = adjusted_relative_coord + context.offset;
             let absolute_depth = relative_depth + context.depth;
             let absolute_cell = ViewCell {
                 style: Style {
@@ -183,7 +183,7 @@ where
             context.constrain_size_by(Size::new(1 + self.scroll_bar_style.left_padding, 0)),
             &mut partial_frame,
         );
-        self.limits.last_rendered_inner_height = partial_frame.max_y as u32;
+        self.limits.last_rendered_inner_height = (partial_frame.max_y - context.offset.y).max(0) as u32 + 1;
         self.limits.last_rendered_outer_height = context.size.height();
         render_scroll_bar(self.scroll_bar_style, self.state, *self.limits, context, frame);
     }

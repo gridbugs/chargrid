@@ -43,7 +43,7 @@ where
     T: Clone,
 {
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
-        let data_size = self.view.visible_bounds(data.clone(), context);
+        let data_size = self.view.size(data.clone(), context);
         let x_offset = match self.alignment.x {
             AlignmentX::Left => 0,
             AlignmentX::Centre => (context.size.x() as i32 - data_size.x() as i32) / 2,

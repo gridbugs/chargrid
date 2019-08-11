@@ -1,4 +1,3 @@
-use defaults::*;
 use prototty_render::*;
 
 /// The characters comprising a border. By default, borders are made of unicode
@@ -74,7 +73,7 @@ pub struct BorderStyle {
     pub padding: BorderPadding,
     pub chars: BorderChars,
     pub foreground: Rgb24,
-    pub background: Rgb24,
+    pub background: Option<Rgb24>,
     pub bold: bool,
     pub title_style: Style,
 }
@@ -85,8 +84,8 @@ impl Default for BorderStyle {
             title: None,
             padding: Default::default(),
             chars: Default::default(),
-            foreground: DEFAULT_FG,
-            background: DEFAULT_BG,
+            foreground: Rgb24::new(255, 255, 255),
+            background: None,
             bold: false,
             title_style: Default::default(),
         }
@@ -123,7 +122,7 @@ impl BorderStyle {
             character: Some(character),
             style: Style {
                 foreground: Some(self.foreground),
-                background: Some(self.background),
+                background: self.background,
                 bold: Some(self.bold),
                 underline: Some(false),
             },
@@ -198,8 +197,7 @@ where
     let child_context = context
         .add_offset(style.child_offset())
         .constrain_size_by(style.child_constrain_size_by());
-    let size = view.view_reporting_intended_size(data, child_context, frame);
-    println!("{:?}, {:?}", size, style.child_offset());
+    let size = view.view_size(data, child_context, frame);
     draw_border(style, size, context, frame);
 }
 

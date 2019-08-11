@@ -67,7 +67,7 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
             frame.set_cell_relative(coord, 0, cell_info, context);
         }
     }
-    fn visible_bounds<C: ColModify>(&mut self, tetris: &'a Tetris, _context: ViewContext<C>) -> Size {
+    fn size<C: ColModify>(&mut self, tetris: &'a Tetris, _context: ViewContext<C>) -> Size {
         tetris.size().into()
     }
 }
@@ -88,7 +88,7 @@ impl<'a> View<&'a Tetris> for TetrisNextPieceView {
             frame.set_cell_relative(offset + coord, 0, cell_info, context);
         }
     }
-    fn visible_bounds<C: ColModify>(&mut self, _data: &'a Tetris, _context: ViewContext<C>) -> Size {
+    fn size<C: ColModify>(&mut self, _data: &'a Tetris, _context: ViewContext<C>) -> Size {
         NEXT_PIECE_SIZE.into()
     }
 }
@@ -129,7 +129,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             MainMenuChoice::Quit => "  Quit",
         };
         StringViewSingleLine::new(Style::default())
-            .view_reporting_intended_size(string, context, frame)
+            .view_size(string, context, frame)
             .width()
     }
     fn selected<F: Frame, C: ColModify>(
@@ -151,7 +151,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             MainMenuChoice::Quit => vec![("> Quit", base_style)],
         };
         RichTextViewSingleLine::new()
-            .view_reporting_intended_size(&rich_text, context, frame)
+            .view_size(&rich_text, context, frame)
             .width()
     }
 }
@@ -303,7 +303,7 @@ impl<'a> View<&'a App> for AppView {
                     style: &app.border_styles.common,
                     view: &mut self.board,
                 };
-                let next_piece_offset_x = view.view_reporting_intended_size(&app.tetris, context, frame).x() as i32;
+                let next_piece_offset_x = view.view_size(&app.tetris, context, frame).x() as i32;
                 ColModifyView {
                     col_modify: |rgb24: Rgb24| rgb24.normalised_scalar_mul(255),
                     view: BorderView {

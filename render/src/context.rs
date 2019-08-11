@@ -38,8 +38,7 @@ where
 
 #[derive(Clone, Copy)]
 pub struct ViewContext<C: ColModify = ColModifyIdentity> {
-    pub inner_offset: Coord,
-    pub outer_offset: Coord,
+    pub offset: Coord,
     pub depth: i32,
     pub col_modify: C,
     pub size: Size,
@@ -50,8 +49,7 @@ pub type ViewContextDefault = ViewContext<ColModifyIdentity>;
 impl ViewContext<ColModifyIdentity> {
     pub fn default_with_size(size: Size) -> Self {
         Self {
-            inner_offset: Coord::new(0, 0),
-            outer_offset: Coord::new(0, 0),
+            offset: Coord::new(0, 0),
             depth: 0,
             col_modify: ColModifyIdentity,
             size,
@@ -60,26 +58,18 @@ impl ViewContext<ColModifyIdentity> {
 }
 
 impl<C: ColModify> ViewContext<C> {
-    pub fn new(inner_offset: Coord, outer_offset: Coord, depth: i32, col_modify: C, size: Size) -> Self {
+    pub fn new(offset: Coord, depth: i32, col_modify: C, size: Size) -> Self {
         Self {
-            inner_offset,
-            outer_offset,
+            offset,
             depth,
             col_modify,
             size,
         }
     }
 
-    pub fn add_inner_offset(self, offset_delta: Coord) -> Self {
-        Self {
-            inner_offset: self.inner_offset + offset_delta,
-            ..self
-        }
-    }
-
     pub fn add_offset(self, offset_delta: Coord) -> Self {
         Self {
-            outer_offset: self.outer_offset + offset_delta,
+            offset: self.offset + offset_delta,
             size: (self.size.to_coord().unwrap() - offset_delta)
                 .to_size()
                 .unwrap_or(Size::new_u16(0, 0)),
@@ -114,8 +104,7 @@ impl<C: ColModify> ViewContext<C> {
                 inner,
                 outer: self.col_modify,
             },
-            inner_offset: self.inner_offset,
-            outer_offset: self.outer_offset,
+            offset: self.offset,
             depth: self.depth,
             size: self.size,
         }

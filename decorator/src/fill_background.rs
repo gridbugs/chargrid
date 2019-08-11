@@ -10,9 +10,7 @@ where
     V: View<T>,
 {
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
-        let size = self
-            .view
-            .view_reporting_intended_size(data, context.add_depth(1), frame);
+        let size = self.view.view_size(data, context.add_depth(1), frame);
         for y in 0..(size.height() as i32) {
             for x in 0..(size.width() as i32) {
                 let coord = Coord::new(x, y);

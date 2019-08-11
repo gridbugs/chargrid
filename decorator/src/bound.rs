@@ -13,16 +13,11 @@ where
         self.view.view(data, context.constrain_size_to(self.size), frame);
     }
 
-    fn visible_bounds<C: ColModify>(&mut self, _: T, _context: ViewContext<C>) -> Size {
+    fn size<C: ColModify>(&mut self, _: T, _context: ViewContext<C>) -> Size {
         self.size
     }
 
-    fn view_reporting_intended_size<F: Frame, C: ColModify>(
-        &mut self,
-        data: T,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) -> Size {
+    fn view_size<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) -> Size {
         self.view(data, context, frame);
         self.size
     }
