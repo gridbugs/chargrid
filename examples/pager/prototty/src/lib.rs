@@ -44,7 +44,7 @@ impl AppState {
                 },
                 padding: BorderPadding {
                     right: 0,
-                    left: 2,
+                    left: 1,
                     top: 1,
                     bottom: 1,
                 },
@@ -134,7 +134,7 @@ impl<'a> View<&'a AppState> for AppView {
                             limits: &mut self.vertical_scroll_limits,
                             state: app_state.vertical_scroll_state,
                             scroll_bar_style: &app_state.vertical_scroll_bar_style,
-                            view: &mut RichTextView::new(wrap::Word::new()),
+                            view: &mut RichTextView::new(wrap::Char::new()),
                         },
                     },
                 },

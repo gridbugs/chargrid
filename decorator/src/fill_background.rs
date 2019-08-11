@@ -25,8 +25,4 @@ where
             }
         }
     }
-
-    fn visible_bounds<C: ColModify>(&mut self, data: T, context: ViewContext<C>) -> Size {
-        self.view.visible_bounds(data, context)
-    }
 }

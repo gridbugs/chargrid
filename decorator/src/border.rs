@@ -199,6 +199,7 @@ where
         .add_offset(style.child_offset())
         .constrain_size_by(style.child_constrain_size_by());
     let size = view.view_reporting_intended_size(data, child_context, frame);
+    println!("{:?}, {:?}", size, style.child_offset());
     draw_border(style, size, context, frame);
 }
 

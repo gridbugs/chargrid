@@ -122,34 +122,69 @@ fn render_scroll_bar<F: Frame, C: ColModify>(
     }
 }
 
+struct PartialFrame<'a, F> {
+    offset: Coord,
+    max_y: i32,
+    frame: &'a mut F,
+}
+
+impl<'a, F> Frame for PartialFrame<'a, F>
+where
+    F: Frame,
+{
+    fn set_cell_relative<C: ColModify>(
+        &mut self,
+        relative_coord: Coord,
+        relative_depth: i32,
+        relative_cell: ViewCell,
+        context: ViewContext<C>,
+    ) {
+        self.max_y = self.max_y.max(relative_coord.y);
+        let adjusted_relative_coord = relative_coord - self.offset;
+        if adjusted_relative_coord.is_valid(context.size) {
+            let absolute_coord = adjusted_relative_coord + context.outer_offset;
+            let absolute_depth = relative_depth + context.depth;
+            let absolute_cell = ViewCell {
+                style: Style {
+                    foreground: relative_cell
+                        .style
+                        .foreground
+                        .map(|rgb24| context.col_modify.modify(rgb24)),
+                    background: relative_cell
+                        .style
+                        .background
+                        .map(|rgb24| context.col_modify.modify(rgb24)),
+                    ..relative_cell.style
+                },
+                ..relative_cell
+            };
+            self.set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+        }
+    }
+
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+        self.frame
+            .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+    }
+}
+
 impl<'s, 'l, V, T> View<T> for VerticalScrollView<'s, 'l, V>
 where
     V: View<T>,
 {
     fn view<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) {
-        let inner_size = self.view.view_reporting_intended_size_ignore_context_size(
-            data,
-            context
-                .constrain_size_by(Size::new(1 + self.scroll_bar_style.left_padding, 0))
-                .add_inner_offset(Coord::new(0, -(self.state.scroll_position as i32))),
+        let mut partial_frame = PartialFrame {
+            offset: Coord::new(0, self.state.scroll_position as i32),
+            max_y: 0,
             frame,
+        };
+        self.view.view(
+            data,
+            context.constrain_size_by(Size::new(1 + self.scroll_bar_style.left_padding, 0)),
+            &mut partial_frame,
         );
-        self.limits.last_rendered_inner_height = inner_size.height();
+        self.limits.last_rendered_inner_height = partial_frame.max_y as u32;
         self.limits.last_rendered_outer_height = context.size.height();
         render_scroll_bar(self.scroll_bar_style, self.state, *self.limits, context, frame);
-    }
-
-    fn visible_bounds<C: ColModify>(&mut self, _data: T, context: ViewContext<C>) -> Size {
-        context.size
-    }
-
-    fn view_reporting_intended_size<F: Frame, C: ColModify>(
-        &mut self,
-        data: T,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) -> Size {
-        self.view(data, context, frame);
-        context.size
     }
 }
