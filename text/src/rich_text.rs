@@ -126,17 +126,6 @@ where
     fn view<F: Frame, C: ColModify>(&mut self, parts: I, context: ViewContext<C>, frame: &mut F) {
         RichTextView::new(wrap::None::new()).view(parts, context, frame)
     }
-
-    fn visible_bounds<C: ColModify>(&mut self, parts: I, _context: ViewContext<C>) -> Size {
-        let width: u32 = parts
-            .into_iter()
-            .map(|part| {
-                let part: RichTextPart = (*part).into();
-                part.text.len() as u32
-            })
-            .sum();
-        Size::new(width, 1)
-    }
 }
 
 pub struct RichStringView<W: Wrap> {
@@ -179,11 +168,5 @@ where
 {
     fn view<F: Frame, C: ColModify>(&mut self, part: T, context: ViewContext<C>, frame: &mut F) {
         RichStringView::new(wrap::None::new()).view(part, context, frame);
-    }
-
-    fn visible_bounds<C: ColModify>(&mut self, part: T, _context: ViewContext<C>) -> Size {
-        let part: RichTextPart = part.into();
-        let width = part.text.len() as u32;
-        Size::new(width, 1)
     }
 }

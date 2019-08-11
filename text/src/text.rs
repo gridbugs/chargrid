@@ -87,12 +87,6 @@ where
     fn view<F: Frame, C: ColModify>(&mut self, part: S, context: ViewContext<C>, frame: &mut F) {
         StringView::new(self.style, wrap::None::new()).view(part, context, frame);
     }
-
-    fn visible_bounds<C: ColModify>(&mut self, part: S, _context: ViewContext<C>) -> Size {
-        let part = part.as_ref();
-        let width = part.len() as u32;
-        Size::new(width, 1)
-    }
 }
 
 #[cfg(test)]
