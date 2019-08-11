@@ -208,17 +208,6 @@ pub trait View<T> {
         self.view(data, context, &mut measure_bounds_and_draw);
         measure_bounds_and_draw.bounds(context.outer_offset + context.inner_offset)
     }
-
-    fn view_reporting_intended_size_ignore_context_size<F: Frame, C: ColModify>(
-        &mut self,
-        data: T,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) -> Size {
-        let mut measure_bounds_and_draw = MeasureBoundsAndDraw::new(frame, MeasureBoundsIgnoreContextSize::new());
-        self.view(data, context, &mut measure_bounds_and_draw);
-        measure_bounds_and_draw.bounds(context.outer_offset + context.inner_offset)
-    }
 }
 
 impl<'a, T, V: View<T>> View<T> for &'a mut V {
@@ -235,13 +224,5 @@ impl<'a, T, V: View<T>> View<T> for &'a mut V {
         frame: &mut F,
     ) -> Size {
         (*self).view_reporting_intended_size(data, context, frame)
-    }
-    fn view_reporting_intended_size_ignore_context_size<F: Frame, C: ColModify>(
-        &mut self,
-        data: T,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) -> Size {
-        (*self).view_reporting_intended_size_ignore_context_size(data, context, frame)
     }
 }
