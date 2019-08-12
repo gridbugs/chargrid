@@ -78,8 +78,8 @@ pub struct BorderStyle {
     pub title_style: Style,
 }
 
-impl Default for BorderStyle {
-    fn default() -> Self {
+impl BorderStyle {
+    pub fn new() -> Self {
         Self {
             title: None,
             padding: Default::default(),
@@ -87,16 +87,14 @@ impl Default for BorderStyle {
             foreground: Rgb24::new(255, 255, 255),
             background: None,
             bold: false,
-            title_style: Default::default(),
+            title_style: Style::new(),
         }
     }
-}
 
-impl BorderStyle {
-    pub fn default_with_title<S: Into<String>>(title: S) -> Self {
+    pub fn new_with_title<S: Into<String>>(title: S) -> Self {
         Self {
             title: Some(title.into()),
-            ..Default::default()
+            ..Self::new()
         }
     }
     fn child_offset(&self) -> Coord {

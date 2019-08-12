@@ -194,7 +194,7 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
                 view: FillBackgroundView {
                     rgb24: Rgb24::new_grey(0),
                     view: BorderView {
-                        style: &BorderStyle::default(),
+                        style: &BorderStyle::new(),
                         view: &mut view.main_menu,
                     },
                 },

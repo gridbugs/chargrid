@@ -102,9 +102,9 @@ impl BorderStyles {
     pub fn new() -> Self {
         let next_piece = BorderStyle {
             title_style: Style::new().with_foreground(Rgb24::new_grey(255)),
-            ..BorderStyle::default_with_title("next")
+            ..BorderStyle::new_with_title("next")
         };
-        let common = BorderStyle::default();
+        let common = BorderStyle::new();
         Self { common, next_piece }
     }
 }
@@ -128,7 +128,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             MainMenuChoice::Play => "  Play",
             MainMenuChoice::Quit => "  Quit",
         };
-        StringViewSingleLine::new(Style::default())
+        StringViewSingleLine::new(Style::new())
             .view_size(string, context, frame)
             .width()
     }
@@ -205,7 +205,7 @@ impl App {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
         let main_menu = vec![MainMenuChoice::Play, MainMenuChoice::Quit];
         let main_menu = MenuInstance::new(main_menu).unwrap();
-        let end_text_style = Style::default().with_bold(true).with_foreground(Rgb24::new(187, 0, 0));
+        let end_text_style = Style::new().with_bold(true).with_foreground(Rgb24::new(187, 0, 0));
         let end_text = RichTextPartOwned::new("YOU DIED".to_string(), end_text_style);
         Self {
             main_menu,

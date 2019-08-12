@@ -28,10 +28,10 @@ pub struct VerticalScrollView<'s, 'l, V> {
     pub state: VerticalScrollState,
 }
 
-impl Default for VerticalScrollBarStyle {
-    fn default() -> Self {
+impl VerticalScrollBarStyle {
+    pub fn new() -> Self {
         Self {
-            style: Default::default(),
+            style: Style::new(),
             character: '█',
             left_padding: 1,
         }

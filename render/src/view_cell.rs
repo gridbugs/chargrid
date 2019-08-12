@@ -1,7 +1,7 @@
 use rgb24::Rgb24;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Style {
     pub bold: Option<bool>,
     pub underline: Option<bool>,
@@ -74,7 +74,7 @@ impl Style {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ViewCell {
     pub character: Option<char>,
     pub style: Style,

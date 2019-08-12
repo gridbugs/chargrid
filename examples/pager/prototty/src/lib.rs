@@ -40,7 +40,7 @@ impl AppState {
                     bold: Some(true),
                     foreground: Some(Rgb24::new(0, 255, 0)),
                     background: Some(Rgb24::new(0, 64, 0)),
-                    ..Default::default()
+                    ..Style::new()
                 },
                 padding: BorderPadding {
                     right: 0,
@@ -48,13 +48,13 @@ impl AppState {
                     top: 1,
                     bottom: 1,
                 },
-                ..BorderStyle::default_with_title("Pager")
+                ..BorderStyle::new_with_title("Pager")
             },
             bound: Size::new(40, 30),
             background: Rgb24::new(80, 80, 0),
             alignment: Alignment::centre(),
             vertical_scroll_state: VerticalScrollState::new(),
-            vertical_scroll_bar_style: VerticalScrollBarStyle::default(),
+            vertical_scroll_bar_style: VerticalScrollBarStyle::new(),
         }
     }
     pub fn tick<I>(&mut self, inputs: I, view: &AppView) -> Option<ControlFlow>
@@ -103,22 +103,22 @@ impl AppState {
 impl<'a> View<&'a AppState> for AppView {
     fn view<F: Frame, C: ColModify>(&mut self, app_state: &'a AppState, context: ViewContext<C>, frame: &mut F) {
         let rich_text = &[
-            ("Hello, World!\nblah\nblah blah ", Style::default()),
+            ("Hello, World!\nblah\nblah blah ", Style::new()),
             (
                 "blue\n",
                 Style {
                     foreground: Some(Rgb24::new(0, 0, 255)),
                     bold: Some(true),
-                    ..Default::default()
+                    ..Style::new()
                 },
             ),
-            ("User string:\n", Default::default()),
+            ("User string:\n", Style::new()),
             (
                 app_state.text.as_ref(),
                 Style {
                     background: Some(Rgb24::new(187, 0, 0)),
                     underline: Some(true),
-                    ..Default::default()
+                    ..Style::new()
                 },
             ),
         ];
