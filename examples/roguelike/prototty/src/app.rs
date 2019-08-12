@@ -201,7 +201,11 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
             }
             .view(data.main_menu.menu_instance(), context.add_depth(1), frame);
             if let Some(game) = data.game.game() {
-                view.game.view(
+                AlignView {
+                    alignment: Alignment::centre(),
+                    view: &mut view.game,
+                }
+                .view(
                     game,
                     context.compose_col_modify(
                         ColModifyDefaultForeground(Rgb24::new_grey(255))
@@ -216,6 +220,38 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
                 alignment: Alignment::centre(),
             }
             .view(&data, context, frame);
+        }
+    }
+}
+
+struct DecorateGame<S>(PhantomData<S>);
+impl<S> DecorateGame<S>
+where
+    S: Storage,
+{
+    fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<S> DecorateView for DecorateGame<S>
+where
+    S: Storage,
+{
+    type View = AppView;
+    type Data = AppData<S>;
+
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+        if let Some(game) = data.game.game() {
+            AlignView {
+                alignment: Alignment::centre(),
+                view: &mut view.game,
+            }
+            .view(game, context, frame);
         }
     }
 }
@@ -256,7 +292,9 @@ fn main_menu<S: Storage>(
 
 fn game<S: Storage>() -> impl EventRoutine<Return = GameReturn, Data = AppData<S>, View = AppView, Event = CommonEvent>
 {
-    GameEventRoutine::new().select(SelectGame::new())
+    GameEventRoutine::new()
+        .select(SelectGame::new())
+        .decorated_view(DecorateGame::new())
 }
 
 fn main_menu_cycle<S: Storage>(
