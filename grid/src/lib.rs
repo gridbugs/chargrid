@@ -3,26 +3,18 @@ extern crate prototty_render;
 
 use prototty_render::*;
 
-pub trait ColourConversion {
-    type Colour;
-    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour;
-    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour;
-    fn default_foreground(&mut self) -> Self::Colour;
-    fn default_background(&mut self) -> Self::Colour;
-}
-
 #[derive(Debug, Clone)]
-pub struct CommonCell<C> {
+pub struct CommonCell {
     pub character: char,
     pub bold: bool,
     pub underline: bool,
-    pub foreground_colour: C,
-    pub background_colour: C,
+    pub foreground_colour: Rgb24,
+    pub background_colour: Rgb24,
     foreground_depth: i32,
     background_depth: i32,
 }
 
-impl<C> CommonCell<C> {
+impl CommonCell {
     fn set_character(&mut self, character: char, depth: i32) {
         if depth >= self.foreground_depth {
             self.character = character;
@@ -41,51 +33,44 @@ impl<C> CommonCell<C> {
             self.foreground_depth = depth;
         }
     }
-    fn set_foreground_colour(&mut self, colour: C, depth: i32) {
+    fn set_foreground_colour(&mut self, colour: Rgb24, depth: i32) {
         if depth >= self.foreground_depth {
             self.foreground_colour = colour;
             self.foreground_depth = depth;
         }
     }
-    fn set_background_colour(&mut self, colour: C, depth: i32) {
+    fn set_background_colour(&mut self, colour: Rgb24, depth: i32) {
         if depth >= self.background_depth {
             self.background_colour = colour;
             self.background_depth = depth;
         }
     }
-    fn new_default(foreground_colour: C, background_colour: C) -> Self {
+    fn new() -> Self {
+        const BLACK: Rgb24 = Rgb24::new_grey(0);
         Self {
             character: ' ',
             bold: false,
             underline: false,
-            foreground_colour,
-            background_colour,
+            foreground_colour: BLACK,
+            background_colour: BLACK,
             foreground_depth: 0,
             background_depth: 0,
         }
     }
 }
-pub type Iter<'a, C> = grid_2d::GridIter<'a, C>;
-pub type IterMut<'a, C> = grid_2d::GridIterMut<'a, C>;
-pub type Enumerate<'a, C> = grid_2d::GridEnumerate<'a, C>;
+pub type Iter<'a> = grid_2d::GridIter<'a, CommonCell>;
+pub type IterMut<'a> = grid_2d::GridIterMut<'a, CommonCell>;
+pub type Enumerate<'a> = grid_2d::GridEnumerate<'a, CommonCell>;
 
 #[derive(Debug, Clone)]
-pub struct Grid<C: ColourConversion> {
-    cells: grid_2d::Grid<CommonCell<C::Colour>>,
-    colour_conversion: C,
+pub struct Grid {
+    cells: grid_2d::Grid<CommonCell>,
 }
 
-impl<C: ColourConversion> Grid<C> {
-    pub fn new(size: Size, mut colour_conversion: C) -> Self {
-        let cells = grid_2d::Grid::new_fn(size, |_| {
-            let foreground = colour_conversion.default_foreground();
-            let background = colour_conversion.default_background();
-            CommonCell::new_default(foreground, background)
-        });
-        Self {
-            cells,
-            colour_conversion,
-        }
+impl Grid {
+    pub fn new(size: Size) -> Self {
+        let cells = grid_2d::Grid::new_fn(size, |_| CommonCell::new());
+        Self { cells }
     }
 
     pub fn size(&self) -> Size {
@@ -93,43 +78,29 @@ impl<C: ColourConversion> Grid<C> {
     }
 
     pub fn resize(&mut self, size: Size) {
-        self.cells = grid_2d::Grid::new_fn(size, |_| {
-            let foreground = self.colour_conversion.default_foreground();
-            let background = self.colour_conversion.default_background();
-            CommonCell::new_default(foreground, background)
-        });
+        self.cells = grid_2d::Grid::new_fn(size, |_| CommonCell::new());
     }
 
     pub fn clear(&mut self) {
         for cell in self.cells.iter_mut() {
-            let foreground = self.colour_conversion.default_foreground();
-            let background = self.colour_conversion.default_background();
-            *cell = CommonCell::new_default(foreground, background);
+            *cell = CommonCell::new();
         }
     }
 
-    pub fn enumerate(&self) -> Enumerate<CommonCell<C::Colour>> {
+    pub fn enumerate(&self) -> Enumerate {
         self.cells.enumerate()
     }
 
-    pub fn iter(&self) -> Iter<CommonCell<C::Colour>> {
+    pub fn iter(&self) -> Iter {
         self.cells.iter()
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<CommonCell<C::Colour>> {
+    pub fn iter_mut(&mut self) -> IterMut {
         self.cells.iter_mut()
-    }
-
-    pub fn default_foreground(&mut self) -> C::Colour {
-        self.colour_conversion.default_foreground()
-    }
-
-    pub fn default_background(&mut self) -> C::Colour {
-        self.colour_conversion.default_background()
     }
 }
 
-impl<C: ColourConversion> Frame for Grid<C> {
+impl Frame for Grid {
     fn set_cell_absolute(&mut self, coord: Coord, depth: i32, view_cell: ViewCell) {
         if let Some(cell) = self.cells.get_mut(coord) {
             if cell.foreground_depth <= depth || cell.background_depth <= depth {
@@ -143,10 +114,10 @@ impl<C: ColourConversion> Frame for Grid<C> {
                     cell.set_underline(underline, depth);
                 }
                 if let Some(foreground) = view_cell.foreground() {
-                    cell.set_foreground_colour(self.colour_conversion.convert_foreground_rgb24(foreground), depth);
+                    cell.set_foreground_colour(foreground, depth);
                 }
                 if let Some(background) = view_cell.background() {
-                    cell.set_background_colour(self.colour_conversion.convert_background_rgb24(background), depth);
+                    cell.set_background_colour(background, depth);
                 }
             }
         }

@@ -7,49 +7,26 @@ use std::thread;
 use std::time::{Duration, Instant};
 use terminal::*;
 
-const DEFAULT_FG: Rgb24 = Rgb24::new_grey(255);
-const DEFAULT_BG: Rgb24 = Rgb24::new_grey(0);
-
-struct UnixColourConversion;
-
-impl ColourConversion for UnixColourConversion {
-    type Colour = Rgb24;
-    fn default_foreground(&mut self) -> Self::Colour {
-        DEFAULT_FG
-    }
-    fn default_background(&mut self) -> Self::Colour {
-        DEFAULT_BG
-    }
-    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        rgb24
-    }
-    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        rgb24
-    }
-}
-
 /// An interface to a terminal for rendering `View`s, and getting input.
 pub struct Context {
     terminal: Terminal,
-    frame: Grid<UnixColourConversion>,
+    frame: Grid,
 }
 
 impl Context {
     /// Initialise a new context using the current terminal.
     pub fn new() -> Result<Self> {
-        Terminal::new(DEFAULT_FG, DEFAULT_BG).and_then(Self::from_terminal)
+        Terminal::new().and_then(Self::from_terminal)
     }
 
     pub fn from_terminal(mut terminal: Terminal) -> Result<Self> {
-        let size = terminal.resize_if_necessary(DEFAULT_FG, DEFAULT_BG)?;
-        let frame = Grid::new(size, UnixColourConversion);
+        let size = terminal.resize_if_necessary()?;
+        let frame = Grid::new(size);
         Ok(Self { terminal, frame })
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
-        let size = self
-            .terminal
-            .resize_if_necessary(self.frame.default_foreground(), self.frame.default_background())?;
+        let size = self.terminal.resize_if_necessary()?;
         if size != self.frame.size() {
             self.frame.resize(size);
         }
@@ -84,7 +61,7 @@ impl Context {
         E: ColEncode,
     {
         let _ = col_encode;
-        self.terminal.draw_frame::<_, E>(&mut self.frame)
+        self.terminal.draw_frame::<E>(&mut self.frame)
     }
 
     pub fn render<V, T, E>(&mut self, view: &mut V, data: T, col_encode: E) -> Result<()>

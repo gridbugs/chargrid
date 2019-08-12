@@ -14,7 +14,7 @@ impl Style {
         Self {
             bold: None,
             underline: None,
-            foreground: None,
+            foreground: Some(Rgb24::new_grey(255)),
             background: None,
         }
     }

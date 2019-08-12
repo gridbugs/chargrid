@@ -6,10 +6,8 @@ use prototty_input::*;
 use prototty_render::*;
 use std::time::Duration;
 
-type Cell = CommonCell<Rgb24>;
-
 #[derive(Debug, Clone)]
-pub struct OutputCell {
+struct OutputCell {
     dirty: bool,
     ch: char,
     fg: Rgb24,
@@ -19,7 +17,7 @@ pub struct OutputCell {
 }
 
 impl OutputCell {
-    pub fn matches(&self, cell: &Cell) -> bool {
+    fn matches(&self, cell: &CommonCell) -> bool {
         !self.dirty
             && self.ch == cell.character
             && self.fg == cell.foreground_colour
@@ -27,7 +25,7 @@ impl OutputCell {
             && self.bold == cell.bold
             && self.underline == cell.underline
     }
-    pub fn copy_fields(&mut self, cell: &Cell) {
+    fn copy_fields(&mut self, cell: &CommonCell) {
         self.dirty = false;
         self.ch = cell.character;
         self.fg = cell.foreground_colour;
@@ -35,12 +33,12 @@ impl OutputCell {
         self.bold = cell.bold;
         self.underline = cell.underline;
     }
-    fn new_default(fg: Rgb24, bg: Rgb24) -> Self {
+    fn new() -> Self {
         Self {
             dirty: true,
             ch: ' ',
-            fg,
-            bg,
+            fg: Rgb24::new_grey(0),
+            bg: Rgb24::new_grey(0),
             bold: false,
             underline: false,
         }
@@ -53,17 +51,17 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn new(fg: Rgb24, bg: Rgb24) -> Result<Self> {
+    pub fn new() -> Result<Self> {
         let ansi = AnsiTerminal::new()?;
         let size = ansi.size()?;
-        let output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
+        let output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new());
         Ok(Self { ansi, output_frame })
     }
 
-    pub fn resize_if_necessary(&mut self, fg: Rgb24, bg: Rgb24) -> Result<Size> {
+    pub fn resize_if_necessary(&mut self) -> Result<Size> {
         let size = self.ansi.size()?;
         if size != self.output_frame.size() {
-            self.output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new_default(fg, bg));
+            self.output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new());
         }
         Ok(size)
     }
@@ -72,16 +70,15 @@ impl Terminal {
         self.ansi.size()
     }
 
-    pub fn draw_frame<C, E>(&mut self, frame: &mut Grid<C>) -> Result<()>
+    pub fn draw_frame<E>(&mut self, frame: &mut Grid) -> Result<()>
     where
-        C: ColourConversion<Colour = Rgb24>,
         E: ColEncode,
     {
         self.ansi.set_cursor(Coord::new(0, 0))?;
         let mut bold = false;
         let mut underline = false;
-        let mut fg = frame.default_foreground();
-        let mut bg = frame.default_background();
+        let mut fg = Rgb24::new_grey(0);
+        let mut bg = Rgb24::new_grey(0);
         self.ansi.reset();
         self.ansi.clear_underline();
         self.ansi.set_foreground_colour::<E>(fg);

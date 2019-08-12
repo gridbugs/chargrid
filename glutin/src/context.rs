@@ -198,7 +198,7 @@ impl<'a> ContextBuilder<'a> {
         let width_in_cells = ::std::cmp::min((window_width as f32 / cell_width) as u32, max_grid_size.x());
         let height_in_cells = ::std::cmp::min((window_height as f32 / cell_height) as u32, max_grid_size.y());
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
-        let grid = Grid::new(window_size_in_cells, GlutinColourConversion);
+        let grid = Grid::new(window_size_in_cells);
         let char_buf = String::with_capacity(1);
         let underline_width = self
             .underline_width
@@ -273,23 +273,6 @@ fn convert_rgb24(rgb24: Rgb24) -> [f32; 4] {
     ]
 }
 
-struct GlutinColourConversion;
-impl ColourConversion for GlutinColourConversion {
-    type Colour = [f32; 4];
-    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        convert_rgb24(rgb24)
-    }
-    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        convert_rgb24(rgb24)
-    }
-    fn default_foreground(&mut self) -> Self::Colour {
-        [1.0, 1.0, 1.0, 1.0]
-    }
-    fn default_background(&mut self) -> Self::Colour {
-        [0.0, 0.0, 0.0, 1.0]
-    }
-}
-
 pub struct Context<'a> {
     window: glutin::WindowedContext<glutin::PossiblyCurrent>,
     device: gfx_device_gl::Device,
@@ -299,7 +282,7 @@ pub struct Context<'a> {
     dsv: gfx::handle::DepthStencilView<Resources, DepthFormat>,
     events_loop: glutin::EventsLoop,
     glyph_brush: gfx_glyph::GlyphBrush<'a, Resources, gfx_device_gl::Factory>,
-    grid: Grid<GlutinColourConversion>,
+    grid: Grid,
     char_buf: String,
     cell_width: f32,
     cell_height: f32,
@@ -390,16 +373,16 @@ impl<'a> Context<'a> {
                         screen_position: ((coord.x as f32 * self.cell_width), (coord.y as f32 * self.cell_height)),
                         scale,
                         font_id,
-                        color: cell.foreground_colour,
+                        color: convert_rgb24(cell.foreground_colour),
                         layout: Layout::default()
                             .h_align(HorizontalAlign::Left)
                             .v_align(VerticalAlign::Top),
                         ..Default::default()
                     };
                     self.glyph_brush.queue(section);
-                    output_cell.foreground_colour = cell.foreground_colour;
+                    output_cell.foreground_colour = convert_rgb24(cell.foreground_colour);
                 }
-                output_cell.background_colour = cell.background_colour;
+                output_cell.background_colour = convert_rgb24(cell.background_colour);
                 output_cell.underline = cell.underline as u32;
             }
         }

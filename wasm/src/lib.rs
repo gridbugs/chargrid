@@ -14,7 +14,6 @@ use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
 use prototty_event_routine::{common_event::CommonEvent, Event, EventRoutine, Handled};
-use prototty_grid::ColourConversion;
 pub use prototty_input::{Input, MouseInput};
 use prototty_input::{MouseButton, ScrollDirection};
 use prototty_render::{ColModify, Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault};
@@ -35,23 +34,6 @@ extern "C" {
 #[macro_export]
 macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-}
-
-struct WebColourConversion;
-impl prototty_grid::ColourConversion for WebColourConversion {
-    type Colour = Rgb24;
-    fn convert_foreground_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        rgb24
-    }
-    fn convert_background_rgb24(&mut self, rgb24: Rgb24) -> Self::Colour {
-        rgb24
-    }
-    fn default_foreground(&mut self) -> Self::Colour {
-        Rgb24::new(255, 255, 255)
-    }
-    fn default_background(&mut self) -> Self::Colour {
-        Rgb24::new(0, 0, 0)
-    }
 }
 
 fn rgb24_to_web_colour(Rgb24 { r, g, b }: Rgb24) -> String {
@@ -79,8 +61,8 @@ impl ElementCell {
             character: ' ',
             bold: false,
             underline: false,
-            foreground_colour: WebColourConversion.default_foreground(),
-            background_colour: WebColourConversion.default_background(),
+            foreground_colour: Rgb24::new_grey(0),
+            background_colour: Rgb24::new_grey(0),
         }
     }
 }
@@ -103,7 +85,7 @@ impl ElementDisplayInfo {
 
 pub struct Context {
     element_grid: grid_2d::Grid<ElementCell>,
-    prototty_grid: prototty_grid::Grid<WebColourConversion>,
+    prototty_grid: prototty_grid::Grid,
     container_element: Element,
 }
 
@@ -150,7 +132,7 @@ impl Context {
                 .append_child(document.create_element("br").unwrap().dyn_ref::<HtmlElement>().unwrap())
                 .unwrap();
         }
-        let prototty_grid = prototty_grid::Grid::new(size, WebColourConversion);
+        let prototty_grid = prototty_grid::Grid::new(size);
         Self {
             element_grid,
             prototty_grid,
