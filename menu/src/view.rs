@@ -56,14 +56,14 @@ where
     }
 }
 
-impl<'a, X, T, E> View<(&'a MenuInstance<T>, &'a X)> for MenuInstanceView<E>
+impl<'a, T, E> View<(&'a MenuInstance<T>, &'a E::Extra)> for MenuInstanceView<E>
 where
     T: Clone,
-    E: MenuEntryExtraView<T, X>,
+    E: MenuEntryExtraView<T>,
 {
     fn view<F: Frame, C: ColModify>(
         &mut self,
-        (menu_instance, extra): (&'a MenuInstance<T>, &'a X),
+        (menu_instance, extra): (&'a MenuInstance<T>, &'a E::Extra),
         context: ViewContext<C>,
         frame: &mut F,
     ) {
@@ -106,18 +106,19 @@ pub trait MenuEntryView<T> {
 /// to the methods of this trait can be used to pass some external
 /// object which knows how to map menu entries to some renderable
 /// value.
-pub trait MenuEntryExtraView<T, X> {
+pub trait MenuEntryExtraView<T> {
+    type Extra;
     fn normal<F: Frame, C: ColModify>(
         &mut self,
         entry: &T,
-        extra: &X,
+        extra: &Self::Extra,
         context: ViewContext<C>,
         frame: &mut F,
     ) -> MenuEntryViewInfo;
     fn selected<F: Frame, C: ColModify>(
         &mut self,
         entry: &T,
-        extra: &X,
+        extra: &Self::Extra,
         context: ViewContext<C>,
         frame: &mut F,
     ) -> MenuEntryViewInfo;
@@ -179,15 +180,16 @@ pub trait ChooseStyleFromEntryExtra {
     fn choose_style_selected(&mut self, entry: &Self::Entry, extra: &Self::Extra) -> Style;
 }
 
-impl<T, X, CS> MenuEntryExtraView<T, X> for CS
+impl<T, CS> MenuEntryExtraView<T> for CS
 where
     for<'a> &'a T: Into<&'a str>,
-    CS: ChooseStyleFromEntryExtra<Extra = X, Entry = T>,
+    CS: ChooseStyleFromEntryExtra<Entry = T>,
 {
+    type Extra = CS::Extra;
     fn normal<G: Frame, C: ColModify>(
         &mut self,
         entry: &T,
-        extra: &X,
+        extra: &Self::Extra,
         context: ViewContext<C>,
         frame: &mut G,
     ) -> MenuEntryViewInfo {
@@ -201,7 +203,7 @@ where
     fn selected<G: Frame, C: ColModify>(
         &mut self,
         entry: &T,
-        extra: &X,
+        extra: &Self::Extra,
         context: ViewContext<C>,
         frame: &mut G,
     ) -> MenuEntryViewInfo {

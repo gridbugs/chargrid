@@ -151,6 +151,13 @@ pub trait EventRoutine: Sized {
     fn decorated_view<V>(self, v: V) -> DecoratedView<Self, V> {
         DecoratedView { t: self, v }
     }
+
+    fn on_event<F>(self, f: F) -> OnEvent<Self, F>
+    where
+        F: FnMut(&mut &mut Self::Data, &Self::Event),
+    {
+        OnEvent { t: self, f }
+    }
 }
 
 struct OneShot<T, D, V, E> {
@@ -493,6 +500,46 @@ where
         C: ColModify,
     {
         self.v.view(data, view, context, frame);
+    }
+}
+
+pub struct OnEvent<T, F> {
+    t: T,
+    f: F,
+}
+
+impl<T, F> EventRoutine for OnEvent<T, F>
+where
+    T: EventRoutine,
+    F: FnMut(&mut &mut T::Data, &T::Event),
+{
+    type Return = T::Return;
+    type Data = T::Data;
+    type View = T::View;
+    type Event = T::Event;
+
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        let on_peek = |(s, data)| {
+            let Self { t, f } = s;
+            t.handle(data, view, Peek::new()).map_continue(|t| Self { t, f })
+        };
+        let on_event = |(s, mut data), event| {
+            let Self { t, mut f } = s;
+            (f)(&mut data, &event);
+            t.handle(data, view, Event::new(event)).map_continue(|t| Self { t, f })
+        };
+        event_or_peek.with((self, data), on_event, on_peek)
+    }
+
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+        self.t.view(data, view, context, frame);
     }
 }
 

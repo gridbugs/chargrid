@@ -4,11 +4,14 @@ use crate::game::{GameData, GameEventRoutine, GameReturn, GameView};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
-use menu::MenuInstanceChoose;
+use hashbrown::HashMap;
+use menu::{menu_entry_view, MenuEntryExtraView, MenuEntryViewInfo, MenuInstanceChoose, MenuInstanceExtraSelect};
 use prototty::*;
 use prototty_storage::Storage;
 use render::{ColModifyDefaultForeground, ColModifyMap, Rgb24, Style};
 use std::marker::PhantomData;
+use std::time::Duration;
+use text::StringViewSingleLine;
 
 #[derive(Clone, Copy)]
 pub enum Frontend {
@@ -22,7 +25,7 @@ enum MainMenuType {
     Pause,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 enum MainMenuEntry {
     NewGame,
     Resume,
@@ -67,11 +70,58 @@ pub struct AppData<S: Storage> {
     game: GameData<S>,
     main_menu: menu::MenuInstanceChooseOrEscape<MainMenuEntry>,
     main_menu_type: MainMenuType,
+    since_epoch: Duration,
 }
 
 pub struct AppView {
     game: GameView,
-    main_menu: menu::MenuInstanceView<menu::MenuEntryStylePair>,
+    main_menu: menu::MenuInstanceView<FadeMenuEntryView>,
+}
+
+struct FadeMenuEntryView {
+    _last_change_time: HashMap<MainMenuEntry, Duration>,
+}
+
+impl FadeMenuEntryView {
+    fn new() -> Self {
+        Self {
+            _last_change_time: HashMap::new(),
+        }
+    }
+}
+
+impl MenuEntryExtraView<MainMenuEntry> for FadeMenuEntryView {
+    type Extra = Duration;
+    fn normal<G: Frame, C: ColModify>(
+        &mut self,
+        entry: &MainMenuEntry,
+        _since_epoch: &Duration,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) -> MenuEntryViewInfo {
+        let s: &str = entry.into();
+        menu_entry_view(s, StringViewSingleLine::new(Style::new()), context, frame)
+    }
+    fn selected<G: Frame, C: ColModify>(
+        &mut self,
+        entry: &MainMenuEntry,
+        _since_epoch: &Duration,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) -> MenuEntryViewInfo {
+        let s: &str = entry.into();
+        menu_entry_view(
+            s,
+            StringViewSingleLine::new(
+                Style::new()
+                    .with_bold(true)
+                    .with_foreground(Rgb24::new(0, 0, 0))
+                    .with_background(Rgb24::new(255, 255, 255)),
+            ),
+            context,
+            frame,
+        )
+    }
 }
 
 impl<S: Storage> AppData<S> {
@@ -83,6 +133,7 @@ impl<S: Storage> AppData<S> {
                 .unwrap()
                 .into_choose_or_escape(),
             main_menu_type: MainMenuType::Init,
+            since_epoch: Duration::from_millis(0),
         }
     }
 }
@@ -91,10 +142,7 @@ impl AppView {
     pub fn new() -> Self {
         Self {
             game: GameView,
-            main_menu: menu::MenuInstanceView::new(menu::MenuEntryStylePair::new(
-                render::Style::new(),
-                render::Style::new().with_bold(true).with_underline(true),
-            )),
+            main_menu: menu::MenuInstanceView::new(FadeMenuEntryView::new()),
         }
     }
 }
@@ -133,19 +181,9 @@ impl<S: Storage> SelectMainMenu<S> {
         Self(PhantomData)
     }
 }
-impl<S: Storage> DataSelector for SelectMainMenu<S> {
-    type DataInput = AppData<S>;
-    type DataOutput = menu::MenuInstanceChooseOrEscape<MainMenuEntry>;
-    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
-        &input.main_menu
-    }
-    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
-        &mut input.main_menu
-    }
-}
 impl<S: Storage> ViewSelector for SelectMainMenu<S> {
     type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<menu::MenuEntryStylePair>;
+    type ViewOutput = menu::MenuInstanceView<FadeMenuEntryView>;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
         &input.main_menu
     }
@@ -153,7 +191,21 @@ impl<S: Storage> ViewSelector for SelectMainMenu<S> {
         &mut input.main_menu
     }
 }
-impl<S: Storage> Selector for SelectMainMenu<S> {}
+impl<S: Storage> MenuInstanceExtraSelect for SelectMainMenu<S> {
+    type DataInput = AppData<S>;
+    type Choose = menu::MenuInstanceChooseOrEscape<MainMenuEntry>;
+    type Extra = Duration;
+
+    fn choose<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Choose {
+        &input.main_menu
+    }
+    fn choose_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::Choose {
+        &mut input.main_menu
+    }
+    fn extra<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Extra {
+        &input.since_epoch
+    }
+}
 
 struct DecorateMainMenu<S>(PhantomData<S>);
 
@@ -172,7 +224,7 @@ impl<'a, 'b, S: Storage> View<&'a AppData<S>> for InitMenu<'b> {
             frame,
         );
         self.0.main_menu.view(
-            app_data.main_menu.menu_instance(),
+            (app_data.main_menu.menu_instance(), &app_data.since_epoch),
             context.add_offset(Coord::new(1, 3)),
             frame,
         );
@@ -199,7 +251,11 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
                     },
                 },
             }
-            .view(data.main_menu.menu_instance(), context.add_depth(1), frame);
+            .view(
+                (data.main_menu.menu_instance(), &data.since_epoch),
+                context.add_depth(1),
+                frame,
+            );
             if let Some(game) = data.game.game() {
                 AlignView {
                     alignment: Alignment::centre(),
@@ -283,9 +339,9 @@ fn main_menu<S: Storage>(
                 }
             }
         }
-        menu::MenuInstanceRoutine::new()
+        menu::MenuInstanceExtraRoutine::new(SelectMainMenu::new())
             .convert_input_to_common_event()
-            .select(SelectMainMenu::new())
+            //.select(SelectMainMenu::new())
             .decorated_view(DecorateMainMenu::new())
     })
 }
@@ -338,6 +394,10 @@ pub fn event_routine<S: Storage>(
             } else {
                 Handled::Continue(main_menu_cycle())
             }
+        })
+        .on_event(|data, event| match event {
+            CommonEvent::Input(_) => (),
+            CommonEvent::Frame(since_previous) => data.since_epoch += *since_previous,
         })
         .return_on_exit(|_| ())
 }
