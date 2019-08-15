@@ -25,7 +25,7 @@ enum MainMenuType {
     Pause,
 }
 
-#[derive(Clone, Copy, Hash)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 enum MainMenuEntry {
     NewGame,
     Resume,
@@ -78,15 +78,54 @@ pub struct AppView {
     main_menu: menu::MenuInstanceView<FadeMenuEntryView>,
 }
 
+#[derive(Clone, Copy)]
+enum MenuEntryStatus {
+    Selected,
+    Normal,
+}
+
+struct MenuEntryChange {
+    since_epoch: Duration,
+    change_to: MenuEntryStatus,
+    init: bool,
+}
+
 struct FadeMenuEntryView {
-    _last_change_time: HashMap<MainMenuEntry, Duration>,
+    last_change: HashMap<MainMenuEntry, MenuEntryChange>,
+    selected_fade_to_peak: Duration,
+    normal: Rgb24,
+    selected_peak: Rgb24,
 }
 
 impl FadeMenuEntryView {
     fn new() -> Self {
         Self {
-            _last_change_time: HashMap::new(),
+            last_change: HashMap::new(),
+            selected_fade_to_peak: Duration::from_millis(187),
+            normal: Rgb24::new(127, 127, 127),
+            selected_peak: Rgb24::new(255, 255, 255),
         }
+    }
+}
+
+fn duration_ratio_u8(delta: Duration, period: Duration) -> Result<u8, Duration> {
+    if let Some(remaining) = delta.checked_sub(period) {
+        Err(remaining)
+    } else {
+        Ok(((delta.as_micros() * 255) / period.as_micros()) as u8)
+    }
+}
+
+fn interpolate_rgb24(from: Rgb24, to: Rgb24, by: u8) -> Rgb24 {
+    fn interpolate_channel(from: u8, to: u8, by: u8) -> u8 {
+        let total_delta = to as i16 - from as i16;
+        let current_delta = (total_delta * by as i16) / 255;
+        (from as i16 + current_delta) as u8
+    }
+    Rgb24 {
+        r: interpolate_channel(from.r, to.r, by),
+        g: interpolate_channel(from.g, to.g, by),
+        b: interpolate_channel(from.b, to.b, by),
     }
 }
 
@@ -95,29 +134,68 @@ impl MenuEntryExtraView<MainMenuEntry> for FadeMenuEntryView {
     fn normal<G: Frame, C: ColModify>(
         &mut self,
         entry: &MainMenuEntry,
-        _since_epoch: &Duration,
+        since_epoch: &Duration,
         context: ViewContext<C>,
         frame: &mut G,
     ) -> MenuEntryViewInfo {
+        let current = self.last_change.entry(*entry).or_insert_with(|| MenuEntryChange {
+            since_epoch: *since_epoch,
+            change_to: MenuEntryStatus::Normal,
+            init: true,
+        });
+        match current.change_to {
+            MenuEntryStatus::Normal => (),
+            MenuEntryStatus::Selected => {
+                current.change_to = MenuEntryStatus::Selected;
+                current.init = false;
+                current.since_epoch = *since_epoch;
+            }
+        }
+        let foreground = self.normal;
         let s: &str = entry.into();
-        menu_entry_view(s, StringViewSingleLine::new(Style::new()), context, frame)
+        menu_entry_view(
+            s,
+            StringViewSingleLine::new(Style::new().with_foreground(foreground)),
+            context,
+            frame,
+        )
     }
     fn selected<G: Frame, C: ColModify>(
         &mut self,
         entry: &MainMenuEntry,
-        _since_epoch: &Duration,
+        since_epoch: &Duration,
         context: ViewContext<C>,
         frame: &mut G,
     ) -> MenuEntryViewInfo {
+        let current = self.last_change.entry(*entry).or_insert_with(|| MenuEntryChange {
+            since_epoch: *since_epoch,
+            change_to: MenuEntryStatus::Selected,
+            init: true,
+        });
+        match current.change_to {
+            MenuEntryStatus::Selected => (),
+            MenuEntryStatus::Normal => {
+                current.change_to = MenuEntryStatus::Selected;
+                current.init = false;
+                current.since_epoch = *since_epoch;
+            }
+        }
+        let foreground = if current.init {
+            self.selected_peak
+        } else {
+            if let Some(time_delta) = since_epoch.checked_sub(current.since_epoch) {
+                match duration_ratio_u8(time_delta, self.selected_fade_to_peak) {
+                    Ok(ratio) => interpolate_rgb24(self.normal, self.selected_peak, ratio),
+                    Err(_) => self.selected_peak,
+                }
+            } else {
+                self.selected_peak
+            }
+        };
         let s: &str = entry.into();
         menu_entry_view(
             s,
-            StringViewSingleLine::new(
-                Style::new()
-                    .with_bold(true)
-                    .with_foreground(Rgb24::new(0, 0, 0))
-                    .with_background(Rgb24::new(255, 255, 255)),
-            ),
+            StringViewSingleLine::new(Style::new().with_bold(true).with_foreground(foreground)),
             context,
             frame,
         )
