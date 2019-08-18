@@ -14,4 +14,4 @@ serialize = ["prototty_render/serialize", "grid_2d/serialize"]
 
 [dependencies]
 prototty_render = { path = "../render", version = "0.27" }
-grid_2d = "0.12"
+grid_2d = "0.13"

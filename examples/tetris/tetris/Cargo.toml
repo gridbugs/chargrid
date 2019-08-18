@@ -5,4 +5,4 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
 rand = "0.7"
-grid_2d = "0.12"
+grid_2d = "0.13"

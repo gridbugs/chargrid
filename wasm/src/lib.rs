@@ -93,7 +93,12 @@ impl Context {
     fn element_display_info(&self) -> ElementDisplayInfo {
         let container_rect = self.container_element.get_bounding_client_rect();
         let (container_x, container_y) = (container_rect.x(), container_rect.y());
-        let cell_element = self.element_grid.get_index(0).element.dyn_ref::<Element>().unwrap();
+        let cell_element = self
+            .element_grid
+            .get_index_checked(0)
+            .element
+            .dyn_ref::<Element>()
+            .unwrap();
         let cell_rect = cell_element.get_bounding_client_rect();
         let (cell_width, cell_height) = (cell_rect.width(), cell_rect.height());
         ElementDisplayInfo {
