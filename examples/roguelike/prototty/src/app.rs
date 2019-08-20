@@ -88,22 +88,82 @@ struct MenuEntryChange {
     since_epoch: Duration,
     change_to: MenuEntryStatus,
     init: bool,
+    fade_instance: FadeInstance,
+}
+
+struct FadeInstance {
+    from: Rgb24,
+    to: Rgb24,
+    started_at_since_epoch: Duration,
+    total_duration: Duration,
+}
+
+impl FadeInstance {
+    fn new_constant(col: Rgb24) -> Self {
+        Self {
+            from: col,
+            to: col,
+            started_at_since_epoch: Duration::from_millis(0),
+            total_duration: Duration::from_millis(0),
+        }
+    }
+
+    fn current_col(&self, since_epoch: Duration) -> Rgb24 {
+        if let Some(time_delta) = since_epoch.checked_sub(self.started_at_since_epoch) {
+            match duration_ratio_u8(time_delta, self.total_duration) {
+                Ok(ratio) => interpolate_rgb24(self.from, self.to, ratio),
+                Err(_) => self.to,
+            }
+        } else {
+            self.from
+        }
+    }
+
+    fn transform(&self, to: Rgb24, total_duration: Duration, since_epoch: Duration) -> Self {
+        if let Some(time_delta) = since_epoch.checked_sub(self.started_at_since_epoch) {
+            match duration_ratio_u8(time_delta, self.total_duration) {
+                Ok(ratio) => {
+                    let from = interpolate_rgb24(self.from, self.to, ratio);
+                    let millis =
+                        (time_delta.as_millis() * total_duration.as_millis()) / self.total_duration.as_millis();
+                    let total_duration = Duration::from_millis(millis as u64);
+                    Self {
+                        to,
+                        from,
+                        started_at_since_epoch: since_epoch,
+                        total_duration,
+                    }
+                }
+                Err(_) => Self {
+                    to,
+                    from: self.to,
+                    started_at_since_epoch: since_epoch,
+                    total_duration,
+                },
+            }
+        } else {
+            Self {
+                to,
+                from: self.from,
+                started_at_since_epoch: since_epoch,
+                total_duration,
+            }
+        }
+    }
 }
 
 struct FadeMenuEntryView {
     last_change: HashMap<MainMenuEntry, MenuEntryChange>,
-    selected_fade_to_peak: Duration,
-    normal: Rgb24,
-    selected_peak: Rgb24,
+    selected_fade_in: Duration,
+    selected_fade_out: Duration,
 }
 
 impl FadeMenuEntryView {
     fn new() -> Self {
         Self {
             last_change: HashMap::new(),
-            selected_fade_to_peak: Duration::from_millis(187),
-            normal: Rgb24::new(127, 127, 127),
-            selected_peak: Rgb24::new(255, 255, 255),
+            selected_fade_in: Duration::from_millis(127),
+            selected_fade_out: Duration::from_millis(255),
         }
     }
 }
@@ -142,16 +202,21 @@ impl MenuEntryExtraView<MainMenuEntry> for FadeMenuEntryView {
             since_epoch: *since_epoch,
             change_to: MenuEntryStatus::Normal,
             init: true,
+            fade_instance: FadeInstance::new_constant(Rgb24::new(127, 127, 127)),
         });
         match current.change_to {
             MenuEntryStatus::Normal => (),
             MenuEntryStatus::Selected => {
-                current.change_to = MenuEntryStatus::Selected;
+                current.change_to = MenuEntryStatus::Normal;
                 current.init = false;
                 current.since_epoch = *since_epoch;
+                current.fade_instance =
+                    current
+                        .fade_instance
+                        .transform(Rgb24::new(127, 127, 127), self.selected_fade_out, *since_epoch);
             }
         }
-        let foreground = self.normal;
+        let foreground = current.fade_instance.current_col(*since_epoch);
         let s: &str = entry.into();
         menu_entry_view(
             s,
@@ -171,6 +236,7 @@ impl MenuEntryExtraView<MainMenuEntry> for FadeMenuEntryView {
             since_epoch: *since_epoch,
             change_to: MenuEntryStatus::Selected,
             init: true,
+            fade_instance: FadeInstance::new_constant(Rgb24::new(255, 255, 255)),
         });
         match current.change_to {
             MenuEntryStatus::Selected => (),
@@ -178,20 +244,13 @@ impl MenuEntryExtraView<MainMenuEntry> for FadeMenuEntryView {
                 current.change_to = MenuEntryStatus::Selected;
                 current.init = false;
                 current.since_epoch = *since_epoch;
+                current.fade_instance =
+                    current
+                        .fade_instance
+                        .transform(Rgb24::new(255, 255, 255), self.selected_fade_in, *since_epoch);
             }
         }
-        let foreground = if current.init {
-            self.selected_peak
-        } else {
-            if let Some(time_delta) = since_epoch.checked_sub(current.since_epoch) {
-                match duration_ratio_u8(time_delta, self.selected_fade_to_peak) {
-                    Ok(ratio) => interpolate_rgb24(self.normal, self.selected_peak, ratio),
-                    Err(_) => self.selected_peak,
-                }
-            } else {
-                self.selected_peak
-            }
-        };
+        let foreground = current.fade_instance.current_col(*since_epoch);
         let s: &str = entry.into();
         menu_entry_view(
             s,
