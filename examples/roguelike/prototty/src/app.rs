@@ -230,7 +230,12 @@ impl MenuEntryExtraView<MainMenuEntry> for FadeMenuEntryView {
         let s: &str = entry.into();
         menu_entry_view(
             s,
-            StringViewSingleLine::new(Style::new().with_foreground(foreground).with_background(background)),
+            StringViewSingleLine::new(
+                Style::new()
+                    .with_bold(true)
+                    .with_foreground(foreground)
+                    .with_background(background),
+            ),
             context,
             frame,
         )
