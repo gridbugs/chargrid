@@ -4,14 +4,12 @@ use crate::game::{GameData, GameEventRoutine, GameReturn, GameView};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
-use hashbrown::HashMap;
-use menu::{menu_entry_view, MenuEntryExtraView, MenuEntryViewInfo, MenuInstanceChoose, MenuInstanceExtraSelect};
+use menu::{FadeMenuEntryView, MenuInstanceChoose, MenuInstanceExtraSelect};
 use prototty::*;
 use prototty_storage::Storage;
 use render::{ColModifyDefaultForeground, ColModifyMap, Rgb24, Style};
 use std::marker::PhantomData;
 use std::time::Duration;
-use text::StringViewSingleLine;
 
 #[derive(Clone, Copy)]
 pub enum Frontend {
@@ -25,7 +23,7 @@ enum MainMenuType {
     Pause,
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 enum MainMenuEntry {
     NewGame,
     Resume,
@@ -75,171 +73,7 @@ pub struct AppData<S: Storage> {
 
 pub struct AppView {
     game: GameView,
-    main_menu: menu::MenuInstanceView<FadeMenuEntryView>,
-}
-
-#[derive(Clone, Copy)]
-enum MenuEntryStatus {
-    Selected,
-    Normal,
-}
-
-struct MenuEntryChange {
-    change_to: MenuEntryStatus,
-    foreground: FadeInstance,
-    background: FadeInstance,
-}
-
-struct FadeInstance {
-    from: Rgb24,
-    to: Rgb24,
-    started_at_since_epoch: Duration,
-    total_duration: Duration,
-}
-
-impl FadeInstance {
-    fn new(from: Rgb24, to: Rgb24, total_duration: Duration, since_epoch: Duration) -> Self {
-        Self {
-            from,
-            to,
-            started_at_since_epoch: since_epoch,
-            total_duration,
-        }
-    }
-    fn constant(col: Rgb24) -> Self {
-        Self::new(col, col, Duration::from_millis(0), Duration::from_millis(0))
-    }
-
-    fn current(&self, since_epoch: Duration) -> Rgb24 {
-        if let Some(time_delta) = since_epoch.checked_sub(self.started_at_since_epoch) {
-            match duration_ratio_u8(time_delta, self.total_duration) {
-                Ok(ratio) => interpolate_rgb24(self.from, self.to, ratio),
-                Err(_) => self.to,
-            }
-        } else {
-            self.from
-        }
-    }
-}
-
-struct FadeMenuEntryView {
-    last_change: HashMap<MainMenuEntry, MenuEntryChange>,
-    selected_fade_in: Duration,
-    selected_fade_out: Duration,
-}
-
-impl FadeMenuEntryView {
-    fn new() -> Self {
-        Self {
-            last_change: HashMap::new(),
-            selected_fade_in: Duration::from_millis(127),
-            selected_fade_out: Duration::from_millis(255),
-        }
-    }
-}
-
-fn duration_ratio_u8(delta: Duration, period: Duration) -> Result<u8, Duration> {
-    if let Some(remaining) = delta.checked_sub(period) {
-        Err(remaining)
-    } else {
-        Ok(((delta.as_micros() * 255) / period.as_micros()) as u8)
-    }
-}
-
-fn interpolate_rgb24(from: Rgb24, to: Rgb24, by: u8) -> Rgb24 {
-    fn interpolate_channel(from: u8, to: u8, by: u8) -> u8 {
-        let total_delta = to as i32 - from as i32;
-        let current_delta = (total_delta * by as i32) / 255;
-        (from as i32 + current_delta) as u8
-    }
-    Rgb24 {
-        r: interpolate_channel(from.r, to.r, by),
-        g: interpolate_channel(from.g, to.g, by),
-        b: interpolate_channel(from.b, to.b, by),
-    }
-}
-
-impl MenuEntryExtraView<MainMenuEntry> for FadeMenuEntryView {
-    type Extra = Duration;
-    fn normal<G: Frame, C: ColModify>(
-        &mut self,
-        entry: &MainMenuEntry,
-        since_epoch: &Duration,
-        context: ViewContext<C>,
-        frame: &mut G,
-    ) -> MenuEntryViewInfo {
-        let current = self.last_change.entry(*entry).or_insert_with(|| MenuEntryChange {
-            change_to: MenuEntryStatus::Normal,
-            foreground: FadeInstance::constant(Rgb24::new(127, 127, 127)),
-            background: FadeInstance::constant(Rgb24::new(0, 0, 0)),
-        });
-        match current.change_to {
-            MenuEntryStatus::Normal => (),
-            MenuEntryStatus::Selected => {
-                current.change_to = MenuEntryStatus::Normal;
-                current.foreground = FadeInstance::new(
-                    current.foreground.current(*since_epoch),
-                    Rgb24::new(127, 127, 127),
-                    self.selected_fade_out,
-                    *since_epoch,
-                );
-            }
-        }
-        let foreground = current.foreground.current(*since_epoch);
-        let background = current.background.current(*since_epoch);
-        let s: &str = entry.into();
-        menu_entry_view(
-            s,
-            StringViewSingleLine::new(Style::new().with_foreground(foreground).with_background(background)),
-            context,
-            frame,
-        )
-    }
-    fn selected<G: Frame, C: ColModify>(
-        &mut self,
-        entry: &MainMenuEntry,
-        since_epoch: &Duration,
-        context: ViewContext<C>,
-        frame: &mut G,
-    ) -> MenuEntryViewInfo {
-        let current = self.last_change.entry(*entry).or_insert_with(|| MenuEntryChange {
-            change_to: MenuEntryStatus::Selected,
-            foreground: FadeInstance::constant(Rgb24::new(255, 255, 255)),
-            background: FadeInstance::constant(Rgb24::new(0, 0, 0)),
-        });
-        match current.change_to {
-            MenuEntryStatus::Selected => (),
-            MenuEntryStatus::Normal => {
-                current.change_to = MenuEntryStatus::Selected;
-                current.foreground = FadeInstance::new(
-                    current.foreground.current(*since_epoch),
-                    Rgb24::new(255, 255, 255),
-                    self.selected_fade_in,
-                    *since_epoch,
-                );
-                current.background = FadeInstance::new(
-                    Rgb24::new(127, 127, 127),
-                    Rgb24::new(0, 0, 0),
-                    Duration::from_millis(255),
-                    *since_epoch,
-                );
-            }
-        }
-        let foreground = current.foreground.current(*since_epoch);
-        let background = current.background.current(*since_epoch);
-        let s: &str = entry.into();
-        menu_entry_view(
-            s,
-            StringViewSingleLine::new(
-                Style::new()
-                    .with_bold(true)
-                    .with_foreground(foreground)
-                    .with_background(background),
-            ),
-            context,
-            frame,
-        )
-    }
+    main_menu: menu::MenuInstanceView<FadeMenuEntryView<MainMenuEntry>>,
 }
 
 impl<S: Storage> AppData<S> {
@@ -301,7 +135,7 @@ impl<S: Storage> SelectMainMenu<S> {
 }
 impl<S: Storage> ViewSelector for SelectMainMenu<S> {
     type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<FadeMenuEntryView>;
+    type ViewOutput = menu::MenuInstanceView<FadeMenuEntryView<MainMenuEntry>>;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
         &input.main_menu
     }
