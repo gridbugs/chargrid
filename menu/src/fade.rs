@@ -1,7 +1,9 @@
-use crate::{menu_entry_view, MenuEntryExtraView, MenuEntryViewInfo};
-use prototty_render::{ColModify, Frame, Rgb24, Style, ViewContext};
+use crate::{menu_entry_view, MenuEntryExtraView, MenuEntryViewInfo, MenuInstanceChoose, MenuInstanceView};
+use prototty_event_routine::{common_event, event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
+use prototty_render::{ColModify, Frame, Rgb24, Style, View, ViewContext};
 use prototty_text::StringViewSingleLine;
 use std::collections::BTreeMap;
+use std::marker::PhantomData;
 use std::time::Duration;
 
 fn duration_ratio_u8(delta: Duration, period: Duration) -> Result<u8, Duration> {
@@ -166,5 +168,78 @@ where
             context,
             frame,
         )
+    }
+}
+
+pub struct FadeMenuInstanceRoutine<C> {
+    choose: PhantomData<C>,
+    since_epoch: Duration,
+}
+
+impl<C> FadeMenuInstanceRoutine<C>
+where
+    C: MenuInstanceChoose,
+{
+    pub fn new() -> Self {
+        Self {
+            choose: PhantomData,
+            since_epoch: Duration::from_millis(0),
+        }
+    }
+}
+
+impl<C> Clone for FadeMenuInstanceRoutine<C>
+where
+    C: MenuInstanceChoose,
+{
+    fn clone(&self) -> Self {
+        Self {
+            choose: PhantomData,
+            since_epoch: self.since_epoch,
+        }
+    }
+}
+
+impl<C> Copy for FadeMenuInstanceRoutine<C> where C: MenuInstanceChoose {}
+
+impl<C> EventRoutine for FadeMenuInstanceRoutine<C>
+where
+    C: MenuInstanceChoose,
+    C::Entry: Ord + Clone,
+    for<'a> &'a C::Entry: Into<&'a str>,
+{
+    type Return = C::Output;
+    type Data = C;
+    type View = MenuInstanceView<FadeMenuEntryView<C::Entry>>;
+    type Event = common_event::CommonEvent;
+
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        event_or_peek_with_handled(event_or_peek, self, |s, event| match event {
+            common_event::CommonEvent::Input(input) => {
+                if let Some(menu_output) = data.choose(view, input) {
+                    Handled::Return(menu_output)
+                } else {
+                    Handled::Continue(s)
+                }
+            }
+            common_event::CommonEvent::Frame(duration) => {
+                let Self { choose, since_epoch } = s;
+                Handled::Continue(Self {
+                    choose,
+                    since_epoch: since_epoch + duration,
+                })
+            }
+        })
+    }
+
+    fn view<F, CM>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<CM>, frame: &mut F)
+    where
+        F: Frame,
+        CM: ColModify,
+    {
+        view.view((data.menu_instance(), &self.since_epoch), context, frame);
     }
 }
