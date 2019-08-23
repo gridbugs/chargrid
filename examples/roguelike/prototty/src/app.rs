@@ -143,21 +143,17 @@ impl<S: Storage> ViewSelector for SelectMainMenu<S> {
         &mut input.main_menu
     }
 }
-impl<S: Storage> MenuInstanceExtraSelect for SelectMainMenu<S> {
+impl<S: Storage> DataSelector for SelectMainMenu<S> {
     type DataInput = AppData<S>;
-    type Choose = menu::MenuInstanceChooseOrEscape<MainMenuEntry>;
-    type Extra = Duration;
-
-    fn choose<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Choose {
+    type DataOutput = menu::MenuInstanceChooseOrEscape<MainMenuEntry>;
+    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
         &input.main_menu
     }
-    fn choose_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::Choose {
+    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
         &mut input.main_menu
     }
-    fn extra<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Extra {
-        &input.since_epoch
-    }
 }
+impl<S: Storage> Selector for SelectMainMenu<S> {}
 
 struct DecorateMainMenu<S>(PhantomData<S>);
 
@@ -291,9 +287,8 @@ fn main_menu<S: Storage>(
                 }
             }
         }
-        menu::MenuInstanceExtraRoutine::new(SelectMainMenu::new())
-            .convert_input_to_common_event()
-            //.select(SelectMainMenu::new())
+        menu::FadeMenuInstanceRoutine::new()
+            .select(SelectMainMenu::new())
             .decorated_view(DecorateMainMenu::new())
     })
 }
