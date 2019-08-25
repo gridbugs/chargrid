@@ -4,7 +4,7 @@ use crate::game::{GameData, GameEventRoutine, GameReturn, GameView};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
-use menu::{FadeMenuEntryView, MenuInstanceChoose};
+use menu::{fade_spec, FadeMenuEntryView, MenuInstanceChoose};
 use prototty::*;
 use prototty_storage::Storage;
 use render::{ColModifyDefaultForeground, ColModifyMap, Rgb24, Style};
@@ -89,9 +89,41 @@ impl<S: Storage> AppData<S> {
 
 impl AppView {
     pub fn new() -> Self {
+        use fade_spec::*;
+        let spec = Spec {
+            normal: Style {
+                to: To {
+                    foreground: Rgb24::new(127, 127, 127),
+                    background: Rgb24::new(0, 0, 0),
+                    bold: false,
+                    underline: false,
+                },
+                from: From::current(),
+                durations: Durations {
+                    foreground: Duration::from_millis(255),
+                    background: Duration::from_millis(255),
+                },
+            },
+            selected: Style {
+                to: To {
+                    foreground: Rgb24::new(255, 0, 0),
+                    background: Rgb24::new(87, 0, 0),
+                    bold: true,
+                    underline: false,
+                },
+                from: From {
+                    foreground: FromCol::Rgb24(Rgb24::new(0, 0, 0)),
+                    background: FromCol::Rgb24(Rgb24::new(255, 0, 0)),
+                },
+                durations: Durations {
+                    foreground: Duration::from_millis(127),
+                    background: Duration::from_millis(255),
+                },
+            },
+        };
         Self {
             game: GameView,
-            main_menu: menu::MenuInstanceView::new(FadeMenuEntryView::new()),
+            main_menu: menu::MenuInstanceView::new(FadeMenuEntryView::new(spec)),
         }
     }
 }

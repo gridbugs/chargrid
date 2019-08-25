@@ -45,6 +45,22 @@ impl FadeInstance {
             self.from
         }
     }
+
+    fn transform_foreground(&self, style: &fade_spec::Style, since_epoch: Duration) -> Self {
+        let from = match style.from.foreground {
+            fade_spec::FromCol::Current => self.current(since_epoch),
+            fade_spec::FromCol::Rgb24(rgb24) => rgb24,
+        };
+        Self::new(from, style.to.foreground, style.durations.foreground, since_epoch)
+    }
+
+    fn transform_background(&self, style: &fade_spec::Style, since_epoch: Duration) -> Self {
+        let from = match style.from.background {
+            fade_spec::FromCol::Current => self.current(since_epoch),
+            fade_spec::FromCol::Rgb24(rgb24) => rgb24,
+        };
+        Self::new(from, style.to.background, style.durations.background, since_epoch)
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -59,23 +75,67 @@ struct MenuEntryChange {
     background: FadeInstance,
 }
 
+pub mod fade_spec {
+    pub use prototty_render::Rgb24;
+    pub use std::time::Duration;
+
+    pub enum FromCol {
+        Current,
+        Rgb24(Rgb24),
+    }
+
+    pub struct From {
+        pub foreground: FromCol,
+        pub background: FromCol,
+    }
+    impl From {
+        pub fn current() -> Self {
+            Self {
+                foreground: FromCol::Current,
+                background: FromCol::Current,
+            }
+        }
+    }
+
+    pub struct To {
+        pub foreground: Rgb24,
+        pub background: Rgb24,
+        pub bold: bool,
+        pub underline: bool,
+    }
+
+    pub struct Durations {
+        pub foreground: Duration,
+        pub background: Duration,
+    }
+
+    pub struct Style {
+        pub to: To,
+        pub from: From,
+        pub durations: Durations,
+    }
+
+    pub struct Spec {
+        pub selected: Style,
+        pub normal: Style,
+    }
+}
+
 pub struct FadeMenuEntryView<E> {
     last_change: BTreeMap<E, MenuEntryChange>,
-    selected_fade_in: Duration,
-    selected_fade_out: Duration,
     previous_view_since_epoch: Duration,
+    spec: fade_spec::Spec,
 }
 
 impl<E> FadeMenuEntryView<E>
 where
     E: Ord,
 {
-    pub fn new() -> Self {
+    pub fn new(spec: fade_spec::Spec) -> Self {
         Self {
             last_change: BTreeMap::new(),
-            selected_fade_in: Duration::from_millis(127),
-            selected_fade_out: Duration::from_millis(255),
             previous_view_since_epoch: Duration::from_millis(0),
+            spec,
         }
     }
     pub fn clear(&mut self) {
@@ -96,24 +156,21 @@ where
         context: ViewContext<C>,
         frame: &mut G,
     ) -> MenuEntryViewInfo {
+        let spec = &self.spec;
         let current = self
             .last_change
             .entry(entry.clone())
             .or_insert_with(|| MenuEntryChange {
                 change_to: MenuEntryStatus::Normal,
-                foreground: FadeInstance::constant(Rgb24::new(127, 127, 127)),
-                background: FadeInstance::constant(Rgb24::new(0, 0, 0)),
+                foreground: FadeInstance::constant(spec.normal.to.foreground),
+                background: FadeInstance::constant(spec.normal.to.background),
             });
         match current.change_to {
             MenuEntryStatus::Normal => (),
             MenuEntryStatus::Selected => {
                 current.change_to = MenuEntryStatus::Normal;
-                current.foreground = FadeInstance::new(
-                    current.foreground.current(*since_epoch),
-                    Rgb24::new(127, 127, 127),
-                    self.selected_fade_out,
-                    *since_epoch,
-                );
+                current.foreground = current.foreground.transform_foreground(&spec.normal, *since_epoch);
+                current.background = current.background.transform_background(&spec.normal, *since_epoch);
             }
         }
         let foreground = current.foreground.current(*since_epoch);
@@ -121,7 +178,13 @@ where
         let s: &str = entry.into();
         menu_entry_view(
             s,
-            StringViewSingleLine::new(Style::new().with_foreground(foreground).with_background(background)),
+            StringViewSingleLine::new(
+                Style::new()
+                    .with_bold(spec.normal.to.bold)
+                    .with_underline(spec.normal.to.underline)
+                    .with_foreground(foreground)
+                    .with_background(background),
+            ),
             context,
             frame,
         )
@@ -133,30 +196,21 @@ where
         context: ViewContext<C>,
         frame: &mut G,
     ) -> MenuEntryViewInfo {
+        let spec = &self.spec;
         let current = self
             .last_change
             .entry(entry.clone())
             .or_insert_with(|| MenuEntryChange {
                 change_to: MenuEntryStatus::Selected,
-                foreground: FadeInstance::constant(Rgb24::new(255, 255, 255)),
-                background: FadeInstance::constant(Rgb24::new(0, 0, 0)),
+                foreground: FadeInstance::constant(spec.selected.to.foreground),
+                background: FadeInstance::constant(spec.selected.to.background),
             });
         match current.change_to {
             MenuEntryStatus::Selected => (),
             MenuEntryStatus::Normal => {
                 current.change_to = MenuEntryStatus::Selected;
-                current.foreground = FadeInstance::new(
-                    current.foreground.current(*since_epoch),
-                    Rgb24::new(255, 255, 255),
-                    self.selected_fade_in,
-                    *since_epoch,
-                );
-                current.background = FadeInstance::new(
-                    Rgb24::new(127, 127, 127),
-                    Rgb24::new(0, 0, 0),
-                    Duration::from_millis(255),
-                    *since_epoch,
-                );
+                current.foreground = current.foreground.transform_foreground(&spec.selected, *since_epoch);
+                current.background = current.background.transform_background(&spec.selected, *since_epoch);
             }
         }
         let foreground = current.foreground.current(*since_epoch);
@@ -166,7 +220,8 @@ where
             s,
             StringViewSingleLine::new(
                 Style::new()
-                    .with_bold(true)
+                    .with_bold(spec.selected.to.bold)
+                    .with_underline(spec.selected.to.underline)
                     .with_foreground(foreground)
                     .with_background(background),
             ),
