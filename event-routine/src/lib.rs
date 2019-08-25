@@ -148,8 +148,11 @@ pub trait EventRoutine: Sized {
         common_event::ReturnOnExit { t: self, f }
     }
 
-    fn decorated_view<V>(self, v: V) -> DecoratedView<Self, V> {
-        DecoratedView { t: self, v }
+    fn decorated<D>(self, d: D) -> Decorated<Self, D>
+    where
+        D: Decorate<View = Self::View, Data = Self::Data>,
+    {
+        Decorated { t: self, d }
     }
 
     fn on_event<F>(self, f: F) -> OnEvent<Self, F>
@@ -461,25 +464,44 @@ where
     }
 }
 
-pub trait DecorateView {
+pub struct EventRoutineView<'e, 'v, E: EventRoutine> {
+    pub event_routine: &'e E,
+    pub view: &'v mut E::View,
+}
+
+impl<'e, 'v, 'd, E> View<&'d E::Data> for EventRoutineView<'e, 'v, E>
+where
+    E: EventRoutine,
+{
+    fn view<F: Frame, C: ColModify>(&mut self, data: &'d E::Data, context: ViewContext<C>, frame: &mut F) {
+        self.event_routine.view(data, self.view, context, frame)
+    }
+}
+
+pub trait Decorate {
     type View;
     type Data;
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
-        G: Frame,
+    fn view<E, F, C>(
+        data: &Self::Data,
+        event_routine_view: EventRoutineView<E>,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) where
+        E: EventRoutine<Data = Self::Data, View = Self::View>,
+        F: Frame,
         C: ColModify;
 }
 
-pub struct DecoratedView<T, V> {
+pub struct Decorated<T, D> {
     t: T,
-    v: V,
+    d: D,
 }
 
-impl<T, V> EventRoutine for DecoratedView<T, V>
+impl<T, D> EventRoutine for Decorated<T, D>
 where
     T: EventRoutine,
-    V: DecorateView<View = T::View, Data = T::Data>,
+    D: Decorate<View = T::View, Data = T::Data>,
 {
     type Return = T::Return;
     type Data = T::Data;
@@ -490,16 +512,20 @@ where
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
-        let Self { t, v } = self;
-        t.handle(data, view, event_or_peek).map_continue(|t| Self { t, v })
+        let Self { t, d } = self;
+        t.handle(data, view, event_or_peek).map_continue(|t| Self { t, d })
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
     where
-        G: Frame,
+        F: Frame,
         C: ColModify,
     {
-        self.v.view(data, view, context, frame);
+        let event_routine_view = EventRoutineView {
+            event_routine: &self.t,
+            view,
+        };
+        D::view(data, event_routine_view, context, frame)
     }
 }
 

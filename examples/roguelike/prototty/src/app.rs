@@ -4,12 +4,11 @@ use crate::game::{GameData, GameEventRoutine, GameReturn, GameView};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
-use menu::{FadeMenuEntryView, MenuInstanceChoose, MenuInstanceExtraSelect};
+use menu::{FadeMenuEntryView, MenuInstanceChoose};
 use prototty::*;
 use prototty_storage::Storage;
 use render::{ColModifyDefaultForeground, ColModifyMap, Rgb24, Style};
 use std::marker::PhantomData;
-use std::time::Duration;
 
 #[derive(Clone, Copy)]
 pub enum Frontend {
@@ -68,7 +67,6 @@ pub struct AppData<S: Storage> {
     game: GameData<S>,
     main_menu: menu::MenuInstanceChooseOrEscape<MainMenuEntry>,
     main_menu_type: MainMenuType,
-    since_epoch: Duration,
 }
 
 pub struct AppView {
@@ -85,7 +83,6 @@ impl<S: Storage> AppData<S> {
                 .unwrap()
                 .into_choose_or_escape(),
             main_menu_type: MainMenuType::Init,
-            since_epoch: Duration::from_millis(0),
         }
     }
 }
@@ -163,29 +160,33 @@ impl<S: Storage> DecorateMainMenu<S> {
     }
 }
 
-struct InitMenu<'a>(&'a mut AppView);
-impl<'a, 'b, S: Storage> View<&'a AppData<S>> for InitMenu<'b> {
+struct InitMenu<'e, 'v, E: EventRoutine>(EventRoutineView<'e, 'v, E>);
+impl<'a, 'e, 'v, S, E> View<&'a AppData<S>> for InitMenu<'e, 'v, E>
+where
+    S: Storage,
+    E: EventRoutine<View = AppView, Data = AppData<S>>,
+{
     fn view<F: Frame, C: ColModify>(&mut self, app_data: &'a AppData<S>, context: ViewContext<C>, frame: &mut F) {
         text::StringViewSingleLine::new(Style::new().with_bold(true)).view(
             "Template Roguelike",
             context.add_offset(Coord::new(1, 1)),
             frame,
         );
-        self.0.main_menu.view(
-            (app_data.main_menu.menu_instance(), &app_data.since_epoch),
-            context.add_offset(Coord::new(1, 3)),
-            frame,
-        );
+        self.0.view(app_data, context.add_offset(Coord::new(1, 3)), frame);
     }
 }
 
-impl<S: Storage> DecorateView for DecorateMainMenu<S> {
+impl<S: Storage> Decorate for DecorateMainMenu<S> {
     type View = AppView;
     type Data = AppData<S>;
-
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
-        G: Frame,
+    fn view<E, F, C>(
+        data: &Self::Data,
+        mut event_routine_view: EventRoutineView<E>,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) where
+        E: EventRoutine<Data = Self::Data, View = Self::View>,
+        F: Frame,
         C: ColModify,
     {
         if data.game.has_instance() {
@@ -195,19 +196,15 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
                     rgb24: Rgb24::new_grey(0),
                     view: BorderView {
                         style: &BorderStyle::new(),
-                        view: &mut view.main_menu,
+                        view: &mut event_routine_view,
                     },
                 },
             }
-            .view(
-                (data.main_menu.menu_instance(), &data.since_epoch),
-                context.add_depth(1),
-                frame,
-            );
+            .view(data, context.add_depth(1), frame);
             if let Some(game) = data.game.game() {
                 AlignView {
                     alignment: Alignment::centre(),
-                    view: &mut view.game,
+                    view: &mut event_routine_view.view.game,
                 }
                 .view(
                     game,
@@ -220,7 +217,7 @@ impl<S: Storage> DecorateView for DecorateMainMenu<S> {
             }
         } else {
             AlignView {
-                view: InitMenu(view),
+                view: InitMenu(event_routine_view),
                 alignment: Alignment::centre(),
             }
             .view(&data, context, frame);
@@ -238,22 +235,19 @@ where
     }
 }
 
-impl<S> DecorateView for DecorateGame<S>
-where
-    S: Storage,
-{
+impl<S: Storage> Decorate for DecorateGame<S> {
     type View = AppView;
     type Data = AppData<S>;
-
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    fn view<E, F, C>(data: &Self::Data, event_routine_view: EventRoutineView<E>, context: ViewContext<C>, frame: &mut F)
     where
-        G: Frame,
+        E: EventRoutine<Data = Self::Data, View = Self::View>,
+        F: Frame,
         C: ColModify,
     {
         if let Some(game) = data.game.game() {
             AlignView {
                 alignment: Alignment::centre(),
-                view: &mut view.game,
+                view: &mut event_routine_view.view.game,
             }
             .view(game, context, frame);
         }
@@ -289,7 +283,7 @@ fn main_menu<S: Storage>(
         }
         menu::FadeMenuInstanceRoutine::new()
             .select(SelectMainMenu::new())
-            .decorated_view(DecorateMainMenu::new())
+            .decorated(DecorateMainMenu::new())
     })
 }
 
@@ -297,7 +291,7 @@ fn game<S: Storage>() -> impl EventRoutine<Return = GameReturn, Data = AppData<S
 {
     GameEventRoutine::new()
         .select(SelectGame::new())
-        .decorated_view(DecorateGame::new())
+        .decorated(DecorateGame::new())
 }
 
 fn main_menu_cycle<S: Storage>(
@@ -341,10 +335,6 @@ pub fn event_routine<S: Storage>(
             } else {
                 Handled::Continue(main_menu_cycle())
             }
-        })
-        .on_event(|data, event| match event {
-            CommonEvent::Input(_) => (),
-            CommonEvent::Frame(since_previous) => data.since_epoch += *since_previous,
         })
         .return_on_exit(|_| ())
 }

@@ -63,6 +63,7 @@ pub struct FadeMenuEntryView<E> {
     last_change: BTreeMap<E, MenuEntryChange>,
     selected_fade_in: Duration,
     selected_fade_out: Duration,
+    previous_view_since_epoch: Duration,
 }
 
 impl<E> FadeMenuEntryView<E>
@@ -74,7 +75,11 @@ where
             last_change: BTreeMap::new(),
             selected_fade_in: Duration::from_millis(127),
             selected_fade_out: Duration::from_millis(255),
+            previous_view_since_epoch: Duration::from_millis(0),
         }
+    }
+    pub fn clear(&mut self) {
+        self.last_change.clear();
     }
 }
 
@@ -240,6 +245,10 @@ where
         F: Frame,
         CM: ColModify,
     {
+        if self.since_epoch < view.entry_view.previous_view_since_epoch {
+            view.entry_view.clear();
+        }
         view.view((data.menu_instance(), &self.since_epoch), context, frame);
+        view.entry_view.previous_view_since_epoch = self.since_epoch;
     }
 }
