@@ -3,22 +3,42 @@ use hashbrown::HashMap;
 use prototty::input::{Input, KeyboardInput};
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Serialize, Deserialize)]
+pub enum AppInput {
+    GameInput(GameInput),
+    Aim,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Controls {
-    keys: HashMap<KeyboardInput, GameInput>,
+    keys: HashMap<KeyboardInput, AppInput>,
 }
 
 impl Controls {
     pub fn default() -> Self {
         let mut keys = HashMap::new();
-        keys.insert(KeyboardInput::Left, GameInput::Move(Direction::West));
-        keys.insert(KeyboardInput::Right, GameInput::Move(Direction::East));
-        keys.insert(KeyboardInput::Up, GameInput::Move(Direction::North));
-        keys.insert(KeyboardInput::Down, GameInput::Move(Direction::South));
+        keys.insert(
+            KeyboardInput::Left,
+            AppInput::GameInput(GameInput::Move(Direction::West)),
+        );
+        keys.insert(
+            KeyboardInput::Right,
+            AppInput::GameInput(GameInput::Move(Direction::East)),
+        );
+        keys.insert(
+            KeyboardInput::Up,
+            AppInput::GameInput(GameInput::Move(Direction::North)),
+        );
+        keys.insert(
+            KeyboardInput::Down,
+            AppInput::GameInput(GameInput::Move(Direction::South)),
+        );
+        keys.insert(KeyboardInput::Char('f'), AppInput::Aim);
+
         Self { keys }
     }
 
-    pub fn get(&self, input: Input) -> Option<GameInput> {
+    pub fn get(&self, input: Input) -> Option<AppInput> {
         match input {
             Input::Keyboard(keyboard_input) => self.keys.get(&keyboard_input).cloned(),
             Input::Mouse(_) => None,

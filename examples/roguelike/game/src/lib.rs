@@ -63,6 +63,10 @@ impl Game {
         Self { grid, player }
     }
 
+    pub fn player_coord(&self) -> Coord {
+        self.player.coord
+    }
+
     pub fn to_render(&self) -> ToRender {
         ToRender { grid: &self.grid }
     }

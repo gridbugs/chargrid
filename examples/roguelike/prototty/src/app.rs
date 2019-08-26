@@ -1,6 +1,6 @@
 use crate::controls::Controls;
 pub use crate::game::RngSeed;
-use crate::game::{GameData, GameEventRoutine, GameReturn, GameView};
+use crate::game::{AimEventRoutine, GameData, GameEventRoutine, GameReturn, GameView};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
@@ -122,7 +122,7 @@ impl AppView {
             },
         };
         Self {
-            game: GameView,
+            game: GameView::new(),
             main_menu: menu::MenuInstanceView::new(FadeMenuEntryView::new(spec)),
         }
     }
@@ -276,13 +276,11 @@ impl<S: Storage> Decorate for DecorateGame<S> {
         F: Frame,
         C: ColModify,
     {
-        if let Some(game) = data.game.game() {
-            AlignView {
-                alignment: Alignment::centre(),
-                view: &mut event_routine_view.view.game,
-            }
-            .view(game, context, frame);
+        AlignView {
+            alignment: Alignment::centre(),
+            view: event_routine_view,
         }
+        .view(data, context, frame);
     }
 }
 
@@ -326,6 +324,37 @@ fn game<S: Storage>() -> impl EventRoutine<Return = GameReturn, Data = AppData<S
         .decorated(DecorateGame::new())
 }
 
+fn aim<S: Storage>() -> impl EventRoutine<Return = Option<Coord>, Data = AppData<S>, View = AppView, Event = CommonEvent>
+{
+    make_either!(Ei = A | B);
+    SideEffectThen::new(|data: &mut AppData<S>| {
+        if let Some(game) = data.game.game() {
+            Ei::A(
+                AimEventRoutine::new(game.player_coord())
+                    .select(SelectGame::new())
+                    .decorated(DecorateGame::new()),
+            )
+        } else {
+            Ei::B(Value::new(None))
+        }
+    })
+}
+
+fn game_loop<S: Storage>(
+) -> impl EventRoutine<Return = GameReturn, Data = AppData<S>, View = AppView, Event = CommonEvent> {
+    make_either!(Ei = A | B);
+    Ei::A(game()).repeat(|game_return| match game_return {
+        GameReturn::Pause => Handled::Return(GameReturn::Pause),
+        GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_coord| {
+            if let Some(_coord) = maybe_coord {
+                game()
+            } else {
+                game()
+            }
+        }))),
+    })
+}
+
 fn main_menu_cycle<S: Storage>(
 ) -> impl EventRoutine<Return = Option<Quit>, Data = AppData<S>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B | C | D | E | F);
@@ -345,7 +374,7 @@ fn main_menu_cycle<S: Storage>(
         })),
         Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(SideEffectThen::new(|data: &mut AppData<S>| {
             if data.game.has_instance() {
-                Either::Left(game().map(|GameReturn::Pause| None))
+                Either::Left(game_loop().map(|_| None))
             } else {
                 Either::Right(Value::new(None))
             }
@@ -353,7 +382,7 @@ fn main_menu_cycle<S: Storage>(
         Ok(MainMenuEntry::NewGame) => Ei::C(SideEffectThen::new(|data: &mut AppData<S>| {
             data.game.instantiate();
             data.main_menu.menu_instance_mut().set_index(0);
-            game().map(|GameReturn::Pause| None)
+            game_loop().map(|_| None)
         })),
     })
 }
