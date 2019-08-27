@@ -1,6 +1,6 @@
 use crate::controls::Controls;
 pub use crate::game::RngSeed;
-use crate::game::{AimEventRoutine, GameData, GameEventRoutine, GameReturn, GameView};
+use crate::game::{AimEventRoutine, GameData, GameEventRoutine, GameInput, GameReturn, GameView};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
@@ -324,6 +324,14 @@ fn game<S: Storage>() -> impl EventRoutine<Return = GameReturn, Data = AppData<S
         .decorated(DecorateGame::new())
 }
 
+fn game_injecting_inputs<S: Storage>(
+    inputs: Vec<GameInput>,
+) -> impl EventRoutine<Return = GameReturn, Data = AppData<S>, View = AppView, Event = CommonEvent> {
+    GameEventRoutine::new_injecting_inputs(inputs)
+        .select(SelectGame::new())
+        .decorated(DecorateGame::new())
+}
+
 fn aim<S: Storage>() -> impl EventRoutine<Return = Option<Coord>, Data = AppData<S>, View = AppView, Event = CommonEvent>
 {
     make_either!(Ei = A | B);
@@ -346,10 +354,11 @@ fn game_loop<S: Storage>(
     Ei::A(game()).repeat(|game_return| match game_return {
         GameReturn::Pause => Handled::Return(GameReturn::Pause),
         GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_coord| {
-            if let Some(_coord) = maybe_coord {
-                game()
+            make_either!(Ei = A | B);
+            if let Some(coord) = maybe_coord {
+                Ei::A(game_injecting_inputs(vec![GameInput::Fire(coord)]))
             } else {
-                game()
+                Ei::B(game())
             }
         }))),
     })

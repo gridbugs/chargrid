@@ -34,6 +34,7 @@ pub struct Game {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Input {
     Move(Direction),
+    Fire(Coord),
 }
 
 impl Game {
@@ -83,6 +84,7 @@ impl Game {
                     }
                 }
             }
+            Input::Fire(_) => (),
         }
     }
 }

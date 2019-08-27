@@ -1,5 +1,6 @@
 use crate::controls::{AppInput, Controls};
-use game::{Direction, Game, Input as GameInput, ToRender};
+pub use game::Input as GameInput;
+use game::{Direction, Game, ToRender};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
