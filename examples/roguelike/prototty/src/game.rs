@@ -1,6 +1,6 @@
 use crate::controls::{AppInput, Controls};
 pub use game::Input as GameInput;
-use game::{Direction, Game, ToRender};
+use game::{Direction, Game};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
@@ -28,14 +28,19 @@ impl GameView {
 
 impl<'a> View<&'a Game> for GameView {
     fn view<F: Frame, C: ColModify>(&mut self, game: &'a Game, context: ViewContext<C>, frame: &mut F) {
-        let ToRender { grid } = game.to_render();
+        let grid = game.grid();
         for (coord, cell) in grid.enumerate() {
-            let character = match cell.occupant {
-                None => '.',
-                Some(game::Occupant::Player) => '@',
-                Some(game::Occupant::Wall) => '#',
+            let view_cell = ViewCell::new().with_character('.');
+            let view_cell = if let Some(_wall) = cell.wall() {
+                view_cell.with_character('#')
+            } else {
+                view_cell
             };
-            let view_cell = ViewCell::new().with_character(character);
+            let view_cell = if let Some(_character) = cell.character() {
+                view_cell.with_character('@')
+            } else {
+                view_cell
+            };
             frame.set_cell_relative(coord, 0, view_cell, context);
         }
         self.last_offset = context.offset;
@@ -246,7 +251,7 @@ impl<S: Storage> EventRoutine for GameEventRoutine<S> {
                     }
                     if let Some(app_input) = controls.get(input) {
                         match app_input {
-                            AppInput::GameInput(game_input) => instance.game.handle_input(game_input),
+                            AppInput::Move(direction) => instance.game.handle_input(GameInput::Move(direction)),
                             AppInput::Aim => return Handled::Return(GameReturn::Aim),
                         }
                     }
