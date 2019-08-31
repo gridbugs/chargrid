@@ -48,7 +48,7 @@ impl Animate for SingleProjectile {
 
 #[derive(Serialize, Deserialize)]
 struct ScheduleEntry {
-    animation: Box<Animate>,
+    animation: Box<dyn Animate>,
     until_next_step: Duration,
 }
 
@@ -81,7 +81,7 @@ impl Schedule {
             next_animations: Vec::new(),
         }
     }
-    pub fn register(&mut self, animation: Box<Animate>) {
+    pub fn register(&mut self, animation: Box<dyn Animate>) {
         let entry = ScheduleEntry {
             animation,
             until_next_step: Duration::from_millis(0),
