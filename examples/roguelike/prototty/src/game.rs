@@ -1,6 +1,7 @@
 use crate::controls::{AppInput, Controls};
+use game::Game;
 pub use game::Input as GameInput;
-use game::{Direction, Game};
+use line_2d::LineSegment;
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
@@ -38,6 +39,11 @@ impl<'a> View<&'a Game> for GameView {
             };
             let view_cell = if let Some(_character) = cell.character() {
                 view_cell.with_character('@')
+            } else {
+                view_cell
+            };
+            let view_cell = if let Some(_projectile) = cell.projectiles().next() {
+                view_cell.with_character('*').with_foreground(Rgb24::new(0, 255, 255))
             } else {
                 view_cell
             };
@@ -159,17 +165,27 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
     type View = GameView;
     type Event = CommonEvent;
 
-    fn handle<EP>(self, _data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
         event_or_peek_with_handled(event_or_peek, self, |mut s, event| {
             let direction = match event {
                 CommonEvent::Input(input) => match input {
-                    Input::Keyboard(KeyboardInput::Up) => Direction::North,
-                    Input::Keyboard(KeyboardInput::Down) => Direction::South,
-                    Input::Keyboard(KeyboardInput::Left) => Direction::West,
-                    Input::Keyboard(KeyboardInput::Right) => Direction::East,
+                    Input::Keyboard(keyboard_input) => {
+                        if let Some(app_input) = data.controls.get(keyboard_input) {
+                            match app_input {
+                                AppInput::Aim => return Handled::Return(Some(s.coord)),
+                                AppInput::Move(direction) => direction,
+                            }
+                        } else {
+                            match keyboard_input {
+                                keys::RETURN => return Handled::Return(Some(s.coord)),
+                                keys::ESCAPE => return Handled::Return(None),
+                                _ => return Handled::Continue(s),
+                            }
+                        }
+                    }
                     Input::Mouse(MouseInput::MouseMove { coord, .. }) => {
                         s.coord = coord - view.last_offset;
                         return Handled::Continue(s);
@@ -178,8 +194,6 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                         s.coord = coord - view.last_offset;
                         return Handled::Return(Some(s.coord));
                     }
-                    Input::Keyboard(keys::RETURN) => return Handled::Return(Some(s.coord)),
-                    Input::Keyboard(keys::ESCAPE) => return Handled::Return(None),
                     _ => return Handled::Continue(s),
                 },
                 CommonEvent::Frame(_) => return Handled::Continue(s),
@@ -196,13 +210,16 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
     {
         if let Some(instance) = data.instance.as_ref() {
             view.view(&instance.game, context, frame);
+            let player_coord = instance.game.player_coord();
+            for coord in LineSegment::new(player_coord, self.coord) {
+                frame.set_cell_relative(
+                    coord,
+                    1,
+                    ViewCell::new().with_background(Rgb24::new(255, 0, 0)),
+                    context,
+                );
+            }
         }
-        frame.set_cell_relative(
-            self.coord,
-            1,
-            ViewCell::new().with_background(Rgb24::new(255, 0, 0)),
-            context,
-        );
     }
 }
 
@@ -246,18 +263,24 @@ impl<S: Storage> EventRoutine for GameEventRoutine<S> {
             let controls = &data.controls;
             event_or_peek_with_handled(event_or_peek, self, |s, event| match event {
                 CommonEvent::Input(input) => {
-                    if input == Input::Keyboard(keys::ESCAPE) {
-                        return Handled::Return(GameReturn::Pause);
-                    }
-                    if let Some(app_input) = controls.get(input) {
-                        match app_input {
-                            AppInput::Move(direction) => instance.game.handle_input(GameInput::Move(direction)),
-                            AppInput::Aim => return Handled::Return(GameReturn::Aim),
+                    match input {
+                        Input::Keyboard(keyboard_input) => {
+                            if keyboard_input == keys::ESCAPE {
+                                return Handled::Return(GameReturn::Pause);
+                            }
+                            if let Some(app_input) = controls.get(keyboard_input) {
+                                match app_input {
+                                    AppInput::Move(direction) => instance.game.handle_input(GameInput::Move(direction)),
+                                    AppInput::Aim => return Handled::Return(GameReturn::Aim),
+                                }
+                            }
                         }
+                        Input::Mouse(_) => (),
                     }
                     Handled::Continue(s)
                 }
                 CommonEvent::Frame(period) => {
+                    instance.game.handle_tick(period);
                     storage_wrapper.autosave_tick(instance, period);
                     Handled::Continue(s)
                 }

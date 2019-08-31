@@ -1,6 +1,6 @@
 use game::Direction;
 use hashbrown::HashMap;
-use prototty::input::{Input, KeyboardInput};
+use prototty::input::KeyboardInput;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -26,10 +26,7 @@ impl Controls {
         Self { keys }
     }
 
-    pub fn get(&self, input: Input) -> Option<AppInput> {
-        match input {
-            Input::Keyboard(keyboard_input) => self.keys.get(&keyboard_input).cloned(),
-            Input::Mouse(_) => None,
-        }
+    pub fn get(&self, keyboard_input: KeyboardInput) -> Option<AppInput> {
+        self.keys.get(&keyboard_input).cloned()
     }
 }
