@@ -12,9 +12,9 @@ enum ColEncodeChoice {
 }
 
 impl ColEncodeChoice {
-    fn arg() -> ArgExt<impl Arg<Item = Self>> {
+    fn arg() -> impl Arg<Item = Self> {
         use ColEncodeChoice::*;
-        (args_either! {
+        (args_choice! {
             flag("", "true-colour", "").some_if(TrueColour),
             flag("", "rgb", "").some_if(Rgb),
             flag("", "greyscale", "").some_if(Greyscale),
@@ -34,7 +34,7 @@ where
 }
 
 fn main() {
-    let col_encode_choice = ColEncodeChoice::arg().with_help_default().parse_env_default_or_exit();
+    let col_encode_choice = ColEncodeChoice::arg().with_help_default().parse_env_or_exit();
     let runner = Context::new().unwrap().into_runner(Duration::from_millis(16));
     use ColEncodeChoice::*;
     match col_encode_choice {

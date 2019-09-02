@@ -5,7 +5,6 @@ authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
 [dependencies]
-simon = "0.2"
 prototty_unix = { path = "../../../unix" }
 roguelike_native = { path = "../native" }
 roguelike_prototty = { path = "../prototty" }

@@ -1,5 +1,5 @@
 use prototty_glutin::{ContextBuilder, Size};
-use roguelike_native::NativeCommon;
+use roguelike_native::{simon::Arg, NativeCommon};
 use roguelike_prototty::{event_routine, AppData, AppView, Frontend};
 
 const WINDOW_SIZE_PIXELS: Size = Size::new_u16(640, 480);
@@ -10,7 +10,7 @@ fn main() {
         file_storage,
         controls,
         save_file,
-    } = NativeCommon::arg().with_help_default().parse_env_default_or_exit();
+    } = NativeCommon::arg().with_help_default().parse_env_or_exit();
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
         .with_window_dimensions(WINDOW_SIZE_PIXELS)

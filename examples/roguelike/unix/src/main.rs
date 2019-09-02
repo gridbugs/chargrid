@@ -1,7 +1,6 @@
 use prototty_unix::{col_encode, ColEncode, Context, EventRoutineRunner};
-use roguelike_native::{FileStorage, NativeCommon};
+use roguelike_native::{simon::*, FileStorage, NativeCommon};
 use roguelike_prototty::{event_routine, AppData, AppView, Frontend};
-use simon::*;
 use std::time::Duration;
 
 #[derive(Clone)]
@@ -13,9 +12,9 @@ enum ColEncodeChoice {
 }
 
 impl ColEncodeChoice {
-    fn arg() -> ArgExt<impl Arg<Item = Self>> {
+    fn arg() -> impl Arg<Item = Self> {
         use ColEncodeChoice::*;
-        (args_either! {
+        (args_choice! {
             flag("", "true-colour", "").some_if(TrueColour),
             flag("", "rgb", "").some_if(Rgb),
             flag("", "greyscale", "").some_if(Greyscale),
@@ -40,7 +39,7 @@ struct Args {
 }
 
 impl Args {
-    fn arg() -> ArgExt<impl Arg<Item = Self>> {
+    fn arg() -> impl Arg<Item = Self> {
         args_map! {
             let {
                 native_common = NativeCommon::arg();
@@ -62,7 +61,7 @@ fn main() {
                 save_file,
             },
         col_encode_choice,
-    } = Args::arg().with_help_default().parse_env_default_or_exit();
+    } = Args::arg().with_help_default().parse_env_or_exit();
     let runner = Context::new().unwrap().into_runner(Duration::from_millis(16));
     let app_data = AppData::new(Frontend::Native, controls, file_storage, save_file, rng_seed);
     let app_view = AppView::new();

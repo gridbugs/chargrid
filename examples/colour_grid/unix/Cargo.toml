@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 prototty_unix = { path = "../../../unix" }
 colour_grid_prototty = { path = "../prototty" }
-simon = "0.2"
+simon = "0.3"

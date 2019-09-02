@@ -1,6 +1,7 @@
 pub use prototty_file_storage::FileStorage;
 use prototty_file_storage::IfDirectoryMissing;
 use roguelike_prototty::{Controls, RngSeed};
+pub use simon;
 use simon::*;
 use std::collections::hash_map::DefaultHasher;
 use std::env;
@@ -34,11 +35,11 @@ fn read_controls_file(path: &PathBuf) -> Option<Controls> {
 }
 
 impl NativeCommon {
-    pub fn arg() -> ArgExt<impl Arg<Item = Self>> {
+    pub fn arg() -> impl Arg<Item = Self> {
         args_map! {
             let {
                 rng_seed = opt::<String>("r", "rng-seed", "rng seed", "TEXT")
-                    .option_map(|s| RngSeed::U64(hash_string(&s)))
+                    .option_map(|s: String| RngSeed::U64(hash_string(s.as_str())))
                     .with_default(RngSeed::Entropy);
                 save_file = opt("s", "save-file", "save file", "PATH")
                     .with_default(DEFAULT_SAVE_FILE.to_string());
