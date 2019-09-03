@@ -49,6 +49,9 @@ impl Game {
             animation_schedule: animation::Schedule::new(),
         }
     }
+    pub fn has_animations(&self) -> bool {
+        !self.animation_schedule.is_empty()
+    }
     pub fn handle_input(&mut self, input: Input) {
         if self.animation_schedule.is_empty() {
             match input {

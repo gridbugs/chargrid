@@ -268,10 +268,14 @@ impl<S: Storage> EventRoutine for GameEventRoutine<S> {
                             if keyboard_input == keys::ESCAPE {
                                 return Handled::Return(GameReturn::Pause);
                             }
-                            if let Some(app_input) = controls.get(keyboard_input) {
-                                match app_input {
-                                    AppInput::Move(direction) => instance.game.handle_input(GameInput::Move(direction)),
-                                    AppInput::Aim => return Handled::Return(GameReturn::Aim),
+                            if !instance.game.has_animations() {
+                                if let Some(app_input) = controls.get(keyboard_input) {
+                                    match app_input {
+                                        AppInput::Move(direction) => {
+                                            instance.game.handle_input(GameInput::Move(direction))
+                                        }
+                                        AppInput::Aim => return Handled::Return(GameReturn::Aim),
+                                    }
                                 }
                             }
                         }
