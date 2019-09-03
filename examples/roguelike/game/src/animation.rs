@@ -1,5 +1,5 @@
 use crate::data::{GameData, Id, ProjectileMoveError};
-use line_2d::{LineSegment, LineSegmentIter};
+use line_2d::{self, LineSegment, LineSegmentIter};
 use serde::{Deserialize, Serialize};
 use std::mem;
 use std::time::Duration;
@@ -25,7 +25,7 @@ impl SingleProjectile {
     pub fn new(path: LineSegment, step_duration: Duration, data: &mut GameData) -> Self {
         let entity_id = data.make_projectile(path.start);
         Self {
-            path_iter: path.into_iter(),
+            path_iter: path.iter_config(line_2d::Config::new().exclude_start()),
             step_duration,
             entity_id,
         }
