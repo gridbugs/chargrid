@@ -1,0 +1,17 @@
+{
+  "keys": {
+    "right": {
+      "Move": "East"
+    },
+    "up": {
+      "Move": "North"
+    },
+    "left": {
+      "Move": "West"
+    },
+    "down": {
+      "Move": "South"
+    },
+    "g": "Aim"
+  }
+}

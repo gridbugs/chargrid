@@ -12,7 +12,7 @@ use std::path::PathBuf;
 
 const DEFAULT_SAVE_FILE: &'static str = "save";
 const DEFAULT_NEXT_TO_EXE_SAVE_DIR: &'static str = "save";
-const DEFAULT_NEXT_TO_EXE_CONTROLS_FILE: &'static str = "controls.yaml";
+const DEFAULT_NEXT_TO_EXE_CONTROLS_FILE: &'static str = "controls.json";
 
 pub struct NativeCommon {
     pub rng_seed: RngSeed,
@@ -31,7 +31,7 @@ fn read_controls_file(path: &PathBuf) -> Option<Controls> {
     let mut buf = Vec::new();
     let mut f = File::open(path).ok()?;
     f.read_to_end(&mut buf).ok()?;
-    serde_yaml::from_slice(&buf).ok()
+    serde_json::from_slice(&buf).ok()
 }
 
 impl NativeCommon {

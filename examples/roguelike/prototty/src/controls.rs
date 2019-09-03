@@ -22,7 +22,6 @@ impl Controls {
         keys.insert(KeyboardInput::Up, AppInput::Move(Direction::North));
         keys.insert(KeyboardInput::Down, AppInput::Move(Direction::South));
         keys.insert(KeyboardInput::Char('f'), AppInput::Aim);
-
         Self { keys }
     }
 
