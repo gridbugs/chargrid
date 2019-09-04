@@ -211,7 +211,7 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
         if let Some(instance) = data.instance.as_ref() {
             view.view(&instance.game, context, frame);
             let player_coord = instance.game.player_coord();
-            for coord in LineSegment::new(player_coord, self.coord) {
+            for coord in LineSegment::new(player_coord, self.coord).iter() {
                 frame.set_cell_relative(
                     coord,
                     1,

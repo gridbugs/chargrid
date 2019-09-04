@@ -5,4 +5,4 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
 prototty = { path = "../../../prototty" }
-line_2d = "0.1"
+line_2d = "0.2"

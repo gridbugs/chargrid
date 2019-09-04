@@ -81,11 +81,11 @@ impl<'a> View<&'a App> for AppView {
             (Some(last_clicked_coord), Some(coord)) => {
                 let line = LineSegment::new(last_clicked_coord, coord);
                 match app.line_type {
-                    LineType::Normal => draw_line(frame, line.traverse(), context),
-                    LineType::Cardinal => draw_line(frame, line.traverse_cardinal(), context),
+                    LineType::Normal => draw_line(frame, line.iter(), context),
+                    LineType::Cardinal => draw_line(frame, line.cardinal_iter(), context),
                     LineType::Infinite => {
-                        if let Ok(line) = line.try_infinite() {
-                            draw_line(frame, line.traverse(), context);
+                        if line.num_steps() > 1 {
+                            draw_line(frame, line.infinite_iter(), context);
                         }
                     }
                 }
