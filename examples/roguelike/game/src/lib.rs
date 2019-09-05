@@ -58,12 +58,14 @@ impl Game {
                 Input::Move(direction) => self.data.move_character(self.player_id, direction),
                 Input::Fire(coord) => {
                     let player_coord = self.player_coord();
-                    self.animation_schedule
-                        .register(Box::new(animation::SingleProjectile::new(
-                            LineSegment::new(player_coord, coord),
-                            Duration::from_millis(40),
-                            &mut self.data,
-                        )));
+                    if coord != player_coord {
+                        self.animation_schedule
+                            .register(Box::new(animation::SingleProjectile::new(
+                                LineSegment::new(player_coord, coord),
+                                Duration::from_millis(40),
+                                &mut self.data,
+                            )));
+                    }
                 }
             }
         }

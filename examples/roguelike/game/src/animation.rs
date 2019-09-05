@@ -23,7 +23,7 @@ pub struct SingleProjectile {
 
 impl SingleProjectile {
     pub fn new(path: LineSegment, step_duration: Duration, data: &mut GameData) -> Self {
-        let entity_id = data.make_projectile(path.start);
+        let entity_id = data.make_projectile(path.start());
         Self {
             path_iter: path.config_iter(LineConfig {
                 exclude_start: true,
