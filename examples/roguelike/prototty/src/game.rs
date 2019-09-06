@@ -1,7 +1,7 @@
 use crate::controls::{AppInput, Controls};
 use game::Game;
 pub use game::Input as GameInput;
-use line_2d::{Config as LineConfig, Direction, LineSegment};
+use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
@@ -212,32 +212,27 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
             view.view(&instance.game, context, frame);
             let player_coord = instance.game.player_coord();
             if self.coord != player_coord {
+                for node in LineSegment::new(player_coord, self.coord).config_node_iter(LineConfig {
+                    exclude_start: true,
+                    exclude_end: false,
+                }) {
+                    if !node.coord.is_valid(instance.game.grid().size()) {
+                        break;
+                    }
+                    frame.set_cell_relative(
+                        node.coord,
+                        1,
+                        ViewCell::new().with_background(Rgb24::new(255, 0, 0)),
+                        context,
+                    );
+                }
+            } else {
                 frame.set_cell_relative(
                     self.coord,
                     1,
                     ViewCell::new().with_background(Rgb24::new(255, 0, 0)),
                     context,
                 );
-                for node in LineSegment::new(player_coord, self.coord).config_node_iter(LineConfig {
-                    exclude_start: true,
-                    exclude_end: true,
-                }) {
-                    let ch = match node.next {
-                        Direction::North | Direction::South => '|',
-                        Direction::East | Direction::West => '-',
-                        Direction::NorthEast | Direction::SouthWest => '/',
-                        Direction::NorthWest | Direction::SouthEast => '\\',
-                    };
-                    frame.set_cell_relative(
-                        node.coord,
-                        1,
-                        ViewCell::new()
-                            .with_character(ch)
-                            .with_foreground(Rgb24::new(255, 0, 0))
-                            .with_bold(true),
-                        context,
-                    );
-                }
             }
         }
     }
