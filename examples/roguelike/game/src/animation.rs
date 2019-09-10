@@ -5,19 +5,20 @@ use std::mem;
 use std::time::Duration;
 
 pub enum AnimateResult {
-    Complete,
-    NextStepIn(Duration),
+    Continue,
+    Break,
 }
 
 #[typetag::serde(tag = "type")]
 pub trait Animate {
-    fn step(&mut self, data: &mut GameData) -> AnimateResult;
+    fn step(&mut self, since_last_frame: Duration, data: &mut GameData) -> AnimateResult;
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct SingleProjectile {
     path_iter: LineSegmentIter,
     step_duration: Duration,
+    until_next_step: Duration,
     entity_id: Id,
 }
 
@@ -30,6 +31,7 @@ impl SingleProjectile {
                 exclude_end: false,
             }),
             step_duration,
+            until_next_step: Duration::from_millis(0),
             entity_id,
         }
     }
@@ -37,44 +39,71 @@ impl SingleProjectile {
 
 #[typetag::serde]
 impl Animate for SingleProjectile {
-    fn step(&mut self, data: &mut GameData) -> AnimateResult {
-        if let Some(coord) = self.path_iter.next() {
+    fn step(&mut self, since_last_frame: Duration, data: &mut GameData) -> AnimateResult {
+        if let Some(remaining_until_next_step) = self.until_next_step.checked_sub(since_last_frame) {
+            self.until_next_step = remaining_until_next_step;
+            AnimateResult::Continue
+        } else if let Some(coord) = self.path_iter.next() {
             match data.move_projectile(self.entity_id, coord) {
-                Ok(()) => return AnimateResult::NextStepIn(self.step_duration),
-                Err(ProjectileMoveError::DestinationSolid) => (),
+                Ok(()) => {
+                    self.until_next_step = self.step_duration;
+                    AnimateResult::Continue
+                }
+                Err(ProjectileMoveError::DestinationSolid) => {
+                    data.remove_projectile(self.entity_id);
+                    AnimateResult::Break
+                }
             }
+        } else {
+            data.remove_projectile(self.entity_id);
+            AnimateResult::Break
         }
-        data.remove_projectile(self.entity_id);
-        AnimateResult::Complete
     }
 }
 
-#[derive(Serialize, Deserialize)]
-struct ScheduleEntry {
-    animation: Box<dyn Animate>,
-    until_next_step: Duration,
+#[derive(Clone, Copy, Serialize, Deserialize)]
+enum ThenStage {
+    First,
+    Second,
 }
 
-struct ScheduleAgain;
+#[derive(Serialize, Deserialize)]
+pub struct Then {
+    first: Box<dyn Animate>,
+    second: Box<dyn Animate>,
+    stage: ThenStage,
+}
 
-impl ScheduleEntry {
-    fn tick(&mut self, data: &mut GameData, mut since_last_tick: Duration) -> Option<ScheduleAgain> {
-        while let Some(remaining_since_last_tick) = since_last_tick.checked_sub(self.until_next_step) {
-            match self.animation.step(data) {
-                AnimateResult::NextStepIn(until_next_step) => self.until_next_step = until_next_step,
-                AnimateResult::Complete => return None,
-            }
-            since_last_tick = remaining_since_last_tick;
+impl Then {
+    pub fn new(first: Box<dyn Animate>, second: Box<dyn Animate>) -> Self {
+        Self {
+            first,
+            second,
+            stage: ThenStage::First,
         }
-        self.until_next_step -= since_last_tick;
-        Some(ScheduleAgain)
+    }
+}
+
+#[typetag::serde]
+impl Animate for Then {
+    fn step(&mut self, since_last_frame: Duration, data: &mut GameData) -> AnimateResult {
+        match self.stage {
+            ThenStage::First => {
+                match self.first.step(since_last_frame, data) {
+                    AnimateResult::Continue => (),
+                    AnimateResult::Break => self.stage = ThenStage::Second,
+                }
+                AnimateResult::Continue
+            }
+            ThenStage::Second => self.second.step(since_last_frame, data),
+        }
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Schedule {
-    animations: Vec<ScheduleEntry>,
-    next_animations: Vec<ScheduleEntry>,
+    animations: Vec<Box<dyn Animate>>,
+    next_animations: Vec<Box<dyn Animate>>,
 }
 
 impl Schedule {
@@ -85,22 +114,18 @@ impl Schedule {
         }
     }
     pub fn register(&mut self, animation: Box<dyn Animate>) {
-        let entry = ScheduleEntry {
-            animation,
-            until_next_step: Duration::from_millis(0),
-        };
-        self.animations.push(entry);
-    }
-    pub fn tick(&mut self, data: &mut GameData, since_last_tick: Duration) {
-        for mut entry in self.animations.drain(..) {
-            match entry.tick(data, since_last_tick) {
-                None => (),
-                Some(ScheduleAgain) => self.next_animations.push(entry),
-            }
-        }
-        mem::swap(&mut self.animations, &mut self.next_animations);
+        self.animations.push(animation);
     }
     pub fn is_empty(&self) -> bool {
         self.animations.is_empty()
+    }
+    pub fn tick(&mut self, since_last_tick: Duration, data: &mut GameData) {
+        for mut animation in self.animations.drain(..) {
+            match animation.step(since_last_tick, data) {
+                AnimateResult::Break => (),
+                AnimateResult::Continue => self.next_animations.push(animation),
+            }
+        }
+        mem::swap(&mut self.animations, &mut self.next_animations);
     }
 }

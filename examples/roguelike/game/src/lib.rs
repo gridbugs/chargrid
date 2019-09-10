@@ -59,19 +59,22 @@ impl Game {
                 Input::Fire(coord) => {
                     let player_coord = self.player_coord();
                     if coord != player_coord {
-                        self.animation_schedule
-                            .register(Box::new(animation::SingleProjectile::new(
+                        let mut proj = || {
+                            animation::SingleProjectile::new(
                                 LineSegment::new(player_coord, coord),
                                 Duration::from_millis(40),
                                 &mut self.data,
-                            )));
+                            )
+                        };
+                        let animation = animation::Then::new(Box::new(proj()), Box::new(proj()));
+                        self.animation_schedule.register(Box::new(animation));
                     }
                 }
             }
         }
     }
     pub fn handle_tick(&mut self, since_last_tick: Duration) {
-        self.animation_schedule.tick(&mut self.data, since_last_tick);
+        self.animation_schedule.tick(since_last_tick, &mut self.data);
     }
     pub fn grid(&self) -> &Grid<Cell> {
         self.data.grid()
