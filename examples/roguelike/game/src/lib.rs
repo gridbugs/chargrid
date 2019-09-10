@@ -1,11 +1,13 @@
 pub use direction::Direction;
 pub use grid_2d::{Coord, Grid, Size};
 use line_2d::LineSegment;
-use rand::Rng;
+use rand::{Rng, SeedableRng};
+use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 mod animation;
+mod circle;
 mod data;
 
 use data::{Cell, GameData, Id};
@@ -21,10 +23,11 @@ pub struct Game {
     data: GameData,
     player_id: Id,
     animation_schedule: animation::Schedule,
+    rng: Isaac64Rng,
 }
 
 impl Game {
-    pub fn new<R: Rng>(_rng: &mut R) -> Self {
+    pub fn new<R: Rng>(rng: &mut R) -> Self {
         let s = include_str!("terrain.txt");
         let rows = s.split("\n").filter(|s| !s.is_empty()).collect::<Vec<_>>();
         let size = Size::new_u16(rows[0].len() as u16, rows.len() as u16);
@@ -47,6 +50,7 @@ impl Game {
             data,
             player_id: player_id.expect("didn't create player"),
             animation_schedule: animation::Schedule::new(),
+            rng: Isaac64Rng::seed_from_u64(rng.gen()),
         }
     }
     pub fn has_animations(&self) -> bool {
@@ -59,14 +63,15 @@ impl Game {
                 Input::Fire(coord) => {
                     let player_coord = self.player_coord();
                     if coord != player_coord {
-                        let mut proj = || {
-                            animation::SingleProjectile::new(
-                                LineSegment::new(player_coord, coord),
-                                Duration::from_millis(40),
-                                &mut self.data,
-                            )
-                        };
-                        let animation = animation::Then::new(Box::new(proj()), Box::new(proj()));
+                        let single_projectile = animation::SingleProjectile::new(
+                            LineSegment::new(player_coord, coord),
+                            Duration::from_millis(40),
+                            &mut self.data,
+                        );
+                        let animation = animation::SingleProjectileThen::new(
+                            single_projectile,
+                            Box::new(animation::ExplodeFactory::new(10, &mut self.rng)),
+                        );
                         self.animation_schedule.register(Box::new(animation));
                     }
                 }
