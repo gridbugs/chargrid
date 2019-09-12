@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 mod animation;
+mod animation2;
 mod circle;
 mod data;
 
