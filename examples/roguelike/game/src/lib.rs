@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 mod animation;
-mod animation2;
 mod circle;
 mod data;
 
@@ -64,15 +63,13 @@ impl Game {
                 Input::Fire(coord) => {
                     let player_coord = self.player_coord();
                     if coord != player_coord {
-                        let single_projectile = animation::SingleProjectile::new(
+                        let projectile = animation::Projectile::new(
                             LineSegment::new(player_coord, coord),
                             Duration::from_millis(20),
                             &mut self.data,
                         );
-                        let animation = animation::SingleProjectileThen::new(
-                            single_projectile,
-                            Box::new(animation::ExplodeFactory::new(10, &mut self.rng)),
-                        );
+                        let explode_factory = animation::ExplodeFactory::new(10, &mut self.rng);
+                        let animation = animation::AndThenCoord::new(Box::new(projectile), Box::new(explode_factory));
                         self.animation_schedule.register(Box::new(animation));
                     }
                 }

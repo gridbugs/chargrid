@@ -203,8 +203,8 @@ impl<S: Storage> AimEventRoutine<S> {
             coord,
             duration: Duration::from_millis(0),
             blink: Blink {
-                min: Rgb24::new(31, 0, 0),
-                max: Rgb24::new(221, 0, 0),
+                min: Rgb24::new(63, 0, 0),
+                max: Rgb24::new(187, 0, 0),
                 cycle_length: Duration::from_millis(500),
             },
         }
@@ -304,8 +304,10 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     );
                 }
             }
-            let col = self.blink.col(self.duration);
-            frame.set_cell_relative(self.coord, 1, ViewCell::new().with_background(col), context);
+            if self.coord.is_valid(instance.game.grid().size()) {
+                let col = self.blink.col(self.duration);
+                frame.set_cell_relative(self.coord, 1, ViewCell::new().with_background(col), context);
+            }
         }
     }
 }

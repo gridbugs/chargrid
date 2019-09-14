@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::circle;
 use crate::data::{GameData, Id, ProjectileMoveError};
 use line_2d::{Config as LineConfig, Coord, LineSegment, NodeIter as LineSegmentIter};
@@ -7,35 +6,47 @@ use serde::{Deserialize, Serialize};
 use std::mem;
 use std::time::Duration;
 
-pub type Animation = Box<dyn Animate>;
-
-pub enum AnimateResult {
+pub enum Control<R> {
     Continue,
-    Break,
+    Return(R),
+}
+
+pub struct AnimateResult<R> {
+    pub duration: Duration,
+    pub control: Control<R>,
+}
+
+impl<R> AnimateResult<R> {
+    fn return_unit(self) -> AnimateResult<()> {
+        let AnimateResult { duration, control } = self;
+        AnimateResult {
+            duration,
+            control: match control {
+                Control::Continue => Control::Continue,
+                Control::Return(_) => Control::Return(()),
+            },
+        }
+    }
 }
 
 #[typetag::serde(tag = "type")]
 pub trait Animate {
-    fn step(&mut self, since_last_frame: Duration, data: &mut GameData) -> AnimateResult;
+    fn tick(&mut self, since_last_tick: Duration, data: &mut GameData) -> AnimateResult<()>;
     fn cleanup(&mut self, data: &mut GameData);
 }
 
 #[typetag::serde(tag = "type")]
-pub trait AnimationFactory {
-    fn make(&mut self, data: &mut GameData) -> Animation;
+pub trait AnimateReturnCoord {
+    fn tick_return_coord(&mut self, since_last_tick: Duration, data: &mut GameData) -> AnimateResult<Coord>;
+    fn cleanup_return_coord(&mut self, data: &mut GameData);
 }
+
+pub type Animation = Box<dyn Animate>;
+pub type AnimationReturnCoord = Box<dyn AnimateReturnCoord>;
 
 #[typetag::serde(tag = "type")]
 pub trait AnimationFactoryArgCoord {
-    fn make(&mut self, coord: Coord, data: &mut GameData) -> Animation;
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SingleProjectile {
-    path_iter: LineSegmentIter,
-    step_duration: Duration,
-    until_next_step: Duration,
-    entity_id: Id,
+    fn make_arg_coord(&mut self, data: &mut GameData, coord: Coord) -> Animation;
 }
 
 #[derive(Serialize, Deserialize)]
@@ -46,9 +57,9 @@ pub struct ExplodeFactory {
 impl ExplodeFactory {
     pub fn new<R: Rng>(radius: i32, rng: &mut R) -> Self {
         let mut offsets = Vec::new();
-        for _ in 0..256 {
+        for i in 0..=255 {
             let length = rng.gen_range((radius - 2).max(0), (radius + 2).max(1));
-            let coord = circle::random_coord_with_cardinal_length(length, rng);
+            let coord = circle::scale_to_cardinal_length(circle::coord(i), length);
             offsets.push(coord);
         }
         Self { offsets }
@@ -57,12 +68,16 @@ impl ExplodeFactory {
 
 #[typetag::serde]
 impl AnimationFactoryArgCoord for ExplodeFactory {
-    fn make(&mut self, coord: Coord, data: &mut GameData) -> Animation {
+    fn make_arg_coord(&mut self, data: &mut GameData, coord: Coord) -> Animation {
         let mut particles = Vec::new();
         for offset in self.offsets.iter() {
             let line_segment = LineSegment::new(coord, coord + offset);
-            let step_duration = Duration::from_millis(20);
-            let single_projectile: Animation = Box::new(SingleProjectile::new(line_segment, step_duration, data));
+            let step_duration = Duration::from_millis(50);
+            let single_projectile: Animation = Box::new(Saturate::new(Box::new(Projectile::new(
+                line_segment,
+                step_duration,
+                data,
+            ))));
             particles.push(single_projectile);
         }
         Box::new(Parallel::new(particles))
@@ -70,229 +85,247 @@ impl AnimationFactoryArgCoord for ExplodeFactory {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SingleProjectileFactory {
-    path: LineSegment,
-    step_duration: Duration,
+pub struct Saturate {
+    until_next_tick: Duration,
+    animation: Animation,
 }
 
-impl SingleProjectileFactory {
-    pub fn new(path: LineSegment, step_duration: Duration) -> Self {
-        Self { path, step_duration }
+impl Saturate {
+    pub fn new(animation: Animation) -> Self {
+        Self {
+            animation,
+            until_next_tick: Duration::from_millis(0),
+        }
     }
 }
 
 #[typetag::serde]
-impl AnimationFactory for SingleProjectileFactory {
-    fn make(&mut self, data: &mut GameData) -> Animation {
-        Box::new(SingleProjectile::new(self.path, self.step_duration, data))
+impl Animate for Saturate {
+    fn tick(&mut self, since_last_tick: Duration, data: &mut GameData) -> AnimateResult<()> {
+        if let Some(next_until_next_tick) = self.until_next_tick.checked_sub(since_last_tick) {
+            self.until_next_tick = next_until_next_tick;
+            AnimateResult {
+                duration: since_last_tick,
+                control: Control::Continue,
+            }
+        } else {
+            let mut total_duration = Duration::from_millis(0);
+            let mut remaining = since_last_tick;
+            loop {
+                let AnimateResult { duration, control } = self.animation.tick(since_last_tick, data);
+                total_duration += duration;
+                match control {
+                    Control::Return(()) => {
+                        break AnimateResult {
+                            control: Control::Return(()),
+                            duration: total_duration,
+                        }
+                    }
+                    Control::Continue => {
+                        if let Some(next_remaining) = remaining.checked_sub(duration) {
+                            remaining = next_remaining;
+                        } else {
+                            self.until_next_tick = duration - remaining;
+                            break AnimateResult {
+                                control: Control::Continue,
+                                duration: duration - remaining,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+    }
+    fn cleanup(&mut self, data: &mut GameData) {
+        self.animation.cleanup(data);
     }
 }
 
-impl SingleProjectile {
+#[derive(Serialize, Deserialize)]
+pub struct Projectile {
+    path_iter: LineSegmentIter,
+    cardinal_step_duration: Duration,
+    ordinal_step_duration: Duration,
+    entity_id: Id,
+}
+
+impl Projectile {
     pub fn new(path: LineSegment, step_duration: Duration, data: &mut GameData) -> Self {
         let path_iter = path.config_node_iter(LineConfig {
-            exclude_start: true,
+            exclude_start: false,
             exclude_end: false,
         });
-        let start_coord = path_iter.clone().next().map(|node| node.coord).unwrap_or(path.start());
-        let entity_id = data.make_projectile(start_coord);
+        let entity_id = data.make_projectile(path.start());
+        let micros = step_duration.as_micros();
+        let diagonal_micros = (micros * 1414) / 1000;
+        let ordinal_step_duration = Duration::from_micros(diagonal_micros as u64);
         Self {
             path_iter,
-            step_duration,
-            until_next_step: Duration::from_millis(0),
+            cardinal_step_duration: step_duration,
+            ordinal_step_duration,
             entity_id,
         }
     }
 }
 
 #[typetag::serde]
-impl Animate for SingleProjectile {
-    fn step(&mut self, since_last_frame: Duration, data: &mut GameData) -> AnimateResult {
-        if let Some(remaining_until_next_step) = self.until_next_step.checked_sub(since_last_frame) {
-            self.until_next_step = remaining_until_next_step;
-            AnimateResult::Continue
-        } else if let Some(node) = self.path_iter.next() {
-            match data.move_projectile(self.entity_id, node.coord) {
-                Ok(()) => {
-                    self.until_next_step = if node.prev.is_cardinal() {
-                        self.step_duration
-                    } else {
-                        let micros = self.step_duration.as_micros();
-                        let diagonal_micros = (micros * 1414) / 1000;
-                        Duration::from_micros(diagonal_micros as u64)
-                    };
-                    AnimateResult::Continue
-                }
-                Err(ProjectileMoveError::DestinationSolid) => AnimateResult::Break,
-            }
-        } else {
-            AnimateResult::Break
-        }
+impl Animate for Projectile {
+    fn tick(&mut self, since_last_tick: Duration, data: &mut GameData) -> AnimateResult<()> {
+        self.tick_return_coord(since_last_tick, data).return_unit()
     }
     fn cleanup(&mut self, data: &mut GameData) {
+        self.cleanup_return_coord(data);
+    }
+}
+
+#[typetag::serde]
+impl AnimateReturnCoord for Projectile {
+    fn tick_return_coord(&mut self, _since_last_tick: Duration, data: &mut GameData) -> AnimateResult<Coord> {
+        let current_coord = self.path_iter.current();
+        if let Some(node) = self.path_iter.next() {
+            match data.move_projectile(self.entity_id, node.coord) {
+                Ok(()) => {
+                    let duration = if node.prev.is_cardinal() {
+                        self.cardinal_step_duration
+                    } else {
+                        self.ordinal_step_duration
+                    };
+                    AnimateResult {
+                        duration,
+                        control: Control::Continue,
+                    }
+                }
+                Err(ProjectileMoveError::DestinationSolid) => AnimateResult {
+                    duration: Duration::from_millis(0),
+                    control: Control::Return(current_coord),
+                },
+            }
+        } else {
+            AnimateResult {
+                duration: Duration::from_millis(0),
+                control: Control::Return(current_coord),
+            }
+        }
+    }
+    fn cleanup_return_coord(&mut self, data: &mut GameData) {
         data.remove_projectile(self.entity_id);
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum SingleProjectileThen {
-    First {
-        single_projectile: SingleProjectile,
-        second_factory: Box<dyn AnimationFactoryArgCoord>,
-    },
-    Second(Animation),
-}
-
-impl SingleProjectileThen {
-    pub fn new(single_projectile: SingleProjectile, second_factory: Box<dyn AnimationFactoryArgCoord>) -> Self {
-        Self::First {
-            single_projectile,
-            second_factory,
-        }
-    }
-}
-
-#[typetag::serde]
-impl Animate for SingleProjectileThen {
-    fn step(&mut self, since_last_frame: Duration, data: &mut GameData) -> AnimateResult {
-        match self {
-            Self::First {
-                single_projectile,
-                second_factory,
-            } => {
-                let current_coord = single_projectile.path_iter.current();
-                match single_projectile.step(since_last_frame, data) {
-                    AnimateResult::Continue => (),
-                    AnimateResult::Break => {
-                        single_projectile.cleanup(data);
-                        *self = Self::Second(second_factory.make(current_coord, data));
-                    }
-                }
-                AnimateResult::Continue
-            }
-            Self::Second(animation) => animation.step(since_last_frame, data),
-        }
-    }
-    fn cleanup(&mut self, data: &mut GameData) {
-        match self {
-            Self::First {
-                single_projectile,
-                second_factory: _,
-            } => single_projectile.cleanup(data),
-            Self::Second(animation) => animation.cleanup(data),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum LazyThen {
-    First {
-        animation: Animation,
-        second_factory: Box<dyn AnimationFactory>,
-    },
-    Second(Animation),
-}
-
-impl LazyThen {
-    pub fn new(animation: Animation, second_factory: Box<dyn AnimationFactory>) -> Self {
-        Self::First {
-            animation,
-            second_factory,
-        }
-    }
-}
-
-#[typetag::serde]
-impl Animate for LazyThen {
-    fn step(&mut self, since_last_frame: Duration, data: &mut GameData) -> AnimateResult {
-        match self {
-            Self::First {
-                animation,
-                second_factory,
-            } => {
-                match animation.step(since_last_frame, data) {
-                    AnimateResult::Continue => (),
-                    AnimateResult::Break => {
-                        animation.cleanup(data);
-                        *self = Self::Second(second_factory.make(data));
-                    }
-                }
-                AnimateResult::Continue
-            }
-            Self::Second(animation) => animation.step(since_last_frame, data),
-        }
-    }
-    fn cleanup(&mut self, data: &mut GameData) {
-        match self {
-            Self::First {
-                animation,
-                second_factory: _,
-            } => {
-                animation.cleanup(data);
-            }
-            Self::Second(animation) => animation.cleanup(data),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct Schedule {
-    animations: Vec<Animation>,
-    next_animations: Vec<Animation>,
+    parallel: Parallel,
 }
 
 impl Schedule {
     pub fn new() -> Self {
         Self {
-            animations: Vec::new(),
-            next_animations: Vec::new(),
+            parallel: Parallel::new(vec![]),
         }
     }
     pub fn register(&mut self, animation: Animation) {
-        self.animations.push(animation);
+        self.parallel.animations.push(animation);
     }
     pub fn is_empty(&self) -> bool {
-        self.animations.is_empty()
+        self.parallel.is_empty()
     }
     pub fn tick(&mut self, since_last_tick: Duration, data: &mut GameData) {
-        for mut animation in self.animations.drain(..) {
-            match animation.step(since_last_tick, data) {
-                AnimateResult::Break => animation.cleanup(data),
-                AnimateResult::Continue => self.next_animations.push(animation),
-            }
-        }
-        mem::swap(&mut self.animations, &mut self.next_animations);
+        self.parallel.tick(since_last_tick, data);
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Parallel {
-    schedule: Schedule,
+    animations: Vec<Animation>,
+    next_animations: Vec<Animation>,
 }
 
 impl Parallel {
     pub fn new(animations: Vec<Animation>) -> Self {
-        let schedule = Schedule {
+        Self {
             animations,
             next_animations: Vec::new(),
-        };
-        Self { schedule }
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.animations.is_empty()
     }
 }
 
 #[typetag::serde]
 impl Animate for Parallel {
-    fn step(&mut self, since_last_frame: Duration, data: &mut GameData) -> AnimateResult {
-        self.schedule.tick(since_last_frame, data);
-        if self.schedule.is_empty() {
-            AnimateResult::Break
+    fn tick(&mut self, since_last_tick: Duration, data: &mut GameData) -> AnimateResult<()> {
+        if self.is_empty() {
+            AnimateResult {
+                control: Control::Return(()),
+                duration: Duration::from_millis(0),
+            }
         } else {
-            AnimateResult::Continue
+            let mut max_duration = Duration::from_millis(0);
+            for mut animation in self.animations.drain(..) {
+                let AnimateResult { control, duration } = animation.tick(since_last_tick, data);
+                max_duration = max_duration.max(duration);
+                match control {
+                    Control::Return(()) => animation.cleanup(data),
+                    Control::Continue => self.next_animations.push(animation),
+                }
+            }
+            mem::swap(&mut self.animations, &mut self.next_animations);
+            AnimateResult {
+                control: Control::Continue,
+                duration: max_duration,
+            }
         }
     }
     fn cleanup(&mut self, data: &mut GameData) {
-        for mut animation in self.schedule.animations.drain(..) {
+        for mut animation in self.animations.drain(..) {
             animation.cleanup(data);
         }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum AndThenCoord {
+    First {
+        current: AnimationReturnCoord,
+        next: Box<dyn AnimationFactoryArgCoord>,
+    },
+    Second(Animation),
+}
+
+#[typetag::serde]
+impl Animate for AndThenCoord {
+    fn tick(&mut self, since_last_tick: Duration, data: &mut GameData) -> AnimateResult<()> {
+        match self {
+            Self::First { current, next } => {
+                let AnimateResult { duration, control } = current.tick_return_coord(since_last_tick, data);
+                match control {
+                    Control::Continue => (),
+                    Control::Return(coord) => {
+                        current.cleanup_return_coord(data);
+                        let animation = next.make_arg_coord(data, coord);
+                        *self = Self::Second(animation);
+                    }
+                }
+                AnimateResult {
+                    duration,
+                    control: Control::Continue,
+                }
+            }
+            Self::Second(animation) => animation.tick(since_last_tick, data),
+        }
+    }
+
+    fn cleanup(&mut self, data: &mut GameData) {
+        match self {
+            Self::First { current, .. } => current.cleanup_return_coord(data),
+            Self::Second(animation) => animation.cleanup(data),
+        }
+    }
+}
+
+impl AndThenCoord {
+    pub fn new(current: AnimationReturnCoord, next: Box<dyn AnimationFactoryArgCoord>) -> Self {
+        Self::First { current, next }
     }
 }
