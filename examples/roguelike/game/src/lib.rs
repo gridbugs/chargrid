@@ -66,7 +66,7 @@ impl Game {
                     if coord != player_coord {
                         let single_projectile = animation::SingleProjectile::new(
                             LineSegment::new(player_coord, coord),
-                            Duration::from_millis(40),
+                            Duration::from_millis(20),
                             &mut self.data,
                         );
                         let animation = animation::SingleProjectileThen::new(

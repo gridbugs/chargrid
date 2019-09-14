@@ -5,9 +5,10 @@ use common_event::*;
 use decorator::*;
 use event_routine::*;
 use menu::{fade_spec, FadeMenuEntryView, MenuInstanceChoose};
+use prototty::input::*;
 use prototty::*;
 use prototty_storage::Storage;
-use render::{ColModifyDefaultForeground, ColModifyMap, Rgb24, Style};
+use render::{ColModifyDefaultForeground, ColModifyMap, Coord, Rgb24, Style};
 use std::marker::PhantomData;
 
 #[derive(Clone, Copy)]
@@ -67,6 +68,7 @@ pub struct AppData<S: Storage> {
     game: GameData<S>,
     main_menu: menu::MenuInstanceChooseOrEscape<MainMenuEntry>,
     main_menu_type: MainMenuType,
+    last_mouse_coord: Coord,
 }
 
 pub struct AppView {
@@ -83,6 +85,7 @@ impl<S: Storage> AppData<S> {
                 .unwrap()
                 .into_choose_or_escape(),
             main_menu_type: MainMenuType::Init,
+            last_mouse_coord: Coord::new(0, 0),
         }
     }
 }
@@ -233,7 +236,7 @@ impl<S: Storage> Decorate for DecorateMainMenu<S> {
                 },
             }
             .view(data, context.add_depth(1), frame);
-            if let Some(game) = data.game.game() {
+            if let Ok(game) = data.game.game() {
                 AlignView {
                     alignment: Alignment::centre(),
                     view: &mut event_routine_view.view.game,
@@ -286,10 +289,58 @@ impl<S: Storage> Decorate for DecorateGame<S> {
 
 struct Quit;
 
+struct MouseTracker<S: Storage, E: EventRoutine> {
+    s: PhantomData<S>,
+    e: E,
+}
+
+impl<S: Storage, E: EventRoutine> MouseTracker<S, E> {
+    fn new(e: E) -> Self {
+        Self { s: PhantomData, e }
+    }
+}
+
+impl<S: Storage, E: EventRoutine<Data = AppData<S>, Event = CommonEvent>> EventRoutine for MouseTracker<S, E> {
+    type Return = E::Return;
+    type View = E::View;
+    type Data = AppData<S>;
+    type Event = CommonEvent;
+
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        event_or_peek.with(
+            (self, data),
+            |(s, data), event| {
+                match event {
+                    CommonEvent::Input(Input::Mouse(MouseInput::MouseMove { coord, .. })) => {
+                        data.last_mouse_coord = coord
+                    }
+                    _ => (),
+                }
+                s.e.handle(data, view, event_routine::Event::new(event))
+                    .map_continue(|e| Self { s: PhantomData, e })
+            },
+            |(s, data)| {
+                s.e.handle(data, view, event_routine::Peek::new())
+                    .map_continue(|e| Self { s: PhantomData, e })
+            },
+        )
+    }
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
+    where
+        F: Frame,
+        C: ColModify,
+    {
+        self.e.view(data, view, context, frame)
+    }
+}
+
 fn main_menu<S: Storage>(
 ) -> impl EventRoutine<Return = Result<MainMenuEntry, menu::Escape>, Data = AppData<S>, View = AppView, Event = CommonEvent>
 {
-    SideEffectThen::new(|data: &mut AppData<S>| {
+    SideEffectThen::new(|data: &mut AppData<S>, _| {
         if data.game.has_instance() {
             match data.main_menu_type {
                 MainMenuType::Init => {
@@ -335,10 +386,11 @@ fn game_injecting_inputs<S: Storage>(
 fn aim<S: Storage>() -> impl EventRoutine<Return = Option<Coord>, Data = AppData<S>, View = AppView, Event = CommonEvent>
 {
     make_either!(Ei = A | B);
-    SideEffectThen::new(|data: &mut AppData<S>| {
-        if let Some(game) = data.game.game() {
+    SideEffectThen::new(|data: &mut AppData<S>, view: &AppView| {
+        let game_relative_mouse_coord = view.game.absolute_coord_to_game_coord(data.last_mouse_coord);
+        if let Ok(initial_aim_coord) = data.game.initial_aim_coord(game_relative_mouse_coord) {
             Ei::A(
-                AimEventRoutine::new(game.player_coord())
+                AimEventRoutine::new(initial_aim_coord)
                     .select(SelectGame::new())
                     .decorated(DecorateGame::new()),
             )
@@ -369,26 +421,26 @@ fn main_menu_cycle<S: Storage>(
     make_either!(Ei = A | B | C | D | E | F);
     main_menu().and_then(|entry| match entry {
         Ok(MainMenuEntry::Quit) => Ei::A(Value::new(Some(Quit))),
-        Ok(MainMenuEntry::SaveQuit) => Ei::D(SideEffectThen::new(|data: &mut AppData<S>| {
+        Ok(MainMenuEntry::SaveQuit) => Ei::D(SideEffectThen::new(|data: &mut AppData<S>, _| {
             data.game.save_instance();
             Value::new(Some(Quit))
         })),
-        Ok(MainMenuEntry::Save) => Ei::E(SideEffectThen::new(|data: &mut AppData<S>| {
+        Ok(MainMenuEntry::Save) => Ei::E(SideEffectThen::new(|data: &mut AppData<S>, _| {
             data.game.save_instance();
             Value::new(None)
         })),
-        Ok(MainMenuEntry::Clear) => Ei::F(SideEffectThen::new(|data: &mut AppData<S>| {
+        Ok(MainMenuEntry::Clear) => Ei::F(SideEffectThen::new(|data: &mut AppData<S>, _| {
             data.game.clear_instance();
             Value::new(None)
         })),
-        Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(SideEffectThen::new(|data: &mut AppData<S>| {
+        Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(SideEffectThen::new(|data: &mut AppData<S>, _| {
             if data.game.has_instance() {
                 Either::Left(game_loop().map(|_| None))
             } else {
                 Either::Right(Value::new(None))
             }
         })),
-        Ok(MainMenuEntry::NewGame) => Ei::C(SideEffectThen::new(|data: &mut AppData<S>| {
+        Ok(MainMenuEntry::NewGame) => Ei::C(SideEffectThen::new(|data: &mut AppData<S>, _| {
             data.game.instantiate();
             data.main_menu.menu_instance_mut().set_index(0);
             game_loop().map(|_| None)
@@ -398,13 +450,15 @@ fn main_menu_cycle<S: Storage>(
 
 pub fn event_routine<S: Storage>(
 ) -> impl EventRoutine<Return = (), Data = AppData<S>, View = AppView, Event = CommonEvent> {
-    main_menu_cycle()
-        .repeat(|maybe_quit| {
-            if let Some(Quit) = maybe_quit {
-                Handled::Return(())
-            } else {
-                Handled::Continue(main_menu_cycle())
-            }
-        })
-        .return_on_exit(|_| ())
+    MouseTracker::new(
+        main_menu_cycle()
+            .repeat(|maybe_quit| {
+                if let Some(Quit) = maybe_quit {
+                    Handled::Return(())
+                } else {
+                    Handled::Continue(main_menu_cycle())
+                }
+            })
+            .return_on_exit(|_| ()),
+    )
 }

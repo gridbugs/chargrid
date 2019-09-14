@@ -60,7 +60,7 @@ fn inner() -> impl EventRoutine<Return = Option<()>, Data = AppData, View = AppV
             MainMenuChoice::ChooseColour => Either::Right(colour_menu.and_then(|menu_output| match menu_output {
                 Err(menu::Cancel::Quit) => Either::Left(Value::new(Some(()))),
                 Err(menu::Cancel::Escape) => Either::Left(Value::new(None)),
-                Ok(choice) => Either::Right(SideEffect::new(move |data: &mut AppData| {
+                Ok(choice) => Either::Right(SideEffect::new(move |data: &mut AppData, _: &AppView| {
                     use ColourMenuChoice::*;
                     let colour = match choice {
                         Red => render::Rgb24::new(255, 0, 0),

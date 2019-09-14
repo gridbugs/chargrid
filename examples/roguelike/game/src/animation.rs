@@ -61,7 +61,7 @@ impl AnimationFactoryArgCoord for ExplodeFactory {
         let mut particles = Vec::new();
         for offset in self.offsets.iter() {
             let line_segment = LineSegment::new(coord, coord + offset);
-            let step_duration = Duration::from_millis(50);
+            let step_duration = Duration::from_millis(20);
             let single_projectile: Animation = Box::new(SingleProjectile::new(line_segment, step_duration, data));
             particles.push(single_projectile);
         }

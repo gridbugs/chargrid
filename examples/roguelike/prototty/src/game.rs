@@ -1,6 +1,6 @@
 use crate::controls::{AppInput, Controls};
-use game::Game;
 pub use game::Input as GameInput;
+use game::{Direction, Game};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
@@ -24,6 +24,9 @@ impl GameView {
         Self {
             last_offset: Coord::new(0, 0),
         }
+    }
+    pub fn absolute_coord_to_game_coord(&self, coord: Coord) -> Coord {
+        coord - self.last_offset
     }
 }
 
@@ -79,6 +82,7 @@ pub struct GameData<S: Storage> {
     controls: Controls,
     rng_source: Isaac64Rng,
     storage_wrapper: StorageWrapper<S>,
+    last_aim_with_mouse: bool,
 }
 
 struct StorageWrapper<S: Storage> {
@@ -123,6 +127,7 @@ impl<S: Storage> GameData<S> {
             controls,
             rng_source,
             storage_wrapper,
+            last_aim_with_mouse: false,
         }
     }
     pub fn has_instance(&self) -> bool {
@@ -143,19 +148,66 @@ impl<S: Storage> GameData<S> {
         self.instance = None;
         self.storage_wrapper.clear_instance();
     }
-    pub fn game(&self) -> Option<&Game> {
-        self.instance.as_ref().map(|i| &i.game)
+    pub fn game(&self) -> Result<&Game, NoGameInstnace> {
+        self.instance.as_ref().map(|i| &i.game).ok_or(NoGameInstnace)
+    }
+    pub fn initial_aim_coord(&self, mouse_coord: Coord) -> Result<Coord, NoGameInstnace> {
+        if let Some(instance) = self.instance.as_ref() {
+            if self.last_aim_with_mouse {
+                Ok(mouse_coord)
+            } else {
+                Ok(instance.game.player_coord())
+            }
+        } else {
+            Err(NoGameInstnace)
+        }
     }
 }
+
+pub struct NoGameInstnace;
 
 pub struct AimEventRoutine<S: Storage> {
     s: PhantomData<S>,
     coord: Coord,
+    duration: Duration,
+    blink: Blink,
+}
+
+struct Blink {
+    min: Rgb24,
+    max: Rgb24,
+    cycle_length: Duration,
+}
+
+impl Blink {
+    fn intensity(&self, duration: Duration) -> u8 {
+        let cycle_length_micros = self.cycle_length.as_micros();
+        let duration_micros = duration.as_micros();
+        let progress_through_cycle_micros = duration_micros % cycle_length_micros;
+        let scaled_progress = (progress_through_cycle_micros * 512) / cycle_length_micros;
+        if scaled_progress < 256 {
+            scaled_progress as u8
+        } else {
+            (511 - scaled_progress) as u8
+        }
+    }
+    fn col(&self, duration: Duration) -> Rgb24 {
+        self.min.linear_interpolate(self.max, self.intensity(duration))
+    }
 }
 
 impl<S: Storage> AimEventRoutine<S> {
     pub fn new(coord: Coord) -> Self {
-        Self { s: PhantomData, coord }
+        Self {
+            s: PhantomData,
+            coord,
+            duration: Duration::from_millis(0),
+            blink: Blink {
+                min: Rgb24::new(31, 0, 0),
+                max: Rgb24::new(221, 0, 0),
+                cycle_length: Duration::from_millis(500),
+            },
+        }
     }
 }
 
@@ -169,37 +221,62 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
+        enum Aim {
+            Mouse { coord: Coord, press: bool },
+            KeyboardDirection(Direction),
+            KeyboardFinalise,
+            Cancel,
+            Ignore,
+            Frame(Duration),
+        }
         event_or_peek_with_handled(event_or_peek, self, |mut s, event| {
-            let direction = match event {
+            data.last_aim_with_mouse = false;
+            let aim = match event {
                 CommonEvent::Input(input) => match input {
                     Input::Keyboard(keyboard_input) => {
                         if let Some(app_input) = data.controls.get(keyboard_input) {
                             match app_input {
-                                AppInput::Aim => return Handled::Return(Some(s.coord)),
-                                AppInput::Move(direction) => direction,
+                                AppInput::Aim => Aim::KeyboardFinalise,
+                                AppInput::Move(direction) => Aim::KeyboardDirection(direction),
                             }
                         } else {
                             match keyboard_input {
-                                keys::RETURN => return Handled::Return(Some(s.coord)),
-                                keys::ESCAPE => return Handled::Return(None),
-                                _ => return Handled::Continue(s),
+                                keys::RETURN => Aim::KeyboardFinalise,
+                                keys::ESCAPE => Aim::Cancel,
+                                _ => Aim::Ignore,
                             }
                         }
                     }
-                    Input::Mouse(MouseInput::MouseMove { coord, .. }) => {
-                        s.coord = coord - view.last_offset;
-                        return Handled::Continue(s);
-                    }
-                    Input::Mouse(MouseInput::MousePress { coord, .. }) => {
-                        s.coord = coord - view.last_offset;
-                        return Handled::Return(Some(s.coord));
-                    }
-                    _ => return Handled::Continue(s),
+                    Input::Mouse(mouse_input) => match mouse_input {
+                        MouseInput::MouseMove { coord, .. } => Aim::Mouse { coord, press: false },
+                        MouseInput::MousePress { coord, .. } => Aim::Mouse { coord, press: true },
+                        _ => Aim::Ignore,
+                    },
                 },
-                CommonEvent::Frame(_) => return Handled::Continue(s),
+                CommonEvent::Frame(since_last) => Aim::Frame(since_last),
             };
-            s.coord += direction.coord();
-            Handled::Continue(s)
+            match aim {
+                Aim::KeyboardFinalise => Handled::Return(Some(s.coord)),
+                Aim::KeyboardDirection(direction) => {
+                    s.coord += direction.coord();
+                    Handled::Continue(s)
+                }
+                Aim::Mouse { coord, press } => {
+                    s.coord = view.absolute_coord_to_game_coord(coord);
+                    if press {
+                        data.last_aim_with_mouse = true;
+                        Handled::Return(Some(s.coord))
+                    } else {
+                        Handled::Continue(s)
+                    }
+                }
+                Aim::Cancel => Handled::Return(None),
+                Aim::Ignore => Handled::Continue(s),
+                Aim::Frame(since_last) => {
+                    s.duration += since_last;
+                    Handled::Continue(s)
+                }
+            }
         })
     }
 
@@ -214,7 +291,7 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
             if self.coord != player_coord {
                 for node in LineSegment::new(player_coord, self.coord).config_node_iter(LineConfig {
                     exclude_start: true,
-                    exclude_end: false,
+                    exclude_end: true,
                 }) {
                     if !node.coord.is_valid(instance.game.grid().size()) {
                         break;
@@ -222,18 +299,13 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     frame.set_cell_relative(
                         node.coord,
                         1,
-                        ViewCell::new().with_background(Rgb24::new(255, 0, 0)),
+                        ViewCell::new().with_background(Rgb24::new(187, 0, 0)),
                         context,
                     );
                 }
-            } else {
-                frame.set_cell_relative(
-                    self.coord,
-                    1,
-                    ViewCell::new().with_background(Rgb24::new(255, 0, 0)),
-                    context,
-                );
             }
+            let col = self.blink.col(self.duration);
+            frame.set_cell_relative(self.coord, 1, ViewCell::new().with_background(col), context);
         }
     }
 }

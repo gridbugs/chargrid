@@ -220,18 +220,18 @@ impl<F, D, V, E> SideEffect<F, D, V, E> {
 
 impl<F, D, V, E, T> EventRoutine for SideEffect<F, D, V, E>
 where
-    F: FnOnce(&mut D) -> T,
+    F: FnOnce(&mut D, &V) -> T,
 {
     type Return = T;
     type Data = D;
     type View = V;
     type Event = E;
 
-    fn handle<EP>(self, data: &mut Self::Data, _view: &Self::View, _event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, _event_or_peek: EP) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
-        Handled::Return((self.0.field)(data))
+        Handled::Return((self.0.field)(data, view))
     }
 
     fn view<G, C>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<C>, _frame: &mut G)
@@ -251,7 +251,7 @@ pub struct SideEffectThen<F, D, V, E, U>(SideEffectThenPrivate<F, D, V, E, U>);
 impl<F, D, V, E, U> SideEffectThen<F, D, V, E, U>
 where
     U: EventRoutine<Data = D, View = V, Event = E>,
-    F: FnOnce(&mut D) -> U,
+    F: FnOnce(&mut D, &V) -> U,
 {
     pub fn new(f: F) -> Self {
         Self(SideEffectThenPrivate::First(OneShot::new(f)))
@@ -261,7 +261,7 @@ where
 impl<F, D, V, E, U> EventRoutine for SideEffectThen<F, D, V, E, U>
 where
     U: EventRoutine<Data = D, View = V, Event = E>,
-    F: FnOnce(&mut D) -> U,
+    F: FnOnce(&mut D, &V) -> U,
 {
     type Return = U::Return;
     type Data = D;
@@ -273,7 +273,7 @@ where
         EP: EventOrPeek<Event = Self::Event>,
     {
         match self.0 {
-            SideEffectThenPrivate::First(one_shot) => (one_shot.field)(data)
+            SideEffectThenPrivate::First(one_shot) => (one_shot.field)(data, view)
                 .handle(data, view, Peek::new())
                 .map_continue(|u| SideEffectThen(SideEffectThenPrivate::Second(u))),
             SideEffectThenPrivate::Second(u) => u

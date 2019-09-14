@@ -9,41 +9,46 @@ pub enum AnimateResult<R> {
 }
 
 impl<R> AnimateResult<R> {
-    pub fn untyped(&self) -> AnimateResultUntyped {
+    fn return_unit(&self) -> AnimateResult<()> {
         match self {
-            Self::Continue => AnimateResultUntyped::Continue,
-            Self::Return(_) => AnimateResultUntyped::Return,
+            Self::Continue => AnimateResult::Continue,
+            Self::Return(_) => AnimateResult::Return(()),
         }
     }
 }
 
-pub trait AnimateTyped {
-    type Return;
-    fn tick(&mut self, since_last: Duration, data: &mut GameData) -> AnimateResult<Self::Return>;
+#[typetag::serde(tag = "type")]
+pub trait Animate {
+    fn tick(&mut self, since_last: Duration, data: &mut GameData) -> AnimateResult<()>;
     fn cleanup(&mut self, data: &mut GameData);
 }
 
-pub enum AnimateResultUntyped {
-    Continue,
-    Return,
-}
-
 #[typetag::serde(tag = "type")]
-pub trait AnimateUntyped {
-    fn tick_untyped(&mut self, since_last: Duration, data: &mut GameData) -> AnimateResultUntyped;
+pub trait AnimateReturnCoord {
+    fn tick_return_coord(&mut self, since_last: Duration, data: &mut GameData) -> AnimateResult<Coord>;
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SingleProjectile {
+pub struct Projectile {
     path_iter: LineSegmentIter,
     step_duration: Duration,
     until_next_step: Duration,
     entity_id: Id,
 }
 
-impl AnimateTyped for SingleProjectile {
-    type Return = Coord;
-    fn tick(&mut self, since_last: Duration, data: &mut GameData) -> AnimateResult<Self::Return> {
+#[typetag::serde]
+impl Animate for Projectile {
+    fn tick(&mut self, since_last: Duration, data: &mut GameData) -> AnimateResult<()> {
+        self.tick_return_coord(since_last, data).return_unit()
+    }
+    fn cleanup(&mut self, data: &mut GameData) {
+        data.remove_projectile(self.entity_id);
+    }
+}
+
+#[typetag::serde]
+impl AnimateReturnCoord for Projectile {
+    fn tick_return_coord(&mut self, since_last: Duration, data: &mut GameData) -> AnimateResult<Coord> {
         if let Some(remaining_until_next_step) = self.until_next_step.checked_sub(since_last) {
             self.until_next_step = remaining_until_next_step;
             AnimateResult::Continue
@@ -67,15 +72,5 @@ impl AnimateTyped for SingleProjectile {
                 AnimateResult::Return(current_coord)
             }
         }
-    }
-    fn cleanup(&mut self, data: &mut GameData) {
-        data.remove_projectile(self.entity_id);
-    }
-}
-
-#[typetag::serde]
-impl AnimateUntyped for SingleProjectile {
-    fn tick_untyped(&mut self, since_last: Duration, data: &mut GameData) -> AnimateResultUntyped {
-        self.tick(since_last, data).untyped()
     }
 }
