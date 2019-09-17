@@ -43,7 +43,7 @@ impl Cell {
             projectiles: HashMap::new(),
         }
     }
-    fn is_solid(&self) -> bool {
+    pub fn is_solid(&self) -> bool {
         self.wall.is_some()
     }
     pub fn character(&self) -> Option<&Character> {
@@ -148,5 +148,8 @@ impl GameData {
     }
     pub fn coords(&self) -> &HashMap<Id, Coord> {
         &self.coords
+    }
+    pub fn get_cell(&self, coord: Coord) -> Option<&Cell> {
+        self.grid.get(coord)
     }
 }

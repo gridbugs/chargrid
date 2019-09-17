@@ -9,6 +9,7 @@ use std::time::Duration;
 mod animation;
 mod circle;
 mod data;
+mod particle;
 
 use data::{Cell, GameData, Id};
 
