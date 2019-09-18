@@ -45,12 +45,13 @@ impl<'a> View<&'a Game> for GameView {
             } else {
                 view_cell
             };
-            let view_cell = if let Some(_projectile) = cell.projectiles().next() {
-                view_cell.with_character('*').with_foreground(Rgb24::new(0, 255, 255))
-            } else {
-                view_cell
-            };
             frame.set_cell_relative(coord, 0, view_cell, context);
+        }
+        for particle in game.particles() {
+            let view_cell = ViewCell::new()
+                .with_character('*')
+                .with_foreground(Rgb24::new(0, 255, 255));
+            frame.set_cell_relative(particle.coord(), 0, view_cell, context);
         }
         self.last_offset = context.offset;
     }
@@ -299,7 +300,7 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     frame.set_cell_relative(
                         node.coord,
                         1,
-                        ViewCell::new().with_background(Rgb24::new(187, 0, 0)),
+                        ViewCell::new().with_background(Rgb24::new(127, 0, 0)),
                         context,
                     );
                 }

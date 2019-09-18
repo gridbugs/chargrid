@@ -26,13 +26,9 @@ impl Character {
 pub struct Wall {}
 
 #[derive(Serialize, Deserialize)]
-pub struct Projectile {}
-
-#[derive(Serialize, Deserialize)]
 pub struct Cell {
     character: Option<Character>,
     wall: Option<Wall>,
-    projectiles: HashMap<Id, Projectile>,
 }
 
 impl Cell {
@@ -40,7 +36,6 @@ impl Cell {
         Self {
             character: None,
             wall: None,
-            projectiles: HashMap::new(),
         }
     }
     pub fn is_solid(&self) -> bool {
@@ -51,9 +46,6 @@ impl Cell {
     }
     pub fn wall(&self) -> Option<&Wall> {
         self.wall.as_ref()
-    }
-    pub fn projectiles(&self) -> impl Iterator<Item = &Projectile> {
-        self.projectiles.values()
     }
 }
 
@@ -80,10 +72,6 @@ pub struct GameData {
     ids: Ids,
 }
 
-pub enum ProjectileMoveError {
-    DestinationSolid,
-}
-
 impl GameData {
     pub fn new(size: Size) -> Self {
         let grid = Grid::new_fn(size, |_| Cell::empty());
@@ -106,13 +94,6 @@ impl GameData {
         self.grid.get_checked_mut(coord).character = Some(player);
         id
     }
-    pub fn make_projectile(&mut self, coord: Coord) -> Id {
-        let id = self.ids.next();
-        let projectile = Projectile {};
-        self.coords.insert(id, coord);
-        self.grid.get_checked_mut(coord).projectiles.insert(id, projectile);
-        id
-    }
     pub fn move_character(&mut self, id: Id, direction: Direction) {
         let player_coord = self.coords.get_mut(&id).unwrap();
         let destination_coord = *player_coord + direction.coord();
@@ -122,26 +103,6 @@ impl GameData {
         }
         mem::swap(&mut source_cell.character, &mut destination_cell.character);
         *player_coord = destination_coord;
-    }
-    pub fn move_projectile(&mut self, id: Id, destination_coord: Coord) -> Result<(), ProjectileMoveError> {
-        let current_coord = self.coords.get_mut(&id).unwrap();
-        if *current_coord == destination_coord {
-            return Ok(());
-        }
-        let (source_cell, destination_cell) = self.grid.get2_checked_mut(*current_coord, destination_coord);
-        if destination_cell.is_solid() {
-            return Err(ProjectileMoveError::DestinationSolid);
-        }
-        destination_cell
-            .projectiles
-            .insert(id, source_cell.projectiles.remove(&id).unwrap());
-        *current_coord = destination_coord;
-        Ok(())
-    }
-    pub fn remove_projectile(&mut self, id: Id) {
-        let current_coord = self.coords.remove(&id).unwrap();
-        let current_cell = self.grid.get_checked_mut(current_coord);
-        current_cell.projectiles.remove(&id).unwrap();
     }
     pub fn grid(&self) -> &Grid<Cell> {
         &self.grid

@@ -6,12 +6,11 @@ use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-mod animation;
-mod circle;
 mod data;
 mod particle;
 
 use data::{Cell, GameData, Id};
+use particle::*;
 
 #[derive(Clone, Copy)]
 pub enum Input {
@@ -23,7 +22,7 @@ pub enum Input {
 pub struct Game {
     data: GameData,
     player_id: Id,
-    animation_schedule: animation::Schedule,
+    particle_system: ParticleSystem,
     rng: Isaac64Rng,
 }
 
@@ -50,38 +49,36 @@ impl Game {
         Self {
             data,
             player_id: player_id.expect("didn't create player"),
-            animation_schedule: animation::Schedule::new(),
+            particle_system: ParticleSystem::new(size),
             rng: Isaac64Rng::seed_from_u64(rng.gen()),
         }
     }
     pub fn has_animations(&self) -> bool {
-        !self.animation_schedule.is_empty()
+        !self.particle_system.is_empty()
     }
     pub fn handle_input(&mut self, input: Input) {
-        if self.animation_schedule.is_empty() {
+        if !self.has_animations() {
             match input {
                 Input::Move(direction) => self.data.move_character(self.player_id, direction),
                 Input::Fire(coord) => {
                     let player_coord = self.player_coord();
                     if coord != player_coord {
-                        let projectile = animation::Projectile::new(
-                            LineSegment::new(player_coord, coord),
-                            Duration::from_millis(20),
-                            &mut self.data,
-                        );
-                        let explode_factory = animation::ExplodeFactory::new(10, &mut self.rng);
-                        let animation = animation::AndThenCoord::new(Box::new(projectile), Box::new(explode_factory));
-                        self.animation_schedule.register(Box::new(animation));
+                        let path = LineSegment::new(player_coord, coord);
+                        let particle = Particle::new(path, Duration::from_millis(20));
+                        self.particle_system.register(particle);
                     }
                 }
             }
         }
     }
-    pub fn handle_tick(&mut self, since_last_tick: Duration) {
-        self.animation_schedule.tick(since_last_tick, &mut self.data);
+    pub fn handle_tick(&mut self, _since_last_tick: Duration) {
+        self.particle_system.tick(&mut self.data);
     }
     pub fn grid(&self) -> &Grid<Cell> {
         self.data.grid()
+    }
+    pub fn particles(&self) -> &[Particle] {
+        self.particle_system.particles()
     }
     pub fn player_coord(&self) -> Coord {
         *self.data.coords().get(&self.player_id).unwrap()
