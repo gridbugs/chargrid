@@ -1,4 +1,5 @@
 use crate::data::GameData;
+use direction::DirectionsCardinal;
 use grid_2d::{Grid, Size};
 use line_2d::{Coord, LineSegment, NodeIter};
 use rgb24::Rgb24;
@@ -18,16 +19,14 @@ pub struct Particle {
 }
 
 #[derive(Serialize, Deserialize)]
-struct TrailCell {
-    from: Rgb24,
-    to: Rgb24,
-    total_duration: Duration,
-    since_start: Duration,
+pub struct TrailCell {
+    score: u8,
+    next_score: u8,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Trails {
-    grid: Grid<Option<TrailCell>>,
+    grid: Grid<TrailCell>,
     count: u64,
 }
 
@@ -101,19 +100,68 @@ impl Particle {
     }
 }
 
+impl TrailCell {
+    pub fn col(&self) -> Option<Rgb24> {
+        if self.score == 0 {
+            None
+        } else {
+            Some(Rgb24::new(0, 0, 0).linear_interpolate(Rgb24::new(255, 255, 255), self.score))
+        }
+    }
+    fn new() -> Self {
+        Self {
+            score: 0,
+            next_score: 0,
+        }
+    }
+}
+
 impl Trails {
     fn register(&mut self, coord: Coord) {
         if let Some(cell) = self.grid.get_mut(coord) {
-            if cell.is_none() {
+            if cell.score == 0 {
                 self.count += 1;
-                *cell = Some(TrailCell {
-                    from: Rgb24::new(255, 255, 255),
-                    to: Rgb24::new(0, 0, 0),
-                    total_duration: Duration::from_millis(500),
-                    since_start: Duration::from_millis(0),
-                });
+                cell.score = 255;
             }
         }
+    }
+    fn fade_out(&mut self) {
+        for cell in self.grid.iter_mut() {
+            if cell.score > 0 {
+                cell.score = cell.score.saturating_sub(11);
+                if cell.score == 0 {
+                    self.count -= 1;
+                }
+            }
+        }
+    }
+    fn spread(&mut self) {
+        for dest_coord in self.grid.coord_iter() {
+            let mut increase = 0u32;
+            for direction in DirectionsCardinal {
+                let source_coord = dest_coord + direction.coord();
+                if let Some(source_cell) = self.grid.get(source_coord) {
+                    increase += source_cell.score as u32 / 4;
+                }
+            }
+            let dest_cell = self.grid.get_checked_mut(dest_coord);
+            dest_cell.next_score = (dest_cell.score as u32 / 2 + increase).min(255) as u8;
+        }
+        for cell in self.grid.iter_mut() {
+            if cell.score == 0 && cell.next_score != 0 {
+                self.count += 1;
+            } else if cell.score != 0 && cell.next_score == 0 {
+                self.count -= 1;
+            }
+            cell.score = cell.next_score;
+        }
+    }
+    fn tick(&mut self) {
+        self.fade_out();
+        self.spread();
+    }
+    fn is_empty(&self) -> bool {
+        self.count == 0
     }
 }
 
@@ -123,7 +171,7 @@ impl ParticleSystem {
             active_particles: Vec::new(),
             next_active_particles: Vec::new(),
             trails: Trails {
-                grid: Grid::new_fn(size, |_| None),
+                grid: Grid::new_fn(size, |_| TrailCell::new()),
                 count: 0,
             },
         }
@@ -132,6 +180,7 @@ impl ParticleSystem {
         self.active_particles.push(particle);
     }
     pub fn tick(&mut self, game_data: &mut GameData) {
+        self.trails.tick();
         for mut particle in self.active_particles.drain(..) {
             match particle.tick(&mut self.trails, game_data) {
                 ControlFlow::Break => (),
@@ -141,9 +190,12 @@ impl ParticleSystem {
         mem::swap(&mut self.active_particles, &mut self.next_active_particles);
     }
     pub fn is_empty(&self) -> bool {
-        self.active_particles.is_empty()
+        self.active_particles.is_empty() && self.trails.is_empty()
     }
     pub fn particles(&self) -> &[Particle] {
         &self.active_particles
+    }
+    pub fn trails_grid(&self) -> &Grid<TrailCell> {
+        &self.trails.grid
     }
 }

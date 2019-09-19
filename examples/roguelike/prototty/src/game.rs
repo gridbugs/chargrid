@@ -53,6 +53,12 @@ impl<'a> View<&'a Game> for GameView {
                 .with_foreground(Rgb24::new(0, 255, 255));
             frame.set_cell_relative(particle.coord(), 0, view_cell, context);
         }
+        for (coord, cell) in game.trails_grid().enumerate() {
+            if let Some(col) = cell.col() {
+                let view_cell = ViewCell::new().with_background(col);
+                frame.set_cell_relative(coord, 0, view_cell, context);
+            }
+        }
         self.last_offset = context.offset;
     }
 }

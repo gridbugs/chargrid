@@ -80,6 +80,9 @@ impl Game {
     pub fn particles(&self) -> &[Particle] {
         self.particle_system.particles()
     }
+    pub fn trails_grid(&self) -> &Grid<TrailCell> {
+        self.particle_system.trails_grid()
+    }
     pub fn player_coord(&self) -> Coord {
         *self.data.coords().get(&self.player_id).unwrap()
     }
