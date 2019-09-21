@@ -20,8 +20,8 @@ pub struct Particle {
 
 #[derive(Serialize, Deserialize)]
 pub struct TrailCell {
-    score: u8,
-    next_score: u8,
+    score: u64,
+    next_score: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -101,11 +101,15 @@ impl Particle {
 }
 
 impl TrailCell {
+    pub fn log_score(&self) -> u8 {
+        ((64 - self.score.leading_zeros()) * 4).min(255) as u8
+    }
     pub fn col(&self) -> Option<Rgb24> {
         if self.score == 0 {
             None
         } else {
-            Some(Rgb24::new(0, 0, 0).linear_interpolate(Rgb24::new(255, 255, 255), self.score))
+            let s = self.log_score();
+            Some(Rgb24::new(0, 0, 0).linear_interpolate(Rgb24::new(255, 255, 255), s))
         }
     }
     fn new() -> Self {
@@ -121,14 +125,14 @@ impl Trails {
         if let Some(cell) = self.grid.get_mut(coord) {
             if cell.score == 0 {
                 self.count += 1;
-                cell.score = 255;
             }
+            cell.score = u64::max_value();
         }
     }
     fn fade_out(&mut self) {
         for cell in self.grid.iter_mut() {
             if cell.score > 0 {
-                cell.score = cell.score.saturating_sub(11);
+                cell.score = ((cell.score as u128 * 1) / 4) as u64;
                 if cell.score == 0 {
                     self.count -= 1;
                 }
@@ -137,15 +141,17 @@ impl Trails {
     }
     fn spread(&mut self) {
         for dest_coord in self.grid.coord_iter() {
-            let mut increase = 0u32;
+            let mut increase = 0;
+            const TRANSFER_FACTOR: u64 = 2000;
             for direction in DirectionsCardinal {
                 let source_coord = dest_coord + direction.coord();
                 if let Some(source_cell) = self.grid.get(source_coord) {
-                    increase += source_cell.score as u32 / 4;
+                    increase += source_cell.score / TRANSFER_FACTOR;
                 }
             }
             let dest_cell = self.grid.get_checked_mut(dest_coord);
-            dest_cell.next_score = (dest_cell.score as u32 / 2 + increase).min(255) as u8;
+            dest_cell.next_score =
+                dest_cell.score - (((dest_cell.score as u128 * 4) / TRANSFER_FACTOR as u128) as u64) + increase;
         }
         for cell in self.grid.iter_mut() {
             if cell.score == 0 && cell.next_score != 0 {
