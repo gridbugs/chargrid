@@ -64,7 +64,7 @@ impl Game {
                     let player_coord = self.player_coord();
                     if coord != player_coord {
                         let path = LineSegment::new(player_coord, coord);
-                        let particle = Particle::new(path, Duration::from_millis(20));
+                        let particle = Particle::new(path, Duration::from_millis(10));
                         self.particle_system.register(particle);
                     }
                 }

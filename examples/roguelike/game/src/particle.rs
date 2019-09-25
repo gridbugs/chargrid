@@ -1,5 +1,5 @@
 use crate::data::GameData;
-use direction::DirectionsCardinal;
+use direction::*;
 use grid_2d::{Grid, Size};
 use line_2d::{Coord, LineSegment, NodeIter};
 use rgb24::Rgb24;
@@ -90,6 +90,7 @@ impl Particle {
                         break ControlFlow::Continue;
                     }
                 } else {
+                    trails.register(current_coord);
                     break ControlFlow::Break;
                 }
             }
@@ -129,29 +130,30 @@ impl Trails {
             cell.score = u64::max_value();
         }
     }
-    fn fade_out(&mut self) {
-        for cell in self.grid.iter_mut() {
-            if cell.score > 0 {
-                cell.score = ((cell.score as u128 * 1) / 4) as u64;
-                if cell.score == 0 {
-                    self.count -= 1;
-                }
+    fn spread(&mut self, game_data: &GameData) {
+        for (dest_coord, game_cell) in self.grid.coord_iter().zip(game_data.grid().iter()) {
+            if game_cell.is_solid() {
+                continue;
             }
-        }
-    }
-    fn spread(&mut self) {
-        for dest_coord in self.grid.coord_iter() {
-            let mut increase = 0;
-            const TRANSFER_FACTOR: u64 = 2000;
-            for direction in DirectionsCardinal {
-                let source_coord = dest_coord + direction.coord();
-                if let Some(source_cell) = self.grid.get(source_coord) {
-                    increase += source_cell.score / TRANSFER_FACTOR;
-                }
-            }
+            let cardinal_sum: u128 = CardinalDirections
+                .into_iter()
+                .filter_map(|d| self.grid.get(dest_coord + d.coord()))
+                .map(|c| c.score as u128)
+                .sum();
+            let ordinal_sum: u128 = OrdinalDirections
+                .into_iter()
+                .filter_map(|d| self.grid.get(dest_coord + d.coord()))
+                .map(|c| c.score as u128)
+                .sum();
+            const FADE_RATIO: (u128, u128) = (1, 10);
+            const SPREAD_RATIO: (u128, u128) = (1, 100);
+            const REMAIN_RATIO: (u128, u128) = (SPREAD_RATIO.1 - SPREAD_RATIO.0, SPREAD_RATIO.1);
+            let weighted_average_neighbour_score = (cardinal_sum * 3 + ordinal_sum * 2) / (5 * 8);
+            let to_add = (weighted_average_neighbour_score * SPREAD_RATIO.0) / SPREAD_RATIO.1;
             let dest_cell = self.grid.get_checked_mut(dest_coord);
+            let score_before_adding = (dest_cell.score as u128 * REMAIN_RATIO.0) / REMAIN_RATIO.1;
             dest_cell.next_score =
-                dest_cell.score - (((dest_cell.score as u128 * 4) / TRANSFER_FACTOR as u128) as u64) + increase;
+                (((score_before_adding + to_add) * FADE_RATIO.0) / FADE_RATIO.1).min(u64::max_value() as u128) as u64;
         }
         for cell in self.grid.iter_mut() {
             if cell.score == 0 && cell.next_score != 0 {
@@ -162,9 +164,8 @@ impl Trails {
             cell.score = cell.next_score;
         }
     }
-    fn tick(&mut self) {
-        self.fade_out();
-        self.spread();
+    fn tick(&mut self, game_data: &GameData) {
+        self.spread(game_data);
     }
     fn is_empty(&self) -> bool {
         self.count == 0
@@ -186,7 +187,6 @@ impl ParticleSystem {
         self.active_particles.push(particle);
     }
     pub fn tick(&mut self, game_data: &mut GameData) {
-        self.trails.tick();
         for mut particle in self.active_particles.drain(..) {
             match particle.tick(&mut self.trails, game_data) {
                 ControlFlow::Break => (),
@@ -194,6 +194,7 @@ impl ParticleSystem {
             }
         }
         mem::swap(&mut self.active_particles, &mut self.next_active_particles);
+        self.trails.tick(game_data);
     }
     pub fn is_empty(&self) -> bool {
         self.active_particles.is_empty() && self.trails.is_empty()
