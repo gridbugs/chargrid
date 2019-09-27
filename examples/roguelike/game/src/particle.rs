@@ -1,4 +1,4 @@
-use crate::data::GameData;
+use crate::data::{GameData, Id};
 use direction::*;
 use grid_2d::{Grid, Size};
 use line_2d::{Coord, LineSegment, NodeIter};
@@ -16,6 +16,7 @@ pub struct Particle {
     until_next_step: Duration,
     path_iter: NodeIter,
     path: LineSegment,
+    entity_id: Id,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -49,13 +50,14 @@ impl Particle {
         let diagonal_micros = (micros * SQRT_2_X_1_000_000) / 1_000_000;
         Duration::from_micros(diagonal_micros as u64)
     }
-    pub fn new(path: LineSegment, step_duration: Duration) -> Self {
+    pub fn new(path: LineSegment, step_duration: Duration, entity_id: Id) -> Self {
         Self {
             cardinal_step_duration: step_duration,
             ordinal_step_duration: Self::ordinal_duration_from_cardinal_duration(step_duration),
             until_next_step: Duration::from_millis(0),
             path_iter: path.node_iter(),
             path,
+            entity_id,
         }
     }
     fn tick(&mut self, trails: &mut Trails, game_data: &mut GameData) -> ControlFlow {
