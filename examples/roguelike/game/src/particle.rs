@@ -1,4 +1,4 @@
-use crate::data::{GameData, Id};
+use crate::data::{GameData, Id, MoveProjectileFailed};
 use direction::*;
 use grid_2d::{Grid, Size};
 use line_2d::{Coord, LineSegment, NodeIter};
@@ -78,11 +78,7 @@ impl Particle {
                     if node.coord != self.path.start() {
                         trails.register(current_coord);
                     }
-                    if let Some(cell) = game_data.get_cell(node.coord) {
-                        if cell.is_solid() {
-                            break ControlFlow::Break;
-                        }
-                    } else {
+                    if let Err(MoveProjectileFailed) = game_data.move_projectile(self.entity_id, node.prev.opposite()) {
                         break ControlFlow::Break;
                     }
                     if let Some(remaining_timeslice) = timeslice.checked_sub(step_duration) {

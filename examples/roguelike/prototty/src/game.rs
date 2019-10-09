@@ -1,6 +1,6 @@
 use crate::controls::{AppInput, Controls};
 pub use game::Input as GameInput;
-use game::{Direction, Game};
+use game::{CardinalDirection, CharacterTile, Game, ProjectileTile, WallTile};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
@@ -32,32 +32,35 @@ impl GameView {
 
 impl<'a> View<&'a Game> for GameView {
     fn view<F: Frame, C: ColModify>(&mut self, game: &'a Game, context: ViewContext<C>, frame: &mut F) {
-        let grid = game.grid();
-        for (coord, cell) in grid.enumerate() {
-            let view_cell = ViewCell::new().with_character('.');
-            let view_cell = if let Some(_wall) = cell.wall() {
-                view_cell.with_character('#')
+        let to_render = game.world_to_render();
+        for ((coord, cell), bullet_trail_blend) in
+            to_render.grid_enumerate().zip(to_render.bullet_trail_blend_grid_iter())
+        {
+            let mut view_cell = ViewCell::new();
+            if let Some(wall) = cell.wall {
+                match wall.tile() {
+                    WallTile::Plain => view_cell.character = Some('#'),
+                }
             } else {
-                view_cell
+                view_cell.character = Some('.');
             };
-            let view_cell = if let Some(_character) = cell.character() {
-                view_cell.with_character('@')
-            } else {
-                view_cell
+            if let Some(character) = cell.character {
+                match character.tile() {
+                    CharacterTile::Player => view_cell.character = Some('@'),
+                }
             };
+            view_cell.style.background =
+                Some(bullet_trail_blend.blend(view_cell.style.background.unwrap_or(Rgb24::new(0, 0, 0))));
+            view_cell.style.foreground =
+                Some(bullet_trail_blend.blend(view_cell.style.foreground.unwrap_or(Rgb24::new(0, 0, 0))));
             frame.set_cell_relative(coord, 0, view_cell, context);
         }
-        for particle in game.particles() {
-            let view_cell = ViewCell::new()
-                .with_character('*')
-                .with_foreground(Rgb24::new(0, 255, 255));
-            frame.set_cell_relative(particle.coord(), 0, view_cell, context);
-        }
-        for (coord, cell) in game.trails_grid().enumerate() {
-            if let Some(col) = cell.col() {
-                let view_cell = ViewCell::new().with_background(col);
-                frame.set_cell_relative(coord, 0, view_cell, context);
-            }
+        for projectile in to_render.realtime_projectiles() {
+            let view_cell = ViewCell::new();
+            let view_cell = match projectile.value.tile() {
+                ProjectileTile::Bullet => view_cell.with_character('*'),
+            };
+            frame.set_cell_relative(projectile.coord(), 0, view_cell, context);
         }
         self.last_offset = context.offset;
     }
@@ -230,7 +233,7 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
     {
         enum Aim {
             Mouse { coord: Coord, press: bool },
-            KeyboardDirection(Direction),
+            KeyboardDirection(CardinalDirection),
             KeyboardFinalise,
             Cancel,
             Ignore,
@@ -300,7 +303,7 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     exclude_start: true,
                     exclude_end: true,
                 }) {
-                    if !node.coord.is_valid(instance.game.grid().size()) {
+                    if !node.coord.is_valid(instance.game.world_size()) {
                         break;
                     }
                     frame.set_cell_relative(
@@ -311,7 +314,7 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     );
                 }
             }
-            if self.coord.is_valid(instance.game.grid().size()) {
+            if self.coord.is_valid(instance.game.world_size()) {
                 let col = self.blink.col(self.duration);
                 frame.set_cell_relative(self.coord, 1, ViewCell::new().with_background(col), context);
             }
@@ -368,7 +371,7 @@ impl<S: Storage> EventRoutine for GameEventRoutine<S> {
                                 if let Some(app_input) = controls.get(keyboard_input) {
                                     match app_input {
                                         AppInput::Move(direction) => {
-                                            instance.game.handle_input(GameInput::Move(direction))
+                                            instance.game.handle_input(GameInput::Walk(direction))
                                         }
                                         AppInput::Aim => return Handled::Return(GameReturn::Aim),
                                     }

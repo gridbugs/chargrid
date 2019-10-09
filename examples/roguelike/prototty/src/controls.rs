@@ -1,11 +1,11 @@
-use game::Direction;
+use game::CardinalDirection;
 use hashbrown::HashMap;
 use prototty::input::KeyboardInput;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum AppInput {
-    Move(Direction),
+    Move(CardinalDirection),
     Aim,
 }
 
@@ -17,10 +17,10 @@ pub struct Controls {
 impl Controls {
     pub fn default() -> Self {
         let mut keys = HashMap::new();
-        keys.insert(KeyboardInput::Left, AppInput::Move(Direction::West));
-        keys.insert(KeyboardInput::Right, AppInput::Move(Direction::East));
-        keys.insert(KeyboardInput::Up, AppInput::Move(Direction::North));
-        keys.insert(KeyboardInput::Down, AppInput::Move(Direction::South));
+        keys.insert(KeyboardInput::Left, AppInput::Move(CardinalDirection::West));
+        keys.insert(KeyboardInput::Right, AppInput::Move(CardinalDirection::East));
+        keys.insert(KeyboardInput::Up, AppInput::Move(CardinalDirection::North));
+        keys.insert(KeyboardInput::Down, AppInput::Move(CardinalDirection::South));
         keys.insert(KeyboardInput::Char('f'), AppInput::Aim);
         Self { keys }
     }

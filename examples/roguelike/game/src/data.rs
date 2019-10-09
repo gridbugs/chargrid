@@ -6,18 +6,18 @@ use std::mem;
 
 pub type Id = u64;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Entity<X> {
     id: Id,
     extra: X,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub enum CharacterTile {
     Player,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Character {
     tile: CharacterTile,
 }
@@ -28,13 +28,13 @@ impl Character {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Wall {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Projectile {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Cell {
     character: Option<Entity<Character>>,
     wall: Option<Entity<Wall>>,
@@ -130,12 +130,14 @@ impl GameData {
     pub fn move_projectile(&mut self, id: Id, direction: Direction) -> Result<(), MoveProjectileFailed> {
         let projectile_coord = self.coords.get_mut(&id).unwrap();
         let destination_coord = *projectile_coord + direction.coord();
-        let (source_cell, destination_cell) = self.grid.get2_checked_mut(*player_coord, destination_coord);
+        let (source_cell, destination_cell) = self.grid.get2_checked_mut(*projectile_coord, destination_coord);
         if destination_cell.is_solid() {
-            return;
+            return Err(MoveProjectileFailed);
         }
-        mem::swap(&mut source_cell.character, &mut destination_cell.character);
-        *player_coord = destination_coord;
+        let projectile = source_cell.projectiles.remove(&id).unwrap();
+        destination_cell.projectiles.insert(id, projectile);
+        *projectile_coord = destination_coord;
+        Ok(())
     }
 
     pub fn grid(&self) -> &Grid<Cell> {
