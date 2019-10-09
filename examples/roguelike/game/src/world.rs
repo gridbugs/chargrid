@@ -4,6 +4,7 @@ use crate::realtime_projectile::{Projectile, Step};
 use direction::CardinalDirection;
 use grid_2d::{Coord, Size};
 use line_2d::LineSegment;
+use rand::Rng;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use std::mem;
@@ -140,25 +141,27 @@ impl Gas {
                 size,
                 GasSpec {
                     fade: GasRatio::new(1, 2),
-                    spread: GasRatio::new(1, 2),
+                    spread: GasRatio::new(1, 10),
+                    noise: GasRatio::new(2, 1),
                 },
             ),
-            from_rgb24: Rgb24::new(255, 255, 255),
-            to_rgb24: Rgb24::new(0, 0, 0),
+            from_rgb24: Rgb24::new(255, 255, 0),
+            to_rgb24: Rgb24::new(255, 0, 0),
         };
         Self { bullet_trails }
     }
-    fn tick(&mut self, walls: &EntityGrid<WallId, Wall>) {
-        self.bullet_trails.gas_grid.tick(|coord| {
+    fn tick<R: Rng>(&mut self, walls: &EntityGrid<WallId, Wall>, rng: &mut R) {
+        let can_enter = |coord| {
             if let Some(cell) = walls.get_entity_by_coord(coord).unwrap() {
                 !cell.entity.is_solid()
             } else {
                 true
             }
-        })
+        };
+        self.bullet_trails.gas_grid.tick(can_enter, rng);
     }
     fn has_pending_animations(&self) -> bool {
-        self.bullet_trails.gas_grid.is_empty()
+        !self.bullet_trails.gas_grid.is_empty()
     }
 }
 
@@ -224,6 +227,9 @@ impl World {
     }
     pub fn character_fire_bullet(&mut self, character_id: CharacterId, target_coord: Coord) {
         let source_coord = self.characters.get_coord_by_id(character_id).unwrap();
+        if target_coord == source_coord {
+            return;
+        };
         let path = LineSegment::new(source_coord, target_coord);
         let step_duration = Duration::from_millis(10);
         let value = ProjectileData {
@@ -235,9 +241,9 @@ impl World {
     pub fn has_pending_animations(&self) -> bool {
         !self.realtime_projectiles.current.is_empty() || self.gas.has_pending_animations()
     }
-    pub fn animation_tick(&mut self) {
+    pub fn animation_tick<R: Rng>(&mut self, rng: &mut R) {
         self.tick_realtime_projectiles();
-        self.gas.tick(&self.walls);
+        self.gas.tick(&self.walls, rng);
     }
     fn tick_realtime_projectiles(&mut self) {
         for mut projectile in self.realtime_projectiles.current.drain(..) {

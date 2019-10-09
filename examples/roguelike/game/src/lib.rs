@@ -64,7 +64,7 @@ impl Game {
         }
     }
     pub fn handle_tick(&mut self, _since_last_tick: Duration) {
-        self.world.animation_tick();
+        self.world.animation_tick(&mut self.rng);
     }
     pub fn player_coord(&self) -> Coord {
         self.world.character_coord(self.player_id)

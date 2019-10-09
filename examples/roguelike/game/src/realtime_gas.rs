@@ -1,5 +1,6 @@
 use direction::{CardinalDirections, OrdinalDirections};
 use grid_2d::{Coord, Grid, Size};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,6 +22,7 @@ impl GasRatio {
 pub struct GasSpec {
     pub fade: GasRatio,
     pub spread: GasRatio,
+    pub noise: GasRatio,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -48,6 +50,8 @@ impl GasCell {
     }
 }
 
+const FLOOR: u64 = 1 << 24;
+
 impl GasGrid {
     pub fn new(size: Size, spec: GasSpec) -> Self {
         let grid = Grid::new_fn(size, |_| GasCell::new());
@@ -64,7 +68,10 @@ impl GasGrid {
             cell.score = u64::max_value();
         }
     }
-    pub fn tick<F: Fn(Coord) -> bool>(&mut self, can_enter: F) {
+    pub fn tick<F: Fn(Coord) -> bool, R: Rng>(&mut self, can_enter: F, rng: &mut R) {
+        if self.count == 0 {
+            return;
+        }
         for dest_coord in self.grid.coord_iter() {
             if !can_enter(dest_coord) {
                 continue;
@@ -85,9 +92,16 @@ impl GasGrid {
             let score_before_adding = (dest_cell.score as u128
                 * (self.spec.spread.denominator - self.spec.spread.numerator))
                 / self.spec.spread.denominator;
-            dest_cell.next_score = (((score_before_adding + to_add) * self.spec.fade.numerator)
-                / self.spec.fade.denominator)
-                .min(u64::max_value() as u128) as u64;
+            let next_score_before_noise =
+                ((score_before_adding + to_add) * self.spec.fade.numerator) / self.spec.fade.denominator;
+            let noise_max = (next_score_before_noise * self.spec.noise.numerator) / self.spec.noise.denominator;
+            let noise = if noise_max == 0 { 0 } else { rng.gen_range(0, noise_max) };
+            let next_score = (next_score_before_noise + noise_max / 2).saturating_sub(noise);
+            dest_cell.next_score = next_score.min(u64::max_value() as u128) as u64;
+            if dest_cell.next_score < FLOOR {
+                // speed up the barely-visible parts of animations
+                dest_cell.next_score = 0;
+            }
         }
         for cell in self.grid.iter_mut() {
             if cell.score == 0 && cell.next_score != 0 {
