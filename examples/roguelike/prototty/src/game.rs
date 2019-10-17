@@ -1,6 +1,6 @@
 use crate::controls::{AppInput, Controls};
 pub use game::Input as GameInput;
-use game::{CardinalDirection, CharacterTile, Game, ProjectileTile, WallTile};
+use game::{CardinalDirection, Game, Layer, Tile};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
@@ -30,37 +30,30 @@ impl GameView {
     }
 }
 
+fn layer_depth(layer: Layer) -> i32 {
+    match layer {
+        Layer::Floor => 0,
+        Layer::Feature => 1,
+        Layer::Character => 2,
+        Layer::Projectile => 3,
+    }
+}
+
+fn tile_view_cell(tile: Tile) -> ViewCell {
+    match tile {
+        Tile::Player => ViewCell::new().with_character('@'),
+        Tile::Floor => ViewCell::new().with_character('.'),
+        Tile::Wall => ViewCell::new().with_character('#'),
+        Tile::Bullet => ViewCell::new().with_character('*'),
+    }
+}
+
 impl<'a> View<&'a Game> for GameView {
     fn view<F: Frame, C: ColModify>(&mut self, game: &'a Game, context: ViewContext<C>, frame: &mut F) {
-        let to_render = game.world_to_render();
-        for ((coord, cell), bullet_trail_blend) in
-            to_render.grid_enumerate().zip(to_render.bullet_trail_blend_grid_iter())
-        {
-            let mut view_cell = ViewCell::new();
-            if let Some(wall) = cell.wall {
-                match wall.tile() {
-                    WallTile::Plain => view_cell.character = Some('#'),
-                }
-            } else {
-                view_cell.character = Some('.');
-            };
-            if let Some(character) = cell.character {
-                match character.tile() {
-                    CharacterTile::Player => view_cell.character = Some('@'),
-                }
-            };
-            view_cell.style.background =
-                Some(bullet_trail_blend.blend(view_cell.style.background.unwrap_or(Rgb24::new(0, 0, 0))));
-            view_cell.style.foreground =
-                Some(bullet_trail_blend.blend(view_cell.style.foreground.unwrap_or(Rgb24::new(0, 0, 0))));
-            frame.set_cell_relative(coord, 0, view_cell, context);
-        }
-        for projectile in to_render.realtime_projectiles() {
-            let view_cell = ViewCell::new();
-            let view_cell = match projectile.value.tile() {
-                ProjectileTile::Bullet => view_cell.with_character('*'),
-            };
-            frame.set_cell_relative(projectile.coord(), 0, view_cell, context);
+        for to_render_entity in game.to_render_entities() {
+            let depth = layer_depth(to_render_entity.layer);
+            let view_cell = tile_view_cell(to_render_entity.tile);
+            frame.set_cell_relative(to_render_entity.coord, depth, view_cell, context);
         }
         self.last_offset = context.offset;
     }

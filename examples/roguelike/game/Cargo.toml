@@ -12,6 +12,5 @@ rand = "0.7"
 rand_isaac = { version = "0.2", features = ["serde1"] }
 hashbrown = { version = "0.6", features = ["serde"] }
 line_2d = { version = "0.3", features = ["serialize"] }
-typetag = "0.1"
-static_circle = { git = "https://github.com/stevebob/static-circle.git" }
-rgb24 = "0.2"
+rgb24 = { version = "0.2", features = ["serialize"] }
+ecs = { path = "../ecs" }

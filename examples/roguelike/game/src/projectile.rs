@@ -6,14 +6,13 @@ use std::time::Duration;
 // variations in frame-rate.
 const FRAME_MICROS: i64 = 1_000_000 / 60;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Projectile<V> {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Projectile {
     cardinal_step_duration_micros: i64,
     ordinal_step_duration_micros: i64,
     path_iter: NodeIter,
     path: LineSegment,
     budget_micros: i64,
-    pub value: V,
 }
 
 pub enum Step {
@@ -21,24 +20,24 @@ pub enum Step {
     AtDestination,
 }
 
-pub struct ProjectileFrameIter<'a, V> {
-    projectile: &'a mut Projectile<V>,
+pub struct ProjectileFrameIter<'a> {
+    projectile: &'a mut Projectile,
 }
 
-impl<'a, V> Iterator for ProjectileFrameIter<'a, V> {
+impl<'a> Iterator for ProjectileFrameIter<'a> {
     type Item = Step;
     fn next(&mut self) -> Option<Self::Item> {
         self.projectile.step()
     }
 }
 
-impl<V> Projectile<V> {
+impl Projectile {
     fn ordinal_duration_from_cardinal_duration(duration_micros: i64) -> i64 {
         const SQRT_2_X_1_000_000: i64 = 1414214;
         let diagonal_micros = (duration_micros * SQRT_2_X_1_000_000) / 1_000_000;
         diagonal_micros
     }
-    pub fn new(path: LineSegment, step_duration: Duration, value: V) -> Self {
+    pub fn new(path: LineSegment, step_duration: Duration) -> Self {
         let cardinal_step_duration_micros = step_duration.as_micros() as i64;
         Self {
             cardinal_step_duration_micros,
@@ -46,13 +45,12 @@ impl<V> Projectile<V> {
             path_iter: path.node_iter(),
             path,
             budget_micros: FRAME_MICROS,
-            value,
         }
     }
     pub fn coord(&self) -> Coord {
         self.path_iter.current()
     }
-    pub fn frame_iter(&mut self) -> ProjectileFrameIter<V> {
+    pub fn frame_iter(&mut self) -> ProjectileFrameIter {
         self.replenish();
         ProjectileFrameIter { projectile: self }
     }

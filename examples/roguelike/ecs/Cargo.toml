@@ -1,0 +1,11 @@
+[package]
+name = "ecs"
+version = "0.1.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+edition = "2018"
+
+[dependencies]
+serde = { version = "1.0", features = ["serde_derive"] }
+
+[dev-dependencies]
+serde_json = "1.0"

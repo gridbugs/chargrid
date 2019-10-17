@@ -1,323 +1,287 @@
-use crate::entity_grid::{EntityByCoord, EntityGrid, IdTrait, RawId};
-use crate::realtime_gas::{GasGrid, GasRatio, GasSpec};
-use crate::realtime_projectile::{Projectile, Step};
+use crate::projectile::{Projectile, Step};
 use direction::CardinalDirection;
-use grid_2d::{Coord, Size};
+pub use ecs::Entity;
+use ecs::{ecs_components, ComponentTable, Ecs};
+use grid_2d::{Coord, Grid, Size};
 use line_2d::LineSegment;
 use rand::Rng;
-use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
-use std::mem;
 use std::time::Duration;
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone, Copy)]
-struct WallId(RawId);
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub struct CharacterId(RawId);
-
-impl IdTrait for WallId {
-    fn from_raw(raw_id: RawId) -> Self {
-        Self(raw_id)
-    }
-    fn to_raw(self) -> RawId {
-        self.0
-    }
-}
-
-impl IdTrait for CharacterId {
-    fn from_raw(raw_id: RawId) -> Self {
-        Self(raw_id)
-    }
-    fn to_raw(self) -> RawId {
-        self.0
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
-pub enum CharacterTile {
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum Tile {
     Player,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Character {
-    tile: CharacterTile,
-}
-
-impl Character {
-    pub fn tile(&self) -> CharacterTile {
-        self.tile
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
-pub enum WallTile {
-    Plain,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Wall {
-    tile: WallTile,
-}
-
-impl Wall {
-    pub fn tile(&self) -> WallTile {
-        self.tile
-    }
-    pub fn is_solid(&self) -> bool {
-        true
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
-pub enum ProjectileTile {
+    Wall,
+    Floor,
     Bullet,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ProjectileData {
-    tile: ProjectileTile,
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum Layer {
+    Floor,
+    Feature,
+    Character,
+    Projectile,
 }
 
-impl ProjectileData {
-    pub fn tile(&self) -> ProjectileTile {
-        self.tile
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SpatialLayer {
+    Floor,
+    Feature,
+    Character,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct DoubleBuffer<T> {
-    current: Vec<T>,
-    next: Vec<T>,
-}
-
-impl<T> DoubleBuffer<T> {
-    fn new() -> Self {
-        Self {
-            current: Vec::new(),
-            next: Vec::new(),
+impl SpatialLayer {
+    fn to_layer(self) -> Layer {
+        match self {
+            Self::Floor => Layer::Floor,
+            Self::Feature => Layer::Feature,
+            Self::Character => Layer::Character,
         }
     }
 }
 
-pub struct BlendRgb24 {
-    rgb24: Rgb24,
-    blend_factor: u8,
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Location {
+    pub coord: Coord,
+    pub spatial_layer: SpatialLayer,
 }
 
-impl BlendRgb24 {
-    pub fn blend(&self, rgb24: Rgb24) -> Rgb24 {
-        rgb24.linear_interpolate(self.rgb24, self.blend_factor)
+impl Location {
+    fn new(coord: Coord, spatial_layer: SpatialLayer) -> Self {
+        Self { coord, spatial_layer }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct ColouredGasGrid {
-    gas_grid: GasGrid,
-    from_rgb24: Rgb24,
-    to_rgb24: Rgb24,
+ecs_components! {
+    components {
+        location: Location,
+        tile: Tile,
+        opacity: u8,
+        solid: (),
+        projectile: Projectile,
+    }
+}
+use components::Components;
+
+#[derive(Debug)]
+struct OccupiedBy(Entity);
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SpatialCell {
+    floor: Option<Entity>,
+    feature: Option<Entity>,
+    character: Option<Entity>,
 }
 
-impl ColouredGasGrid {
-    fn blend_grid_iter<'a>(&'a self) -> impl 'a + Iterator<Item = BlendRgb24> {
-        self.gas_grid.iter().map(move |intensity| {
-            let rgb24 = self.to_rgb24.linear_interpolate(self.from_rgb24, intensity);
-            BlendRgb24 {
-                rgb24,
-                blend_factor: intensity,
+impl Default for SpatialCell {
+    fn default() -> Self {
+        Self {
+            floor: None,
+            feature: None,
+            character: None,
+        }
+    }
+}
+
+impl SpatialCell {
+    fn select_field_mut(&mut self, spatial_layer: SpatialLayer) -> &mut Option<Entity> {
+        match spatial_layer {
+            SpatialLayer::Character => &mut self.character,
+            SpatialLayer::Feature => &mut self.feature,
+            SpatialLayer::Floor => &mut self.floor,
+        }
+    }
+    fn insert(&mut self, entity: Entity, spatial_layer: SpatialLayer) -> Result<(), OccupiedBy> {
+        let layer_field = self.select_field_mut(spatial_layer);
+        if let Some(&occupant) = layer_field.as_ref() {
+            Err(OccupiedBy(occupant))
+        } else {
+            *layer_field = Some(entity);
+            Ok(())
+        }
+    }
+    fn clear(&mut self, spatial_layer: SpatialLayer) -> Option<Entity> {
+        self.select_field_mut(spatial_layer).take()
+    }
+}
+
+fn location_insert(
+    entity: Entity,
+    location: Location,
+    location_component: &mut ComponentTable<Location>,
+    spatial_grid: &mut Grid<SpatialCell>,
+) -> Result<(), OccupiedBy> {
+    let cell = spatial_grid.get_checked_mut(location.coord);
+    cell.insert(entity, location.spatial_layer)?;
+    if let Some(original_location) = location_component.insert(entity, location) {
+        let original_cell = spatial_grid.get_checked_mut(original_location.coord);
+        let should_match_entity = original_cell.clear(original_location.spatial_layer);
+        debug_assert_eq!(
+            should_match_entity,
+            Some(entity),
+            "Current location of entity doesn't contain entity in spatial grid"
+        );
+    }
+    Ok(())
+}
+
+fn is_solid_feature_at_coord(
+    coord: Coord,
+    solid_component: &ComponentTable<()>,
+    spatial_grid: &Grid<SpatialCell>,
+) -> bool {
+    let cell = spatial_grid.get_checked(coord);
+    if let Some(feature) = cell.feature {
+        solid_component.contains(feature)
+    } else {
+        false
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct World {
+    ecs: Ecs<Components>,
+    spatial_grid: Grid<SpatialCell>,
+    entity_buffer: Vec<Entity>,
+}
+
+impl World {
+    pub fn new(size: Size) -> Self {
+        let ecs = Ecs::new();
+        let spatial_grid = Grid::new_default(size);
+        let entity_buffer = Vec::new();
+        Self {
+            ecs,
+            spatial_grid,
+            entity_buffer,
+        }
+    }
+    pub fn spawn_player(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.create();
+        location_insert(
+            entity,
+            Location::new(coord, SpatialLayer::Character),
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        )
+        .unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Player);
+        entity
+    }
+    pub fn spawn_floor(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.create();
+        location_insert(
+            entity,
+            Location::new(coord, SpatialLayer::Floor),
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        )
+        .unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Floor);
+        entity
+    }
+    pub fn spawn_wall(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.create();
+        location_insert(
+            entity,
+            Location::new(coord, SpatialLayer::Feature),
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        )
+        .unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Wall);
+        self.ecs.components.solid.insert(entity, ());
+        self.ecs.components.opacity.insert(entity, 255);
+        entity
+    }
+    pub fn character_walk_in_direction(&mut self, entity: Entity, direction: CardinalDirection) {
+        let current_location = self.ecs.components.location.get_mut(entity).unwrap();
+        debug_assert_eq!(current_location.spatial_layer, SpatialLayer::Character);
+        let target_coord = current_location.coord + direction.coord();
+        if is_solid_feature_at_coord(target_coord, &self.ecs.components.solid, &self.spatial_grid) {
+            return;
+        }
+        let target_location = Location::new(target_coord, SpatialLayer::Character);
+        if let Err(OccupiedBy(_occupant)) = location_insert(
+            entity,
+            target_location,
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        ) {
+            // TODO melee
+        }
+    }
+    pub fn character_fire_bullet(&mut self, character: Entity, target: Coord) {
+        let character_coord = self.ecs.components.location.get(character).unwrap().coord;
+        if character_coord == target {
+            return;
+        }
+        let bullet_entity = self.ecs.create();
+        let path = LineSegment::new(character_coord, target);
+        self.ecs
+            .components
+            .projectile
+            .insert(bullet_entity, Projectile::new(path, Duration::from_millis(20)));
+        self.ecs.components.tile.insert(bullet_entity, Tile::Bullet);
+    }
+    pub fn entity_coord(&self, entity: Entity) -> Coord {
+        self.ecs.components.location.get(entity).unwrap().coord
+    }
+    pub fn size(&self) -> Size {
+        self.spatial_grid.size()
+    }
+    pub fn has_pending_animation(&self) -> bool {
+        !self.ecs.components.projectile.is_empty()
+    }
+    pub fn animation_tick<R: Rng>(&mut self, _rng: &mut R) {
+        let to_remove = &mut self.entity_buffer;
+        for (entity, projectile) in self.ecs.components.projectile.iter_mut() {
+            for step in projectile.frame_iter() {
+                match step {
+                    Step::AtDestination => {
+                        to_remove.push(entity);
+                        break;
+                    }
+                    Step::MoveTo(coord) => {
+                        if is_solid_feature_at_coord(coord, &self.ecs.components.solid, &self.spatial_grid) {
+                            to_remove.push(entity);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        for entity in to_remove.drain(..) {
+            self.ecs.remove(entity);
+        }
+    }
+    pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
+        let tile_component = &self.ecs.components.tile;
+        let location_component = &self.ecs.components.location;
+        let projectile_component = &self.ecs.components.projectile;
+        tile_component.iter().filter_map(move |(entity, &tile)| {
+            if let Some(location) = location_component.get(entity) {
+                Some(ToRenderEntity {
+                    coord: location.coord,
+                    layer: location.spatial_layer.to_layer(),
+                    tile: tile,
+                })
+            } else if let Some(projectile) = projectile_component.get(entity) {
+                Some(ToRenderEntity {
+                    coord: projectile.coord(),
+                    layer: Layer::Projectile,
+                    tile,
+                })
+            } else {
+                None
             }
         })
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Gas {
-    bullet_trails: ColouredGasGrid,
-}
-
-impl Gas {
-    fn new(size: Size) -> Self {
-        let bullet_trails = ColouredGasGrid {
-            gas_grid: GasGrid::new(
-                size,
-                GasSpec {
-                    fade: GasRatio::new(1, 2),
-                    spread: GasRatio::new(1, 10),
-                    noise: GasRatio::new(2, 1),
-                },
-            ),
-            from_rgb24: Rgb24::new(255, 255, 0),
-            to_rgb24: Rgb24::new(255, 0, 0),
-        };
-        Self { bullet_trails }
-    }
-    fn tick<R: Rng>(&mut self, walls: &EntityGrid<WallId, Wall>, rng: &mut R) {
-        let can_enter = |coord| {
-            if let Some(cell) = walls.get_entity_by_coord(coord).unwrap() {
-                !cell.entity.is_solid()
-            } else {
-                true
-            }
-        };
-        self.bullet_trails.gas_grid.tick(can_enter, rng);
-    }
-    fn has_pending_animations(&self) -> bool {
-        !self.bullet_trails.gas_grid.is_empty()
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct World {
-    size: Size,
-    walls: EntityGrid<WallId, Wall>,
-    characters: EntityGrid<CharacterId, Character>,
-    realtime_projectiles: DoubleBuffer<Projectile<ProjectileData>>,
-    gas: Gas,
-}
-
-impl World {
-    pub fn new(size: Size) -> Self {
-        let walls = EntityGrid::new(size);
-        let characters = EntityGrid::new(size);
-        let realtime_projectiles = DoubleBuffer::new();
-        let gas = Gas::new(size);
-        Self {
-            size,
-            walls,
-            characters,
-            realtime_projectiles,
-            gas,
-        }
-    }
-    pub fn size(&self) -> Size {
-        self.size
-    }
-    pub fn spawn_player(&mut self, coord: Coord) -> CharacterId {
-        self.characters
-            .spawn_entity(
-                coord,
-                Character {
-                    tile: CharacterTile::Player,
-                },
-            )
-            .unwrap()
-    }
-    pub fn spawn_wall(&mut self, coord: Coord) {
-        self.walls.spawn_entity(coord, Wall { tile: WallTile::Plain }).unwrap();
-    }
-    pub fn character_coord(&self, character_id: CharacterId) -> Coord {
-        self.characters.get_coord_by_id(character_id).unwrap()
-    }
-    pub fn character_walk_in_direction(&mut self, character_id: CharacterId, direction: CardinalDirection) {
-        let select = self
-            .characters
-            .select_entity_to_move_to_empty_cell(character_id)
-            .unwrap();
-        let destination_coord = select.coord() + direction.coord();
-        if !destination_coord.is_valid(self.size) {
-            return;
-        }
-        if let Some(EntityByCoord { id: _, entity: wall }) = self.walls.get_entity_by_coord(destination_coord).unwrap()
-        {
-            if wall.is_solid() {
-                return;
-            }
-        }
-        let staged_move = select.stage_move_entity_to_empty_cell(destination_coord).unwrap();
-        staged_move.commit();
-    }
-    pub fn character_fire_bullet(&mut self, character_id: CharacterId, target_coord: Coord) {
-        let source_coord = self.characters.get_coord_by_id(character_id).unwrap();
-        if target_coord == source_coord {
-            return;
-        };
-        let path = LineSegment::new(source_coord, target_coord);
-        let step_duration = Duration::from_millis(10);
-        let value = ProjectileData {
-            tile: ProjectileTile::Bullet,
-        };
-        let projectile = Projectile::new(path, step_duration, value);
-        self.realtime_projectiles.current.push(projectile);
-    }
-    pub fn has_pending_animations(&self) -> bool {
-        !self.realtime_projectiles.current.is_empty() || self.gas.has_pending_animations()
-    }
-    pub fn animation_tick<R: Rng>(&mut self, rng: &mut R) {
-        self.tick_realtime_projectiles();
-        self.gas.tick(&self.walls, rng);
-    }
-    fn tick_realtime_projectiles(&mut self) {
-        for mut projectile in self.realtime_projectiles.current.drain(..) {
-            let mut projectile_continue = true;
-            for step in projectile.frame_iter() {
-                let coord = match step {
-                    Step::MoveTo(coord) => {
-                        if let Ok(maybe_wall) = self.walls.get_entity_by_coord(coord) {
-                            if let Some(wall) = maybe_wall {
-                                if wall.entity.is_solid() {
-                                    projectile_continue = false;
-                                    break;
-                                }
-                            }
-                        } else {
-                            projectile_continue = false;
-                            break;
-                        }
-                        coord
-                    }
-                    Step::AtDestination => {
-                        projectile_continue = false;
-                        break;
-                    }
-                };
-                self.gas.bullet_trails.gas_grid.register(coord);
-            }
-            if projectile_continue {
-                self.realtime_projectiles.next.push(projectile);
-            }
-        }
-        mem::swap(
-            &mut self.realtime_projectiles.current,
-            &mut self.realtime_projectiles.next,
-        );
-    }
-    pub fn to_render(&self) -> ToRender {
-        ToRender { world: self }
-    }
-}
-
-pub struct ToRender<'a> {
-    world: &'a World,
-}
-
-impl<'a> ToRender<'a> {
-    pub fn grid_enumerate(&self) -> impl Iterator<Item = (Coord, ToRenderCell)> {
-        self.world
-            .characters
-            .grid_enumerate()
-            .zip(self.world.walls.grid_iter())
-            .map(|((coord, maybe_character_by_coord), maybe_wall_by_coord)| {
-                (
-                    coord,
-                    ToRenderCell {
-                        character: maybe_character_by_coord
-                            .as_ref()
-                            .map(|entity_by_coord| entity_by_coord.entity),
-                        wall: maybe_wall_by_coord
-                            .as_ref()
-                            .map(|entity_by_coord| entity_by_coord.entity),
-                    },
-                )
-            })
-    }
-    pub fn realtime_projectiles(&self) -> impl Iterator<Item = &Projectile<ProjectileData>> {
-        self.world.realtime_projectiles.current.iter()
-    }
-    pub fn bullet_trail_blend_grid_iter(&self) -> impl 'a + Iterator<Item = BlendRgb24> {
-        self.world.gas.bullet_trails.blend_grid_iter()
-    }
-}
-
-pub struct ToRenderCell<'a> {
-    pub character: Option<&'a Character>,
-    pub wall: Option<&'a Wall>,
+pub struct ToRenderEntity {
+    pub coord: Coord,
+    pub layer: Layer,
+    pub tile: Tile,
 }

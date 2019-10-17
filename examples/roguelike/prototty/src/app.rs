@@ -235,7 +235,7 @@ impl<S: Storage> Decorate for DecorateMainMenu<S> {
                     },
                 },
             }
-            .view(data, context.add_depth(1), frame);
+            .view(data, context.add_depth(10), frame);
             if let Ok(game) = data.game.game() {
                 AlignView {
                     alignment: Alignment::centre(),
