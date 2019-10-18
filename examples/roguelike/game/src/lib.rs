@@ -5,6 +5,7 @@ use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+mod gas;
 mod projectile;
 mod world;
 
@@ -78,5 +79,8 @@ impl Game {
     }
     pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
         self.world.to_render_entities()
+    }
+    pub fn gas_effect(&self, coord: Coord) -> u8 {
+        self.world.gas_effect(coord)
     }
 }

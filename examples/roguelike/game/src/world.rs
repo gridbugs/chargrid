@@ -1,3 +1,4 @@
+use crate::gas::GasGrid;
 use crate::projectile::{Projectile, Step};
 use direction::CardinalDirection;
 pub use ecs::Entity;
@@ -140,9 +141,32 @@ fn is_solid_feature_at_coord(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+struct Gas {
+    bullet_trail: GasGrid,
+}
+
+impl Gas {
+    fn new(size: Size) -> Self {
+        Self {
+            bullet_trail: GasGrid::new(size),
+        }
+    }
+    fn is_empty(&self) -> bool {
+        self.bullet_trail.is_empty()
+    }
+    pub fn animation_tick<F>(&mut self, can_enter: F)
+    where
+        F: Fn(Coord) -> bool,
+    {
+        self.bullet_trail.tick(can_enter);
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct World {
     ecs: Ecs<Components>,
     spatial_grid: Grid<SpatialCell>,
+    gas: Gas,
     entity_buffer: Vec<Entity>,
 }
 
@@ -150,10 +174,12 @@ impl World {
     pub fn new(size: Size) -> Self {
         let ecs = Ecs::new();
         let spatial_grid = Grid::new_default(size);
+        let gas = Gas::new(size);
         let entity_buffer = Vec::new();
         Self {
             ecs,
             spatial_grid,
+            gas,
             entity_buffer,
         }
     }
@@ -232,9 +258,15 @@ impl World {
         self.spatial_grid.size()
     }
     pub fn has_pending_animation(&self) -> bool {
-        !self.ecs.components.projectile.is_empty()
+        !self.ecs.components.projectile.is_empty() || !self.gas.is_empty()
     }
     pub fn animation_tick<R: Rng>(&mut self, _rng: &mut R) {
+        {
+            let solid_component = &self.ecs.components.solid;
+            let spatial_grid = &self.spatial_grid;
+            self.gas
+                .animation_tick(|coord| is_solid_feature_at_coord(coord, solid_component, spatial_grid));
+        }
         let to_remove = &mut self.entity_buffer;
         for (entity, projectile) in self.ecs.components.projectile.iter_mut() {
             for step in projectile.frame_iter() {
@@ -244,6 +276,7 @@ impl World {
                         break;
                     }
                     Step::MoveTo(coord) => {
+                        self.gas.bullet_trail.register(coord);
                         if is_solid_feature_at_coord(coord, &self.ecs.components.solid, &self.spatial_grid) {
                             to_remove.push(entity);
                             break;
@@ -277,6 +310,9 @@ impl World {
                 None
             }
         })
+    }
+    pub fn gas_effect(&self, coord: Coord) -> u8 {
+        self.gas.bullet_trail.intensity(coord)
     }
 }
 

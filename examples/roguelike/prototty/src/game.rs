@@ -42,7 +42,7 @@ fn layer_depth(layer: Layer) -> i32 {
 fn tile_view_cell(tile: Tile) -> ViewCell {
     match tile {
         Tile::Player => ViewCell::new().with_character('@'),
-        Tile::Floor => ViewCell::new().with_character('.'),
+        Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
         Tile::Wall => ViewCell::new().with_character('#'),
         Tile::Bullet => ViewCell::new().with_character('*'),
     }
@@ -52,8 +52,14 @@ impl<'a> View<&'a Game> for GameView {
     fn view<F: Frame, C: ColModify>(&mut self, game: &'a Game, context: ViewContext<C>, frame: &mut F) {
         for to_render_entity in game.to_render_entities() {
             let depth = layer_depth(to_render_entity.layer);
-            let view_cell = tile_view_cell(to_render_entity.tile);
-            frame.set_cell_relative(to_render_entity.coord, depth, view_cell, context);
+            let mut view_cell = tile_view_cell(to_render_entity.tile);
+            let coord = to_render_entity.coord;
+            if let Some(background) = view_cell.style.background.as_mut() {
+                let gas_effect = game.gas_effect(coord);
+                let gas_col = Rgb24::new(0, 0, 0).linear_interpolate(Rgb24::new(0, 255, 255), gas_effect);
+                *background = background.saturating_add(gas_col);
+            }
+            frame.set_cell_relative(coord, depth, view_cell, context);
         }
         self.last_offset = context.offset;
     }
