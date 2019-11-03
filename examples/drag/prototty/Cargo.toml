@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 prototty = { path = "../../../prototty" }
-line_2d = "0.3"
+line_2d = "0.4"
