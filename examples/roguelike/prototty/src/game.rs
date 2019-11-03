@@ -35,7 +35,7 @@ fn layer_depth(layer: Layer) -> i32 {
         Layer::Floor => 0,
         Layer::Feature => 1,
         Layer::Character => 2,
-        Layer::Projectile => 3,
+        Layer::Particle => 3,
     }
 }
 
@@ -52,13 +52,8 @@ impl<'a> View<&'a Game> for GameView {
     fn view<F: Frame, C: ColModify>(&mut self, game: &'a Game, context: ViewContext<C>, frame: &mut F) {
         for to_render_entity in game.to_render_entities() {
             let depth = layer_depth(to_render_entity.layer);
-            let mut view_cell = tile_view_cell(to_render_entity.tile);
+            let view_cell = tile_view_cell(to_render_entity.tile);
             let coord = to_render_entity.coord;
-            if let Some(background) = view_cell.style.background.as_mut() {
-                let gas_effect = game.gas_effect(coord);
-                let gas_col = Rgb24::new(0, 0, 0).linear_interpolate(Rgb24::new(0, 255, 255), gas_effect);
-                *background = background.saturating_add(gas_col);
-            }
             frame.set_cell_relative(coord, depth, view_cell, context);
         }
         self.last_offset = context.offset;

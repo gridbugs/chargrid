@@ -59,7 +59,6 @@ impl CommonCell {
     }
 }
 pub type Iter<'a> = grid_2d::GridIter<'a, CommonCell>;
-pub type IterMut<'a> = grid_2d::GridIterMut<'a, CommonCell>;
 pub type Enumerate<'a> = grid_2d::GridEnumerate<'a, CommonCell>;
 
 #[derive(Debug, Clone)]
@@ -93,10 +92,6 @@ impl Grid {
 
     pub fn iter(&self) -> Iter {
         self.cells.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> IterMut {
-        self.cells.iter_mut()
     }
 }
 

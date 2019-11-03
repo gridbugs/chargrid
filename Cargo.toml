@@ -47,6 +47,7 @@ members = [
     "examples/colour_picker/wasm",
 
     "examples/roguelike/ecs",
+    "examples/roguelike/vector",
     "examples/roguelike/game",
     "examples/roguelike/prototty",
     "examples/roguelike/native",

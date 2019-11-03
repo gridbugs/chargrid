@@ -1,10 +1,8 @@
-use crate::gas::GasGrid;
-use crate::projectile::{Projectile, Step};
+use crate::particle::Particle;
 use direction::CardinalDirection;
 pub use ecs::Entity;
 use ecs::{ecs_components, ComponentTable, Ecs};
 use grid_2d::{Coord, Grid, Size};
-use line_2d::LineSegment;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -17,40 +15,23 @@ pub enum Tile {
     Bullet,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Layer {
     Floor,
     Feature,
     Character,
-    Projectile,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SpatialLayer {
-    Floor,
-    Feature,
-    Character,
-}
-
-impl SpatialLayer {
-    fn to_layer(self) -> Layer {
-        match self {
-            Self::Floor => Layer::Floor,
-            Self::Feature => Layer::Feature,
-            Self::Character => Layer::Character,
-        }
-    }
+    Particle,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Location {
     pub coord: Coord,
-    pub spatial_layer: SpatialLayer,
+    pub layer: Layer,
 }
 
 impl Location {
-    fn new(coord: Coord, spatial_layer: SpatialLayer) -> Self {
-        Self { coord, spatial_layer }
+    fn new(coord: Coord, layer: Layer) -> Self {
+        Self { coord, layer }
     }
 }
 
@@ -60,7 +41,7 @@ ecs_components! {
         tile: Tile,
         opacity: u8,
         solid: (),
-        projectile: Projectile,
+        particle: Particle,
     }
 }
 use components::Components;
@@ -85,16 +66,25 @@ impl Default for SpatialCell {
     }
 }
 
+enum SelectFieldMut<'a> {
+    Tracked(&'a mut Option<Entity>),
+    Untracked,
+}
+
 impl SpatialCell {
-    fn select_field_mut(&mut self, spatial_layer: SpatialLayer) -> &mut Option<Entity> {
-        match spatial_layer {
-            SpatialLayer::Character => &mut self.character,
-            SpatialLayer::Feature => &mut self.feature,
-            SpatialLayer::Floor => &mut self.floor,
+    fn select_field_mut(&mut self, layer: Layer) -> SelectFieldMut {
+        match layer {
+            Layer::Character => SelectFieldMut::Tracked(&mut self.character),
+            Layer::Feature => SelectFieldMut::Tracked(&mut self.feature),
+            Layer::Floor => SelectFieldMut::Tracked(&mut self.floor),
+            Layer::Particle => SelectFieldMut::Untracked,
         }
     }
-    fn insert(&mut self, entity: Entity, spatial_layer: SpatialLayer) -> Result<(), OccupiedBy> {
-        let layer_field = self.select_field_mut(spatial_layer);
+    fn insert(&mut self, entity: Entity, layer: Layer) -> Result<(), OccupiedBy> {
+        let layer_field = match self.select_field_mut(layer) {
+            SelectFieldMut::Tracked(layer_field) => layer_field,
+            SelectFieldMut::Untracked => return Ok(()),
+        };
         if let Some(&occupant) = layer_field.as_ref() {
             Err(OccupiedBy(occupant))
         } else {
@@ -102,8 +92,11 @@ impl SpatialCell {
             Ok(())
         }
     }
-    fn clear(&mut self, spatial_layer: SpatialLayer) -> Option<Entity> {
-        self.select_field_mut(spatial_layer).take()
+    fn clear(&mut self, layer: Layer) -> Option<Entity> {
+        match self.select_field_mut(layer) {
+            SelectFieldMut::Tracked(field) => field.take(),
+            SelectFieldMut::Untracked => None,
+        }
     }
 }
 
@@ -114,10 +107,10 @@ fn location_insert(
     spatial_grid: &mut Grid<SpatialCell>,
 ) -> Result<(), OccupiedBy> {
     let cell = spatial_grid.get_checked_mut(location.coord);
-    cell.insert(entity, location.spatial_layer)?;
+    cell.insert(entity, location.layer)?;
     if let Some(original_location) = location_component.insert(entity, location) {
         let original_cell = spatial_grid.get_checked_mut(original_location.coord);
-        let should_match_entity = original_cell.clear(original_location.spatial_layer);
+        let should_match_entity = original_cell.clear(original_location.layer);
         debug_assert_eq!(
             should_match_entity,
             Some(entity),
@@ -141,32 +134,9 @@ fn is_solid_feature_at_coord(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Gas {
-    bullet_trail: GasGrid,
-}
-
-impl Gas {
-    fn new(size: Size) -> Self {
-        Self {
-            bullet_trail: GasGrid::new(size),
-        }
-    }
-    fn is_empty(&self) -> bool {
-        self.bullet_trail.is_empty()
-    }
-    pub fn animation_tick<F>(&mut self, can_enter: F)
-    where
-        F: Fn(Coord) -> bool,
-    {
-        self.bullet_trail.tick(can_enter);
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct World {
     ecs: Ecs<Components>,
     spatial_grid: Grid<SpatialCell>,
-    gas: Gas,
     entity_buffer: Vec<Entity>,
 }
 
@@ -174,12 +144,10 @@ impl World {
     pub fn new(size: Size) -> Self {
         let ecs = Ecs::new();
         let spatial_grid = Grid::new_default(size);
-        let gas = Gas::new(size);
         let entity_buffer = Vec::new();
         Self {
             ecs,
             spatial_grid,
-            gas,
             entity_buffer,
         }
     }
@@ -187,7 +155,7 @@ impl World {
         let entity = self.ecs.create();
         location_insert(
             entity,
-            Location::new(coord, SpatialLayer::Character),
+            Location::new(coord, Layer::Character),
             &mut self.ecs.components.location,
             &mut self.spatial_grid,
         )
@@ -199,7 +167,7 @@ impl World {
         let entity = self.ecs.create();
         location_insert(
             entity,
-            Location::new(coord, SpatialLayer::Floor),
+            Location::new(coord, Layer::Floor),
             &mut self.ecs.components.location,
             &mut self.spatial_grid,
         )
@@ -211,7 +179,7 @@ impl World {
         let entity = self.ecs.create();
         location_insert(
             entity,
-            Location::new(coord, SpatialLayer::Feature),
+            Location::new(coord, Layer::Feature),
             &mut self.ecs.components.location,
             &mut self.spatial_grid,
         )
@@ -223,12 +191,12 @@ impl World {
     }
     pub fn character_walk_in_direction(&mut self, entity: Entity, direction: CardinalDirection) {
         let current_location = self.ecs.components.location.get_mut(entity).unwrap();
-        debug_assert_eq!(current_location.spatial_layer, SpatialLayer::Character);
+        debug_assert_eq!(current_location.layer, Layer::Character);
         let target_coord = current_location.coord + direction.coord();
         if is_solid_feature_at_coord(target_coord, &self.ecs.components.solid, &self.spatial_grid) {
             return;
         }
-        let target_location = Location::new(target_coord, SpatialLayer::Character);
+        let target_location = Location::new(target_coord, Layer::Character);
         if let Err(OccupiedBy(_occupant)) = location_insert(
             entity,
             target_location,
@@ -244,11 +212,17 @@ impl World {
             return;
         }
         let bullet_entity = self.ecs.create();
-        let path = LineSegment::new(character_coord, target);
-        self.ecs
-            .components
-            .projectile
-            .insert(bullet_entity, Projectile::new(path, Duration::from_millis(20)));
+        location_insert(
+            bullet_entity,
+            Location::new(character_coord, Layer::Particle),
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        )
+        .unwrap();
+        self.ecs.components.particle.insert(
+            bullet_entity,
+            Particle::new(target - character_coord, Duration::from_millis(32)),
+        );
         self.ecs.components.tile.insert(bullet_entity, Tile::Bullet);
     }
     pub fn entity_coord(&self, entity: Entity) -> Coord {
@@ -258,31 +232,22 @@ impl World {
         self.spatial_grid.size()
     }
     pub fn has_pending_animation(&self) -> bool {
-        !self.ecs.components.projectile.is_empty() || !self.gas.is_empty()
+        !self.ecs.components.particle.is_empty()
     }
     pub fn animation_tick<R: Rng>(&mut self, _rng: &mut R) {
-        {
-            let solid_component = &self.ecs.components.solid;
-            let spatial_grid = &self.spatial_grid;
-            self.gas
-                .animation_tick(|coord| is_solid_feature_at_coord(coord, solid_component, spatial_grid));
-        }
         let to_remove = &mut self.entity_buffer;
-        for (entity, projectile) in self.ecs.components.projectile.iter_mut() {
-            for step in projectile.frame_iter() {
-                match step {
-                    Step::AtDestination => {
+        for (entity, particle) in self.ecs.components.particle.iter_mut() {
+            if let Some(current_location) = self.ecs.components.location.get_mut(entity) {
+                for direction in particle.frame_iter() {
+                    current_location.coord += direction.coord();
+                    if is_solid_feature_at_coord(current_location.coord, &self.ecs.components.solid, &self.spatial_grid)
+                    {
                         to_remove.push(entity);
                         break;
                     }
-                    Step::MoveTo(coord) => {
-                        self.gas.bullet_trail.register(coord);
-                        if is_solid_feature_at_coord(coord, &self.ecs.components.solid, &self.spatial_grid) {
-                            to_remove.push(entity);
-                            break;
-                        }
-                    }
                 }
+            } else {
+                to_remove.push(entity);
             }
         }
         for entity in to_remove.drain(..) {
@@ -292,27 +257,17 @@ impl World {
     pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
         let tile_component = &self.ecs.components.tile;
         let location_component = &self.ecs.components.location;
-        let projectile_component = &self.ecs.components.projectile;
         tile_component.iter().filter_map(move |(entity, &tile)| {
             if let Some(location) = location_component.get(entity) {
                 Some(ToRenderEntity {
                     coord: location.coord,
-                    layer: location.spatial_layer.to_layer(),
+                    layer: location.layer,
                     tile: tile,
-                })
-            } else if let Some(projectile) = projectile_component.get(entity) {
-                Some(ToRenderEntity {
-                    coord: projectile.coord(),
-                    layer: Layer::Projectile,
-                    tile,
                 })
             } else {
                 None
             }
         })
-    }
-    pub fn gas_effect(&self, coord: Coord) -> u8 {
-        self.gas.bullet_trail.intensity(coord)
     }
 }
 

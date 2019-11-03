@@ -4,6 +4,7 @@ extern crate rgb24;
 #[macro_use]
 extern crate serde;
 
+mod blend;
 mod col_modify;
 mod context;
 mod view;

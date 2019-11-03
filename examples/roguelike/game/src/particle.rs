@@ -1,4 +1,4 @@
-use line_2d::{Coord, LineSegment, NodeIter};
+use line_2d::{Coord, Direction, InfiniteStepIter};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -7,68 +7,58 @@ use std::time::Duration;
 const FRAME_MICROS: i64 = 1_000_000 / 60;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Projectile {
+pub struct Particle {
     cardinal_step_duration_micros: i64,
     ordinal_step_duration_micros: i64,
-    path_iter: NodeIter,
-    path: LineSegment,
+    step_iter: InfiniteStepIter,
     budget_micros: i64,
 }
 
-pub enum Step {
-    MoveTo(Coord),
-    AtDestination,
+pub struct ParticleFrameIter<'a> {
+    particle: &'a mut Particle,
 }
 
-pub struct ProjectileFrameIter<'a> {
-    projectile: &'a mut Projectile,
-}
-
-impl<'a> Iterator for ProjectileFrameIter<'a> {
-    type Item = Step;
+impl<'a> Iterator for ParticleFrameIter<'a> {
+    type Item = Direction;
     fn next(&mut self) -> Option<Self::Item> {
-        self.projectile.step()
+        self.particle.step()
     }
 }
 
-impl Projectile {
+impl Particle {
     fn ordinal_duration_from_cardinal_duration(duration_micros: i64) -> i64 {
         const SQRT_2_X_1_000_000: i64 = 1414214;
         let diagonal_micros = (duration_micros * SQRT_2_X_1_000_000) / 1_000_000;
         diagonal_micros
     }
-    pub fn new(path: LineSegment, step_duration: Duration) -> Self {
+    pub fn new(delta: Coord, step_duration: Duration) -> Self {
         let cardinal_step_duration_micros = step_duration.as_micros() as i64;
         Self {
             cardinal_step_duration_micros,
             ordinal_step_duration_micros: Self::ordinal_duration_from_cardinal_duration(cardinal_step_duration_micros),
-            path_iter: path.node_iter(),
-            path,
-            budget_micros: FRAME_MICROS,
+            step_iter: InfiniteStepIter::new(delta),
+            budget_micros: 0,
         }
     }
-    pub fn coord(&self) -> Coord {
-        self.path_iter.current()
-    }
-    pub fn frame_iter(&mut self) -> ProjectileFrameIter {
+    pub fn frame_iter(&mut self) -> ParticleFrameIter {
         self.replenish();
-        ProjectileFrameIter { projectile: self }
+        ParticleFrameIter { particle: self }
     }
     fn replenish(&mut self) {
         self.budget_micros += FRAME_MICROS;
     }
-    fn step(&mut self) -> Option<Step> {
+    fn step(&mut self) -> Option<Direction> {
         if self.budget_micros >= 0 {
-            if let Some(node) = self.path_iter.next() {
-                let step_duration = if node.prev.is_cardinal() {
+            if let Some(direction) = self.step_iter.next() {
+                let step_duration = if direction.is_cardinal() {
                     self.cardinal_step_duration_micros
                 } else {
                     self.ordinal_step_duration_micros
                 };
                 self.budget_micros -= step_duration;
-                Some(Step::MoveTo(node.coord))
+                Some(direction)
             } else {
-                Some(Step::AtDestination)
+                None
             }
         } else {
             None

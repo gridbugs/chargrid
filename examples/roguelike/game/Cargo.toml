@@ -11,6 +11,8 @@ serde = { version = "1.0", features = ["serde_derive"] }
 rand = "0.7"
 rand_isaac = { version = "0.2", features = ["serde1"] }
 hashbrown = { version = "0.6", features = ["serde"] }
-line_2d = { version = "0.3", features = ["serialize"] }
+line_2d = { path = "/home/steve/src/line-2d", features = ["serialize"] }
 rgb24 = { version = "0.2", features = ["serialize"] }
 ecs = { path = "../ecs" }
+vector = { path = "../vector" }
+shadowcast = { version = "0.5", features = ["serialize"] }
