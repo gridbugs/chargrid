@@ -9,7 +9,7 @@ pub use prototty_input;
 pub use prototty_input::{Input, MouseInput};
 use prototty_input::{MouseButton, ScrollDirection};
 pub use prototty_render;
-use prototty_render::{Buffer, ColModify, Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault};
+use prototty_render::{Blend, Buffer, ColModify, Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault};
 use prototty_storage::*;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -342,6 +342,18 @@ impl<'a> Frame for WasmFrame<'a> {
         self.context
             .buffer
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
+    }
+    fn blend_cell_background_absolute<B: Blend>(
+        &mut self,
+        absolute_coord: Coord,
+        absolute_depth: i8,
+        rgb24: Rgb24,
+        alpha: u8,
+        blend: B,
+    ) {
+        self.context
+            .buffer
+            .blend_cell_background_absolute(absolute_coord, absolute_depth, rgb24, alpha, blend);
     }
 }
 

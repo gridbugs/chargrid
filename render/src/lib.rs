@@ -5,6 +5,7 @@ mod context;
 mod view;
 mod view_cell;
 
+pub use blend::*;
 pub use buffer::*;
 pub use col_modify::*;
 pub use context::*;

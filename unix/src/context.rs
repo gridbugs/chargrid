@@ -129,6 +129,18 @@ impl<'a> Frame for UnixFrame<'a> {
             .buffer
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }
+    fn blend_cell_background_absolute<B: Blend>(
+        &mut self,
+        absolute_coord: Coord,
+        absolute_depth: i8,
+        rgb24: Rgb24,
+        alpha: u8,
+        blend: B,
+    ) {
+        self.context
+            .buffer
+            .blend_cell_background_absolute(absolute_coord, absolute_depth, rgb24, alpha, blend);
+    }
 }
 
 pub struct EventRoutineRunner {

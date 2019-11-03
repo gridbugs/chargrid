@@ -162,6 +162,38 @@ where
         self.frame
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }
+
+    fn blend_cell_background_relative<C: ColModify, B: Blend>(
+        &mut self,
+        relative_coord: Coord,
+        relative_depth: i8,
+        rgb24: Rgb24,
+        alpha: u8,
+        blend: B,
+        context: ViewContext<C>,
+    ) {
+        let adjusted_relative_coord = relative_coord - self.offset;
+        self.max_y = self.max_y.max((relative_coord + context.offset).y);
+        if adjusted_relative_coord.is_valid(context.size) {
+            let absolute_coord = adjusted_relative_coord + context.offset;
+            let absolute_depth = relative_depth + context.depth;
+            if let Some(modified_rgb24) = context.col_modify.background(Some(rgb24)) {
+                self.blend_cell_background_absolute(absolute_coord, absolute_depth, modified_rgb24, alpha, blend);
+            }
+        }
+    }
+
+    fn blend_cell_background_absolute<B: Blend>(
+        &mut self,
+        absolute_coord: Coord,
+        absolute_depth: i8,
+        rgb24: Rgb24,
+        alpha: u8,
+        blend: B,
+    ) {
+        self.frame
+            .blend_cell_background_absolute(absolute_coord, absolute_depth, rgb24, alpha, blend);
+    }
 }
 
 impl<'s, 'l, V, T> View<T> for VerticalScrollView<'s, 'l, V>

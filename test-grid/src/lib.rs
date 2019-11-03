@@ -1,5 +1,4 @@
-use grid_2d::{Coord, Grid, Size};
-use prototty_render::{Frame, ViewCell};
+use prototty_render::{grid_2d::Grid, Blend, Coord, Frame, Rgb24, Size, ViewCell};
 
 struct Cell {
     view_cell: Option<ViewCell>,
@@ -51,5 +50,14 @@ impl Frame for TestGrid {
                 cell.view_cell = Some(absolute_cell);
             }
         }
+    }
+    fn blend_cell_background_absolute<B: Blend>(
+        &mut self,
+        _absolute_coord: Coord,
+        _absolute_depth: i8,
+        _rgb24: Rgb24,
+        _alpha: u8,
+        _blend: B,
+    ) {
     }
 }
