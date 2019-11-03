@@ -1,8 +1,6 @@
-#[cfg(feature = "serialize")]
-#[macro_use]
-extern crate serde;
-extern crate coord_2d;
 pub use coord_2d::Coord;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

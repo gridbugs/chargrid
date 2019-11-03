@@ -30,7 +30,7 @@ impl GameView {
     }
 }
 
-fn layer_depth(layer: Layer) -> i32 {
+fn layer_depth(layer: Layer) -> i8 {
     match layer {
         Layer::Floor => 0,
         Layer::Feature => 1,

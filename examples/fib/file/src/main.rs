@@ -1,6 +1,3 @@
-extern crate fib;
-extern crate prototty_file_storage;
-
 use fib::App;
 use prototty_file_storage::{FileStorage, IfDirectoryMissing};
 

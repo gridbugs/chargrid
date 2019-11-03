@@ -1,7 +1,3 @@
-extern crate drag_prototty;
-extern crate prototty_wasm;
-extern crate wasm_bindgen;
-
 use drag_prototty::*;
 use prototty_wasm::*;
 use wasm_bindgen::prelude::*;

@@ -1,5 +1,3 @@
-extern crate prototty_storage;
-
 pub use prototty_storage::*;
 use std::env;
 use std::fs::{self, File};

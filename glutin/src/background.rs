@@ -1,7 +1,7 @@
-use gfx;
+use gfx::{self, *};
 
-use formats::*;
-use prototty_grid::grid_2d::CoordIter;
+use crate::formats::*;
+use prototty_render::grid_2d::CoordIter;
 use prototty_render::Size;
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];

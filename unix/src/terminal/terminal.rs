@@ -1,7 +1,6 @@
 pub use super::ansi_terminal::DrainInput;
 use super::ansi_terminal::{AnsiTerminal, ColEncode};
-use error::Result;
-use prototty_grid::*;
+use crate::error::Result;
 use prototty_input::*;
 use prototty_render::*;
 use std::time::Duration;
@@ -17,7 +16,7 @@ struct OutputCell {
 }
 
 impl OutputCell {
-    fn matches(&self, cell: &CommonCell) -> bool {
+    fn matches(&self, cell: &BufferCell) -> bool {
         !self.dirty
             && self.ch == cell.character
             && self.fg == cell.foreground_colour
@@ -25,7 +24,7 @@ impl OutputCell {
             && self.bold == cell.bold
             && self.underline == cell.underline
     }
-    fn copy_fields(&mut self, cell: &CommonCell) {
+    fn copy_fields(&mut self, cell: &BufferCell) {
         self.dirty = false;
         self.ch = cell.character;
         self.fg = cell.foreground_colour;
@@ -70,7 +69,7 @@ impl Terminal {
         self.ansi.size()
     }
 
-    pub fn draw_frame<E>(&mut self, frame: &mut Grid) -> Result<()>
+    pub fn draw_frame<E>(&mut self, frame: &mut Buffer) -> Result<()>
     where
         E: ColEncode,
     {

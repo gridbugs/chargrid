@@ -1,7 +1,5 @@
-#[macro_use]
-extern crate serde;
-extern crate prototty_storage;
 use prototty_storage::{format, Storage};
+use serde::{Deserialize, Serialize};
 
 const FILE_NAME: &'static str = "state";
 

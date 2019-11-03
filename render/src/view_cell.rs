@@ -1,4 +1,6 @@
 use rgb24::Rgb24;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

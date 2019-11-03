@@ -1,4 +1,6 @@
 use prototty_render::*;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 /// The characters comprising a border. By default, borders are made of unicode
 /// box-drawing characters, but they can be changed to arbitrary characters via

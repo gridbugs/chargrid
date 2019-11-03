@@ -1,7 +1,3 @@
-extern crate fib;
-extern crate prototty_wasm;
-extern crate wasm_bindgen;
-
 use fib::App;
 use prototty_wasm::*;
 use wasm_bindgen::prelude::*;

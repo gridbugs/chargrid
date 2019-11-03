@@ -1,7 +1,8 @@
 [package]
 name = "fib_wasm"
 version = "0.1.0"
-authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+edition = "2018"
 
 [lib]
 crate-type = ["cdylib"]

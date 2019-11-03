@@ -1,4 +1,6 @@
 use prototty_render::*;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
@@ -135,7 +137,7 @@ where
     fn set_cell_relative<C: ColModify>(
         &mut self,
         relative_coord: Coord,
-        relative_depth: i32,
+        relative_depth: i8,
         relative_cell: ViewCell,
         context: ViewContext<C>,
     ) {
@@ -156,7 +158,7 @@ where
         }
     }
 
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
         self.frame
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }

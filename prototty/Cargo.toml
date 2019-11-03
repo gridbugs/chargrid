@@ -2,12 +2,13 @@
 name = "prototty"
 description = "Wrapper crate for frontend-independent prototty crates"
 version = "0.27.0"
-authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty"
+edition = "2018"
 
 [features]
 serialize = [

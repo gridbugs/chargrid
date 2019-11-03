@@ -1,4 +1,6 @@
 use prototty_render::*;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 pub trait Wrap: private_wrap::Sealed {
     #[doc(hidden)]

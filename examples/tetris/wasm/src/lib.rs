@@ -1,9 +1,3 @@
-extern crate prototty_wasm;
-extern crate rand;
-extern crate rand_isaac;
-extern crate tetris_prototty;
-extern crate wasm_bindgen;
-
 use prototty_wasm::*;
 use rand::SeedableRng;
 use rand_isaac::IsaacRng;

@@ -1,6 +1,3 @@
-extern crate line_2d;
-extern crate prototty;
-
 use line_2d::{Coord, LineSegment};
 use prototty::input::*;
 use prototty::render::*;

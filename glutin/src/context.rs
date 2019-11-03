@@ -4,15 +4,14 @@ use gfx_glyph;
 use gfx_window_glutin;
 use glutin;
 
-use background::*;
-use formats::*;
+use crate::background::*;
+use crate::formats::*;
+use crate::input::*;
 use gfx::Device;
 use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
 use glutin::dpi::LogicalSize;
 use glutin::Event;
-use input::*;
 use prototty_event_routine::{Event as EREvent, EventRoutine, Handled};
-use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
 use std::time::{Duration, Instant};
@@ -198,7 +197,7 @@ impl<'a> ContextBuilder<'a> {
         let width_in_cells = ::std::cmp::min((window_width as f32 / cell_width) as u32, max_grid_size.x());
         let height_in_cells = ::std::cmp::min((window_height as f32 / cell_height) as u32, max_grid_size.y());
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
-        let grid = Grid::new(window_size_in_cells);
+        let buffer = Buffer::new(window_size_in_cells);
         let char_buf = String::with_capacity(1);
         let underline_width = self
             .underline_width
@@ -240,7 +239,7 @@ impl<'a> ContextBuilder<'a> {
             dsv,
             events_loop,
             glyph_brush,
-            grid,
+            buffer,
             char_buf,
             cell_width,
             cell_height,
@@ -282,7 +281,7 @@ pub struct Context<'a> {
     dsv: gfx::handle::DepthStencilView<Resources, DepthFormat>,
     events_loop: glutin::EventsLoop,
     glyph_brush: gfx_glyph::GlyphBrush<'a, Resources, gfx_device_gl::Factory>,
-    grid: Grid,
+    buffer: Buffer,
     char_buf: String,
     cell_width: f32,
     cell_height: f32,
@@ -353,13 +352,13 @@ impl<'a> Context<'a> {
         );
         self.rtv = rtv;
         self.dsv = dsv;
-        self.grid.resize(window_size_in_cells);
+        self.buffer.resize(window_size_in_cells);
     }
 
     fn render_internal(&mut self) -> Result<()> {
         {
             let mut output_cells = self.background_renderer.map_cells(&mut self.factory);
-            for ((coord, cell), output_cell) in self.grid.enumerate().zip(output_cells.iter_mut()) {
+            for ((coord, cell), output_cell) in self.buffer.enumerate().zip(output_cells.iter_mut()) {
                 if cell.character != ' ' || cell.underline {
                     self.char_buf.clear();
                     self.char_buf.push(cell.character);
@@ -412,17 +411,17 @@ impl<'a> Context<'a> {
         if self.closing {
             return Ok(());
         }
-        self.grid.clear();
-        view.view(data, context, &mut self.grid);
+        self.buffer.clear();
+        view.view(data, context, &mut self.buffer);
         self.render_internal()
     }
 
     pub fn size(&self) -> Size {
-        self.grid.size()
+        self.buffer.size()
     }
 
     pub fn frame<'b>(&'b mut self) -> GlutinFrame<'a, 'b> {
-        self.grid.clear();
+        self.buffer.clear();
         GlutinFrame { context: self }
     }
     pub fn default_context(&self) -> ViewContextDefault {
@@ -492,9 +491,9 @@ impl<'a, 'b> GlutinFrame<'a, 'b> {
 }
 
 impl<'a, 'b> Frame for GlutinFrame<'a, 'b> {
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
         self.context
-            .grid
+            .buffer
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }
 }

@@ -1,6 +1,8 @@
 use crate::default::*;
 use crate::wrap::{self, Wrap};
 use prototty_render::*;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]

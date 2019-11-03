@@ -1,4 +1,4 @@
-use error::{Error, Result};
+use crate::error::{Error, Result};
 use libc;
 use prototty_render::*;
 use std::fs::{File, OpenOptions};

@@ -1,4 +1,3 @@
-extern crate prototty;
 use prototty::decorator::*;
 use prototty::input::*;
 use prototty::input::{keys, Input, KeyboardInput};

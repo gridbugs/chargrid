@@ -1,5 +1,5 @@
 use super::byte_prefix_tree::BytePrefixTree;
-use error::{Error, Result};
+use crate::error::{Error, Result};
 use prototty_input::{Input, KeyboardInput, MouseButton, ScrollDirection};
 use term::terminfo::parm::{self, Param, Variables};
 use term::terminfo::TermInfo;

@@ -1,5 +1,7 @@
 use prototty_input::{keys, Input, KeyboardInput, MouseInput, ScrollDirection};
 use prototty_render::Coord;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]

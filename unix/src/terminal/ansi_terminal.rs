@@ -1,7 +1,7 @@
 use super::byte_prefix_tree::{BytePrefixTree, Found};
 use super::low_level::LowLevel;
 use super::term_info_cache::{MousePrefix, TermInfoCache, TerminalInput};
-use error::Result;
+use crate::error::Result;
 use prototty_input::*;
 use prototty_render::*;
 use std::collections::{vec_deque, VecDeque};

@@ -2,20 +2,20 @@
 name = "prototty_wasm"
 description = "Wasm frontend for prototty."
 version = "0.27.0"
-authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_wasm"
+edition = "2018"
 
 [features]
-serialize = ["prototty_render/serialize", "prototty_input/serialize", "prototty_grid/serialize"]
+serialize = ["prototty_render/serialize", "prototty_input/serialize"]
 
 [dependencies]
 prototty_input = { path = "../input", version = "0.27" }
 prototty_render = { path = "../render", version = "0.27" }
-prototty_grid = { path = "../grid", version = "0.27" }
 prototty_event_routine = { path = "../event-routine", version = "0.27" }
 prototty_storage = { path = "../storage", version = "0.27" }
 wasm-bindgen = "0.2"

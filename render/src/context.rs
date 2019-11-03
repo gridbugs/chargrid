@@ -4,7 +4,7 @@ use crate::col_modify::{ColModify, ColModifyCompose, ColModifyIdentity};
 #[derive(Clone, Copy)]
 pub struct ViewContext<C: ColModify = ColModifyIdentity> {
     pub offset: Coord,
-    pub depth: i32,
+    pub depth: i8,
     pub col_modify: C,
     pub size: Size,
 }
@@ -23,7 +23,7 @@ impl ViewContext<ColModifyIdentity> {
 }
 
 impl<C: ColModify> ViewContext<C> {
-    pub fn new(offset: Coord, depth: i32, col_modify: C, size: Size) -> Self {
+    pub fn new(offset: Coord, depth: i8, col_modify: C, size: Size) -> Self {
         Self {
             offset,
             depth,
@@ -42,7 +42,7 @@ impl<C: ColModify> ViewContext<C> {
         }
     }
 
-    pub fn add_depth(self, depth_delta: i32) -> Self {
+    pub fn add_depth(self, depth_delta: i8) -> Self {
         Self {
             depth: self.depth + depth_delta,
             ..self

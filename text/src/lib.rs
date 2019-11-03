@@ -1,8 +1,3 @@
-extern crate prototty_render;
-#[cfg(feature = "serialize")]
-#[macro_use]
-extern crate serde;
-
 mod default;
 mod rich_text;
 mod text;

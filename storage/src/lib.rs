@@ -1,13 +1,3 @@
-#[cfg(feature = "bincode")]
-extern crate bincode;
-extern crate serde;
-#[cfg(feature = "json")]
-extern crate serde_json;
-#[cfg(feature = "yaml")]
-extern crate serde_yaml;
-#[cfg(feature = "toml")]
-extern crate toml;
-
 pub use serde::de::DeserializeOwned;
 pub use serde::ser::Serialize;
 

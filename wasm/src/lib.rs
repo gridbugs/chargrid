@@ -1,22 +1,15 @@
-extern crate grid_2d;
-extern crate js_sys;
-pub extern crate prototty_event_routine;
-extern crate prototty_grid;
-pub extern crate prototty_input;
-pub extern crate prototty_render;
-extern crate prototty_storage;
-extern crate wasm_bindgen;
-extern crate web_sys;
-
 mod input;
 
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
+pub use prototty_event_routine;
 use prototty_event_routine::{common_event::CommonEvent, Event, EventRoutine, Handled};
+pub use prototty_input;
 pub use prototty_input::{Input, MouseInput};
 use prototty_input::{MouseButton, ScrollDirection};
-use prototty_render::{ColModify, Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault};
+pub use prototty_render;
+use prototty_render::{Buffer, ColModify, Frame, Rgb24, View, ViewCell, ViewContext, ViewContextDefault};
 use prototty_storage::*;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -85,7 +78,7 @@ impl ElementDisplayInfo {
 
 pub struct Context {
     element_grid: grid_2d::Grid<ElementCell>,
-    prototty_grid: prototty_grid::Grid,
+    buffer: Buffer,
     container_element: Element,
 }
 
@@ -137,20 +130,20 @@ impl Context {
                 .append_child(document.create_element("br").unwrap().dyn_ref::<HtmlElement>().unwrap())
                 .unwrap();
         }
-        let prototty_grid = prototty_grid::Grid::new(size);
+        let buffer = Buffer::new(size);
         Self {
             element_grid,
-            prototty_grid,
+            buffer,
             container_element: document.get_element_by_id(container).unwrap(),
         }
     }
 
     pub fn default_context(&self) -> ViewContextDefault {
-        ViewContext::default_with_size(self.prototty_grid.size())
+        ViewContext::default_with_size(self.buffer.size())
     }
 
     fn render_internal(&mut self) {
-        for (prototty_cell, element_cell) in self.prototty_grid.iter().zip(self.element_grid.iter_mut()) {
+        for (prototty_cell, element_cell) in self.buffer.iter().zip(self.element_grid.iter_mut()) {
             if element_cell.character != prototty_cell.character {
                 element_cell.character = prototty_cell.character;
                 let string = match prototty_cell.character {
@@ -195,8 +188,8 @@ impl Context {
     }
 
     pub fn render_at<V: View<T>, T, C: ColModify>(&mut self, view: &mut V, data: T, context: ViewContext<C>) {
-        self.prototty_grid.clear();
-        view.view(data, context, &mut self.prototty_grid);
+        self.buffer.clear();
+        view.view(data, context, &mut self.buffer);
         self.render_internal();
     }
 
@@ -206,7 +199,7 @@ impl Context {
     }
 
     pub fn frame(&mut self) -> WasmFrame {
-        self.prototty_grid.clear();
+        self.buffer.clear();
         WasmFrame { context: self }
     }
 
@@ -337,7 +330,7 @@ impl<'a> WasmFrame<'a> {
         self.context.render_internal();
     }
     pub fn size(&self) -> Size {
-        self.context.prototty_grid.size()
+        self.context.buffer.size()
     }
     pub fn default_context(&self) -> ViewContextDefault {
         ViewContext::default_with_size(self.size())
@@ -345,9 +338,9 @@ impl<'a> WasmFrame<'a> {
 }
 
 impl<'a> Frame for WasmFrame<'a> {
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
         self.context
-            .prototty_grid
+            .buffer
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }
 }

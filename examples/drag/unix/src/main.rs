@@ -1,6 +1,3 @@
-extern crate drag_prototty;
-extern crate prototty_unix;
-
 use drag_prototty::{App, AppView, Quit};
 use prototty_unix::{col_encode, Context};
 

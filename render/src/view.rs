@@ -6,7 +6,7 @@ use crate::view_cell::*;
 fn set_cell_relative_to_draw<F: ?Sized + Frame, C: ColModify>(
     frame: &mut F,
     relative_coord: Coord,
-    relative_depth: i32,
+    relative_depth: i8,
     relative_cell: ViewCell,
     context: ViewContext<C>,
 ) {
@@ -41,13 +41,13 @@ pub trait Frame {
     fn set_cell_relative<C: ColModify>(
         &mut self,
         relative_coord: Coord,
-        relative_depth: i32,
+        relative_depth: i8,
         relative_cell: ViewCell,
         context: ViewContext<C>,
     ) {
         set_cell_relative_to_draw(self, relative_coord, relative_depth, relative_cell, context);
     }
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell);
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell);
 }
 
 struct MeasureBounds {
@@ -69,13 +69,13 @@ impl Frame for MeasureBounds {
     fn set_cell_relative<C: ColModify>(
         &mut self,
         relative_coord: Coord,
-        _relative_depth: i32,
+        _relative_depth: i8,
         _relative_cell: ViewCell,
         context: ViewContext<C>,
     ) {
         set_cell_relative_to_measure_size(self, relative_coord, context);
     }
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, _absolute_depth: i32, _absolute_cell: ViewCell) {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, _absolute_depth: i8, _absolute_cell: ViewCell) {
         self.max_absolute_coord.x = self.max_absolute_coord.x.max(absolute_coord.x);
         self.max_absolute_coord.y = self.max_absolute_coord.y.max(absolute_coord.y);
     }
@@ -129,7 +129,7 @@ where
     fn set_cell_relative<C: ColModify>(
         &mut self,
         relative_coord: Coord,
-        relative_depth: i32,
+        relative_depth: i8,
         relative_cell: ViewCell,
         context: ViewContext<C>,
     ) {
@@ -138,7 +138,7 @@ where
         self.measure_bounds
             .set_cell_relative(relative_coord, relative_depth, relative_cell, context);
     }
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
         self.draw
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
         self.measure_bounds

@@ -1,6 +1,3 @@
-extern crate drag_prototty;
-extern crate prototty_glutin;
-
 use drag_prototty::{App, AppView, Quit};
 use prototty_glutin::*;
 use prototty_render::*;

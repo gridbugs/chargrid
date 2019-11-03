@@ -1,6 +1,3 @@
-extern crate grid_2d;
-extern crate rand;
-
 use grid_2d::{Coord, Size};
 use rand::Rng;
 use std::mem;

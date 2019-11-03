@@ -1,16 +1,15 @@
-use error::*;
+use crate::error::*;
+use crate::terminal::*;
 use prototty_event_routine::{Event, EventRoutine, Handled};
-use prototty_grid::*;
 use prototty_input::*;
 use prototty_render::*;
 use std::thread;
 use std::time::{Duration, Instant};
-use terminal::*;
 
 /// An interface to a terminal for rendering `View`s, and getting input.
 pub struct Context {
     terminal: Terminal,
-    frame: Grid,
+    buffer: Buffer,
 }
 
 impl Context {
@@ -21,14 +20,14 @@ impl Context {
 
     pub fn from_terminal(mut terminal: Terminal) -> Result<Self> {
         let size = terminal.resize_if_necessary()?;
-        let frame = Grid::new(size);
-        Ok(Self { terminal, frame })
+        let buffer = Buffer::new(size);
+        Ok(Self { terminal, buffer })
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
         let size = self.terminal.resize_if_necessary()?;
-        if size != self.frame.size() {
-            self.frame.resize(size);
+        if size != self.buffer.size() {
+            self.buffer.resize(size);
         }
         Ok(())
     }
@@ -61,7 +60,7 @@ impl Context {
         E: ColEncode,
     {
         let _ = col_encode;
-        self.terminal.draw_frame::<E>(&mut self.frame)
+        self.terminal.draw_frame::<E>(&mut self.buffer)
     }
 
     pub fn render<V, T, E>(&mut self, view: &mut V, data: T, col_encode: E) -> Result<()>
@@ -80,8 +79,8 @@ impl Context {
         E: ColEncode,
     {
         self.resize_if_necessary()?;
-        self.frame.clear();
-        view.view(data, context, &mut self.frame);
+        self.buffer.clear();
+        view.view(data, context, &mut self.buffer);
         self.render_internal(col_encode)
     }
 
@@ -98,7 +97,7 @@ impl Context {
 
     pub fn frame(&mut self) -> Result<UnixFrame> {
         self.resize_if_necessary()?;
-        self.frame.clear();
+        self.buffer.clear();
         Ok(UnixFrame { context: self })
     }
 }
@@ -116,7 +115,7 @@ impl<'a> UnixFrame<'a> {
     }
 
     fn size(&self) -> Size {
-        self.context.frame.size()
+        self.context.buffer.size()
     }
 
     pub fn default_context(&self) -> ViewContextDefault {
@@ -125,9 +124,9 @@ impl<'a> UnixFrame<'a> {
 }
 
 impl<'a> Frame for UnixFrame<'a> {
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i32, absolute_cell: ViewCell) {
+    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
         self.context
-            .frame
+            .buffer
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }
 }
