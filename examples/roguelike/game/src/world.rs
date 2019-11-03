@@ -7,11 +7,12 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Tile {
     Player,
     Wall,
     Floor,
+    Carpet,
     Bullet,
 }
 
@@ -173,6 +174,18 @@ impl World {
         )
         .unwrap();
         self.ecs.components.tile.insert(entity, Tile::Floor);
+        entity
+    }
+    pub fn spawn_carpet(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.create();
+        location_insert(
+            entity,
+            Location::new(coord, Layer::Floor),
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        )
+        .unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Carpet);
         entity
     }
     pub fn spawn_wall(&mut self, coord: Coord) -> Entity {

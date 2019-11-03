@@ -39,6 +39,9 @@ impl Game {
                     '.' => {
                         world.spawn_floor(coord);
                     }
+                    ',' => {
+                        world.spawn_carpet(coord);
+                    }
                     '#' => {
                         world.spawn_floor(coord);
                         world.spawn_wall(coord);

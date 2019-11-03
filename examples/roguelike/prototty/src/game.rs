@@ -43,6 +43,9 @@ fn tile_view_cell(tile: Tile) -> ViewCell {
     match tile {
         Tile::Player => ViewCell::new().with_character('@'),
         Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
+        Tile::Carpet => ViewCell::new()
+            .with_character('.')
+            .with_background(Rgb24::new(0, 0, 127)),
         Tile::Wall => ViewCell::new().with_character('#'),
         Tile::Bullet => ViewCell::new().with_character('*'),
     }
@@ -178,9 +181,9 @@ pub struct AimEventRoutine<S: Storage> {
 }
 
 struct Blink {
-    min: Rgb24,
-    max: Rgb24,
     cycle_length: Duration,
+    min_alpha: u8,
+    max_alpha: u8,
 }
 
 impl Blink {
@@ -195,8 +198,11 @@ impl Blink {
             (511 - scaled_progress) as u8
         }
     }
-    fn col(&self, duration: Duration) -> Rgb24 {
-        self.min.linear_interpolate(self.max, self.intensity(duration))
+    fn alpha(&self, duration: Duration) -> u8 {
+        let intensity = self.intensity(duration);
+        let delta = self.max_alpha - self.min_alpha;
+        let offset = ((delta as u16 * intensity as u16) / 255 as u16) as u8;
+        self.min_alpha + offset
     }
 }
 
@@ -207,9 +213,9 @@ impl<S: Storage> AimEventRoutine<S> {
             coord,
             duration: Duration::from_millis(0),
             blink: Blink {
-                min: Rgb24::new(63, 0, 0),
-                max: Rgb24::new(187, 0, 0),
                 cycle_length: Duration::from_millis(500),
+                min_alpha: 64,
+                max_alpha: 187,
             },
         }
     }
@@ -300,17 +306,26 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     if !node.coord.is_valid(instance.game.world_size()) {
                         break;
                     }
-                    frame.set_cell_relative(
+                    frame.blend_cell_background_relative(
                         node.coord,
                         1,
-                        ViewCell::new().with_background(Rgb24::new(127, 0, 0)),
+                        Rgb24::new(255, 0, 0),
+                        127,
+                        blend_mode::LinearInterpolate,
                         context,
                     );
                 }
             }
             if self.coord.is_valid(instance.game.world_size()) {
-                let col = self.blink.col(self.duration);
-                frame.set_cell_relative(self.coord, 1, ViewCell::new().with_background(col), context);
+                let alpha = self.blink.alpha(self.duration);
+                frame.blend_cell_background_relative(
+                    self.coord,
+                    1,
+                    Rgb24::new(255, 0, 0),
+                    alpha,
+                    blend_mode::LinearInterpolate,
+                    context,
+                );
             }
         }
     }
