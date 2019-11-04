@@ -318,7 +318,7 @@ impl<'a> View<&'a App> for AppView {
                     &app.tetris,
                     context.add_offset(Coord::new(next_piece_offset_x, 0)),
                     frame,
-                );;
+                );
             }
             AppState::Menu => {
                 let mut v = BorderView {
