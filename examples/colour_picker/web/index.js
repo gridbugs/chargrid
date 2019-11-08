@@ -1,1 +1,1 @@
-import('./pkg/colour_picker_wasm').catch(console.error)
+import('./pkg/colour_picker_web').catch(console.error)

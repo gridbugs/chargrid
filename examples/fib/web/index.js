@@ -1,1 +1,1 @@
-import('./pkg/fib_wasm').catch(console.error)
+import('./pkg/fib_web').catch(console.error)

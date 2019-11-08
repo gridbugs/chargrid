@@ -1,1 +1,1 @@
-import('./pkg/roguelike_wasm').catch(console.error)
+import('./pkg/roguelike_web').catch(console.error)

@@ -1,1 +1,1 @@
-import('./pkg/title_wasm').catch(console.error)
+import('./pkg/title_web').catch(console.error)
