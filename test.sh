@@ -8,9 +8,9 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cargo clean
 
-cargo test --all
-cargo test --all --features=serialize
+cargo test --workspace
 cargo test --manifest-path=file-storage/Cargo.toml --features=bincode,json,toml,yaml
+cargo test --manifest-path=prototty/Cargo.toml --features=serialize
 
 cargo clean
 
