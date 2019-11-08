@@ -1,9 +1,0 @@
-[package]
-name = "pager_unix"
-version = "0.1.0"
-authors = ["Stephen Sherratt <stephen@sherra.tt>"]
-edition = "2018"
-
-[dependencies]
-pager_prototty = { path = "../prototty" }
-prototty_unix = { path = "../../../unix" }

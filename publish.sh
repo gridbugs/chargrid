@@ -19,9 +19,9 @@ publish() {
     publish_single grid
     publish_single test-grid
     publish_single event-routine
-    publish_single unix
-    publish_single glutin
-    publish_single wasm
+    publish_single ansi-terminal
+    publish_single graphical
+    publish_single web
 }
 
 read -r -p "Are you sure? " response

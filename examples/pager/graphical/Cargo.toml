@@ -1,0 +1,8 @@
+[package]
+name = "pager_graphical"
+version = "0.1.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+
+[dependencies]
+pager_prototty = { path = "../prototty" }
+prototty_graphical = { path = "../../../graphical" }

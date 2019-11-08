@@ -73,8 +73,6 @@ We can now render a `Title` with 3 of different views:
 
 This isn't much use by itself. To actually get something onto a screen, we'll
 need a frontend. Continue this example in:
-- [prototty-unix](https://github.com/stevebob/prototty/tree/master/unix)
-- [prototty-glutin](https://github.com/stevebob/prototty/tree/master/glutin)
-- [prototty-wasm](https://github.com/stevebob/prototty/tree/master/wasm)
-
-Or see how to decorate it with a border in [prototty-common](https://github.com/stevebob/prototty/tree/master/common).
+- [prototty\_ansi\_terminal](https://github.com/stevebob/prototty/tree/master/ansi-terminal)
+- [prototty\_graphical](https://github.com/stevebob/prototty/tree/master/graphical)
+- [prototty\_web](https://github.com/stevebob/prototty/tree/master/web)
