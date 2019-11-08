@@ -5,6 +5,7 @@ use roguelike_prototty::{event_routine, AppData, AppView, Frontend};
 const WINDOW_SIZE_PIXELS: Size = Size::new_u16(640, 480);
 
 fn main() {
+    env_logger::init();
     let NativeCommon {
         rng_seed,
         file_storage,

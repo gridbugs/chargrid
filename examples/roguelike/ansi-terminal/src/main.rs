@@ -52,6 +52,7 @@ impl Args {
 }
 
 fn main() {
+    env_logger::init();
     let Args {
         native_common:
             NativeCommon {

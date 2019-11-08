@@ -8,6 +8,8 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
+log = "0.4"
 fib = { path = "../fib" }
 prototty_web = { path = "../../../web" }
 wasm-bindgen = "0.2"
+wasm-logger = "0.1"

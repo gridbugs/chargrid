@@ -18,17 +18,6 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlElement, KeyboardEvent, MouseEvent, Node, WheelEvent};
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    pub fn log(s: &str);
-}
-
-#[macro_export]
-macro_rules! console_log {
-    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-}
-
 fn rgb24_to_web_colour(Rgb24 { r, g, b }: Rgb24) -> String {
     format!("rgb({},{},{})", r, g, b)
 }
