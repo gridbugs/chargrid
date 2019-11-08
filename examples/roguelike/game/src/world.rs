@@ -14,6 +14,7 @@ pub enum Tile {
     Floor,
     Carpet,
     Bullet,
+    Smoke,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,7 +43,9 @@ ecs_components! {
         tile: Tile,
         opacity: u8,
         solid: (),
-        realtime_movement: RealtimeComponent<RealtimeMovement>,
+        realtime_movement: RealtimeComponent<Movement>,
+        realtime_particle_emitter: RealtimeComponent<ParticleEmitter>,
+        realtime_fade: RealtimeComponent<Fade>,
         realtime: (),
     }
 }
@@ -55,10 +58,47 @@ pub struct RealtimeComponent<S> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RealtimeMovement {
+pub struct Movement {
     path: InfiniteStepIter,
-    cardinal_step_duration: Duration,
-    ordinal_step_duration: Duration,
+    cardinal_period: Duration,
+    ordinal_period: Duration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParticleEmitter {
+    period: Duration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Fade {
+    progress: Option<u8>,
+    period: Duration,
+}
+
+impl Fade {
+    fn new(duration: Duration) -> Self {
+        let period = duration / 256;
+        Self {
+            progress: Some(0),
+            period,
+        }
+    }
+    fn tick(&mut self) -> Tick<Option<u8>> {
+        self.progress = self.progress.and_then(|progress| progress.checked_add(1));
+        Tick {
+            data: self.progress,
+            duration: self.period,
+        }
+    }
+}
+
+impl ParticleEmitter {
+    fn tick(&mut self) -> Tick<()> {
+        Tick {
+            data: (),
+            duration: self.period,
+        }
+    }
 }
 
 struct Tick<T> {
@@ -66,27 +106,27 @@ struct Tick<T> {
     duration: Duration,
 }
 
-impl RealtimeMovement {
+impl Movement {
     fn ordinal_duration_from_cardinal_duration(duration: Duration) -> Duration {
         const SQRT_2_X_1_000_000: u64 = 1414214;
         let ordinal_micros = (duration.as_micros() as u64 * SQRT_2_X_1_000_000) / 1_000_000;
         Duration::from_micros(ordinal_micros)
     }
 
-    fn new(path: InfiniteStepIter, cardinal_step_duration: Duration) -> Self {
+    fn new(path: InfiniteStepIter, cardinal_period: Duration) -> Self {
         Self {
             path,
-            cardinal_step_duration,
-            ordinal_step_duration: Self::ordinal_duration_from_cardinal_duration(cardinal_step_duration),
+            cardinal_period,
+            ordinal_period: Self::ordinal_duration_from_cardinal_duration(cardinal_period),
         }
     }
 
     fn tick(&mut self) -> Tick<Direction> {
         let direction = self.path.step();
         let duration = if direction.is_cardinal() {
-            self.cardinal_step_duration
+            self.cardinal_period
         } else {
-            self.ordinal_step_duration
+            self.ordinal_period
         };
         Tick {
             data: direction,
@@ -182,27 +222,61 @@ fn is_solid_feature_at_coord(
     }
 }
 
-struct Realtime<'a> {
-    realtime_movement: Option<&'a mut RealtimeComponent<RealtimeMovement>>,
+struct RealtimeComponents<'a> {
+    movement: Option<&'a mut RealtimeComponent<Movement>>,
+    particle_emitter: Option<&'a mut RealtimeComponent<ParticleEmitter>>,
+    fade: Option<&'a mut RealtimeComponent<Fade>>,
 }
 
 struct RealtimeTick {
-    realtime_movement: Option<Direction>,
+    movement: Option<Direction>,
+    particle_emitter: Option<()>,
+    fade: Option<Option<u8>>,
 }
 
-impl<'a> Realtime<'a> {
+impl<'a> RealtimeComponents<'a> {
     fn tick(&mut self, frame_remaining: Duration) -> Tick<RealtimeTick> {
         let mut until_tick = frame_remaining;
-        if let Some(realtime_movement) = self.realtime_movement.as_ref() {
-            until_tick = until_tick.min(realtime_movement.until_next_tick);
+        if let Some(movement) = self.movement.as_ref() {
+            until_tick = until_tick.min(movement.until_next_tick);
         }
-        let realtime_movement = if let Some(realtime_movement) = self.realtime_movement.as_mut() {
-            if until_tick == realtime_movement.until_next_tick {
-                let tick = realtime_movement.state.tick();
-                realtime_movement.until_next_tick = tick.duration;
+        if let Some(particle_emitter) = self.particle_emitter.as_ref() {
+            until_tick = until_tick.min(particle_emitter.until_next_tick);
+        }
+        if let Some(fade) = self.fade.as_ref() {
+            until_tick = until_tick.min(fade.until_next_tick);
+        }
+        let movement = if let Some(movement) = self.movement.as_mut() {
+            if until_tick == movement.until_next_tick {
+                let tick = movement.state.tick();
+                movement.until_next_tick = tick.duration;
                 Some(tick.data)
             } else {
-                realtime_movement.until_next_tick -= until_tick;
+                movement.until_next_tick -= until_tick;
+                None
+            }
+        } else {
+            None
+        };
+        let particle_emitter = if let Some(particle_emitter) = self.particle_emitter.as_mut() {
+            if until_tick == particle_emitter.until_next_tick {
+                let tick = particle_emitter.state.tick();
+                particle_emitter.until_next_tick = tick.duration;
+                Some(tick.data)
+            } else {
+                particle_emitter.until_next_tick -= until_tick;
+                None
+            }
+        } else {
+            None
+        };
+        let fade = if let Some(fade) = self.fade.as_mut() {
+            if until_tick == fade.until_next_tick {
+                let tick = fade.state.tick();
+                fade.until_next_tick = tick.duration;
+                Some(tick.data)
+            } else {
+                fade.until_next_tick -= until_tick;
                 None
             }
         } else {
@@ -210,7 +284,11 @@ impl<'a> Realtime<'a> {
         };
         Tick {
             duration: until_tick,
-            data: RealtimeTick { realtime_movement },
+            data: RealtimeTick {
+                movement,
+                particle_emitter,
+                fade,
+            },
         }
     }
 }
@@ -319,10 +397,19 @@ impl World {
         self.ecs.components.realtime_movement.insert(
             bullet_entity,
             RealtimeComponent {
-                state: RealtimeMovement::new(
+                state: Movement::new(
                     InfiniteStepIter::new(target - character_coord),
                     Duration::from_millis(32),
                 ),
+                until_next_tick: Duration::from_millis(0),
+            },
+        );
+        self.ecs.components.realtime_particle_emitter.insert(
+            bullet_entity,
+            RealtimeComponent {
+                state: ParticleEmitter {
+                    period: Duration::from_millis(16),
+                },
                 until_next_tick: Duration::from_millis(0),
             },
         );
@@ -339,20 +426,23 @@ impl World {
     }
     pub fn animation_tick<R: Rng>(&mut self, _rng: &mut R) {
         let to_remove = &mut self.entity_buffer;
+        let mut fade_buffer = Vec::new();
         for (entity, ()) in self.ecs.components.realtime.iter() {
-            let mut realtime = Realtime {
-                realtime_movement: self.ecs.components.realtime_movement.get_mut(entity),
+            let mut realtime_components = RealtimeComponents {
+                movement: self.ecs.components.realtime_movement.get_mut(entity),
+                particle_emitter: self.ecs.components.realtime_particle_emitter.get_mut(entity),
+                fade: self.ecs.components.realtime_fade.get_mut(entity),
             };
             let mut frame_remaining = FRAME_DURATION;
             while frame_remaining > Duration::from_micros(0) {
                 let Tick {
                     duration,
                     data: realtime_tick,
-                } = realtime.tick(frame_remaining);
+                } = realtime_components.tick(frame_remaining);
                 frame_remaining -= duration;
-                if let Some(realtime_movement_direction) = realtime_tick.realtime_movement.as_ref() {
+                if let Some(movement_direction) = realtime_tick.movement.as_ref() {
                     if let Some(current_location) = self.ecs.components.location.get_mut(entity) {
-                        current_location.coord += realtime_movement_direction.coord();
+                        current_location.coord += movement_direction.coord();
                         if is_solid_feature_at_coord(
                             current_location.coord,
                             &self.ecs.components.solid,
@@ -366,21 +456,53 @@ impl World {
                         break;
                     }
                 }
+                if realtime_tick.particle_emitter.is_some() {
+                    if let Some(location) = self.ecs.components.location.get(entity) {
+                        let particle_entity = self.ecs.entity_allocator.alloc();
+                        location_insert(
+                            particle_entity,
+                            Location::new(location.coord, Layer::Particle),
+                            &mut self.ecs.components.location,
+                            &mut self.spatial_grid,
+                        )
+                        .unwrap();
+                        self.ecs.components.tile.insert(particle_entity, Tile::Smoke);
+                        fade_buffer.push((
+                            particle_entity,
+                            RealtimeComponent {
+                                state: Fade::new(Duration::from_millis(1000)),
+                                until_next_tick: Duration::from_millis(0),
+                            },
+                        ));
+                    }
+                }
+                if let Some(maybe_progress) = realtime_tick.fade.as_ref() {
+                    if maybe_progress.is_none() {
+                        to_remove.push(entity);
+                    }
+                }
             }
         }
         for entity in to_remove.drain(..) {
             self.ecs.remove(entity);
         }
+        for (entity, fade) in fade_buffer.drain(..) {
+            self.ecs.components.realtime_fade.insert(entity, fade);
+            self.ecs.components.realtime.insert(entity, ());
+        }
     }
     pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
         let tile_component = &self.ecs.components.tile;
         let location_component = &self.ecs.components.location;
+        let realtime_fade_component = &self.ecs.components.realtime_fade;
         tile_component.iter().filter_map(move |(entity, &tile)| {
             if let Some(location) = location_component.get(entity) {
+                let fade = realtime_fade_component.get(entity).and_then(|f| f.state.progress);
                 Some(ToRenderEntity {
                     coord: location.coord,
                     layer: location.layer,
                     tile: tile,
+                    fade,
                 })
             } else {
                 None
@@ -393,4 +515,5 @@ pub struct ToRenderEntity {
     pub coord: Coord,
     pub layer: Layer,
     pub tile: Tile,
+    pub fade: Option<u8>,
 }

@@ -1,6 +1,6 @@
 use crate::controls::{AppInput, Controls};
 pub use game::Input as GameInput;
-use game::{CardinalDirection, Game, Layer, Tile};
+use game::{CardinalDirection, Game, Layer, Tile, ToRenderEntity};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
@@ -39,8 +39,10 @@ fn layer_depth(layer: Layer) -> i8 {
     }
 }
 
-fn tile_view_cell(tile: Tile) -> ViewCell {
-    match tile {
+fn render_entity<F: Frame, C: ColModify>(to_render_entity: &ToRenderEntity, context: ViewContext<C>, frame: &mut F) {
+    let depth = layer_depth(to_render_entity.layer);
+    let coord = to_render_entity.coord;
+    let view_cell = match to_render_entity.tile {
         Tile::Player => ViewCell::new().with_character('@'),
         Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
         Tile::Carpet => ViewCell::new()
@@ -48,16 +50,27 @@ fn tile_view_cell(tile: Tile) -> ViewCell {
             .with_background(Rgb24::new(0, 0, 127)),
         Tile::Wall => ViewCell::new().with_character('#'),
         Tile::Bullet => ViewCell::new().with_character('*'),
-    }
+        Tile::Smoke => {
+            if let Some(fade) = to_render_entity.fade {
+                frame.blend_cell_background_relative(
+                    coord,
+                    depth,
+                    Rgb24::new_grey(187),
+                    255 - fade,
+                    blend_mode::LinearInterpolate,
+                    context,
+                )
+            }
+            return;
+        }
+    };
+    frame.set_cell_relative(coord, depth, view_cell, context);
 }
 
 impl<'a> View<&'a Game> for GameView {
     fn view<F: Frame, C: ColModify>(&mut self, game: &'a Game, context: ViewContext<C>, frame: &mut F) {
         for to_render_entity in game.to_render_entities() {
-            let depth = layer_depth(to_render_entity.layer);
-            let view_cell = tile_view_cell(to_render_entity.tile);
-            let coord = to_render_entity.coord;
-            frame.set_cell_relative(coord, depth, view_cell, context);
+            render_entity(&to_render_entity, context, frame);
         }
         self.last_offset = context.offset;
     }
