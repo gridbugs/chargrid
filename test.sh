@@ -18,42 +18,42 @@ find -name node_modules -exec rm -rf {} \; || true
 find -name package-lock.json -delete || true
 find -name dist -exec rm -rf {} \; || true
 
-pushd $DIR/examples/tetris/wasm
+pushd $DIR/examples/tetris/web
 npm install
 npm run build -- --mode development
 popd
 
-pushd $DIR/examples/title/wasm
+pushd $DIR/examples/title/web
 npm install
 npm run build -- --mode development
 popd
 
-pushd $DIR/examples/fib/wasm
+pushd $DIR/examples/fib/web
 npm install
 npm run build -- --mode development
 popd
 
-pushd $DIR/examples/drag/wasm
+pushd $DIR/examples/drag/web
 npm install
 npm run build -- --mode development
 popd
 
-pushd $DIR/examples/pager/wasm
+pushd $DIR/examples/pager/web
 npm install
 npm run build -- --mode development
 popd
 
-pushd $DIR/examples/colour_picker/wasm
+pushd $DIR/examples/colour_picker/web
 npm install
 npm run build -- --mode development
 popd
 
-pushd $DIR/examples/roguelike/wasm
+pushd $DIR/examples/roguelike/web
 npm install
 npm run build -- --mode development
 popd
 
-pushd $DIR/examples/colour_grid/wasm
+pushd $DIR/examples/colour_grid/web
 npm install
 npm run build -- --mode development
 popd
