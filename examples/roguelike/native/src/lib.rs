@@ -1,5 +1,5 @@
-pub use prototty_file_storage::FileStorage;
 use prototty_file_storage::IfDirectoryMissing;
+pub use prototty_file_storage::{FileStorage, Storage};
 use roguelike_prototty::{Controls, RngSeed};
 pub use simon;
 use simon::*;
@@ -46,6 +46,7 @@ impl NativeCommon {
                 save_dir = opt("d", "save-dir", "save dir", "PATH")
                     .with_default(DEFAULT_NEXT_TO_EXE_SAVE_DIR.to_string());
                 controls_file = opt::<String>("c", "controls-file", "controls file", "PATH");
+                delete_save = flag("", "delete-save", "delete save game file");
             } in {{
                 let controls_file = if let Some(controls_file) = controls_file {
                     controls_file.into()
@@ -54,10 +55,15 @@ impl NativeCommon {
                         .to_path_buf()
                 };
                 let controls = read_controls_file(&controls_file).unwrap_or_else(Controls::default);
-                let file_storage = FileStorage::next_to_exe(
+                let mut file_storage = FileStorage::next_to_exe(
                     &save_dir,
                     IfDirectoryMissing::Create,
                 ).expect("failed to open directory");
+                if delete_save {
+                    if file_storage.remove(&save_file).is_err() {
+                        log::error!("couldn't find save file to delete");
+                    }
+                }
                 Self {
                     rng_seed,
                     save_file,
