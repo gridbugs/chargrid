@@ -60,11 +60,11 @@ impl Game {
             frame_count: 0,
         }
     }
-    pub fn has_animations(&self) -> bool {
-        self.world.has_pending_animation()
+    pub fn is_gameplay_blocked(&self) -> bool {
+        self.world.is_gameplay_blocked()
     }
     pub fn handle_input(&mut self, input: Input) {
-        if !self.has_animations() {
+        if !self.is_gameplay_blocked() {
             match input {
                 Input::Walk(direction) => self.world.character_walk_in_direction(self.player, direction),
                 Input::Fire(coord) => self.world.character_fire_bullet(self.player, coord),

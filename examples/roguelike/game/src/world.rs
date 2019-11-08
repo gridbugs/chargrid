@@ -47,6 +47,7 @@ ecs_components! {
         realtime_particle_emitter: RealtimeComponent<ParticleEmitter>,
         realtime_fade: RealtimeComponent<Fade>,
         realtime: (),
+        blocks_gameplay: (),
     }
 }
 use components::Components;
@@ -394,12 +395,13 @@ impl World {
         )
         .unwrap();
         self.ecs.components.realtime.insert(bullet_entity, ());
+        self.ecs.components.blocks_gameplay.insert(bullet_entity, ());
         self.ecs.components.realtime_movement.insert(
             bullet_entity,
             RealtimeComponent {
                 state: Movement::new(
                     InfiniteStepIter::new(target - character_coord),
-                    Duration::from_millis(32),
+                    Duration::from_millis(16),
                 ),
                 until_next_tick: Duration::from_millis(0),
             },
@@ -408,7 +410,7 @@ impl World {
             bullet_entity,
             RealtimeComponent {
                 state: ParticleEmitter {
-                    period: Duration::from_millis(16),
+                    period: Duration::from_millis(7),
                 },
                 until_next_tick: Duration::from_millis(0),
             },
@@ -421,8 +423,8 @@ impl World {
     pub fn size(&self) -> Size {
         self.spatial_grid.size()
     }
-    pub fn has_pending_animation(&self) -> bool {
-        !self.ecs.components.realtime.is_empty()
+    pub fn is_gameplay_blocked(&self) -> bool {
+        !self.ecs.components.blocks_gameplay.is_empty()
     }
     pub fn animation_tick<R: Rng>(&mut self, _rng: &mut R) {
         let to_remove = &mut self.entity_buffer;

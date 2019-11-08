@@ -39,6 +39,8 @@ fn layer_depth(layer: Layer) -> i8 {
     }
 }
 
+const AIM_UI_DEPTH: i8 = 3;
+
 fn render_entity<F: Frame, C: ColModify>(to_render_entity: &ToRenderEntity, context: ViewContext<C>, frame: &mut F) {
     let depth = layer_depth(to_render_entity.layer);
     let coord = to_render_entity.coord;
@@ -56,7 +58,7 @@ fn render_entity<F: Frame, C: ColModify>(to_render_entity: &ToRenderEntity, cont
                     coord,
                     depth,
                     Rgb24::new_grey(187),
-                    255 - fade,
+                    127 - (fade / 2),
                     blend_mode::LinearInterpolate,
                     context,
                 )
@@ -252,55 +254,62 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
             Ignore,
             Frame(Duration),
         }
-        event_or_peek_with_handled(event_or_peek, self, |mut s, event| {
-            data.last_aim_with_mouse = false;
-            let aim = match event {
-                CommonEvent::Input(input) => match input {
-                    Input::Keyboard(keyboard_input) => {
-                        if let Some(app_input) = data.controls.get(keyboard_input) {
-                            match app_input {
-                                AppInput::Aim => Aim::KeyboardFinalise,
-                                AppInput::Move(direction) => Aim::KeyboardDirection(direction),
-                            }
-                        } else {
-                            match keyboard_input {
-                                keys::RETURN => Aim::KeyboardFinalise,
-                                keys::ESCAPE => Aim::Cancel,
-                                _ => Aim::Ignore,
+        let last_aim_with_mouse = &mut data.last_aim_with_mouse;
+        let controls = &data.controls;
+        if let Some(instance) = data.instance.as_mut() {
+            event_or_peek_with_handled(event_or_peek, self, |mut s, event| {
+                *last_aim_with_mouse = false;
+                let aim = match event {
+                    CommonEvent::Input(input) => match input {
+                        Input::Keyboard(keyboard_input) => {
+                            if let Some(app_input) = controls.get(keyboard_input) {
+                                match app_input {
+                                    AppInput::Aim => Aim::KeyboardFinalise,
+                                    AppInput::Move(direction) => Aim::KeyboardDirection(direction),
+                                }
+                            } else {
+                                match keyboard_input {
+                                    keys::RETURN => Aim::KeyboardFinalise,
+                                    keys::ESCAPE => Aim::Cancel,
+                                    _ => Aim::Ignore,
+                                }
                             }
                         }
-                    }
-                    Input::Mouse(mouse_input) => match mouse_input {
-                        MouseInput::MouseMove { coord, .. } => Aim::Mouse { coord, press: false },
-                        MouseInput::MousePress { coord, .. } => Aim::Mouse { coord, press: true },
-                        _ => Aim::Ignore,
+                        Input::Mouse(mouse_input) => match mouse_input {
+                            MouseInput::MouseMove { coord, .. } => Aim::Mouse { coord, press: false },
+                            MouseInput::MousePress { coord, .. } => Aim::Mouse { coord, press: true },
+                            _ => Aim::Ignore,
+                        },
                     },
-                },
-                CommonEvent::Frame(since_last) => Aim::Frame(since_last),
-            };
-            match aim {
-                Aim::KeyboardFinalise => Handled::Return(Some(s.coord)),
-                Aim::KeyboardDirection(direction) => {
-                    s.coord += direction.coord();
-                    Handled::Continue(s)
-                }
-                Aim::Mouse { coord, press } => {
-                    s.coord = view.absolute_coord_to_game_coord(coord);
-                    if press {
-                        data.last_aim_with_mouse = true;
-                        Handled::Return(Some(s.coord))
-                    } else {
+                    CommonEvent::Frame(since_last) => Aim::Frame(since_last),
+                };
+                match aim {
+                    Aim::KeyboardFinalise => Handled::Return(Some(s.coord)),
+                    Aim::KeyboardDirection(direction) => {
+                        s.coord += direction.coord();
+                        Handled::Continue(s)
+                    }
+                    Aim::Mouse { coord, press } => {
+                        s.coord = view.absolute_coord_to_game_coord(coord);
+                        if press {
+                            *last_aim_with_mouse = true;
+                            Handled::Return(Some(s.coord))
+                        } else {
+                            Handled::Continue(s)
+                        }
+                    }
+                    Aim::Cancel => Handled::Return(None),
+                    Aim::Ignore => Handled::Continue(s),
+                    Aim::Frame(since_last) => {
+                        instance.game.handle_tick(since_last);
+                        s.duration += since_last;
                         Handled::Continue(s)
                     }
                 }
-                Aim::Cancel => Handled::Return(None),
-                Aim::Ignore => Handled::Continue(s),
-                Aim::Frame(since_last) => {
-                    s.duration += since_last;
-                    Handled::Continue(s)
-                }
-            }
-        })
+            })
+        } else {
+            Handled::Return(None)
+        }
     }
 
     fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
@@ -321,7 +330,7 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     }
                     frame.blend_cell_background_relative(
                         node.coord,
-                        1,
+                        AIM_UI_DEPTH,
                         Rgb24::new(255, 0, 0),
                         127,
                         blend_mode::LinearInterpolate,
@@ -333,7 +342,7 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                 let alpha = self.blink.alpha(self.duration);
                 frame.blend_cell_background_relative(
                     self.coord,
-                    1,
+                    AIM_UI_DEPTH,
                     Rgb24::new(255, 0, 0),
                     alpha,
                     blend_mode::LinearInterpolate,
@@ -389,7 +398,7 @@ impl<S: Storage> EventRoutine for GameEventRoutine<S> {
                             if keyboard_input == keys::ESCAPE {
                                 return Handled::Return(GameReturn::Pause);
                             }
-                            if !instance.game.has_animations() {
+                            if !instance.game.is_gameplay_blocked() {
                                 if let Some(app_input) = controls.get(keyboard_input) {
                                     match app_input {
                                         AppInput::Move(direction) => {
