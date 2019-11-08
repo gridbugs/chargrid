@@ -63,8 +63,14 @@ pub fn nearest_ansi_code(Rgb24 { r, g, b }: Rgb24) -> u8 {
         (0, 1, 1) => codes::normal::CYAN,
         (1, 0, 1) => codes::normal::MAGENTA,
         (1, 1, 1) => codes::bright::DARK_GREY,
-        (2, 2, 2) => codes::normal::GREY, // this tends to be brighter than dark grey
-        (hi!(), hi!(), hi!()) => codes::bright::WHITE,
+        col @ (hi!(), hi!(), hi!()) => {
+            if col == (2, 2, 2) {
+                // despite not being "bright", this tends to be brighter than dark grey
+                codes::normal::GREY
+            } else {
+                codes::bright::WHITE
+            }
+        }
         (hi!(), lo!(), lo!()) => codes::bright::RED,
         (lo!(), hi!(), lo!()) => codes::bright::GREEN,
         (lo!(), lo!(), hi!()) => codes::bright::BLUE,
@@ -114,5 +120,4 @@ mod tests {
             }
         }
     }
-
 }
