@@ -5,7 +5,6 @@ use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-mod particle;
 mod world;
 
 use world::{Entity, World};
