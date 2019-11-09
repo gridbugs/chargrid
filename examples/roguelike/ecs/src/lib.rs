@@ -171,6 +171,9 @@ impl<T> ComponentTable<T> {
     pub fn is_empty(&self) -> bool {
         self.entries.vec.is_empty()
     }
+    pub fn len(&self) -> usize {
+        self.entries.vec.len()
+    }
     pub fn insert(&mut self, entity: Entity, data: T) -> Option<T> {
         if let Some(maybe_entry_index) = self.entity_index_to_entry_index.get_mut(entity.index as usize) {
             if let Some(entry_index) = maybe_entry_index {

@@ -58,7 +58,7 @@ fn render_entity<F: Frame, C: ColModify>(to_render_entity: &ToRenderEntity, cont
                     coord,
                     depth,
                     Rgb24::new_grey(187),
-                    127 - (fade / 2),
+                    (255 - fade) / 10,
                     blend_mode::LinearInterpolate,
                     context,
                 )

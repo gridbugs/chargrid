@@ -6,6 +6,7 @@ use line_2d::InfiniteStepIter;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use vector::Radial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Tile {
@@ -65,9 +66,46 @@ pub struct Movement {
     ordinal_period: Duration,
 }
 
+struct Particle {
+    movement: Option<Movement>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ParticleMovementSpec {}
+
+impl ParticleMovementSpec {
+    fn movement<R: Rng>(&self, rng: &mut R) -> Movement {
+        const VECTOR_LENGTH: f64 = 1000.;
+        let angle_radians = rng.gen_range(-::std::f64::consts::PI, ::std::f64::consts::PI);
+        let radial = Radial {
+            angle_radians,
+            length: VECTOR_LENGTH,
+        };
+        let delta = radial.to_cartesian().to_coord_round_nearest();
+        let path = InfiniteStepIter::new(delta);
+        let cardinal_period = Duration::from_millis(rng.gen_range(200, 500));
+        Movement::new(path, cardinal_period)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParticleEmitter {
     period: Duration,
+    movement_spec: Option<ParticleMovementSpec>,
+}
+
+impl ParticleEmitter {
+    fn emit<R: Rng>(&self, rng: &mut R) -> Particle {
+        Particle {
+            movement: self.movement_spec.as_ref().map(|s| s.movement(rng)),
+        }
+    }
+    fn tick<R: Rng>(&self, rng: &mut R) -> Tick<Particle> {
+        Tick {
+            data: self.emit(rng),
+            duration: self.period,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,15 +126,6 @@ impl Fade {
         self.progress = self.progress.and_then(|progress| progress.checked_add(1));
         Tick {
             data: self.progress,
-            duration: self.period,
-        }
-    }
-}
-
-impl ParticleEmitter {
-    fn tick(&mut self) -> Tick<()> {
-        Tick {
-            data: (),
             duration: self.period,
         }
     }
@@ -231,12 +260,12 @@ struct RealtimeComponents<'a> {
 
 struct RealtimeTick {
     movement: Option<Direction>,
-    particle_emitter: Option<()>,
+    particle_emitter: Option<Particle>,
     fade: Option<Option<u8>>,
 }
 
 impl<'a> RealtimeComponents<'a> {
-    fn tick(&mut self, frame_remaining: Duration) -> Tick<RealtimeTick> {
+    fn tick<R: Rng>(&mut self, frame_remaining: Duration, rng: &mut R) -> Tick<RealtimeTick> {
         let mut until_tick = frame_remaining;
         if let Some(movement) = self.movement.as_ref() {
             until_tick = until_tick.min(movement.until_next_tick);
@@ -261,7 +290,7 @@ impl<'a> RealtimeComponents<'a> {
         };
         let particle_emitter = if let Some(particle_emitter) = self.particle_emitter.as_mut() {
             if until_tick == particle_emitter.until_next_tick {
-                let tick = particle_emitter.state.tick();
+                let tick = particle_emitter.state.tick(rng);
                 particle_emitter.until_next_tick = tick.duration;
                 Some(tick.data)
             } else {
@@ -410,7 +439,8 @@ impl World {
             bullet_entity,
             RealtimeComponent {
                 state: ParticleEmitter {
-                    period: Duration::from_millis(7),
+                    period: Duration::from_micros(500),
+                    movement_spec: Some(ParticleMovementSpec {}),
                 },
                 until_next_tick: Duration::from_millis(0),
             },
@@ -426,9 +456,10 @@ impl World {
     pub fn is_gameplay_blocked(&self) -> bool {
         !self.ecs.components.blocks_gameplay.is_empty()
     }
-    pub fn animation_tick<R: Rng>(&mut self, _rng: &mut R) {
+    pub fn animation_tick<R: Rng>(&mut self, rng: &mut R) {
         let to_remove = &mut self.entity_buffer;
         let mut fade_buffer = Vec::new();
+        let mut movement_buffer = Vec::new();
         for (entity, ()) in self.ecs.components.realtime.iter() {
             let mut realtime_components = RealtimeComponents {
                 movement: self.ecs.components.realtime_movement.get_mut(entity),
@@ -439,8 +470,8 @@ impl World {
             while frame_remaining > Duration::from_micros(0) {
                 let Tick {
                     duration,
-                    data: realtime_tick,
-                } = realtime_components.tick(frame_remaining);
+                    data: mut realtime_tick,
+                } = realtime_components.tick(frame_remaining, rng);
                 frame_remaining -= duration;
                 if let Some(movement_direction) = realtime_tick.movement.as_ref() {
                     if let Some(current_location) = self.ecs.components.location.get_mut(entity) {
@@ -458,9 +489,18 @@ impl World {
                         break;
                     }
                 }
-                if realtime_tick.particle_emitter.is_some() {
+                if let Some(mut particle) = realtime_tick.particle_emitter.take() {
                     if let Some(location) = self.ecs.components.location.get(entity) {
                         let particle_entity = self.ecs.entity_allocator.alloc();
+                        if let Some(movement) = particle.movement.take() {
+                            movement_buffer.push((
+                                particle_entity,
+                                RealtimeComponent {
+                                    until_next_tick: movement.cardinal_period,
+                                    state: movement,
+                                },
+                            ));
+                        }
                         location_insert(
                             particle_entity,
                             Location::new(location.coord, Layer::Particle),
@@ -490,6 +530,10 @@ impl World {
         }
         for (entity, fade) in fade_buffer.drain(..) {
             self.ecs.components.realtime_fade.insert(entity, fade);
+            self.ecs.components.realtime.insert(entity, ());
+        }
+        for (entity, movement) in movement_buffer.drain(..) {
+            self.ecs.components.realtime_movement.insert(entity, movement);
             self.ecs.components.realtime.insert(entity, ());
         }
     }
