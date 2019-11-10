@@ -10,9 +10,9 @@ use std::hash::{Hash, Hasher};
 use std::io::Read;
 use std::path::PathBuf;
 
-const DEFAULT_SAVE_FILE: &'static str = "save";
-const DEFAULT_NEXT_TO_EXE_SAVE_DIR: &'static str = "save";
-const DEFAULT_NEXT_TO_EXE_CONTROLS_FILE: &'static str = "controls.json";
+const DEFAULT_SAVE_FILE: &str = "save";
+const DEFAULT_NEXT_TO_EXE_SAVE_DIR: &str = "save";
+const DEFAULT_NEXT_TO_EXE_CONTROLS_FILE: &str = "controls.json";
 
 pub struct NativeCommon {
     pub rng_seed: RngSeed,
@@ -60,7 +60,8 @@ impl NativeCommon {
                     IfDirectoryMissing::Create,
                 ).expect("failed to open directory");
                 if delete_save {
-                    if file_storage.remove(&save_file).is_err() {
+                    let result = file_storage.remove(&save_file);
+                    if result.is_err() {
                         log::error!("couldn't find save file to delete");
                     }
                 }

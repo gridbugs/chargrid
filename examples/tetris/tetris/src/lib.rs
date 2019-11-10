@@ -1,4 +1,4 @@
-use grid_2d::{Coord, Size};
+use coord_2d::{Coord, Size};
 use rand::Rng;
 use std::mem;
 use std::time::Duration;
@@ -186,7 +186,9 @@ impl Board {
 
     fn add_piece(&mut self, piece: Piece) {
         for coord in piece.coords.iter().cloned() {
-            self.get_mut(coord).map(|c| c.typ = Some(piece.typ));
+            if let Some(cell) = self.get_mut(coord) {
+                cell.typ = Some(piece.typ);
+            }
         }
     }
 

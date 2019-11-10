@@ -57,7 +57,7 @@ impl<'a> Deserialize<'a> for IndexToId {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct EntityAllocator {
     next_id: Id,
     next_index: Index,
@@ -294,7 +294,7 @@ pub trait ComponentsTrait: Default {
     fn insert_entity_data(&mut self, entity: Entity, entity_data: Self::EntityData);
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Ecs<C: ComponentsTrait> {
     pub entity_allocator: EntityAllocator,
     pub components: C,

@@ -109,7 +109,10 @@ impl MeasureBounds {
         }
     }
     fn size(&self, offset: Coord) -> Size {
-        (self.max_absolute_coord - offset).to_size().unwrap_or(Size::new(0, 0)) + Size::new(1, 1)
+        (self.max_absolute_coord - offset)
+            .to_size()
+            .unwrap_or_else(|coord_2d::NegativeDimension| Size::new(0, 0))
+            + Size::new(1, 1)
     }
     fn set_max(&mut self, coord: Coord) {
         self.max_absolute_coord.x = self.max_absolute_coord.x.max(coord.x);

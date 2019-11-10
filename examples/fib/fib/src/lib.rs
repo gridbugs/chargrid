@@ -1,7 +1,7 @@
 use prototty_storage::{format, Storage};
 use serde::{Deserialize, Serialize};
 
-const FILE_NAME: &'static str = "state";
+const FILE_NAME: &str = "state";
 
 #[derive(Serialize, Deserialize)]
 struct State {

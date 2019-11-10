@@ -37,7 +37,7 @@ impl<C: ColModify> ViewContext<C> {
             offset: self.offset + offset_delta,
             size: (self.size.to_coord().unwrap() - offset_delta)
                 .to_size()
-                .unwrap_or(Size::new_u16(0, 0)),
+                .unwrap_or_else(|coord_2d::NegativeDimension| Size::new_u16(0, 0)),
             ..self
         }
     }

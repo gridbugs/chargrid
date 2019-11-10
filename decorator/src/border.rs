@@ -80,6 +80,12 @@ pub struct BorderStyle {
     pub title_style: Style,
 }
 
+impl Default for BorderStyle {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BorderStyle {
     pub fn new() -> Self {
         Self {

@@ -27,7 +27,7 @@ pub struct Game {
 impl Game {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
         let s = include_str!("terrain.txt");
-        let rows = s.split("\n").filter(|s| !s.is_empty()).collect::<Vec<_>>();
+        let rows = s.split('\n').filter(|s| !s.is_empty()).collect::<Vec<_>>();
         let size = Size::new_u16(rows[0].len() as u16, rows.len() as u16);
         let mut world = World::new(size);
         let mut player = None;

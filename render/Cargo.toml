@@ -15,5 +15,6 @@ serialize = ["serde", "grid_2d/serialize", "rgb24/serialize"]
 
 [dependencies]
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
-grid_2d = "0.13"
+coord_2d = "0.2"
+grid_2d = "0.14"
 rgb24 = "0.2"

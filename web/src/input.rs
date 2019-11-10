@@ -6,8 +6,9 @@ macro_rules! convert_char_shift {
     };
 }
 
-pub fn from_js_event_key_press(key_code: u8, shift: bool) -> Option<Input> {
-    let input = match key_code {
+#[allow(clippy::cognitive_complexity)]
+fn keyboard_input_from_js_event_key_press(key_code: u8, shift: bool) -> Option<KeyboardInput> {
+    let keyboard_input = match key_code {
         8 => keys::BACKSPACE,
         9 => keys::TAB,
         13 => keys::RETURN,
@@ -98,5 +99,9 @@ pub fn from_js_event_key_press(key_code: u8, shift: bool) -> Option<Input> {
         222 => convert_char_shift!('\'', '"', shift),
         _ => return None,
     };
-    Some(Input::Keyboard(input))
+    Some(keyboard_input)
+}
+
+pub fn from_js_event_key_press(key_code: u8, shift: bool) -> Option<Input> {
+    keyboard_input_from_js_event_key_press(key_code, shift).map(Input::Keyboard)
 }

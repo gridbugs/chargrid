@@ -2,7 +2,7 @@ use prototty_web::{Context, LocalStorage, Size};
 use roguelike_prototty::{event_routine, AppData, AppView, Controls, Frontend, RngSeed};
 use wasm_bindgen::prelude::*;
 
-const SAVE_KEY: &'static str = "save";
+const SAVE_KEY: &str = "save";
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {

@@ -19,9 +19,9 @@ macro_rules! convert_char_shift {
     };
 }
 
-fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input> {
-    let shift = keymod.shift;
-    let input = match code {
+#[allow(clippy::cognitive_complexity)]
+fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<KeyboardInput> {
+    let keyboard_input = match code {
         VirtualKeyCode::Space => KeyboardInput::Char(' '),
         VirtualKeyCode::A => convert_char_shift!('a', 'A', shift),
         VirtualKeyCode::B => convert_char_shift!('b', 'B', shift),
@@ -117,7 +117,11 @@ fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input
         VirtualKeyCode::F24 => KeyboardInput::Function(24),
         _ => return None,
     };
-    Some(Input::Keyboard(input))
+    Some(keyboard_input)
+}
+
+fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input> {
+    convert_keycode_keyboard_input(code, keymod.shift).map(Input::Keyboard)
 }
 
 pub fn convert_event(
@@ -127,12 +131,8 @@ pub fn convert_event(
     last_mouse_button: &mut Option<MouseButton>,
 ) -> Option<InputEvent> {
     match event {
-        WindowEvent::CloseRequested => {
-            return Some(InputEvent::Quit);
-        }
-        WindowEvent::Resized(LogicalSize { width, height }) => {
-            return Some(InputEvent::Resize(width as f32, height as f32));
-        }
+        WindowEvent::CloseRequested => Some(InputEvent::Quit),
+        WindowEvent::Resized(LogicalSize { width, height }) => Some(InputEvent::Resize(width as f32, height as f32)),
         WindowEvent::KeyboardInput { input, .. } => {
             if let ElementState::Pressed = input.state {
                 if let Some(virtual_keycode) = input.virtual_keycode {

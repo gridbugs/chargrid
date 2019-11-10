@@ -40,15 +40,15 @@ pub enum KeyboardInput {
 
 #[cfg(feature = "serialize")]
 mod key_names {
-    pub const UP: &'static str = "up";
-    pub const DOWN: &'static str = "down";
-    pub const LEFT: &'static str = "left";
-    pub const RIGHT: &'static str = "right";
-    pub const HOME: &'static str = "home";
-    pub const END: &'static str = "end";
-    pub const PAGE_UP: &'static str = "page-up";
-    pub const PAGE_DOWN: &'static str = "page-down";
-    pub const DELETE: &'static str = "delete";
+    pub const UP: &str = "up";
+    pub const DOWN: &str = "down";
+    pub const LEFT: &str = "left";
+    pub const RIGHT: &str = "right";
+    pub const HOME: &str = "home";
+    pub const END: &str = "end";
+    pub const PAGE_UP: &str = "page-up";
+    pub const PAGE_DOWN: &str = "page-down";
+    pub const DELETE: &str = "delete";
 }
 
 #[cfg(feature = "serialize")]
@@ -58,7 +58,7 @@ impl KeyboardInput {
             let c = s.chars().next().unwrap();
             return Some(KeyboardInput::Char(c));
         }
-        if s.starts_with("f") || s.starts_with("F") {
+        if s.starts_with('f') || s.starts_with('F') {
             let (_, maybe_number_str) = s.split_at(1);
             if let Ok(number) = maybe_number_str.parse::<u8>() {
                 return Some(KeyboardInput::Function(number));
@@ -122,7 +122,7 @@ impl<'de> serde::Deserialize<'de> for KeyboardInput {
             where
                 E: serde::de::Error,
             {
-                KeyboardInput::try_from_str(s).ok_or(E::custom(format!("couldn't parse {}", s)))
+                KeyboardInput::try_from_str(s).ok_or_else(|| E::custom(format!("couldn't parse {}", s)))
             }
         }
         deserializer.deserialize_str(Visitor)
@@ -162,8 +162,8 @@ pub enum Input {
 impl Input {
     pub fn is_keyboard(&self) -> bool {
         match self {
-            &Input::Keyboard(_) => true,
-            &Input::Mouse(_) => false,
+            Input::Keyboard(_) => true,
+            Input::Mouse(_) => false,
         }
     }
 }

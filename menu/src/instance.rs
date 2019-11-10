@@ -49,6 +49,10 @@ impl<T: Clone> MenuInstance<T> {
         self.menu.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.menu.is_empty()
+    }
+
     pub fn new(menu: Vec<T>) -> Result<Self, InitialIndexOutOfBounds> {
         Self::new_with_selection(menu, 0)
     }
@@ -117,7 +121,7 @@ impl<T: Clone> MenuInstance<T> {
         M: MenuIndexFromScreenCoord,
     {
         match input {
-            Input::Keyboard(keys::ESCAPE) => return Some(Err(Escape)),
+            Input::Keyboard(keys::ESCAPE) => Some(Err(Escape)),
             other => self.choose(view, other).map(Ok),
         }
     }
@@ -127,7 +131,7 @@ impl<T: Clone> MenuInstance<T> {
         M: MenuIndexFromScreenCoord,
     {
         match input {
-            Input::Keyboard(keys::ETX) => return Some(Err(Quit)),
+            Input::Keyboard(keys::ETX) => Some(Err(Quit)),
             other => self.choose(view, other).map(Ok),
         }
     }
@@ -137,8 +141,8 @@ impl<T: Clone> MenuInstance<T> {
         M: MenuIndexFromScreenCoord,
     {
         match input {
-            Input::Keyboard(keys::ESCAPE) => return Some(Err(Cancel::Escape)),
-            Input::Keyboard(keys::ETX) => return Some(Err(Cancel::Quit)),
+            Input::Keyboard(keys::ESCAPE) => Some(Err(Cancel::Escape)),
+            Input::Keyboard(keys::ETX) => Some(Err(Cancel::Quit)),
             other => self.choose(view, other).map(Ok),
         }
     }

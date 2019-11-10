@@ -108,9 +108,36 @@ impl ParticleEmitter {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+enum FadeProgress {
+    Fading(u8),
+    Complete,
+}
+
+impl FadeProgress {
+    fn fading(self) -> Option<u8> {
+        match self {
+            Self::Fading(progress) => Some(progress),
+            Self::Complete => None,
+        }
+    }
+    fn is_complete(self) -> bool {
+        match self {
+            Self::Fading(_) => false,
+            Self::Complete => true,
+        }
+    }
+}
+
+impl Default for FadeProgress {
+    fn default() -> Self {
+        Self::Fading(0)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fade {
-    progress: Option<u8>,
+    progress: FadeProgress,
     period: Duration,
 }
 
@@ -118,12 +145,18 @@ impl Fade {
     fn new(duration: Duration) -> Self {
         let period = duration / 256;
         Self {
-            progress: Some(0),
+            progress: FadeProgress::default(),
             period,
         }
     }
-    fn tick(&mut self) -> Tick<Option<u8>> {
-        self.progress = self.progress.and_then(|progress| progress.checked_add(1));
+    fn tick(&mut self) -> Tick<FadeProgress> {
+        self.progress = match self.progress {
+            FadeProgress::Complete => FadeProgress::Complete,
+            FadeProgress::Fading(progress) => match progress.checked_add(1) {
+                Some(progress) => FadeProgress::Fading(progress),
+                None => FadeProgress::Complete,
+            },
+        };
         Tick {
             data: self.progress,
             duration: self.period,
@@ -138,7 +171,7 @@ struct Tick<T> {
 
 impl Movement {
     fn ordinal_duration_from_cardinal_duration(duration: Duration) -> Duration {
-        const SQRT_2_X_1_000_000: u64 = 1414214;
+        const SQRT_2_X_1_000_000: u64 = 1_414_214;
         let ordinal_micros = (duration.as_micros() as u64 * SQRT_2_X_1_000_000) / 1_000_000;
         Duration::from_micros(ordinal_micros)
     }
@@ -261,7 +294,7 @@ struct RealtimeComponents<'a> {
 struct RealtimeTick {
     movement: Option<Direction>,
     particle_emitter: Option<Particle>,
-    fade: Option<Option<u8>>,
+    fade: Option<FadeProgress>,
 }
 
 impl<'a> RealtimeComponents<'a> {
@@ -519,7 +552,7 @@ impl World {
                     }
                 }
                 if let Some(maybe_progress) = realtime_tick.fade.as_ref() {
-                    if maybe_progress.is_none() {
+                    if maybe_progress.is_complete() {
                         to_remove.push(entity);
                     }
                 }
@@ -543,11 +576,13 @@ impl World {
         let realtime_fade_component = &self.ecs.components.realtime_fade;
         tile_component.iter().filter_map(move |(entity, &tile)| {
             if let Some(location) = location_component.get(entity) {
-                let fade = realtime_fade_component.get(entity).and_then(|f| f.state.progress);
+                let fade = realtime_fade_component
+                    .get(entity)
+                    .and_then(|f| f.state.progress.fading());
                 Some(ToRenderEntity {
                     coord: location.coord,
                     layer: location.layer,
-                    tile: tile,
+                    tile,
                     fade,
                 })
             } else {

@@ -3,19 +3,21 @@ use event_routine::*;
 use prototty::*;
 use render::{Rgb24, View, ViewCell};
 
+#[derive(Default)]
 pub struct AppData {}
 
 impl AppData {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
 
+#[derive(Default)]
 pub struct AppView {}
 
 impl AppView {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
 

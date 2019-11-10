@@ -4,6 +4,7 @@ use prototty_input::Input;
 use prototty_render::{ColModify, Frame, View, ViewContext};
 use std::marker::PhantomData;
 
+#[derive(Default)]
 pub struct MenuInstanceRoutine<V, C> {
     view: PhantomData<V>,
     choose: PhantomData<C>,

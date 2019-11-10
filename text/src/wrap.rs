@@ -66,6 +66,24 @@ impl Char {
     }
 }
 
+impl Default for None {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for Word {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for Char {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Wrap for None {
     fn clear(&mut self) {
         self.cursor = Coord::new(0, 0);

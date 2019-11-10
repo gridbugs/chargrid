@@ -262,6 +262,15 @@ where
 
 impl<C> Copy for FadeMenuInstanceRoutine<C> where C: MenuInstanceChoose {}
 
+impl<C> Default for FadeMenuInstanceRoutine<C>
+where
+    C: MenuInstanceChoose,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<C> EventRoutine for FadeMenuInstanceRoutine<C>
 where
     C: MenuInstanceChoose,

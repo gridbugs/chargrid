@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 rand = "0.7"
-grid_2d = "0.13"
+coord_2d = "0.2"

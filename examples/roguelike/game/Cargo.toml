@@ -14,4 +14,4 @@ line_2d = { version = "0.4", features = ["serialize"] }
 rgb24 = { version = "0.2", features = ["serialize"] }
 ecs = { path = "../ecs" }
 vector = { path = "../vector" }
-shadowcast = { version = "0.5", features = ["serialize"] }
+shadowcast = { version = "0.6", features = ["serialize"] }

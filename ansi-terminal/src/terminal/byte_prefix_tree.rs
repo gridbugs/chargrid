@@ -1,29 +1,33 @@
-use std::mem;
-
 const ENTRIES_PER_NODE: usize = 256;
 
 #[derive(Clone)]
 pub struct BytePrefixTree<T> {
     data: Option<T>,
-    table: [Option<Box<BytePrefixTree<T>>>; ENTRIES_PER_NODE],
+    children: Vec<Option<BytePrefixTree<T>>>,
+}
+
+impl<T> Default for BytePrefixTree<T> {
+    fn default() -> Self {
+        Self {
+            data: None,
+            children: Vec::new(),
+        }
+    }
 }
 
 impl<T> BytePrefixTree<T> {
     pub fn new() -> Self {
-        let mut table: [Option<Box<BytePrefixTree<T>>>; ENTRIES_PER_NODE] = unsafe { mem::zeroed() };
-
-        for i in 0..ENTRIES_PER_NODE {
-            table[i] = None;
-        }
-
-        Self { data: None, table }
+        Default::default()
     }
 
     pub fn insert(&mut self, key: &[u8], data: T) {
         if let Some((head, tail)) = key.split_first() {
-            self.table[*head as usize]
-                .get_or_insert_with(|| Box::new(Self::new()))
-                .insert(tail, data);
+            if self.children.is_empty() {
+                self.children.resize_with(ENTRIES_PER_NODE, || None);
+            }
+            self.children[*head as usize]
+                .get_or_insert_with(Self::new)
+                .insert(tail, data)
         } else {
             self.data = Some(data);
         }
@@ -31,7 +35,7 @@ impl<T> BytePrefixTree<T> {
 
     pub fn get_longest<'a, 'b>(&'a self, key: &'b [u8]) -> Option<Found<'a, 'b, T>> {
         if let Some((head, tail)) = key.split_first() {
-            if let Some(next) = self.table[*head as usize].as_ref() {
+            if let Some(next) = self.children.get(*head as usize).and_then(|o| o.as_ref()).as_ref() {
                 let maybe_found = next.get_longest(tail);
                 if maybe_found.is_some() {
                     // there's a longer key than us with data, so just return it
@@ -41,8 +45,10 @@ impl<T> BytePrefixTree<T> {
                     self.data.as_ref().map(|d| Found::WithRemaining(d, key))
                 }
             } else {
-                // we've reached a dead end, so return data if there's any here
-                // along with the remaining slice
+                // Either head was out of bounds, meaning the vector was empty, or it was in bounds
+                // but with a value of None.
+                // Thus we've reached a dead end, so return data if there's any here
+                // along with the remaining slice.
                 self.data.as_ref().map(|d| Found::WithRemaining(d, key))
             }
         } else {
@@ -66,11 +72,9 @@ mod tests {
     #[test]
     fn get_longest() {
         let mut tree = BytePrefixTree::new();
-
         tree.insert(b"helloworld", 0);
         tree.insert(b"hello", 1);
         tree.insert(b"world", 2);
-
         assert_eq!(tree.get_longest(b"helloworld"), Some(Found::Exact(&0)));
         assert_eq!(tree.get_longest(b"hello"), Some(Found::Exact(&1)));
         assert_eq!(tree.get_longest(b"hellowo"), Some(Found::WithRemaining(&1, b"wo")));
@@ -87,11 +91,9 @@ mod tests {
     #[test]
     fn data_in_root() {
         let mut tree = BytePrefixTree::new();
-
         tree.insert(b"", 0);
         tree.insert(b"abc", 1);
         tree.insert(b"def", 2);
-
         assert_eq!(tree.get_longest(b""), Some(Found::Exact(&0)));
         assert_eq!(tree.get_longest(b"a"), Some(Found::WithRemaining(&0, b"a")));
         assert_eq!(tree.get_longest(b"ab"), Some(Found::WithRemaining(&0, b"ab")));

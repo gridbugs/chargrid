@@ -64,6 +64,12 @@ impl<E> Peek<E> {
     }
 }
 
+impl<E> Default for Peek<E> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<E> EventOrPeek for Event<E> {
     type Event = E;
     fn with<A, X, F, G>(self, arg: A, f: F, _g: G) -> X

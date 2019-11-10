@@ -131,6 +131,12 @@ impl AppView {
     }
 }
 
+impl Default for AppView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 struct SelectGame<S: Storage>(PhantomData<S>);
 impl<S: Storage> SelectGame<S> {
     fn new() -> Self {
@@ -313,11 +319,8 @@ impl<S: Storage, E: EventRoutine<Data = AppData<S>, Event = CommonEvent>> EventR
         event_or_peek.with(
             (self, data),
             |(s, data), event| {
-                match event {
-                    CommonEvent::Input(Input::Mouse(MouseInput::MouseMove { coord, .. })) => {
-                        data.last_mouse_coord = coord
-                    }
-                    _ => (),
+                if let CommonEvent::Input(Input::Mouse(MouseInput::MouseMove { coord, .. })) = event {
+                    data.last_mouse_coord = coord;
                 }
                 s.e.handle(data, view, event_routine::Event::new(event))
                     .map_continue(|e| Self { s: PhantomData, e })

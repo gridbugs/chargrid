@@ -193,7 +193,7 @@ impl<'a> ContextBuilder<'a> {
         let cell_height = unscaled_cell_height * hidpi;
         let max_grid_size = self
             .max_grid_size
-            .unwrap_or(Size::new_u16(DEFAULT_MAX_WIDTH_IN_CELLS, DEFAULT_MAX_HEIGHT_IN_CELLS));
+            .unwrap_or_else(|| Size::new_u16(DEFAULT_MAX_WIDTH_IN_CELLS, DEFAULT_MAX_HEIGHT_IN_CELLS));
         let width_in_cells = ::std::cmp::min((window_width as f32 / cell_width) as u32, max_grid_size.x());
         let height_in_cells = ::std::cmp::min((window_height as f32 / cell_height) as u32, max_grid_size.y());
         let window_size_in_cells = Size::new(width_in_cells, height_in_cells);
@@ -207,18 +207,18 @@ impl<'a> ContextBuilder<'a> {
             .underline_position
             .map(|u| u as f32)
             .unwrap_or_else(|| raw_cell_height as f32 - (raw_cell_height as f32 / UNDERLINE_POSITION_RATIO as f32));
-        let background_renderer = BackgroundRenderer::new(
+        let background_renderer = BackgroundRenderer::new(BackgroundRendererArgs {
             window_width,
             window_height,
-            unscaled_cell_width,
-            unscaled_cell_height,
-            window_size_in_cells,
+            cell_width: unscaled_cell_width,
+            cell_height: unscaled_cell_height,
+            size: window_size_in_cells,
             underline_width,
             underline_position,
-            rtv.clone(),
-            &mut factory,
-            &mut encoder,
-        );
+            rtv: rtv.clone(),
+            factory: &mut factory,
+            encoder: &mut encoder,
+        });
         let font_scale = gfx_glyph::Scale {
             x: self.font_scale.x * hidpi,
             y: self.font_scale.y * hidpi,
@@ -304,19 +304,16 @@ impl<'a> Context<'a> {
         let mut last_mouse_coord = self.last_mouse_coord;
         let mut last_mouse_button = self.last_mouse_button;
         self.events_loop.poll_events(|event| {
-            match event {
-                Event::WindowEvent { event, .. } => {
-                    if let Some(event) =
-                        convert_event(event, cell_dimensions, &mut last_mouse_coord, &mut last_mouse_button)
-                    {
-                        match event {
-                            InputEvent::Input(input) => callback(input),
-                            InputEvent::Quit => closing = true,
-                            InputEvent::Resize(width, height) => resize = Some((width, height)),
-                        }
+            if let Event::WindowEvent { event, .. } = event {
+                if let Some(event) =
+                    convert_event(event, cell_dimensions, &mut last_mouse_coord, &mut last_mouse_button)
+                {
+                    match event {
+                        InputEvent::Input(input) => callback(input),
+                        InputEvent::Quit => closing = true,
+                        InputEvent::Resize(width, height) => resize = Some((width, height)),
                     }
                 }
-                _ => (),
             };
         });
         self.last_mouse_coord = last_mouse_coord;

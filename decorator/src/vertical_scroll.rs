@@ -40,6 +40,12 @@ impl VerticalScrollBarStyle {
     }
 }
 
+impl Default for VerticalScrollBarStyle {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VerticalScrollLimits {
     pub fn new() -> Self {
         Self {
@@ -47,9 +53,15 @@ impl VerticalScrollLimits {
             last_rendered_outer_height: 0,
         }
     }
-    pub fn max_scroll_position(&self) -> u32 {
+    pub fn max_scroll_position(self) -> u32 {
         self.last_rendered_inner_height
             .saturating_sub(self.last_rendered_outer_height)
+    }
+}
+
+impl Default for VerticalScrollLimits {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -57,45 +69,51 @@ impl VerticalScrollState {
     pub fn new() -> Self {
         Self { scroll_position: 0 }
     }
-    pub fn scroll_to(&mut self, scroll_position: u32, limits: &VerticalScrollLimits) {
+    pub fn scroll_to(&mut self, scroll_position: u32, limits: VerticalScrollLimits) {
         self.scroll_position = scroll_position.min(limits.max_scroll_position());
     }
-    pub fn scroll_up_lines(&mut self, num_lines: u32, limits: &VerticalScrollLimits) {
+    pub fn scroll_up_lines(&mut self, num_lines: u32, limits: VerticalScrollLimits) {
         let _ = limits;
         self.scroll_position = self.scroll_position.saturating_sub(num_lines);
     }
-    pub fn scroll_down_lines(&mut self, num_lines: u32, limits: &VerticalScrollLimits) {
+    pub fn scroll_down_lines(&mut self, num_lines: u32, limits: VerticalScrollLimits) {
         let scroll_position = self.scroll_position;
         self.scroll_to(scroll_position + num_lines, limits)
     }
-    pub fn scroll_lines(&mut self, num_lines: i32, limits: &VerticalScrollLimits) {
+    pub fn scroll_lines(&mut self, num_lines: i32, limits: VerticalScrollLimits) {
         if num_lines < 0 {
             self.scroll_up_lines((-num_lines) as u32, limits);
         } else {
             self.scroll_down_lines(num_lines as u32, limits);
         }
     }
-    pub fn scroll_up_line(&mut self, limits: &VerticalScrollLimits) {
+    pub fn scroll_up_line(&mut self, limits: VerticalScrollLimits) {
         self.scroll_up_lines(1, limits);
     }
-    pub fn scroll_down_line(&mut self, limits: &VerticalScrollLimits) {
+    pub fn scroll_down_line(&mut self, limits: VerticalScrollLimits) {
         self.scroll_down_lines(1, limits);
     }
-    pub fn scroll_up_page(&mut self, limits: &VerticalScrollLimits) {
+    pub fn scroll_up_page(&mut self, limits: VerticalScrollLimits) {
         self.scroll_up_lines(limits.last_rendered_outer_height as u32, limits);
     }
-    pub fn scroll_down_page(&mut self, limits: &VerticalScrollLimits) {
+    pub fn scroll_down_page(&mut self, limits: VerticalScrollLimits) {
         self.scroll_down_lines(limits.last_rendered_outer_height as u32, limits);
     }
-    pub fn scroll_to_top(&mut self, limits: &VerticalScrollLimits) {
+    pub fn scroll_to_top(&mut self, limits: VerticalScrollLimits) {
         let _ = limits;
         self.scroll_position = 0;
     }
-    pub fn scroll_to_bottom(&mut self, limits: &VerticalScrollLimits) {
+    pub fn scroll_to_bottom(&mut self, limits: VerticalScrollLimits) {
         self.scroll_position = limits.max_scroll_position();
     }
-    pub fn scroll_position(&self) -> u32 {
+    pub fn scroll_position(self) -> u32 {
         self.scroll_position
+    }
+}
+
+impl Default for VerticalScrollState {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

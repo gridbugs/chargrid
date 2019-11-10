@@ -41,18 +41,38 @@ pub struct BackgroundRenderer<R: gfx::Resources> {
     properties: Properties,
 }
 
+pub struct BackgroundRendererArgs<'a, R, F, C>
+where
+    R: gfx::Resources,
+    F: gfx::Factory<R> + gfx::traits::FactoryExt<R>,
+    C: gfx::CommandBuffer<R>,
+{
+    pub window_width: u32,
+    pub window_height: u32,
+    pub cell_width: f32,
+    pub cell_height: f32,
+    pub size: Size,
+    pub underline_width: f32,
+    pub underline_position: f32,
+    pub rtv: gfx::handle::RenderTargetView<R, ColourFormat>,
+    pub factory: &'a mut F,
+    pub encoder: &'a mut gfx::Encoder<R, C>,
+}
+
 impl<R: gfx::Resources> BackgroundRenderer<R> {
     pub fn new<F, C>(
-        window_width: u32,
-        window_height: u32,
-        cell_width: f32,
-        cell_height: f32,
-        size: Size,
-        underline_width: f32,
-        underline_position: f32,
-        rtv: gfx::handle::RenderTargetView<R, ColourFormat>,
-        factory: &mut F,
-        encoder: &mut gfx::Encoder<R, C>,
+        BackgroundRendererArgs {
+            window_width,
+            window_height,
+            cell_width,
+            cell_height,
+            size,
+            underline_width,
+            underline_position,
+            rtv,
+            factory,
+            encoder,
+        }: BackgroundRendererArgs<R, F, C>,
     ) -> Self
     where
         F: gfx::Factory<R> + gfx::traits::FactoryExt<R>,

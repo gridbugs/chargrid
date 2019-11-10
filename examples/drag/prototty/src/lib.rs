@@ -42,7 +42,7 @@ impl App {
                         MouseButton::Middle => LineType::Infinite,
                     }
                 }
-                Input::Mouse(MouseInput::MouseRelease { coord: _, button: _ }) => {
+                Input::Mouse(MouseInput::MouseRelease { .. }) => {
                     self.last_clicked_coord = None;
                 }
                 Input::Keyboard(keys::ETX) | Input::Keyboard(keys::ESCAPE) => return Some(Quit),
@@ -74,21 +74,18 @@ fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(frame: &mut 
 impl<'a> View<&'a App> for AppView {
     fn view<F: Frame, C: ColModify>(&mut self, app: &'a App, context: ViewContext<C>, frame: &mut F) {
         let context = context.compose_col_modify(ColModifyMap(|rgb24: Rgb24| rgb24.normalised_scalar_mul(128)));
-        match (app.last_clicked_coord, app.coord) {
-            (Some(last_clicked_coord), Some(coord)) => {
-                if let Ok(line) = LineSegment::try_new(last_clicked_coord, coord) {
-                    match app.line_type {
-                        LineType::Normal => draw_line(frame, line.iter(), context),
-                        LineType::Cardinal => draw_line(frame, line.cardinal_iter(), context),
-                        LineType::Infinite => {
-                            if line.num_steps() > 1 {
-                                draw_line(frame, line.infinite_iter(), context);
-                            }
+        if let (Some(last_clicked_coord), Some(coord)) = (app.last_clicked_coord, app.coord) {
+            if let Ok(line) = LineSegment::try_new(last_clicked_coord, coord) {
+                match app.line_type {
+                    LineType::Normal => draw_line(frame, line.iter(), context),
+                    LineType::Cardinal => draw_line(frame, line.cardinal_iter(), context),
+                    LineType::Infinite => {
+                        if line.num_steps() > 1 {
+                            draw_line(frame, line.infinite_iter(), context);
                         }
                     }
                 }
             }
-            _ => (),
         }
     }
 }

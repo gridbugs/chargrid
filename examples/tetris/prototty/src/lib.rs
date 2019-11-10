@@ -68,7 +68,7 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
         }
     }
     fn size<C: ColModify>(&mut self, tetris: &'a Tetris, _context: ViewContext<C>) -> Size {
-        tetris.size().into()
+        tetris.size()
     }
 }
 
@@ -179,10 +179,10 @@ impl Timeout {
     pub fn reduce(&mut self, duration: Duration) -> bool {
         if let Some(remaining) = self.remaining.checked_sub(duration) {
             self.remaining = remaining;
-            return false;
+            false
         } else {
             self.remaining = Duration::from_millis(0);
-            return true;
+            true
         }
     }
 }
@@ -292,6 +292,12 @@ impl AppView {
             board: TetrisBoardView,
             next_piece: TetrisNextPieceView,
         }
+    }
+}
+
+impl Default for AppView {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -165,6 +165,12 @@ pub struct AppData {
     colour_menu: menu::MenuInstanceChooseOrCancel<ColourMenuChoice>,
 }
 
+impl Default for AppData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AppData {
     pub fn new() -> Self {
         let main_menu = menu::MenuInstance::new(MainMenuChoice::all())
@@ -185,6 +191,12 @@ impl AppData {
 pub struct AppView {
     main_menu: menu::MenuInstanceView<ChooseMenuEntryStyle<MainMenuChoice>>,
     colour_menu: menu::MenuInstanceView<menu::MenuEntryStylePair>,
+}
+
+impl Default for AppView {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AppView {

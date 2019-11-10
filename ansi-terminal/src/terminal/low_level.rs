@@ -30,7 +30,7 @@ impl LowLevel {
             return Err(Error::last_os_error());
         }
         let mut termios = unsafe { termios.assume_init() };
-        let original_termios = termios.clone();
+        let original_termios = termios;
         termios.c_iflag &= !(libc::IGNBRK
             | libc::BRKINT
             | libc::PARMRK
@@ -91,7 +91,7 @@ impl LowLevel {
     }
 
     pub fn read_timeout(&mut self, buf: &mut Vec<u8>, timeout: Duration) -> Result<()> {
-        let mut timeout = libc::timespec {
+        let timeout = libc::timespec {
             tv_sec: timeout.as_secs() as libc::time_t,
             tv_nsec: timeout.subsec_nanos() as libc::c_long,
         };
@@ -105,7 +105,7 @@ impl LowLevel {
                 &mut rfds,
                 ptr::null_mut(),
                 ptr::null_mut(),
-                &mut timeout,
+                &timeout,
                 ptr::null_mut(),
             )
         };

@@ -5,9 +5,9 @@ use term::terminfo::parm::{self, Param, Variables};
 use term::terminfo::TermInfo;
 
 // XXX this might not be portable
-const ESCAPE: &'static [u8] = &[27];
-const ENABLE_MOUSE_REPORTING: &'static str = "[?1003h";
-const DISABLE_MOUSE_REPORTING: &'static str = "[?1003l";
+const ESCAPE: &[u8] = &[27];
+const ENABLE_MOUSE_REPORTING: &str = "[?1003h";
+const DISABLE_MOUSE_REPORTING: &str = "[?1003l";
 
 #[derive(Debug, Clone, Copy)]
 pub enum MousePrefix {
@@ -57,7 +57,6 @@ fn raw_cap(seq: &str) -> Result<String> {
 impl TermInfoCache {
     pub fn new() -> Result<Self> {
         let term_info = TermInfo::from_env()?;
-
         let cap = |name: &'static str| {
             term_info
                 .strings
@@ -69,12 +68,9 @@ impl TermInfoCache {
                         .map_err(Error::Utf8Error)
                 })
         };
-
         let mut vars = Variables::new();
-
         let setfg = cap("setaf")?;
         let setbg = cap("setab")?;
-
         let mut fg_colours = Vec::with_capacity(256);
         let mut bg_colours = Vec::with_capacity(256);
         for code in 0..=255 {
@@ -82,7 +78,6 @@ impl TermInfoCache {
             fg_colours.push(::std::str::from_utf8(&parm::expand(setfg.as_bytes(), params, &mut vars)?)?.to_string());
             bg_colours.push(::std::str::from_utf8(&parm::expand(setbg.as_bytes(), params, &mut vars)?)?.to_string());
         }
-
         let escseq = |name: &'static str, input: Input| {
             term_info
                 .strings
@@ -91,16 +86,13 @@ impl TermInfoCache {
                 .ok_or_else(|| Error::MissingCap(name.to_string()))
                 .map(|seq| (seq, TerminalInput::Literal(input)))
         };
-
         let raw_escseq = |seq: &'static str, input: TerminalInput| {
-            let mut bytes = ESCAPE.iter().cloned().collect::<Vec<_>>();
+            let mut bytes = ESCAPE.to_vec();
             for byte in seq.bytes() {
                 bytes.push(byte);
             }
-
             (bytes, input)
         };
-
         let inputs_to_escape = [
             escseq("kf1", Input::Keyboard(KeyboardInput::Function(1)))?,
             escseq("kf2", Input::Keyboard(KeyboardInput::Function(2)))?,
@@ -163,12 +155,10 @@ impl TermInfoCache {
                 TerminalInput::MousePrefix(MousePrefix::Scroll(ScrollDirection::Right)),
             ),
         ];
-
         let mut escape_sequence_prefix_tree = BytePrefixTree::new();
         for &(ref seq, input) in inputs_to_escape.iter() {
             escape_sequence_prefix_tree.insert(seq, input);
         }
-
         Ok(Self {
             enter_ca: cap("smcup").ok(),
             exit_ca: cap("rmcup").ok(),
