@@ -8,7 +8,7 @@ const SAVE_KEY: &str = "save";
 pub fn run() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
     console_error_panic_hook::set_once();
-    Context::new(Size::new(24, 20), "content").run_event_routine_repeating(
+    Context::new(Size::new(40, 40), "content").run_event_routine_repeating(
         event_routine(),
         AppData::new(
             Frontend::Wasm,
