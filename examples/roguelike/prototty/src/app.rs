@@ -103,24 +103,24 @@ impl AppView {
                 },
                 from: From::current(),
                 durations: Durations {
-                    foreground: Duration::from_millis(255),
-                    background: Duration::from_millis(255),
+                    foreground: Duration::from_millis(127),
+                    background: Duration::from_millis(127),
                 },
             },
             selected: Style {
                 to: To {
-                    foreground: Rgb24::new(255, 0, 0),
-                    background: Rgb24::new(87, 0, 0),
+                    foreground: Rgb24::new(255, 255, 255),
+                    background: Rgb24::new(87, 87, 87),
                     bold: true,
                     underline: false,
                 },
                 from: From {
                     foreground: FromCol::Rgb24(Rgb24::new(0, 0, 0)),
-                    background: FromCol::Rgb24(Rgb24::new(255, 0, 0)),
+                    background: FromCol::Rgb24(Rgb24::new(255, 255, 255)),
                 },
                 durations: Durations {
-                    foreground: Duration::from_millis(127),
-                    background: Duration::from_millis(255),
+                    foreground: Duration::from_millis(63),
+                    background: Duration::from_millis(127),
                 },
             },
         };
