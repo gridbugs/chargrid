@@ -2,6 +2,7 @@ pub use direction::CardinalDirection;
 pub use grid_2d::{Coord, Grid, Size};
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
+use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -40,6 +41,10 @@ impl Game {
                 match ch {
                     '.' => {
                         world.spawn_floor(coord);
+                    }
+                    '*' => {
+                        world.spawn_floor(coord);
+                        world.spawn_light(coord, Rgb24::new(255, 100, 100));
                     }
                     ',' => {
                         world.spawn_carpet(coord);
@@ -83,6 +88,7 @@ impl Game {
         self.update_visibility();
     }
     pub fn handle_tick(&mut self, _since_last_tick: Duration) {
+        self.update_visibility();
         self.world.animation_tick(&mut self.rng);
         self.frame_count += 1;
     }

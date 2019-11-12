@@ -1,10 +1,13 @@
+use crate::visibility::{Light, Rational};
 use direction::{CardinalDirection, Direction};
 pub use ecs::Entity;
 use ecs::{ecs_components, ComponentTable, Ecs};
 use grid_2d::{Coord, Grid, Size};
 use line_2d::InfiniteStepIter;
 use rand::Rng;
+use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
+use shadowcast::vision_distance::Circle;
 use std::time::Duration;
 use vector::Radial;
 
@@ -49,6 +52,7 @@ ecs_components! {
         realtime_fade: RealtimeComponent<Fade>,
         realtime: (),
         blocks_gameplay: (),
+        light: Light,
     }
 }
 use components::Components;
@@ -392,6 +396,17 @@ impl World {
         )
         .unwrap();
         self.ecs.components.tile.insert(entity, Tile::Player);
+        self.ecs.components.light.insert(
+            entity,
+            Light {
+                colour: Rgb24::new(255, 187, 127),
+                vision_distance: Circle::new_squared(90),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 10,
+                },
+            },
+        );
         entity
     }
     pub fn spawn_floor(&mut self, coord: Coord) -> Entity {
@@ -430,6 +445,28 @@ impl World {
         self.ecs.components.tile.insert(entity, Tile::Wall);
         self.ecs.components.solid.insert(entity, ());
         self.ecs.components.opacity.insert(entity, 255);
+        entity
+    }
+    pub fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
+        let entity = self.ecs.create();
+        location_insert(
+            entity,
+            Location::new(coord, Layer::Feature),
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        )
+        .unwrap();
+        self.ecs.components.light.insert(
+            entity,
+            Light {
+                colour,
+                vision_distance: Circle::new_squared(90),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 10,
+                },
+            },
+        );
         entity
     }
     pub fn character_walk_in_direction(&mut self, entity: Entity, direction: CardinalDirection) {
@@ -485,6 +522,17 @@ impl World {
             },
         );
         self.ecs.components.tile.insert(bullet_entity, Tile::Bullet);
+        self.ecs.components.light.insert(
+            bullet_entity,
+            Light {
+                colour: Rgb24::new(255, 187, 127),
+                vision_distance: Circle::new_squared(45),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 5,
+                },
+            },
+        );
     }
     pub fn opacity(&self, coord: Coord) -> u8 {
         self.spatial_grid
@@ -598,6 +646,15 @@ impl World {
             } else {
                 None
             }
+        })
+    }
+    pub fn lights<'a>(&'a self) -> impl 'a + Iterator<Item = (Coord, &'a Light)> {
+        self.ecs.components.light.iter().filter_map(move |(entity, light)| {
+            self.ecs
+                .components
+                .location
+                .get(entity)
+                .map(|location| (location.coord, light))
         })
     }
 }

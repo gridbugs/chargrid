@@ -91,41 +91,50 @@ fn render_entity<F: Frame, C: ColModify>(
     frame: &mut F,
 ) {
     let entity_coord = GameCoord(to_render_entity.coord);
-    if !visibility_grid.is_visible(entity_coord.0) {
-        return;
-    }
-    let screen_coord = GameCoordToScreenCoord {
-        game_coord: entity_coord,
-        player_coord,
-    }
-    .compute();
-    if !screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
-        return;
-    }
-    let depth = layer_depth(to_render_entity.layer);
-    let view_cell = match to_render_entity.tile {
-        Tile::Player => ViewCell::new().with_character('@'),
-        Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
-        Tile::Carpet => ViewCell::new()
-            .with_character('.')
-            .with_background(Rgb24::new(0, 0, 127)),
-        Tile::Wall => ViewCell::new().with_character('#'),
-        Tile::Bullet => ViewCell::new().with_character('*'),
-        Tile::Smoke => {
-            if let Some(fade) = to_render_entity.fade {
-                frame.blend_cell_background_relative(
-                    screen_coord.0,
-                    depth,
-                    Rgb24::new_grey(187),
-                    (255 - fade) / 10,
-                    blend_mode::LinearInterpolate,
-                    context,
-                )
-            }
+    if let Some(visible_cell) = visibility_grid.visible_cell(entity_coord.0) {
+        let light_colour = visible_cell.light_colour();
+        if light_colour == Rgb24::new(0, 0, 0) {
             return;
         }
-    };
-    frame.set_cell_relative(screen_coord.0, depth, view_cell, context);
+        let screen_coord = GameCoordToScreenCoord {
+            game_coord: entity_coord,
+            player_coord,
+        }
+        .compute();
+        if !screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
+            return;
+        }
+        let depth = layer_depth(to_render_entity.layer);
+        let mut view_cell = match to_render_entity.tile {
+            Tile::Player => ViewCell::new().with_character('@'),
+            Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
+            Tile::Carpet => ViewCell::new()
+                .with_character('.')
+                .with_background(Rgb24::new(0, 0, 127)),
+            Tile::Wall => ViewCell::new().with_character('#'),
+            Tile::Bullet => ViewCell::new().with_character('*'),
+            Tile::Smoke => {
+                if let Some(fade) = to_render_entity.fade {
+                    frame.blend_cell_background_relative(
+                        screen_coord.0,
+                        depth,
+                        Rgb24::new_grey(187).normalised_mul(light_colour),
+                        (255 - fade) / 10,
+                        blend_mode::LinearInterpolate,
+                        context,
+                    )
+                }
+                return;
+            }
+        };
+        if let Some(foreground) = view_cell.style.foreground.as_mut() {
+            *foreground = foreground.normalised_mul(light_colour);
+        }
+        if let Some(background) = view_cell.style.background.as_mut() {
+            *background = background.normalised_mul(light_colour);
+        }
+        frame.set_cell_relative(screen_coord.0, depth, view_cell, context);
+    }
 }
 
 impl<'a> View<&'a Game> for GameView {
