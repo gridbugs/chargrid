@@ -1,6 +1,6 @@
 use crate::controls::Controls;
 pub use crate::game::RngSeed;
-use crate::game::{AimEventRoutine, GameData, GameEventRoutine, GameInput, GameReturn, GameView};
+use crate::game::{AimEventRoutine, GameData, GameEventRoutine, GameReturn, GameView, InjectedInput, ScreenCoord};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
@@ -243,11 +243,7 @@ impl<S: Storage> Decorate for DecorateMainMenu<S> {
             }
             .view(data, context.add_depth(10), frame);
             if let Ok(game) = data.game.game() {
-                AlignView {
-                    alignment: Alignment::centre(),
-                    view: &mut event_routine_view.view.game,
-                }
-                .view(
+                event_routine_view.view.game.view(
                     game,
                     context.compose_col_modify(
                         ColModifyDefaultForeground(Rgb24::new_grey(255))
@@ -279,17 +275,17 @@ where
 impl<S: Storage> Decorate for DecorateGame<S> {
     type View = AppView;
     type Data = AppData<S>;
-    fn view<E, F, C>(data: &Self::Data, event_routine_view: EventRoutineView<E>, context: ViewContext<C>, frame: &mut F)
-    where
+    fn view<E, F, C>(
+        data: &Self::Data,
+        mut event_routine_view: EventRoutineView<E>,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) where
         E: EventRoutine<Data = Self::Data, View = Self::View>,
         F: Frame,
         C: ColModify,
     {
-        AlignView {
-            alignment: Alignment::centre(),
-            view: event_routine_view,
-        }
-        .view(data, context, frame);
+        event_routine_view.view(data, context, frame);
     }
 }
 
@@ -379,18 +375,20 @@ fn game<S: Storage>() -> impl EventRoutine<Return = GameReturn, Data = AppData<S
 }
 
 fn game_injecting_inputs<S: Storage>(
-    inputs: Vec<GameInput>,
+    inputs: Vec<InjectedInput>,
 ) -> impl EventRoutine<Return = GameReturn, Data = AppData<S>, View = AppView, Event = CommonEvent> {
     GameEventRoutine::new_injecting_inputs(inputs)
         .select(SelectGame::new())
         .decorated(DecorateGame::new())
 }
 
-fn aim<S: Storage>() -> impl EventRoutine<Return = Option<Coord>, Data = AppData<S>, View = AppView, Event = CommonEvent>
-{
+fn aim<S: Storage>(
+) -> impl EventRoutine<Return = Option<ScreenCoord>, Data = AppData<S>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B);
     SideEffectThen::new(|data: &mut AppData<S>, view: &AppView| {
-        let game_relative_mouse_coord = view.game.absolute_coord_to_game_coord(data.last_mouse_coord);
+        let game_relative_mouse_coord = view
+            .game
+            .absolute_coord_to_game_relative_screen_coord(data.last_mouse_coord);
         if let Ok(initial_aim_coord) = data.game.initial_aim_coord(game_relative_mouse_coord) {
             Ei::A(
                 AimEventRoutine::new(initial_aim_coord)
@@ -408,10 +406,10 @@ fn game_loop<S: Storage>(
     make_either!(Ei = A | B);
     Ei::A(game()).repeat(|game_return| match game_return {
         GameReturn::Pause => Handled::Return(GameReturn::Pause),
-        GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_coord| {
+        GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_screen_coord| {
             make_either!(Ei = A | B);
-            if let Some(coord) = maybe_coord {
-                Ei::A(game_injecting_inputs(vec![GameInput::Fire(coord)]))
+            if let Some(screen_coord) = maybe_screen_coord {
+                Ei::A(game_injecting_inputs(vec![InjectedInput::Fire(screen_coord)]))
             } else {
                 Ei::B(game())
             }

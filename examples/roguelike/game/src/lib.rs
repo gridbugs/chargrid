@@ -5,8 +5,10 @@ use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+mod visibility;
 mod world;
 
+pub use visibility::VisibilityGrid;
 use world::{Entity, World};
 pub use world::{Layer, Tile, ToRenderEntity};
 
@@ -19,6 +21,7 @@ pub enum Input {
 #[derive(Serialize, Deserialize)]
 pub struct Game {
     world: World,
+    visibility_grid: VisibilityGrid,
     player: Entity,
     rng: Isaac64Rng,
     frame_count: u64,
@@ -53,15 +56,22 @@ impl Game {
                 }
             }
         }
-        Self {
+        let mut game = Self {
             world,
+            visibility_grid: VisibilityGrid::new(size),
             player: player.expect("didn't create player"),
             rng: Isaac64Rng::seed_from_u64(rng.gen()),
             frame_count: 0,
-        }
+        };
+        game.update_visibility();
+        game
     }
     pub fn is_gameplay_blocked(&self) -> bool {
         self.world.is_gameplay_blocked()
+    }
+    fn update_visibility(&mut self) {
+        let player_coord = self.world.entity_coord(self.player);
+        self.visibility_grid.update(player_coord, &self.world);
     }
     pub fn handle_input(&mut self, input: Input) {
         if !self.is_gameplay_blocked() {
@@ -70,6 +80,7 @@ impl Game {
                 Input::Fire(coord) => self.world.character_fire_bullet(self.player, coord),
             }
         }
+        self.update_visibility();
     }
     pub fn handle_tick(&mut self, _since_last_tick: Duration) {
         self.world.animation_tick(&mut self.rng);
@@ -83,5 +94,8 @@ impl Game {
     }
     pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
         self.world.to_render_entities()
+    }
+    pub fn visibility_grid(&self) -> &VisibilityGrid {
+        &self.visibility_grid
     }
 }

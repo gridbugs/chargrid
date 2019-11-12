@@ -17,10 +17,10 @@ fn main() {
         .with_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_min_window_dimensions(WINDOW_SIZE_PIXELS)
         .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
-        .with_font_scale(16.0, 16.0)
-        .with_cell_dimensions(Size::new_u16(16, 16))
+        .with_font_scale(14.0, 14.0)
+        .with_cell_dimensions(Size::new_u16(14, 14))
         .with_underline_width(2)
-        .with_underline_position(14)
+        .with_underline_position(12)
         .build()
         .unwrap();
     context

@@ -1,6 +1,6 @@
 use crate::controls::{AppInput, Controls};
 pub use game::Input as GameInput;
-use game::{CardinalDirection, Game, Layer, Tile, ToRenderEntity};
+use game::{CardinalDirection, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
@@ -14,6 +14,13 @@ use std::marker::PhantomData;
 use std::time::Duration;
 
 const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
+const AIM_UI_DEPTH: i8 = 3;
+const PLAYER_OFFSET: Coord = Coord::new(16, 16);
+const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
+
+pub enum InjectedInput {
+    Fire(ScreenCoord),
+}
 
 pub struct GameView {
     last_offset: Coord,
@@ -25,8 +32,8 @@ impl GameView {
             last_offset: Coord::new(0, 0),
         }
     }
-    pub fn absolute_coord_to_game_coord(&self, coord: Coord) -> Coord {
-        coord - self.last_offset
+    pub fn absolute_coord_to_game_relative_screen_coord(&self, coord: Coord) -> ScreenCoord {
+        ScreenCoord(coord - self.last_offset)
     }
 }
 
@@ -39,11 +46,63 @@ fn layer_depth(layer: Layer) -> i8 {
     }
 }
 
-const AIM_UI_DEPTH: i8 = 3;
+#[derive(Clone, Copy)]
+pub struct ScreenCoord(Coord);
 
-fn render_entity<F: Frame, C: ColModify>(to_render_entity: &ToRenderEntity, context: ViewContext<C>, frame: &mut F) {
+#[derive(Clone, Copy)]
+struct GameCoord(Coord);
+
+#[derive(Clone, Copy)]
+struct PlayerCoord(Coord);
+
+impl GameCoord {
+    fn of_player(game: &Game) -> Self {
+        Self(game.player_coord())
+    }
+}
+
+struct GameCoordToScreenCoord {
+    game_coord: GameCoord,
+    player_coord: GameCoord,
+}
+
+impl GameCoordToScreenCoord {
+    fn compute(self) -> ScreenCoord {
+        ScreenCoord(self.game_coord.0 - self.player_coord.0 + PLAYER_OFFSET)
+    }
+}
+
+struct ScreenCoordToGameCoord {
+    screen_coord: ScreenCoord,
+    player_coord: GameCoord,
+}
+
+impl ScreenCoordToGameCoord {
+    fn compute(self) -> GameCoord {
+        GameCoord(self.screen_coord.0 + self.player_coord.0 - PLAYER_OFFSET)
+    }
+}
+
+fn render_entity<F: Frame, C: ColModify>(
+    to_render_entity: &ToRenderEntity,
+    visibility_grid: &VisibilityGrid,
+    player_coord: GameCoord,
+    context: ViewContext<C>,
+    frame: &mut F,
+) {
+    let entity_coord = GameCoord(to_render_entity.coord);
+    if !visibility_grid.is_visible(entity_coord.0) {
+        return;
+    }
+    let screen_coord = GameCoordToScreenCoord {
+        game_coord: entity_coord,
+        player_coord,
+    }
+    .compute();
+    if !screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
+        return;
+    }
     let depth = layer_depth(to_render_entity.layer);
-    let coord = to_render_entity.coord;
     let view_cell = match to_render_entity.tile {
         Tile::Player => ViewCell::new().with_character('@'),
         Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
@@ -55,7 +114,7 @@ fn render_entity<F: Frame, C: ColModify>(to_render_entity: &ToRenderEntity, cont
         Tile::Smoke => {
             if let Some(fade) = to_render_entity.fade {
                 frame.blend_cell_background_relative(
-                    coord,
+                    screen_coord.0,
                     depth,
                     Rgb24::new_grey(187),
                     (255 - fade) / 10,
@@ -66,13 +125,15 @@ fn render_entity<F: Frame, C: ColModify>(to_render_entity: &ToRenderEntity, cont
             return;
         }
     };
-    frame.set_cell_relative(coord, depth, view_cell, context);
+    frame.set_cell_relative(screen_coord.0, depth, view_cell, context);
 }
 
 impl<'a> View<&'a Game> for GameView {
     fn view<F: Frame, C: ColModify>(&mut self, game: &'a Game, context: ViewContext<C>, frame: &mut F) {
+        let player_coord = GameCoord::of_player(&game);
+        let visibility_grid = game.visibility_grid();
         for to_render_entity in game.to_render_entities() {
-            render_entity(&to_render_entity, context, frame);
+            render_entity(&to_render_entity, visibility_grid, player_coord, context, frame);
         }
         self.last_offset = context.offset;
     }
@@ -170,27 +231,33 @@ impl<S: Storage> GameData<S> {
         self.instance = None;
         self.storage_wrapper.clear_instance();
     }
-    pub fn game(&self) -> Result<&Game, NoGameInstnace> {
-        self.instance.as_ref().map(|i| &i.game).ok_or(NoGameInstnace)
+    pub fn game(&self) -> Result<&Game, NoGameInstance> {
+        self.instance.as_ref().map(|i| &i.game).ok_or(NoGameInstance)
     }
-    pub fn initial_aim_coord(&self, mouse_coord: Coord) -> Result<Coord, NoGameInstnace> {
+    pub fn initial_aim_coord(&self, screen_coord_of_mouse: ScreenCoord) -> Result<ScreenCoord, NoGameInstance> {
         if let Some(instance) = self.instance.as_ref() {
             if self.last_aim_with_mouse {
-                Ok(mouse_coord)
+                Ok(screen_coord_of_mouse)
             } else {
-                Ok(instance.game.player_coord())
+                let player_coord = GameCoord::of_player(&instance.game);
+                let screen_coord = GameCoordToScreenCoord {
+                    game_coord: player_coord,
+                    player_coord,
+                }
+                .compute();
+                Ok(screen_coord)
             }
         } else {
-            Err(NoGameInstnace)
+            Err(NoGameInstance)
         }
     }
 }
 
-pub struct NoGameInstnace;
+pub struct NoGameInstance;
 
 pub struct AimEventRoutine<S: Storage> {
     s: PhantomData<S>,
-    coord: Coord,
+    screen_coord: ScreenCoord,
     duration: Duration,
     blink: Blink,
 }
@@ -222,10 +289,10 @@ impl Blink {
 }
 
 impl<S: Storage> AimEventRoutine<S> {
-    pub fn new(coord: Coord) -> Self {
+    pub fn new(screen_coord: ScreenCoord) -> Self {
         Self {
             s: PhantomData,
-            coord,
+            screen_coord,
             duration: Duration::from_millis(0),
             blink: Blink {
                 cycle_length: Duration::from_millis(500),
@@ -237,7 +304,7 @@ impl<S: Storage> AimEventRoutine<S> {
 }
 
 impl<S: Storage> EventRoutine for AimEventRoutine<S> {
-    type Return = Option<Coord>;
+    type Return = Option<ScreenCoord>;
     type Data = GameData<S>;
     type View = GameView;
     type Event = CommonEvent;
@@ -284,16 +351,16 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     CommonEvent::Frame(since_last) => Aim::Frame(since_last),
                 };
                 match aim {
-                    Aim::KeyboardFinalise => Handled::Return(Some(s.coord)),
+                    Aim::KeyboardFinalise => Handled::Return(Some(s.screen_coord)),
                     Aim::KeyboardDirection(direction) => {
-                        s.coord += direction.coord();
+                        s.screen_coord.0 += direction.coord();
                         Handled::Continue(s)
                     }
                     Aim::Mouse { coord, press } => {
-                        s.coord = view.absolute_coord_to_game_coord(coord);
+                        s.screen_coord = view.absolute_coord_to_game_relative_screen_coord(coord);
                         if press {
                             *last_aim_with_mouse = true;
-                            Handled::Return(Some(s.coord))
+                            Handled::Return(Some(s.screen_coord))
                         } else {
                             Handled::Continue(s)
                         }
@@ -319,17 +386,28 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
     {
         if let Some(instance) = data.instance.as_ref() {
             view.view(&instance.game, context, frame);
-            let player_coord = instance.game.player_coord();
-            if self.coord != player_coord {
-                for node in LineSegment::new(player_coord, self.coord).config_node_iter(LineConfig {
+            let player_coord = GameCoord::of_player(&instance.game);
+            let screen_coord = self.screen_coord;
+            let game_coord = ScreenCoordToGameCoord {
+                screen_coord,
+                player_coord,
+            }
+            .compute();
+            if game_coord.0 != player_coord.0 {
+                for node in LineSegment::new(player_coord.0, game_coord.0).config_node_iter(LineConfig {
                     exclude_start: true,
                     exclude_end: true,
                 }) {
-                    if !node.coord.is_valid(instance.game.world_size()) {
+                    let screen_coord = GameCoordToScreenCoord {
+                        player_coord,
+                        game_coord: GameCoord(node.coord),
+                    }
+                    .compute();
+                    if !screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
                         break;
                     }
                     frame.blend_cell_background_relative(
-                        node.coord,
+                        screen_coord.0,
                         AIM_UI_DEPTH,
                         Rgb24::new(255, 0, 0),
                         127,
@@ -338,10 +416,10 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
                     );
                 }
             }
-            if self.coord.is_valid(instance.game.world_size()) {
+            if screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
                 let alpha = self.blink.alpha(self.duration);
                 frame.blend_cell_background_relative(
-                    self.coord,
+                    screen_coord.0,
                     AIM_UI_DEPTH,
                     Rgb24::new(255, 0, 0),
                     alpha,
@@ -355,14 +433,14 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
 
 pub struct GameEventRoutine<S: Storage> {
     s: PhantomData<S>,
-    injected_inputs: Vec<GameInput>,
+    injected_inputs: Vec<InjectedInput>,
 }
 
 impl<S: Storage> GameEventRoutine<S> {
     pub fn new() -> Self {
         Self::new_injecting_inputs(Vec::new())
     }
-    pub fn new_injecting_inputs(injected_inputs: Vec<GameInput>) -> Self {
+    pub fn new_injecting_inputs(injected_inputs: Vec<InjectedInput>) -> Self {
         Self {
             s: PhantomData,
             injected_inputs,
@@ -387,8 +465,18 @@ impl<S: Storage> EventRoutine for GameEventRoutine<S> {
     {
         let storage_wrapper = &mut data.storage_wrapper;
         if let Some(instance) = data.instance.as_mut() {
-            for game_input in self.injected_inputs.drain(..) {
-                instance.game.handle_input(game_input);
+            for injected_input in self.injected_inputs.drain(..) {
+                match injected_input {
+                    InjectedInput::Fire(screen_coord) => {
+                        let player_coord = GameCoord::of_player(&instance.game);
+                        let GameCoord(raw_game_coord) = ScreenCoordToGameCoord {
+                            screen_coord,
+                            player_coord,
+                        }
+                        .compute();
+                        instance.game.handle_input(GameInput::Fire(raw_game_coord));
+                    }
+                }
             }
             let controls = &data.controls;
             event_or_peek_with_handled(event_or_peek, self, |s, event| match event {

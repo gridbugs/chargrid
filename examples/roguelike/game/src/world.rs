@@ -362,18 +362,24 @@ const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 pub struct World {
     ecs: Ecs<Components>,
     spatial_grid: Grid<SpatialCell>,
-    entity_buffer: Vec<Entity>,
+    buffers: Buffers,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Buffers {
+    to_remove: Vec<Entity>,
+    fade: Vec<(Entity, RealtimeComponent<Fade>)>,
+    movement: Vec<(Entity, RealtimeComponent<Movement>)>,
 }
 
 impl World {
     pub fn new(size: Size) -> Self {
         let ecs = Ecs::new();
         let spatial_grid = Grid::new_default(size);
-        let entity_buffer = Vec::new();
         Self {
             ecs,
             spatial_grid,
-            entity_buffer,
+            buffers: Buffers::default(),
         }
     }
     pub fn spawn_player(&mut self, coord: Coord) -> Entity {
@@ -480,6 +486,13 @@ impl World {
         );
         self.ecs.components.tile.insert(bullet_entity, Tile::Bullet);
     }
+    pub fn opacity(&self, coord: Coord) -> u8 {
+        self.spatial_grid
+            .get(coord)
+            .and_then(|c| c.feature)
+            .and_then(|e| self.ecs.components.opacity.get(e).cloned())
+            .unwrap_or(0)
+    }
     pub fn entity_coord(&self, entity: Entity) -> Coord {
         self.ecs.components.location.get(entity).unwrap().coord
     }
@@ -490,9 +503,6 @@ impl World {
         !self.ecs.components.blocks_gameplay.is_empty()
     }
     pub fn animation_tick<R: Rng>(&mut self, rng: &mut R) {
-        let to_remove = &mut self.entity_buffer;
-        let mut fade_buffer = Vec::new();
-        let mut movement_buffer = Vec::new();
         for (entity, ()) in self.ecs.components.realtime.iter() {
             let mut realtime_components = RealtimeComponents {
                 movement: self.ecs.components.realtime_movement.get_mut(entity),
@@ -514,11 +524,11 @@ impl World {
                             &self.ecs.components.solid,
                             &self.spatial_grid,
                         ) {
-                            to_remove.push(entity);
+                            self.buffers.to_remove.push(entity);
                             break;
                         }
                     } else {
-                        to_remove.push(entity);
+                        self.buffers.to_remove.push(entity);
                         break;
                     }
                 }
@@ -526,7 +536,7 @@ impl World {
                     if let Some(location) = self.ecs.components.location.get(entity) {
                         let particle_entity = self.ecs.entity_allocator.alloc();
                         if let Some(movement) = particle.movement.take() {
-                            movement_buffer.push((
+                            self.buffers.movement.push((
                                 particle_entity,
                                 RealtimeComponent {
                                     until_next_tick: movement.cardinal_period,
@@ -542,7 +552,7 @@ impl World {
                         )
                         .unwrap();
                         self.ecs.components.tile.insert(particle_entity, Tile::Smoke);
-                        fade_buffer.push((
+                        self.buffers.fade.push((
                             particle_entity,
                             RealtimeComponent {
                                 state: Fade::new(Duration::from_millis(1000)),
@@ -553,19 +563,19 @@ impl World {
                 }
                 if let Some(maybe_progress) = realtime_tick.fade.as_ref() {
                     if maybe_progress.is_complete() {
-                        to_remove.push(entity);
+                        self.buffers.to_remove.push(entity);
                     }
                 }
             }
         }
-        for entity in to_remove.drain(..) {
+        for entity in self.buffers.to_remove.drain(..) {
             self.ecs.remove(entity);
         }
-        for (entity, fade) in fade_buffer.drain(..) {
+        for (entity, fade) in self.buffers.fade.drain(..) {
             self.ecs.components.realtime_fade.insert(entity, fade);
             self.ecs.components.realtime.insert(entity, ());
         }
-        for (entity, movement) in movement_buffer.drain(..) {
+        for (entity, movement) in self.buffers.movement.drain(..) {
             self.ecs.components.realtime_movement.insert(entity, movement);
             self.ecs.components.realtime.insert(entity, ());
         }
