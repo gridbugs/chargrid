@@ -34,7 +34,7 @@ impl InputGrid for Visibility {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct VisibilityCell {
+struct VisibilityCell {
     last_seen: u64,
     last_lit: u64,
     visible_directions: DirectionBitmap,
@@ -52,18 +52,17 @@ impl Default for VisibilityCell {
     }
 }
 
-impl VisibilityCell {
-    pub fn light_colour(&self) -> Rgb24 {
-        self.light_colour
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct VisibilityGrid {
     grid: Grid<VisibilityCell>,
     count: u64,
     #[serde(skip)]
     shadowcast_context: ShadowcastContext<u8>,
+}
+
+pub enum CellVisibility {
+    NotVisible,
+    VisibleWithLightColour(Rgb24),
 }
 
 impl VisibilityGrid {
@@ -74,15 +73,15 @@ impl VisibilityGrid {
             shadowcast_context: ShadowcastContext::default(),
         }
     }
-    pub fn visible_cell(&self, coord: Coord) -> Option<&VisibilityCell> {
+    pub fn cell_visibility(&self, coord: Coord) -> CellVisibility {
         if let Some(cell) = self.grid.get(coord) {
-            if cell.last_seen == self.count {
-                Some(cell)
+            if cell.last_seen == self.count && cell.last_lit == self.count {
+                CellVisibility::VisibleWithLightColour(cell.light_colour)
             } else {
-                None
+                CellVisibility::NotVisible
             }
         } else {
-            None
+            CellVisibility::NotVisible
         }
     }
     pub fn update(&mut self, player_coord: Coord, world: &World) {

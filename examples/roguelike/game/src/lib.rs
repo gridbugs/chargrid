@@ -9,7 +9,7 @@ use std::time::Duration;
 mod visibility;
 mod world;
 
-pub use visibility::VisibilityGrid;
+pub use visibility::{CellVisibility, VisibilityGrid};
 use world::{Entity, World};
 pub use world::{Layer, Tile, ToRenderEntity};
 

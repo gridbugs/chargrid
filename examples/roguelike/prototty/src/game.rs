@@ -1,6 +1,6 @@
 use crate::controls::{AppInput, Controls};
 pub use game::Input as GameInput;
-use game::{CardinalDirection, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
+use game::{CardinalDirection, CellVisibility, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
@@ -91,8 +91,7 @@ fn render_entity<F: Frame, C: ColModify>(
     frame: &mut F,
 ) {
     let entity_coord = GameCoord(to_render_entity.coord);
-    if let Some(visible_cell) = visibility_grid.visible_cell(entity_coord.0) {
-        let light_colour = visible_cell.light_colour();
+    if let CellVisibility::VisibleWithLightColour(light_colour) = visibility_grid.cell_visibility(entity_coord.0) {
         if light_colour == Rgb24::new(0, 0, 0) {
             return;
         }
