@@ -6,6 +6,7 @@ use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+mod rational;
 mod visibility;
 mod world;
 
@@ -44,7 +45,7 @@ impl Game {
                     }
                     '*' => {
                         world.spawn_floor(coord);
-                        world.spawn_light(coord, Rgb24::new(255, 100, 100));
+                        world.spawn_light(coord, Rgb24::new(187, 187, 187));
                     }
                     ',' => {
                         world.spawn_carpet(coord);

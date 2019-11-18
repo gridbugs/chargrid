@@ -262,6 +262,9 @@ impl<T> ComponentTable<T> {
             iter: self.entries.vec.iter_mut(),
         }
     }
+    pub fn entities(&self) -> impl '_ + Iterator<Item = Entity> {
+        self.iter().map(|(entity, _)| entity)
+    }
 }
 
 pub struct ComponentTableIter<'a, T> {

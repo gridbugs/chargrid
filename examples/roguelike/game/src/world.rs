@@ -1,4 +1,5 @@
-use crate::visibility::{Light, Rational};
+use crate::rational::Rational;
+use crate::visibility::Light;
 use direction::{CardinalDirection, Direction};
 pub use ecs::Entity;
 use ecs::{ecs_components, ComponentTable, Ecs};
@@ -11,6 +12,10 @@ use shadowcast::vision_distance::Circle;
 use std::time::Duration;
 use vector::Radial;
 
+fn period_per_frame(num_per_frame: u32) -> Duration {
+    FRAME_DURATION / num_per_frame
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Tile {
     Player,
@@ -19,6 +24,7 @@ pub enum Tile {
     Carpet,
     Bullet,
     Smoke,
+    ExplosionFlame,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,6 +47,11 @@ impl Location {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum OnCollision {
+    Explode,
+}
+
 ecs_components! {
     components {
         location: Location,
@@ -50,12 +61,22 @@ ecs_components! {
         realtime_movement: RealtimeComponent<Movement>,
         realtime_particle_emitter: RealtimeComponent<ParticleEmitter>,
         realtime_fade: RealtimeComponent<Fade>,
+        realtime_light_colour_fade: RealtimeComponent<LightColourFade>,
         realtime: (),
         blocks_gameplay: (),
         light: Light,
+        on_collision: OnCollision,
+        colour_hint: Rgb24,
     }
 }
 use components::Components;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LightColourFade {
+    fade: Fade,
+    from: Rgb24,
+    to: Rgb24,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RealtimeComponent<S> {
@@ -72,23 +93,125 @@ pub struct Movement {
 
 struct Particle {
     movement: Option<Movement>,
+    fade: Fade,
+    tile: Tile,
+    colour_hint: Option<Rgb24>,
+    light: Option<Light>,
+    light_colour_fade: Option<LightColourFade>,
+    particle_emitter: Option<Box<ParticleEmitter>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct ParticleMovementSpec {}
+struct ParticleAngleRange {
+    min: f64,
+    max: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DurationRange {
+    min: Duration,
+    max: Duration,
+}
+
+impl DurationRange {
+    fn choose<R: Rng>(&self, rng: &mut R) -> Duration {
+        rng.gen_range(self.min, self.max)
+    }
+}
+
+impl ParticleAngleRange {
+    fn all() -> Self {
+        Self {
+            min: -::std::f64::consts::PI,
+            max: ::std::f64::consts::PI,
+        }
+    }
+    fn choose<R: Rng>(&self, rng: &mut R) -> f64 {
+        rng.gen_range(self.min, self.max)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ParticleMovementSpec {
+    angle_range: ParticleAngleRange,
+    cardinal_period_range: DurationRange,
+}
 
 impl ParticleMovementSpec {
     fn movement<R: Rng>(&self, rng: &mut R) -> Movement {
         const VECTOR_LENGTH: f64 = 1000.;
-        let angle_radians = rng.gen_range(-::std::f64::consts::PI, ::std::f64::consts::PI);
+        let angle_radians = self.angle_range.choose(rng);
         let radial = Radial {
             angle_radians,
             length: VECTOR_LENGTH,
         };
         let delta = radial.to_cartesian().to_coord_round_nearest();
         let path = InfiniteStepIter::new(delta);
-        let cardinal_period = Duration::from_millis(rng.gen_range(200, 500));
+        let cardinal_period = self.cardinal_period_range.choose(rng);
         Movement::new(path, cardinal_period)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+enum ParticleInitialFadeProgress {
+    Zero,
+    FromEmitter,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ParticleFadeSpec {
+    initial_progress: ParticleInitialFadeProgress,
+    full_duration: Duration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ParticleLightColourFadeSpec {
+    fade_spec: ParticleFadeSpec,
+    from: Rgb24,
+    to: Rgb24,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ParticleColourSpec {
+    from: Rgb24,
+    to: Rgb24,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParticleLightSpec {
+    chance: Rational,
+    light: Light,
+}
+
+impl ParticleLightSpec {
+    fn choose<R: Rng>(&self, rng: &mut R) -> Option<Light> {
+        if self.chance.roll(rng) {
+            Some(self.light.clone())
+        } else {
+            None
+        }
+    }
+}
+
+impl ParticleColourSpec {
+    fn choose<R: Rng>(self, rng: &mut R) -> Rgb24 {
+        self.from.linear_interpolate(self.to, rng.gen())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParticleEmitterSpec {
+    chance: Rational,
+    particle_emitter: Box<ParticleEmitter>,
+}
+
+impl ParticleEmitterSpec {
+    fn choose<R: Rng>(&self, rng: &mut R) -> Option<Box<ParticleEmitter>> {
+        if self.chance.roll(rng) {
+            Some(self.particle_emitter.clone())
+        } else {
+            None
+        }
     }
 }
 
@@ -96,17 +219,48 @@ impl ParticleMovementSpec {
 pub struct ParticleEmitter {
     period: Duration,
     movement_spec: Option<ParticleMovementSpec>,
+    fade_spec: ParticleFadeSpec,
+    tile: Tile,
+    colour_spec: Option<ParticleColourSpec>,
+    light_spec: Option<ParticleLightSpec>,
+    light_colour_fade_spec: Option<ParticleLightColourFadeSpec>,
+    particle_emitter_spec: Option<ParticleEmitterSpec>,
 }
 
 impl ParticleEmitter {
-    fn emit<R: Rng>(&self, rng: &mut R) -> Particle {
+    fn emit<R: Rng>(&self, emitter_fade_progress: Option<FadeProgress>, rng: &mut R) -> Particle {
+        let fade = match self.fade_spec.initial_progress {
+            ParticleInitialFadeProgress::Zero => Fade::new(self.fade_spec.full_duration),
+            ParticleInitialFadeProgress::FromEmitter => {
+                Fade::new_with_progress(self.fade_spec.full_duration, emitter_fade_progress.unwrap_or_default())
+            }
+        };
+        let light_colour_fade = self.light_colour_fade_spec.as_ref().map(|spec| {
+            let fade = match spec.fade_spec.initial_progress {
+                ParticleInitialFadeProgress::Zero => Fade::new(self.fade_spec.full_duration),
+                ParticleInitialFadeProgress::FromEmitter => {
+                    Fade::new_with_progress(self.fade_spec.full_duration, emitter_fade_progress.unwrap_or_default())
+                }
+            };
+            LightColourFade {
+                fade,
+                from: spec.from,
+                to: spec.to,
+            }
+        });
         Particle {
             movement: self.movement_spec.as_ref().map(|s| s.movement(rng)),
+            fade,
+            tile: self.tile,
+            colour_hint: self.colour_spec.map(|c| c.choose(rng)),
+            light: self.light_spec.as_ref().and_then(|l| l.choose(rng)),
+            light_colour_fade,
+            particle_emitter: self.particle_emitter_spec.as_ref().and_then(|p| p.choose(rng)),
         }
     }
-    fn tick<R: Rng>(&self, rng: &mut R) -> Tick<Particle> {
+    fn tick<R: Rng>(&self, emitter_fade_progress: Option<FadeProgress>, rng: &mut R) -> Tick<Particle> {
         Tick {
-            data: self.emit(rng),
+            data: self.emit(emitter_fade_progress, rng),
             duration: self.period,
         }
     }
@@ -139,7 +293,7 @@ impl Default for FadeProgress {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Fade {
     progress: FadeProgress,
     period: Duration,
@@ -147,11 +301,11 @@ pub struct Fade {
 
 impl Fade {
     fn new(duration: Duration) -> Self {
-        let period = duration / 256;
-        Self {
-            progress: FadeProgress::default(),
-            period,
-        }
+        Self::new_with_progress(duration, FadeProgress::default())
+    }
+    fn new_with_progress(full_duration: Duration, progress: FadeProgress) -> Self {
+        let period = full_duration / 256;
+        Self { progress, period }
     }
     fn tick(&mut self) -> Tick<FadeProgress> {
         self.progress = match self.progress {
@@ -165,6 +319,27 @@ impl Fade {
             data: self.progress,
             duration: self.period,
         }
+    }
+}
+
+enum LightColourFadeProgress {
+    Colour(Rgb24),
+    Complete,
+}
+
+impl LightColourFade {
+    fn tick(&mut self) -> Tick<LightColourFadeProgress> {
+        let Tick {
+            data: fade_progress,
+            duration,
+        } = self.fade.tick();
+        let data = match fade_progress {
+            FadeProgress::Complete => LightColourFadeProgress::Complete,
+            FadeProgress::Fading(fading) => {
+                LightColourFadeProgress::Colour(self.from.linear_interpolate(self.to, fading))
+            }
+        };
+        Tick { data, duration }
     }
 }
 
@@ -293,12 +468,14 @@ struct RealtimeComponents<'a> {
     movement: Option<&'a mut RealtimeComponent<Movement>>,
     particle_emitter: Option<&'a mut RealtimeComponent<ParticleEmitter>>,
     fade: Option<&'a mut RealtimeComponent<Fade>>,
+    light_colour_fade: Option<&'a mut RealtimeComponent<LightColourFade>>,
 }
 
 struct RealtimeTick {
     movement: Option<Direction>,
     particle_emitter: Option<Particle>,
     fade: Option<FadeProgress>,
+    light_colour_fade: Option<LightColourFadeProgress>,
 }
 
 impl<'a> RealtimeComponents<'a> {
@@ -313,6 +490,9 @@ impl<'a> RealtimeComponents<'a> {
         if let Some(fade) = self.fade.as_ref() {
             until_tick = until_tick.min(fade.until_next_tick);
         }
+        if let Some(light_colour_fade) = self.light_colour_fade.as_ref() {
+            until_tick = until_tick.min(light_colour_fade.until_next_tick);
+        }
         let movement = if let Some(movement) = self.movement.as_mut() {
             if until_tick == movement.until_next_tick {
                 let tick = movement.state.tick();
@@ -320,18 +500,6 @@ impl<'a> RealtimeComponents<'a> {
                 Some(tick.data)
             } else {
                 movement.until_next_tick -= until_tick;
-                None
-            }
-        } else {
-            None
-        };
-        let particle_emitter = if let Some(particle_emitter) = self.particle_emitter.as_mut() {
-            if until_tick == particle_emitter.until_next_tick {
-                let tick = particle_emitter.state.tick(rng);
-                particle_emitter.until_next_tick = tick.duration;
-                Some(tick.data)
-            } else {
-                particle_emitter.until_next_tick -= until_tick;
                 None
             }
         } else {
@@ -349,12 +517,38 @@ impl<'a> RealtimeComponents<'a> {
         } else {
             None
         };
+        let light_colour_fade = if let Some(light_colour_fade) = self.light_colour_fade.as_mut() {
+            if until_tick == light_colour_fade.until_next_tick {
+                let tick = light_colour_fade.state.tick();
+                light_colour_fade.until_next_tick = tick.duration;
+                Some(tick.data)
+            } else {
+                light_colour_fade.until_next_tick -= until_tick;
+                None
+            }
+        } else {
+            None
+        };
+        let particle_emitter = if let Some(particle_emitter) = self.particle_emitter.as_mut() {
+            if until_tick == particle_emitter.until_next_tick {
+                let fade_progress = self.fade.as_ref().map(|f| f.state.progress);
+                let tick = particle_emitter.state.tick(fade_progress, rng);
+                particle_emitter.until_next_tick = tick.duration;
+                Some(tick.data)
+            } else {
+                particle_emitter.until_next_tick -= until_tick;
+                None
+            }
+        } else {
+            None
+        };
         Tick {
             duration: until_tick,
             data: RealtimeTick {
                 movement,
                 particle_emitter,
                 fade,
+                light_colour_fade,
             },
         }
     }
@@ -366,14 +560,7 @@ const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 pub struct World {
     ecs: Ecs<Components>,
     spatial_grid: Grid<SpatialCell>,
-    buffers: Buffers,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Buffers {
-    to_remove: Vec<Entity>,
-    fade: Vec<(Entity, RealtimeComponent<Fade>)>,
-    movement: Vec<(Entity, RealtimeComponent<Movement>)>,
+    realtime_entities: Vec<Entity>,
 }
 
 impl World {
@@ -383,7 +570,7 @@ impl World {
         Self {
             ecs,
             spatial_grid,
-            buffers: Buffers::default(),
+            realtime_entities: Vec::new(),
         }
     }
     pub fn spawn_player(&mut self, coord: Coord) -> Entity {
@@ -460,10 +647,10 @@ impl World {
             entity,
             Light {
                 colour,
-                vision_distance: Circle::new_squared(90),
+                vision_distance: Circle::new_squared(400),
                 diminish: Rational {
                     numerator: 1,
-                    denominator: 10,
+                    denominator: 25,
                 },
             },
         );
@@ -516,23 +703,31 @@ impl World {
             RealtimeComponent {
                 state: ParticleEmitter {
                     period: Duration::from_micros(500),
-                    movement_spec: Some(ParticleMovementSpec {}),
+                    movement_spec: Some(ParticleMovementSpec {
+                        angle_range: ParticleAngleRange::all(),
+                        cardinal_period_range: DurationRange {
+                            min: Duration::from_millis(200),
+                            max: Duration::from_millis(500),
+                        },
+                    }),
+                    fade_spec: ParticleFadeSpec {
+                        initial_progress: ParticleInitialFadeProgress::Zero,
+                        full_duration: Duration::from_millis(1000),
+                    },
+                    tile: Tile::Smoke,
+                    colour_spec: None,
+                    light_spec: None,
+                    light_colour_fade_spec: None,
+                    particle_emitter_spec: None,
                 },
                 until_next_tick: Duration::from_millis(0),
             },
         );
         self.ecs.components.tile.insert(bullet_entity, Tile::Bullet);
-        self.ecs.components.light.insert(
-            bullet_entity,
-            Light {
-                colour: Rgb24::new(255, 187, 127),
-                vision_distance: Circle::new_squared(45),
-                diminish: Rational {
-                    numerator: 1,
-                    denominator: 5,
-                },
-            },
-        );
+        self.ecs
+            .components
+            .on_collision
+            .insert(bullet_entity, OnCollision::Explode);
     }
     pub fn opacity(&self, coord: Coord) -> u8 {
         self.spatial_grid
@@ -550,98 +745,274 @@ impl World {
     pub fn is_gameplay_blocked(&self) -> bool {
         !self.ecs.components.blocks_gameplay.is_empty()
     }
-    pub fn animation_tick<R: Rng>(&mut self, rng: &mut R) {
-        for (entity, ()) in self.ecs.components.realtime.iter() {
-            let mut realtime_components = RealtimeComponents {
-                movement: self.ecs.components.realtime_movement.get_mut(entity),
-                particle_emitter: self.ecs.components.realtime_particle_emitter.get_mut(entity),
-                fade: self.ecs.components.realtime_fade.get_mut(entity),
-            };
-            let mut frame_remaining = FRAME_DURATION;
-            while frame_remaining > Duration::from_micros(0) {
-                let Tick {
-                    duration,
-                    data: mut realtime_tick,
-                } = realtime_components.tick(frame_remaining, rng);
-                frame_remaining -= duration;
-                if let Some(movement_direction) = realtime_tick.movement.as_ref() {
-                    if let Some(current_location) = self.ecs.components.location.get_mut(entity) {
-                        current_location.coord += movement_direction.coord();
-                        if is_solid_feature_at_coord(
-                            current_location.coord,
-                            &self.ecs.components.solid,
-                            &self.spatial_grid,
-                        ) {
-                            self.buffers.to_remove.push(entity);
-                            break;
-                        }
-                    } else {
-                        self.buffers.to_remove.push(entity);
-                        break;
-                    }
-                }
-                if let Some(mut particle) = realtime_tick.particle_emitter.take() {
-                    if let Some(location) = self.ecs.components.location.get(entity) {
-                        let particle_entity = self.ecs.entity_allocator.alloc();
-                        if let Some(movement) = particle.movement.take() {
-                            self.buffers.movement.push((
-                                particle_entity,
-                                RealtimeComponent {
-                                    until_next_tick: movement.cardinal_period,
-                                    state: movement,
-                                },
-                            ));
-                        }
-                        location_insert(
-                            particle_entity,
-                            Location::new(location.coord, Layer::Particle),
-                            &mut self.ecs.components.location,
-                            &mut self.spatial_grid,
-                        )
-                        .unwrap();
-                        self.ecs.components.tile.insert(particle_entity, Tile::Smoke);
-                        self.buffers.fade.push((
-                            particle_entity,
-                            RealtimeComponent {
-                                state: Fade::new(Duration::from_millis(1000)),
-                                until_next_tick: Duration::from_millis(0),
+    fn spawn_explosion_emitter(
+        ecs: &mut Ecs<Components>,
+        spatial_grid: &mut Grid<SpatialCell>,
+        coord: Coord,
+        duration: Duration,
+        num_particles_per_frame: u32,
+        min_step: Duration,
+        max_step: Duration,
+        fade_duration: Duration,
+    ) {
+        let emitter_entity = ecs.entity_allocator.alloc();
+        location_insert(
+            emitter_entity,
+            Location::new(coord, Layer::Particle),
+            &mut ecs.components.location,
+            spatial_grid,
+        )
+        .unwrap();
+        ecs.components.realtime_fade.insert(
+            emitter_entity,
+            RealtimeComponent {
+                state: Fade::new(duration),
+                until_next_tick: Duration::from_millis(0),
+            },
+        );
+        ecs.components.realtime.insert(emitter_entity, ());
+        ecs.components.realtime_particle_emitter.insert(
+            emitter_entity,
+            RealtimeComponent {
+                state: ParticleEmitter {
+                    period: period_per_frame(num_particles_per_frame),
+                    movement_spec: Some(ParticleMovementSpec {
+                        angle_range: ParticleAngleRange::all(),
+                        cardinal_period_range: DurationRange {
+                            min: min_step,
+                            max: max_step,
+                        },
+                    }),
+                    fade_spec: ParticleFadeSpec {
+                        initial_progress: ParticleInitialFadeProgress::FromEmitter,
+                        full_duration: fade_duration,
+                    },
+                    tile: Tile::ExplosionFlame,
+                    colour_spec: Some(ParticleColourSpec {
+                        from: Rgb24::new(255, 255, 63),
+                        to: Rgb24::new(255, 127, 0),
+                    }),
+                    light_spec: None,
+                    light_colour_fade_spec: None,
+                    particle_emitter_spec: Some(ParticleEmitterSpec {
+                        chance: Rational {
+                            numerator: 1,
+                            denominator: 20,
+                        },
+                        particle_emitter: Box::new(ParticleEmitter {
+                            period: min_step,
+                            movement_spec: None,
+                            fade_spec: ParticleFadeSpec {
+                                initial_progress: ParticleInitialFadeProgress::Zero,
+                                full_duration: Duration::from_millis(1000),
                             },
-                        ));
+                            tile: Tile::Smoke,
+                            colour_spec: None,
+                            light_spec: None,
+                            light_colour_fade_spec: None,
+                            particle_emitter_spec: None,
+                        }),
+                    }),
+                },
+                until_next_tick: Duration::from_millis(0),
+            },
+        );
+        ecs.components.light.insert(
+            emitter_entity,
+            Light {
+                colour: Rgb24::new(255, 187, 63),
+                vision_distance: Circle::new_squared(400),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 100,
+                },
+            },
+        );
+        ecs.components.realtime_light_colour_fade.insert(
+            emitter_entity,
+            RealtimeComponent {
+                state: LightColourFade {
+                    fade: Fade::new(fade_duration),
+                    from: Rgb24::new(255, 187, 63),
+                    to: Rgb24::new(0, 0, 0),
+                },
+                until_next_tick: Duration::from_millis(0),
+            },
+        );
+    }
+    fn explosion(ecs: &mut Ecs<Components>, spatial_grid: &mut Grid<SpatialCell>, coord: Coord) {
+        Self::spawn_explosion_emitter(
+            ecs,
+            spatial_grid,
+            coord,
+            Duration::from_millis(250),
+            100,
+            Duration::from_millis(10),
+            Duration::from_millis(30),
+            Duration::from_millis(250),
+        );
+    }
+
+    fn animation_movement(
+        ecs: &mut Ecs<Components>,
+        spatial_grid: &mut Grid<SpatialCell>,
+        entity: Entity,
+        movement_direction: Direction,
+    ) {
+        if let Some(current_location) = ecs.components.location.get_mut(entity) {
+            let next_coord = current_location.coord + movement_direction.coord();
+            if is_solid_feature_at_coord(next_coord, &ecs.components.solid, spatial_grid) {
+                if let Some(on_collision) = ecs.components.on_collision.get(entity) {
+                    let current_coord = current_location.coord;
+                    match on_collision {
+                        OnCollision::Explode => Self::explosion(ecs, spatial_grid, current_coord),
                     }
                 }
-                if let Some(maybe_progress) = realtime_tick.fade.as_ref() {
-                    if maybe_progress.is_complete() {
-                        self.buffers.to_remove.push(entity);
-                    }
+                ecs.remove(entity);
+            } else {
+                current_location.coord += movement_direction.coord();
+            }
+        } else {
+            ecs.remove(entity);
+        }
+    }
+
+    fn animation_emit_particle(
+        ecs: &mut Ecs<Components>,
+        spatial_grid: &mut Grid<SpatialCell>,
+        mut particle: Particle,
+        coord: Coord,
+    ) {
+        let particle_entity = ecs.entity_allocator.alloc();
+        if let Some(movement) = particle.movement.take() {
+            ecs.components.realtime_movement.insert(
+                particle_entity,
+                RealtimeComponent {
+                    until_next_tick: movement.cardinal_period,
+                    state: movement,
+                },
+            );
+        }
+        location_insert(
+            particle_entity,
+            Location::new(coord, Layer::Particle),
+            &mut ecs.components.location,
+            spatial_grid,
+        )
+        .unwrap();
+        ecs.components.tile.insert(particle_entity, particle.tile);
+        ecs.components.realtime_fade.insert(
+            particle_entity,
+            RealtimeComponent {
+                state: particle.fade,
+                until_next_tick: Duration::from_millis(0),
+            },
+        );
+        ecs.components.realtime.insert(particle_entity, ());
+        if let Some(colour_hint) = particle.colour_hint {
+            ecs.components.colour_hint.insert(particle_entity, colour_hint);
+        }
+        if let Some(light) = particle.light.take() {
+            ecs.components.light.insert(particle_entity, light);
+        }
+        if let Some(light_colour_fade) = particle.light_colour_fade.take() {
+            ecs.components.realtime_light_colour_fade.insert(
+                particle_entity,
+                RealtimeComponent {
+                    state: light_colour_fade,
+                    until_next_tick: Duration::from_millis(0),
+                },
+            );
+        }
+        if let Some(particle_emitter) = particle.particle_emitter.take() {
+            ecs.components.realtime_particle_emitter.insert(
+                particle_entity,
+                RealtimeComponent {
+                    state: *particle_emitter,
+                    until_next_tick: Duration::from_millis(0),
+                },
+            );
+        }
+    }
+
+    fn animation_fade(ecs: &mut Ecs<Components>, progress: FadeProgress, entity: Entity) {
+        if progress.is_complete() {
+            ecs.remove(entity);
+        }
+    }
+
+    fn animation_light_colour_fade(ecs: &mut Ecs<Components>, progress: LightColourFadeProgress, entity: Entity) {
+        match progress {
+            LightColourFadeProgress::Colour(colour) => {
+                if let Some(light) = ecs.components.light.get_mut(entity) {
+                    light.colour = colour;
                 }
             }
+            LightColourFadeProgress::Complete => {
+                ecs.components.light.remove(entity);
+            }
         }
-        for entity in self.buffers.to_remove.drain(..) {
-            self.ecs.remove(entity);
+    }
+
+    fn animation_tick_single_entity(
+        ecs: &mut Ecs<Components>,
+        spatial_grid: &mut Grid<SpatialCell>,
+        entity: Entity,
+        mut realtime_tick: RealtimeTick,
+    ) {
+        if let Some(movement_direction) = realtime_tick.movement {
+            Self::animation_movement(ecs, spatial_grid, entity, movement_direction);
         }
-        for (entity, fade) in self.buffers.fade.drain(..) {
-            self.ecs.components.realtime_fade.insert(entity, fade);
-            self.ecs.components.realtime.insert(entity, ());
+        if let Some(particle) = realtime_tick.particle_emitter.take() {
+            if let Some(location) = ecs.components.location.get(entity) {
+                let coord = location.coord;
+                Self::animation_emit_particle(ecs, spatial_grid, particle, coord);
+            }
         }
-        for (entity, movement) in self.buffers.movement.drain(..) {
-            self.ecs.components.realtime_movement.insert(entity, movement);
-            self.ecs.components.realtime.insert(entity, ());
+        if let Some(progress) = realtime_tick.fade {
+            Self::animation_fade(ecs, progress, entity);
+        }
+        if let Some(progress) = realtime_tick.light_colour_fade {
+            Self::animation_light_colour_fade(ecs, progress, entity);
+        }
+    }
+    pub fn animation_tick<R: Rng>(&mut self, rng: &mut R) {
+        self.realtime_entities.extend(self.ecs.components.realtime.entities());
+        for entity in self.realtime_entities.drain(..) {
+            let mut frame_remaining = FRAME_DURATION;
+            while frame_remaining > Duration::from_micros(0) {
+                let mut realtime_components = RealtimeComponents {
+                    movement: self.ecs.components.realtime_movement.get_mut(entity),
+                    particle_emitter: self.ecs.components.realtime_particle_emitter.get_mut(entity),
+                    fade: self.ecs.components.realtime_fade.get_mut(entity),
+                    light_colour_fade: self.ecs.components.realtime_light_colour_fade.get_mut(entity),
+                };
+                let Tick {
+                    duration,
+                    data: realtime_tick,
+                } = realtime_components.tick(frame_remaining, rng);
+                frame_remaining -= duration;
+                Self::animation_tick_single_entity(&mut self.ecs, &mut self.spatial_grid, entity, realtime_tick);
+            }
         }
     }
     pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
         let tile_component = &self.ecs.components.tile;
         let location_component = &self.ecs.components.location;
         let realtime_fade_component = &self.ecs.components.realtime_fade;
+        let colour_hint_component = &self.ecs.components.colour_hint;
         tile_component.iter().filter_map(move |(entity, &tile)| {
             if let Some(location) = location_component.get(entity) {
                 let fade = realtime_fade_component
                     .get(entity)
                     .and_then(|f| f.state.progress.fading());
+                let colour_hint = colour_hint_component.get(entity).cloned();
                 Some(ToRenderEntity {
                     coord: location.coord,
                     layer: location.layer,
                     tile,
                     fade,
+                    colour_hint,
                 })
             } else {
                 None
@@ -664,4 +1035,5 @@ pub struct ToRenderEntity {
     pub layer: Layer,
     pub tile: Tile,
     pub fade: Option<u8>,
+    pub colour_hint: Option<Rgb24>,
 }

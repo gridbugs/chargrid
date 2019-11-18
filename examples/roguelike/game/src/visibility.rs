@@ -1,17 +1,12 @@
+use crate::rational::Rational;
 use crate::world::World;
 use grid_2d::{Coord, Grid, Size};
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use shadowcast::{vision_distance, DirectionBitmap, InputGrid, ShadowcastContext};
 
-const VISION_DISTANCE_SQUARED: u32 = 150;
+const VISION_DISTANCE_SQUARED: u32 = 400;
 const VISION_DISTANCE: vision_distance::Circle = vision_distance::Circle::new_squared(VISION_DISTANCE_SQUARED);
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct Rational {
-    pub numerator: u32,
-    pub denominator: u32,
-}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Light {

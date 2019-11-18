@@ -125,6 +125,26 @@ fn render_entity<F: Frame, C: ColModify>(
                 }
                 return;
             }
+            Tile::ExplosionFlame => {
+                if let Some(fade) = to_render_entity.fade {
+                    if let Some(colour_hint) = to_render_entity.colour_hint {
+                        let quad_fade = (((fade as u16) * (fade as u16)) / 256) as u8;
+                        let start_colour = colour_hint;
+                        let end_colour = Rgb24::new(255, 0, 0);
+                        let interpolated_colour = start_colour.linear_interpolate(end_colour, quad_fade);
+                        let lit_colour = interpolated_colour.normalised_mul(light_colour);
+                        frame.blend_cell_background_relative(
+                            screen_coord.0,
+                            depth,
+                            lit_colour,
+                            (255 - fade) / 1,
+                            blend_mode::LinearInterpolate,
+                            context,
+                        )
+                    }
+                }
+                return;
+            }
         };
         if let Some(foreground) = view_cell.style.foreground.as_mut() {
             *foreground = foreground.normalised_mul(light_colour);
