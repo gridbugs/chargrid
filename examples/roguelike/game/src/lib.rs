@@ -105,4 +105,7 @@ impl Game {
     pub fn visibility_grid(&self) -> &VisibilityGrid {
         &self.visibility_grid
     }
+    pub fn contains_wall(&self, coord: Coord) -> bool {
+        self.world.contains_wall(coord)
+    }
 }

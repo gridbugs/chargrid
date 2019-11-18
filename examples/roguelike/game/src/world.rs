@@ -647,7 +647,7 @@ impl World {
             entity,
             Light {
                 colour,
-                vision_distance: Circle::new_squared(400),
+                vision_distance: Circle::new_squared(420),
                 diminish: Rational {
                     numerator: 1,
                     denominator: 25,
@@ -728,6 +728,17 @@ impl World {
             .components
             .on_collision
             .insert(bullet_entity, OnCollision::Explode);
+        self.ecs.components.light.insert(
+            bullet_entity,
+            Light {
+                colour: Rgb24::new(255, 187, 63),
+                vision_distance: Circle::new_squared(90),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 10,
+                },
+            },
+        );
     }
     pub fn opacity(&self, coord: Coord) -> u8 {
         self.spatial_grid
@@ -827,7 +838,7 @@ impl World {
             emitter_entity,
             Light {
                 colour: Rgb24::new(255, 187, 63),
-                vision_distance: Circle::new_squared(400),
+                vision_distance: Circle::new_squared(420),
                 diminish: Rational {
                     numerator: 1,
                     denominator: 100,
@@ -1033,6 +1044,17 @@ impl World {
                 .get(entity)
                 .map(|location| (location.coord, light))
         })
+    }
+    pub fn contains_wall(&self, coord: Coord) -> bool {
+        if let Some(spatial_cell) = self.spatial_grid.get(coord) {
+            if let Some(entity) = spatial_cell.feature {
+                self.ecs.components.tile.get(entity) == Some(&Tile::Wall)
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 }
 

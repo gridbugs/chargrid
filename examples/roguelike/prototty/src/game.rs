@@ -85,6 +85,7 @@ impl ScreenCoordToGameCoord {
 
 fn render_entity<F: Frame, C: ColModify>(
     to_render_entity: &ToRenderEntity,
+    game: &Game,
     visibility_grid: &VisibilityGrid,
     player_coord: GameCoord,
     context: ViewContext<C>,
@@ -110,7 +111,13 @@ fn render_entity<F: Frame, C: ColModify>(
             Tile::Carpet => ViewCell::new()
                 .with_character('.')
                 .with_background(Rgb24::new(0, 0, 127)),
-            Tile::Wall => ViewCell::new().with_character('#'),
+            Tile::Wall => if game.contains_wall(entity_coord.0 + Coord::new(0, 1)) {
+                ViewCell::new().with_character('█')
+            } else {
+                ViewCell::new().with_character('▀')
+            }
+            .with_foreground(Rgb24::new(255, 255, 255))
+            .with_background(Rgb24::new(127, 127, 127)),
             Tile::Bullet => ViewCell::new().with_character('*'),
             Tile::Smoke => {
                 if let Some(fade) = to_render_entity.fade {
@@ -161,7 +168,7 @@ impl<'a> View<&'a Game> for GameView {
         let player_coord = GameCoord::of_player(&game);
         let visibility_grid = game.visibility_grid();
         for to_render_entity in game.to_render_entities() {
-            render_entity(&to_render_entity, visibility_grid, player_coord, context, frame);
+            render_entity(&to_render_entity, game, visibility_grid, player_coord, context, frame);
         }
         self.last_offset = context.offset;
     }
