@@ -801,7 +801,13 @@ impl World {
                         },
                         particle_emitter: Box::new(ParticleEmitter {
                             period: min_step,
-                            movement_spec: None,
+                            movement_spec: Some(ParticleMovementSpec {
+                                angle_range: ParticleAngleRange::all(),
+                                cardinal_period_range: DurationRange {
+                                    min: Duration::from_millis(200),
+                                    max: Duration::from_millis(500),
+                                },
+                            }),
                             fade_spec: ParticleFadeSpec {
                                 initial_progress: ParticleInitialFadeProgress::Zero,
                                 full_duration: Duration::from_millis(1000),
