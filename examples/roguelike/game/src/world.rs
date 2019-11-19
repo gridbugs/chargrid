@@ -863,7 +863,7 @@ impl World {
             spatial_grid,
             coord,
             Duration::from_millis(250),
-            100,
+            50,
             Duration::from_millis(10),
             Duration::from_millis(30),
             Duration::from_millis(250),
