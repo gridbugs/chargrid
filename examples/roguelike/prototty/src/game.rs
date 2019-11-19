@@ -6,6 +6,7 @@ use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
 use prototty::render::*;
+use prototty_audio::AudioPlayer;
 use prototty_storage::{format, Storage};
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
@@ -195,12 +196,13 @@ impl GameInstance {
     }
 }
 
-pub struct GameData<S: Storage> {
+pub struct GameData<S: Storage, A: AudioPlayer> {
     instance: Option<GameInstance>,
     controls: Controls,
     rng_source: Isaac64Rng,
-    storage_wrapper: StorageWrapper<S>,
     last_aim_with_mouse: bool,
+    storage_wrapper: StorageWrapper<S>,
+    _audio_player: A,
 }
 
 struct StorageWrapper<S: Storage> {
@@ -228,8 +230,8 @@ impl<S: Storage> StorageWrapper<S> {
     }
 }
 
-impl<S: Storage> GameData<S> {
-    pub fn new(controls: Controls, storage: S, save_key: String, rng_seed: RngSeed) -> Self {
+impl<S: Storage, A: AudioPlayer> GameData<S, A> {
+    pub fn new(controls: Controls, storage: S, save_key: String, audio_player: A, rng_seed: RngSeed) -> Self {
         let instance = storage.load(&save_key, format::Bincode).ok();
         let rng_source = match rng_seed {
             RngSeed::Entropy => Isaac64Rng::from_entropy(),
@@ -244,8 +246,9 @@ impl<S: Storage> GameData<S> {
             instance,
             controls,
             rng_source,
-            storage_wrapper,
             last_aim_with_mouse: false,
+            storage_wrapper,
+            _audio_player: audio_player,
         }
     }
     pub fn has_instance(&self) -> bool {
@@ -290,8 +293,9 @@ impl<S: Storage> GameData<S> {
 
 pub struct NoGameInstance;
 
-pub struct AimEventRoutine<S: Storage> {
+pub struct AimEventRoutine<S: Storage, A: AudioPlayer> {
     s: PhantomData<S>,
+    a: PhantomData<A>,
     screen_coord: ScreenCoord,
     duration: Duration,
     blink: Blink,
@@ -323,10 +327,11 @@ impl Blink {
     }
 }
 
-impl<S: Storage> AimEventRoutine<S> {
+impl<S: Storage, A: AudioPlayer> AimEventRoutine<S, A> {
     pub fn new(screen_coord: ScreenCoord) -> Self {
         Self {
             s: PhantomData,
+            a: PhantomData,
             screen_coord,
             duration: Duration::from_millis(0),
             blink: Blink {
@@ -338,9 +343,9 @@ impl<S: Storage> AimEventRoutine<S> {
     }
 }
 
-impl<S: Storage> EventRoutine for AimEventRoutine<S> {
+impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
     type Return = Option<ScreenCoord>;
-    type Data = GameData<S>;
+    type Data = GameData<S, A>;
     type View = GameView;
     type Event = CommonEvent;
 
@@ -466,18 +471,20 @@ impl<S: Storage> EventRoutine for AimEventRoutine<S> {
     }
 }
 
-pub struct GameEventRoutine<S: Storage> {
+pub struct GameEventRoutine<S: Storage, A: AudioPlayer> {
     s: PhantomData<S>,
+    a: PhantomData<A>,
     injected_inputs: Vec<InjectedInput>,
 }
 
-impl<S: Storage> GameEventRoutine<S> {
+impl<S: Storage, A: AudioPlayer> GameEventRoutine<S, A> {
     pub fn new() -> Self {
         Self::new_injecting_inputs(Vec::new())
     }
     pub fn new_injecting_inputs(injected_inputs: Vec<InjectedInput>) -> Self {
         Self {
             s: PhantomData,
+            a: PhantomData,
             injected_inputs,
         }
     }
@@ -488,9 +495,9 @@ pub enum GameReturn {
     Aim,
 }
 
-impl<S: Storage> EventRoutine for GameEventRoutine<S> {
+impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
     type Return = GameReturn;
-    type Data = GameData<S>;
+    type Data = GameData<S, A>;
     type View = GameView;
     type Event = CommonEvent;
 

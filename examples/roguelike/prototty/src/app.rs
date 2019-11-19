@@ -7,6 +7,7 @@ use event_routine::*;
 use menu::{fade_spec, FadeMenuEntryView, MenuInstanceChoose};
 use prototty::input::*;
 use prototty::*;
+use prototty_audio::AudioPlayer;
 use prototty_storage::Storage;
 use render::{ColModifyDefaultForeground, ColModifyMap, Coord, Rgb24, Style};
 use std::marker::PhantomData;
@@ -63,9 +64,9 @@ impl<'a> From<&'a MainMenuEntry> for &'a str {
     }
 }
 
-pub struct AppData<S: Storage> {
+pub struct AppData<S: Storage, A: AudioPlayer> {
     frontend: Frontend,
-    game: GameData<S>,
+    game: GameData<S, A>,
     main_menu: menu::MenuInstanceChooseOrEscape<MainMenuEntry>,
     main_menu_type: MainMenuType,
     last_mouse_coord: Coord,
@@ -76,11 +77,18 @@ pub struct AppView {
     main_menu: menu::MenuInstanceView<FadeMenuEntryView<MainMenuEntry>>,
 }
 
-impl<S: Storage> AppData<S> {
-    pub fn new(frontend: Frontend, controls: Controls, storage: S, save_key: String, rng_seed: RngSeed) -> Self {
+impl<S: Storage, A: AudioPlayer> AppData<S, A> {
+    pub fn new(
+        frontend: Frontend,
+        controls: Controls,
+        storage: S,
+        save_key: String,
+        audio_player: A,
+        rng_seed: RngSeed,
+    ) -> Self {
         Self {
             frontend,
-            game: GameData::new(controls, storage, save_key, rng_seed),
+            game: GameData::new(controls, storage, save_key, audio_player, rng_seed),
             main_menu: menu::MenuInstance::new(MainMenuEntry::init(frontend))
                 .unwrap()
                 .into_choose_or_escape(),
@@ -137,15 +145,21 @@ impl Default for AppView {
     }
 }
 
-struct SelectGame<S: Storage>(PhantomData<S>);
-impl<S: Storage> SelectGame<S> {
+struct SelectGame<S: Storage, A: AudioPlayer> {
+    s: PhantomData<S>,
+    a: PhantomData<A>,
+}
+impl<S: Storage, A: AudioPlayer> SelectGame<S, A> {
     fn new() -> Self {
-        Self(PhantomData)
+        Self {
+            s: PhantomData,
+            a: PhantomData,
+        }
     }
 }
-impl<S: Storage> DataSelector for SelectGame<S> {
-    type DataInput = AppData<S>;
-    type DataOutput = GameData<S>;
+impl<S: Storage, A: AudioPlayer> DataSelector for SelectGame<S, A> {
+    type DataInput = AppData<S, A>;
+    type DataOutput = GameData<S, A>;
     fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
         &input.game
     }
@@ -153,7 +167,7 @@ impl<S: Storage> DataSelector for SelectGame<S> {
         &mut input.game
     }
 }
-impl<S: Storage> ViewSelector for SelectGame<S> {
+impl<S: Storage, A: AudioPlayer> ViewSelector for SelectGame<S, A> {
     type ViewInput = AppView;
     type ViewOutput = GameView;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
@@ -163,15 +177,21 @@ impl<S: Storage> ViewSelector for SelectGame<S> {
         &mut input.game
     }
 }
-impl<S: Storage> Selector for SelectGame<S> {}
+impl<S: Storage, A: AudioPlayer> Selector for SelectGame<S, A> {}
 
-struct SelectMainMenu<S: Storage>(PhantomData<S>);
-impl<S: Storage> SelectMainMenu<S> {
+struct SelectMainMenu<S: Storage, A: AudioPlayer> {
+    s: PhantomData<S>,
+    a: PhantomData<A>,
+}
+impl<S: Storage, A: AudioPlayer> SelectMainMenu<S, A> {
     fn new() -> Self {
-        Self(PhantomData)
+        Self {
+            s: PhantomData,
+            a: PhantomData,
+        }
     }
 }
-impl<S: Storage> ViewSelector for SelectMainMenu<S> {
+impl<S: Storage, A: AudioPlayer> ViewSelector for SelectMainMenu<S, A> {
     type ViewInput = AppView;
     type ViewOutput = menu::MenuInstanceView<FadeMenuEntryView<MainMenuEntry>>;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
@@ -181,8 +201,8 @@ impl<S: Storage> ViewSelector for SelectMainMenu<S> {
         &mut input.main_menu
     }
 }
-impl<S: Storage> DataSelector for SelectMainMenu<S> {
-    type DataInput = AppData<S>;
+impl<S: Storage, A: AudioPlayer> DataSelector for SelectMainMenu<S, A> {
+    type DataInput = AppData<S, A>;
     type DataOutput = menu::MenuInstanceChooseOrEscape<MainMenuEntry>;
     fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
         &input.main_menu
@@ -191,23 +211,29 @@ impl<S: Storage> DataSelector for SelectMainMenu<S> {
         &mut input.main_menu
     }
 }
-impl<S: Storage> Selector for SelectMainMenu<S> {}
+impl<S: Storage, A: AudioPlayer> Selector for SelectMainMenu<S, A> {}
 
-struct DecorateMainMenu<S>(PhantomData<S>);
-
-impl<S: Storage> DecorateMainMenu<S> {
+struct DecorateMainMenu<S, A> {
+    s: PhantomData<S>,
+    a: PhantomData<A>,
+}
+impl<S: Storage, A: AudioPlayer> DecorateMainMenu<S, A> {
     fn new() -> Self {
-        Self(PhantomData)
+        Self {
+            s: PhantomData,
+            a: PhantomData,
+        }
     }
 }
 
 struct InitMenu<'e, 'v, E: EventRoutine>(EventRoutineView<'e, 'v, E>);
-impl<'a, 'e, 'v, S, E> View<&'a AppData<S>> for InitMenu<'e, 'v, E>
+impl<'a, 'e, 'v, S, A, E> View<&'a AppData<S, A>> for InitMenu<'e, 'v, E>
 where
     S: Storage,
-    E: EventRoutine<View = AppView, Data = AppData<S>>,
+    A: AudioPlayer,
+    E: EventRoutine<View = AppView, Data = AppData<S, A>>,
 {
-    fn view<F: Frame, C: ColModify>(&mut self, app_data: &'a AppData<S>, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, app_data: &'a AppData<S, A>, context: ViewContext<C>, frame: &mut F) {
         text::StringViewSingleLine::new(Style::new().with_bold(true)).view(
             "Template Roguelike",
             context.add_offset(Coord::new(1, 1)),
@@ -217,9 +243,9 @@ where
     }
 }
 
-impl<S: Storage> Decorate for DecorateMainMenu<S> {
+impl<S: Storage, A: AudioPlayer> Decorate for DecorateMainMenu<S, A> {
     type View = AppView;
-    type Data = AppData<S>;
+    type Data = AppData<S, A>;
     fn view<E, F, C>(
         data: &Self::Data,
         mut event_routine_view: EventRoutineView<E>,
@@ -262,19 +288,26 @@ impl<S: Storage> Decorate for DecorateMainMenu<S> {
     }
 }
 
-struct DecorateGame<S>(PhantomData<S>);
-impl<S> DecorateGame<S>
+struct DecorateGame<S, A> {
+    s: PhantomData<S>,
+    a: PhantomData<A>,
+}
+impl<S, A> DecorateGame<S, A>
 where
     S: Storage,
+    A: AudioPlayer,
 {
     fn new() -> Self {
-        Self(PhantomData)
+        Self {
+            s: PhantomData,
+            a: PhantomData,
+        }
     }
 }
 
-impl<S: Storage> Decorate for DecorateGame<S> {
+impl<S: Storage, A: AudioPlayer> Decorate for DecorateGame<S, A> {
     type View = AppView;
-    type Data = AppData<S>;
+    type Data = AppData<S, A>;
     fn view<E, F, C>(
         data: &Self::Data,
         mut event_routine_view: EventRoutineView<E>,
@@ -291,21 +324,28 @@ impl<S: Storage> Decorate for DecorateGame<S> {
 
 struct Quit;
 
-struct MouseTracker<S: Storage, E: EventRoutine> {
+struct MouseTracker<S: Storage, A: AudioPlayer, E: EventRoutine> {
     s: PhantomData<S>,
+    a: PhantomData<A>,
     e: E,
 }
 
-impl<S: Storage, E: EventRoutine> MouseTracker<S, E> {
+impl<S: Storage, A: AudioPlayer, E: EventRoutine> MouseTracker<S, A, E> {
     fn new(e: E) -> Self {
-        Self { s: PhantomData, e }
+        Self {
+            s: PhantomData,
+            a: PhantomData,
+            e,
+        }
     }
 }
 
-impl<S: Storage, E: EventRoutine<Data = AppData<S>, Event = CommonEvent>> EventRoutine for MouseTracker<S, E> {
+impl<S: Storage, A: AudioPlayer, E: EventRoutine<Data = AppData<S, A>, Event = CommonEvent>> EventRoutine
+    for MouseTracker<S, A, E>
+{
     type Return = E::Return;
     type View = E::View;
-    type Data = AppData<S>;
+    type Data = AppData<S, A>;
     type Event = CommonEvent;
 
     fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
@@ -319,11 +359,19 @@ impl<S: Storage, E: EventRoutine<Data = AppData<S>, Event = CommonEvent>> EventR
                     data.last_mouse_coord = coord;
                 }
                 s.e.handle(data, view, event_routine::Event::new(event))
-                    .map_continue(|e| Self { s: PhantomData, e })
+                    .map_continue(|e| Self {
+                        s: PhantomData,
+                        a: PhantomData,
+                        e,
+                    })
             },
             |(s, data)| {
                 s.e.handle(data, view, event_routine::Peek::new())
-                    .map_continue(|e| Self { s: PhantomData, e })
+                    .map_continue(|e| Self {
+                        s: PhantomData,
+                        a: PhantomData,
+                        e,
+                    })
             },
         )
     }
@@ -336,10 +384,10 @@ impl<S: Storage, E: EventRoutine<Data = AppData<S>, Event = CommonEvent>> EventR
     }
 }
 
-fn main_menu<S: Storage>(
-) -> impl EventRoutine<Return = Result<MainMenuEntry, menu::Escape>, Data = AppData<S>, View = AppView, Event = CommonEvent>
+fn main_menu<S: Storage, A: AudioPlayer>(
+) -> impl EventRoutine<Return = Result<MainMenuEntry, menu::Escape>, Data = AppData<S, A>, View = AppView, Event = CommonEvent>
 {
-    SideEffectThen::new(|data: &mut AppData<S>, _| {
+    SideEffectThen::new(|data: &mut AppData<S, A>, _| {
         if data.game.has_instance() {
             match data.main_menu_type {
                 MainMenuType::Init => {
@@ -367,25 +415,25 @@ fn main_menu<S: Storage>(
     })
 }
 
-fn game<S: Storage>() -> impl EventRoutine<Return = GameReturn, Data = AppData<S>, View = AppView, Event = CommonEvent>
-{
+fn game<S: Storage, A: AudioPlayer>(
+) -> impl EventRoutine<Return = GameReturn, Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     GameEventRoutine::new()
         .select(SelectGame::new())
         .decorated(DecorateGame::new())
 }
 
-fn game_injecting_inputs<S: Storage>(
+fn game_injecting_inputs<S: Storage, A: AudioPlayer>(
     inputs: Vec<InjectedInput>,
-) -> impl EventRoutine<Return = GameReturn, Data = AppData<S>, View = AppView, Event = CommonEvent> {
+) -> impl EventRoutine<Return = GameReturn, Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     GameEventRoutine::new_injecting_inputs(inputs)
         .select(SelectGame::new())
         .decorated(DecorateGame::new())
 }
 
-fn aim<S: Storage>(
-) -> impl EventRoutine<Return = Option<ScreenCoord>, Data = AppData<S>, View = AppView, Event = CommonEvent> {
+fn aim<S: Storage, A: AudioPlayer>(
+) -> impl EventRoutine<Return = Option<ScreenCoord>, Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B);
-    SideEffectThen::new(|data: &mut AppData<S>, view: &AppView| {
+    SideEffectThen::new(|data: &mut AppData<S, A>, view: &AppView| {
         let game_relative_mouse_coord = view
             .game
             .absolute_coord_to_game_relative_screen_coord(data.last_mouse_coord);
@@ -401,8 +449,8 @@ fn aim<S: Storage>(
     })
 }
 
-fn game_loop<S: Storage>(
-) -> impl EventRoutine<Return = GameReturn, Data = AppData<S>, View = AppView, Event = CommonEvent> {
+fn game_loop<S: Storage, A: AudioPlayer>(
+) -> impl EventRoutine<Return = GameReturn, Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B);
     Ei::A(game()).repeat(|game_return| match game_return {
         GameReturn::Pause => Handled::Return(GameReturn::Pause),
@@ -417,31 +465,31 @@ fn game_loop<S: Storage>(
     })
 }
 
-fn main_menu_cycle<S: Storage>(
-) -> impl EventRoutine<Return = Option<Quit>, Data = AppData<S>, View = AppView, Event = CommonEvent> {
+fn main_menu_cycle<S: Storage, A: AudioPlayer>(
+) -> impl EventRoutine<Return = Option<Quit>, Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B | C | D | E | F);
     main_menu().and_then(|entry| match entry {
         Ok(MainMenuEntry::Quit) => Ei::A(Value::new(Some(Quit))),
-        Ok(MainMenuEntry::SaveQuit) => Ei::D(SideEffectThen::new(|data: &mut AppData<S>, _| {
+        Ok(MainMenuEntry::SaveQuit) => Ei::D(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
             data.game.save_instance();
             Value::new(Some(Quit))
         })),
-        Ok(MainMenuEntry::Save) => Ei::E(SideEffectThen::new(|data: &mut AppData<S>, _| {
+        Ok(MainMenuEntry::Save) => Ei::E(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
             data.game.save_instance();
             Value::new(None)
         })),
-        Ok(MainMenuEntry::Clear) => Ei::F(SideEffectThen::new(|data: &mut AppData<S>, _| {
+        Ok(MainMenuEntry::Clear) => Ei::F(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
             data.game.clear_instance();
             Value::new(None)
         })),
-        Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(SideEffectThen::new(|data: &mut AppData<S>, _| {
+        Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
             if data.game.has_instance() {
                 Either::Left(game_loop().map(|_| None))
             } else {
                 Either::Right(Value::new(None))
             }
         })),
-        Ok(MainMenuEntry::NewGame) => Ei::C(SideEffectThen::new(|data: &mut AppData<S>, _| {
+        Ok(MainMenuEntry::NewGame) => Ei::C(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
             data.game.instantiate();
             data.main_menu.menu_instance_mut().set_index(0);
             game_loop().map(|_| None)
@@ -449,8 +497,8 @@ fn main_menu_cycle<S: Storage>(
     })
 }
 
-pub fn event_routine<S: Storage>(
-) -> impl EventRoutine<Return = (), Data = AppData<S>, View = AppView, Event = CommonEvent> {
+pub fn event_routine<S: Storage, A: AudioPlayer>(
+) -> impl EventRoutine<Return = (), Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     MouseTracker::new(
         main_menu_cycle()
             .repeat(|maybe_quit| {

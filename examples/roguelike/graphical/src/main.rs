@@ -1,4 +1,5 @@
 use prototty_graphical::{ContextBuilder, Size};
+use prototty_native_audio::NativeAudioPlayer;
 use roguelike_native::{simon::Arg, NativeCommon};
 use roguelike_prototty::{event_routine, AppData, AppView, Frontend};
 
@@ -23,10 +24,18 @@ fn main() {
         .with_underline_position(12)
         .build()
         .unwrap();
+    let audio_player = NativeAudioPlayer::new_default_device();
     context
         .run_event_routine(
             event_routine(),
-            &mut AppData::new(Frontend::Native, controls, file_storage, save_file, rng_seed),
+            &mut AppData::new(
+                Frontend::Native,
+                controls,
+                file_storage,
+                save_file,
+                audio_player,
+                rng_seed,
+            ),
             &mut AppView::new(),
         )
         .unwrap();

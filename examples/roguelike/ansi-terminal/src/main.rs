@@ -1,4 +1,5 @@
 use prototty_ansi_terminal::{col_encode, ColEncode, Context, EventRoutineRunner};
+use prototty_native_audio::NativeAudioPlayer;
 use roguelike_native::{simon::*, FileStorage, NativeCommon};
 use roguelike_prototty::{event_routine, AppData, AppView, Frontend};
 use std::time::Duration;
@@ -24,8 +25,12 @@ impl ColEncodeChoice {
     }
 }
 
-fn run<E>(mut runner: EventRoutineRunner, mut app_data: AppData<FileStorage>, mut app_view: AppView, col_encode: E)
-where
+fn run<E>(
+    mut runner: EventRoutineRunner,
+    mut app_data: AppData<FileStorage, NativeAudioPlayer>,
+    mut app_view: AppView,
+    col_encode: E,
+) where
     E: ColEncode,
 {
     runner
@@ -64,7 +69,15 @@ fn main() {
         col_encode_choice,
     } = Args::arg().with_help_default().parse_env_or_exit();
     let runner = Context::new().unwrap().into_runner(Duration::from_millis(16));
-    let app_data = AppData::new(Frontend::Native, controls, file_storage, save_file, rng_seed);
+    let audio_player = NativeAudioPlayer::new_default_device();
+    let app_data = AppData::new(
+        Frontend::Native,
+        controls,
+        file_storage,
+        save_file,
+        audio_player,
+        rng_seed,
+    );
     let app_view = AppView::new();
     use ColEncodeChoice::*;
     match col_encode_choice {

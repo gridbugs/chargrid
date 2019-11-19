@@ -1,4 +1,4 @@
-use prototty_web::{Context, LocalStorage, Size};
+use prototty_web::{Context, LocalStorage, Size, WebAudioPlayer};
 use roguelike_prototty::{event_routine, AppData, AppView, Controls, Frontend, RngSeed};
 use wasm_bindgen::prelude::*;
 
@@ -8,6 +8,7 @@ const SAVE_KEY: &str = "save";
 pub fn run() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
     console_error_panic_hook::set_once();
+    let audio_player = WebAudioPlayer::new_with_mime("video/ogg");
     Context::new(Size::new(40, 40), "content").run_event_routine_repeating(
         event_routine(),
         AppData::new(
@@ -15,6 +16,7 @@ pub fn run() -> Result<(), JsValue> {
             Controls::default(),
             LocalStorage::new(),
             SAVE_KEY.to_string(),
+            audio_player,
             RngSeed::Entropy,
         ),
         AppView::new(),
