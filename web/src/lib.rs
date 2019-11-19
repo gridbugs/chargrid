@@ -3,6 +3,7 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
+use prototty_audio::AudioPlayer;
 pub use prototty_event_routine;
 use prototty_event_routine::{common_event::CommonEvent, Event, EventRoutine, Handled};
 pub use prototty_input;
@@ -626,5 +627,41 @@ impl Storage for LocalStorage {
         self.local_storage
             .set_item(key.as_ref(), &string)
             .map_err(|_| StoreRawError::IoError)
+    }
+}
+
+pub struct WebAudioPlayer {
+    mime: String,
+}
+
+impl WebAudioPlayer {
+    pub fn new_with_mime(mime: &str) -> Self {
+        Self { mime: mime.to_string() }
+    }
+    pub fn load_sound(&self, bytes: &'static [u8]) -> WebSound {
+        let base64_data = base64::encode(bytes);
+        let uri = format!("data:{};base64,{}", self.mime, base64_data);
+        WebSound { uri }
+    }
+}
+
+impl WebAudioPlayer {
+    pub fn play(&self, sound: &WebSound) {
+        let element = web_sys::HtmlAudioElement::new_with_src(sound.uri.as_str()).unwrap();
+        element.play().unwrap();
+    }
+}
+
+pub struct WebSound {
+    uri: String,
+}
+
+impl AudioPlayer for WebAudioPlayer {
+    type Sound = WebSound;
+    fn play(&self, sound: &Self::Sound) {
+        WebAudioPlayer::play(self, sound)
+    }
+    fn load_sound(&self, bytes: &'static [u8]) -> Self::Sound {
+        WebAudioPlayer::load_sound(self, bytes)
     }
 }

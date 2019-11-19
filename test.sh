@@ -57,3 +57,9 @@ pushd $DIR/examples/colour_grid/web
 npm install
 npm run build -- --mode development
 popd
+
+
+pushd $DIR/examples/soundboard/web
+npm install
+npm run build -- --mode development
+popd

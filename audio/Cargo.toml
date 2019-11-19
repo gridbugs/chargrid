@@ -1,0 +1,13 @@
+[package]
+name = "prototty_audio"
+description = "Interface to audio"
+version = "0.27.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_audio"
+edition = "2018"
+
+[dependencies]

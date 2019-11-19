@@ -22,6 +22,8 @@ publish() {
     publish_single ansi-terminal
     publish_single graphical
     publish_single web
+    publish_single audio
+    publish_single native-audio
 }
 
 read -r -p "Are you sure? " response

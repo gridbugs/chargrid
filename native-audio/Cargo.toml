@@ -1,0 +1,16 @@
+[package]
+name = "prototty_native_audio"
+description = "Implementation of prototty_audio::AudioPlayer for native applications"
+version = "0.27.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_native_audio"
+edition = "2018"
+
+
+[dependencies]
+rodio = "0.10"
+prototty_audio = { path = "../audio", version = "0.27" }

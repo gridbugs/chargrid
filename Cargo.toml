@@ -10,9 +10,11 @@ members = [
     "ansi-terminal",
     "web",
     "storage",
+    "audio",
     "input",
     "file-storage",
     "event-routine",
+    "native-audio",
     "test-grid",
 
     "examples/title/prototty",
@@ -58,6 +60,11 @@ members = [
     "examples/colour_grid/graphical",
     "examples/colour_grid/ansi-terminal",
     "examples/colour_grid/web",
+
+    "examples/soundboard/prototty",
+    "examples/soundboard/graphical",
+    "examples/soundboard/ansi-terminal",
+    "examples/soundboard/web",
 ]
 
 [profile.release]
