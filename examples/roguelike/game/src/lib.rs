@@ -14,6 +14,13 @@ pub use visibility::{CellVisibility, VisibilityGrid};
 use world::{Entity, World};
 pub use world::{Layer, Tile, ToRenderEntity};
 
+/// Events which the game can report back to the io layer so it can
+/// respond with a sound/visual effect.
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub enum Event {
+    Explosion(Coord),
+}
+
 #[derive(Clone, Copy)]
 pub enum Input {
     Walk(CardinalDirection),
@@ -27,6 +34,7 @@ pub struct Game {
     player: Entity,
     rng: Isaac64Rng,
     frame_count: u64,
+    events: Vec<Event>,
 }
 
 impl Game {
@@ -68,6 +76,7 @@ impl Game {
             player: player.expect("didn't create player"),
             rng: Isaac64Rng::seed_from_u64(rng.gen()),
             frame_count: 0,
+            events: Vec::new(),
         };
         game.update_visibility();
         game
@@ -89,9 +98,13 @@ impl Game {
         self.update_visibility();
     }
     pub fn handle_tick(&mut self, _since_last_tick: Duration) {
+        self.events.clear();
         self.update_visibility();
-        self.world.animation_tick(&mut self.rng);
+        self.world.animation_tick(&mut self.events, &mut self.rng);
         self.frame_count += 1;
+    }
+    pub fn events(&self) -> impl '_ + Iterator<Item = Event> {
+        self.events.iter().cloned()
     }
     pub fn player_coord(&self) -> Coord {
         self.world.entity_coord(self.player)

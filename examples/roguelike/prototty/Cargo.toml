@@ -17,3 +17,4 @@ hashbrown = { version = "0.6", features = ["serde"] }
 rand = "0.7"
 rand_isaac = { version = "0.2", features = ["serde1"] }
 line_2d = "0.4"
+direction = { version = "0.17", features = ["serialize", "rand"] }

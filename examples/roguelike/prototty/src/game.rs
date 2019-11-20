@@ -1,12 +1,14 @@
+use crate::audio::{Audio, AudioTable};
 use crate::controls::{AppInput, Controls};
+use direction::{CardinalDirection, Direction};
 pub use game::Input as GameInput;
-use game::{CardinalDirection, CellVisibility, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
+use game::{CellVisibility, Event, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
 use prototty::render::*;
-use prototty_audio::AudioPlayer;
+use prototty_audio::{AudioPlayer, AudioProperties};
 use prototty_storage::{format, Storage};
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
@@ -18,6 +20,55 @@ const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
 const AIM_UI_DEPTH: i8 = 3;
 const PLAYER_OFFSET: Coord = Coord::new(16, 16);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+struct ScreenShake {
+    remaining_frames: u8,
+    direction: Direction,
+}
+
+impl ScreenShake {
+    fn coord(&self) -> Coord {
+        self.direction.coord()
+    }
+    fn next(self) -> Option<Self> {
+        self.remaining_frames.checked_sub(1).map(|remaining_frames| Self {
+            remaining_frames,
+            direction: self.direction,
+        })
+    }
+}
+
+struct EffectContext<'a, A: AudioPlayer> {
+    rng: &'a mut Isaac64Rng,
+    screen_shake: &'a mut Option<ScreenShake>,
+    audio_player: &'a A,
+    audio_table: &'a AudioTable<A>,
+    player_coord: GameCoord,
+}
+
+impl<'a, A: AudioPlayer> EffectContext<'a, A> {
+    fn next_frame(&mut self) {
+        *self.screen_shake = self.screen_shake.and_then(|screen_shake| screen_shake.next());
+    }
+    fn handle_event(&mut self, event: Event) {
+        match event {
+            Event::Explosion(coord) => {
+                let direction: Direction = self.rng.gen();
+                *self.screen_shake = Some(ScreenShake {
+                    remaining_frames: 2,
+                    direction,
+                });
+                const BASE_VOLUME: f32 = 50.;
+                let distance_squared = (self.player_coord.0 - coord).magnitude2();
+                let volume = (BASE_VOLUME / (distance_squared as f32)).min(1.);
+                let properties = AudioProperties::default().with_volume(volume);
+                let sound = self.audio_table.get(Audio::Explosion);
+                self.audio_player.play(&sound, properties);
+            }
+        }
+    }
+}
 
 pub enum InjectedInput {
     Fire(ScreenCoord),
@@ -89,6 +140,7 @@ fn render_entity<F: Frame, C: ColModify>(
     game: &Game,
     visibility_grid: &VisibilityGrid,
     player_coord: GameCoord,
+    offset: Coord,
     context: ViewContext<C>,
     frame: &mut F,
 ) {
@@ -99,7 +151,7 @@ fn render_entity<F: Frame, C: ColModify>(
         }
         let screen_coord = GameCoordToScreenCoord {
             game_coord: entity_coord,
-            player_coord,
+            player_coord: GameCoord(player_coord.0 + offset),
         }
         .compute();
         if !screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
@@ -164,21 +216,46 @@ fn render_entity<F: Frame, C: ColModify>(
     }
 }
 
-impl<'a> View<&'a Game> for GameView {
-    fn view<F: Frame, C: ColModify>(&mut self, game: &'a Game, context: ViewContext<C>, frame: &mut F) {
+impl<'a> View<GameToRender<'a>> for GameView {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        game_to_render: GameToRender<'a>,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
+        let game = &game_to_render.game;
         let player_coord = GameCoord::of_player(&game);
         let visibility_grid = game.visibility_grid();
+        let offset = game_to_render
+            .screen_shake
+            .as_ref()
+            .map(|d| d.coord())
+            .unwrap_or_else(|| Coord::new(0, 0));
         for to_render_entity in game.to_render_entities() {
-            render_entity(&to_render_entity, game, visibility_grid, player_coord, context, frame);
+            render_entity(
+                &to_render_entity,
+                game,
+                visibility_grid,
+                player_coord,
+                offset,
+                context,
+                frame,
+            );
         }
         self.last_offset = context.offset;
     }
 }
 
 #[derive(Serialize, Deserialize)]
-struct GameInstance {
+pub struct GameInstance {
     rng: Isaac64Rng,
     game: Game,
+    screen_shake: Option<ScreenShake>,
+}
+
+pub struct GameToRender<'a> {
+    game: &'a Game,
+    screen_shake: Option<ScreenShake>,
 }
 
 #[derive(Clone)]
@@ -192,6 +269,13 @@ impl GameInstance {
         Self {
             game: Game::new(&mut rng),
             rng,
+            screen_shake: None,
+        }
+    }
+    pub fn to_render(&self) -> GameToRender {
+        GameToRender {
+            game: &self.game,
+            screen_shake: self.screen_shake,
         }
     }
 }
@@ -202,7 +286,8 @@ pub struct GameData<S: Storage, A: AudioPlayer> {
     rng_source: Isaac64Rng,
     last_aim_with_mouse: bool,
     storage_wrapper: StorageWrapper<S>,
-    _audio_player: A,
+    audio_player: A,
+    audio_table: AudioTable<A>,
 }
 
 struct StorageWrapper<S: Storage> {
@@ -248,7 +333,8 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
             rng_source,
             last_aim_with_mouse: false,
             storage_wrapper,
-            _audio_player: audio_player,
+            audio_table: AudioTable::new(&audio_player),
+            audio_player,
         }
     }
     pub fn has_instance(&self) -> bool {
@@ -269,8 +355,8 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         self.instance = None;
         self.storage_wrapper.clear_instance();
     }
-    pub fn game(&self) -> Result<&Game, NoGameInstance> {
-        self.instance.as_ref().map(|i| &i.game).ok_or(NoGameInstance)
+    pub fn instance(&self) -> Option<&GameInstance> {
+        self.instance.as_ref()
     }
     pub fn initial_aim_coord(&self, screen_coord_of_mouse: ScreenCoord) -> Result<ScreenCoord, NoGameInstance> {
         if let Some(instance) = self.instance.as_ref() {
@@ -363,6 +449,8 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
         }
         let last_aim_with_mouse = &mut data.last_aim_with_mouse;
         let controls = &data.controls;
+        let audio_player = &data.audio_player;
+        let audio_table = &data.audio_table;
         if let Some(instance) = data.instance.as_mut() {
             event_or_peek_with_handled(event_or_peek, self, |mut s, event| {
                 *last_aim_with_mouse = false;
@@ -409,6 +497,17 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
                     Aim::Ignore => Handled::Continue(s),
                     Aim::Frame(since_last) => {
                         instance.game.handle_tick(since_last);
+                        let mut event_context = EffectContext {
+                            rng: &mut instance.rng,
+                            screen_shake: &mut instance.screen_shake,
+                            audio_player,
+                            audio_table,
+                            player_coord: GameCoord::of_player(&instance.game),
+                        };
+                        event_context.next_frame();
+                        for event in instance.game.events() {
+                            event_context.handle_event(event);
+                        }
                         s.duration += since_last;
                         Handled::Continue(s)
                     }
@@ -425,7 +524,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
         C: ColModify,
     {
         if let Some(instance) = data.instance.as_ref() {
-            view.view(&instance.game, context, frame);
+            view.view(instance.to_render(), context, frame);
             let player_coord = GameCoord::of_player(&instance.game);
             let screen_coord = self.screen_coord;
             let game_coord = ScreenCoordToGameCoord {
@@ -506,11 +605,13 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
         EP: EventOrPeek<Event = Self::Event>,
     {
         let storage_wrapper = &mut data.storage_wrapper;
+        let audio_player = &data.audio_player;
+        let audio_table = &data.audio_table;
         if let Some(instance) = data.instance.as_mut() {
+            let player_coord = GameCoord::of_player(&instance.game);
             for injected_input in self.injected_inputs.drain(..) {
                 match injected_input {
                     InjectedInput::Fire(screen_coord) => {
-                        let player_coord = GameCoord::of_player(&instance.game);
                         let GameCoord(raw_game_coord) = ScreenCoordToGameCoord {
                             screen_coord,
                             player_coord,
@@ -546,6 +647,17 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                 CommonEvent::Frame(period) => {
                     instance.game.handle_tick(period);
                     storage_wrapper.autosave_tick(instance, period);
+                    let mut event_context = EffectContext {
+                        rng: &mut instance.rng,
+                        screen_shake: &mut instance.screen_shake,
+                        audio_player,
+                        audio_table,
+                        player_coord,
+                    };
+                    event_context.next_frame();
+                    for event in instance.game.events() {
+                        event_context.handle_event(event);
+                    }
                     Handled::Continue(s)
                 }
             })
@@ -561,7 +673,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
         C: ColModify,
     {
         if let Some(instance) = data.instance.as_ref() {
-            view.view(&instance.game, context, frame);
+            view.view(instance.to_render(), context, frame);
         }
     }
 }

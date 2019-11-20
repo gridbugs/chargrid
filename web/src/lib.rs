@@ -3,7 +3,7 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
-use prototty_audio::AudioPlayer;
+use prototty_audio::{AudioPlayer, AudioProperties};
 pub use prototty_event_routine;
 use prototty_event_routine::{common_event::CommonEvent, Event, EventRoutine, Handled};
 pub use prototty_input;
@@ -646,8 +646,9 @@ impl WebAudioPlayer {
 }
 
 impl WebAudioPlayer {
-    pub fn play(&self, sound: &WebSound) {
+    pub fn play(&self, sound: &WebSound, properties: AudioProperties) {
         let element = web_sys::HtmlAudioElement::new_with_src(sound.uri.as_str()).unwrap();
+        element.set_volume(properties.volume as f64);
         element.play().unwrap();
     }
 }
@@ -658,8 +659,8 @@ pub struct WebSound {
 
 impl AudioPlayer for WebAudioPlayer {
     type Sound = WebSound;
-    fn play(&self, sound: &Self::Sound) {
-        WebAudioPlayer::play(self, sound)
+    fn play(&self, sound: &Self::Sound, properties: AudioProperties) {
+        WebAudioPlayer::play(self, sound, properties)
     }
     fn load_sound(&self, bytes: &'static [u8]) -> Self::Sound {
         WebAudioPlayer::load_sound(self, bytes)

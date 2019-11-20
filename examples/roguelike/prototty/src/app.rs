@@ -256,7 +256,7 @@ impl<S: Storage, A: AudioPlayer> Decorate for DecorateMainMenu<S, A> {
         F: Frame,
         C: ColModify,
     {
-        if data.game.has_instance() {
+        if let Some(instance) = data.game.instance() {
             AlignView {
                 alignment: Alignment::centre(),
                 view: FillBackgroundView {
@@ -268,16 +268,14 @@ impl<S: Storage, A: AudioPlayer> Decorate for DecorateMainMenu<S, A> {
                 },
             }
             .view(data, context.add_depth(10), frame);
-            if let Ok(game) = data.game.game() {
-                event_routine_view.view.game.view(
-                    game,
-                    context.compose_col_modify(
-                        ColModifyDefaultForeground(Rgb24::new_grey(255))
-                            .compose(ColModifyMap(|col: Rgb24| col.saturating_scalar_mul_div(1, 3))),
-                    ),
-                    frame,
-                );
-            }
+            event_routine_view.view.game.view(
+                instance.to_render(),
+                context.compose_col_modify(
+                    ColModifyDefaultForeground(Rgb24::new_grey(255))
+                        .compose(ColModifyMap(|col: Rgb24| col.saturating_scalar_mul_div(1, 3))),
+                ),
+                frame,
+            );
         } else {
             AlignView {
                 view: InitMenu(event_routine_view),

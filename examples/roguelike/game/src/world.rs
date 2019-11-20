@@ -1,5 +1,6 @@
 use crate::rational::Rational;
 use crate::visibility::Light;
+use crate::Event;
 use direction::{CardinalDirection, Direction};
 pub use ecs::Entity;
 use ecs::{ecs_components, ComponentTable, Ecs};
@@ -875,6 +876,7 @@ impl World {
         spatial_grid: &mut Grid<SpatialCell>,
         entity: Entity,
         movement_direction: Direction,
+        events: &mut Vec<Event>,
     ) {
         if let Some(current_location) = ecs.components.location.get_mut(entity) {
             let next_coord = current_location.coord + movement_direction.coord();
@@ -882,7 +884,10 @@ impl World {
                 if let Some(on_collision) = ecs.components.on_collision.get(entity) {
                     let current_coord = current_location.coord;
                     match on_collision {
-                        OnCollision::Explode => Self::explosion(ecs, spatial_grid, current_coord),
+                        OnCollision::Explode => {
+                            events.push(Event::Explosion(current_coord));
+                            Self::explosion(ecs, spatial_grid, current_coord);
+                        }
                     }
                 }
                 ecs.remove(entity);
@@ -976,9 +981,10 @@ impl World {
         spatial_grid: &mut Grid<SpatialCell>,
         entity: Entity,
         mut realtime_tick: RealtimeTick,
+        events: &mut Vec<Event>,
     ) {
         if let Some(movement_direction) = realtime_tick.movement {
-            Self::animation_movement(ecs, spatial_grid, entity, movement_direction);
+            Self::animation_movement(ecs, spatial_grid, entity, movement_direction, events);
         }
         if let Some(particle) = realtime_tick.particle_emitter.take() {
             if let Some(location) = ecs.components.location.get(entity) {
@@ -993,7 +999,7 @@ impl World {
             Self::animation_light_colour_fade(ecs, progress, entity);
         }
     }
-    pub fn animation_tick<R: Rng>(&mut self, rng: &mut R) {
+    pub fn animation_tick<R: Rng>(&mut self, events: &mut Vec<Event>, rng: &mut R) {
         self.realtime_entities.extend(self.ecs.components.realtime.entities());
         for entity in self.realtime_entities.drain(..) {
             let mut frame_remaining = FRAME_DURATION;
@@ -1009,7 +1015,13 @@ impl World {
                     data: realtime_tick,
                 } = realtime_components.tick(frame_remaining, rng);
                 frame_remaining -= duration;
-                Self::animation_tick_single_entity(&mut self.ecs, &mut self.spatial_grid, entity, realtime_tick);
+                Self::animation_tick_single_entity(
+                    &mut self.ecs,
+                    &mut self.spatial_grid,
+                    entity,
+                    realtime_tick,
+                    events,
+                );
             }
         }
     }
