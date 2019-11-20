@@ -12,5 +12,5 @@ prototty_web = { path = "../../../web" }
 roguelike_prototty = { path = "../prototty", features = ["wasm"]}
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"
-wasm-logger = "0.1"
+wasm-logger = "0.2"
 log = "0.4"
