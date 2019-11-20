@@ -13,6 +13,7 @@ matrix:
   - rust: nightly
 dist: trusty
 before_script:
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install libasound2-dev; fi
   - cargo install wasm-bindgen-cli
   - npm install -g npx
   - rustup target add wasm32-unknown-unknown
