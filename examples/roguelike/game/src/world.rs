@@ -26,6 +26,7 @@ pub enum Tile {
     Bullet,
     Smoke,
     ExplosionFlame,
+    FormerHuman,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -595,6 +596,18 @@ impl World {
                 },
             },
         );
+        entity
+    }
+    pub fn spawn_former_human(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.create();
+        location_insert(
+            entity,
+            Location::new(coord, Layer::Character),
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        )
+        .unwrap();
+        self.ecs.components.tile.insert(entity, Tile::FormerHuman);
         entity
     }
     pub fn spawn_floor(&mut self, coord: Coord) -> Entity {

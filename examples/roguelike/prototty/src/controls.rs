@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub enum AppInput {
     Move(CardinalDirection),
     Aim,
+    Wait,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -22,6 +23,7 @@ impl Controls {
         keys.insert(KeyboardInput::Up, AppInput::Move(CardinalDirection::North));
         keys.insert(KeyboardInput::Down, AppInput::Move(CardinalDirection::South));
         keys.insert(KeyboardInput::Char('f'), AppInput::Aim);
+        keys.insert(KeyboardInput::Char(' '), AppInput::Wait);
         Self { keys }
     }
 

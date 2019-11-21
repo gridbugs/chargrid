@@ -4,12 +4,16 @@ use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
+use shadowcast::ShadowcastContext;
 use std::time::Duration;
 
+mod behaviour;
 mod rational;
 mod visibility;
 mod world;
 
+use behaviour::{Agent, BehaviourContext};
+use ecs::ComponentTable;
 pub use visibility::{CellVisibility, VisibilityGrid};
 use world::{Entity, World};
 pub use world::{Layer, Tile, ToRenderEntity};
@@ -21,10 +25,11 @@ pub enum Event {
     Explosion(Coord),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Input {
     Walk(CardinalDirection),
     Fire(Coord),
+    Wait,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,6 +40,10 @@ pub struct Game {
     rng: Isaac64Rng,
     frame_count: u64,
     events: Vec<Event>,
+    #[serde(skip)]
+    shadowcast_context: ShadowcastContext<u8>,
+    behaviour_context: BehaviourContext,
+    agents: ComponentTable<Agent>,
 }
 
 impl Game {
@@ -43,6 +52,7 @@ impl Game {
         let rows = s.split('\n').filter(|s| !s.is_empty()).collect::<Vec<_>>();
         let size = Size::new_u16(rows[0].len() as u16, rows.len() as u16);
         let mut world = World::new(size);
+        let mut agents = ComponentTable::default();
         let mut player = None;
         for (y, row) in rows.iter().enumerate() {
             for (x, ch) in row.chars().enumerate() {
@@ -66,6 +76,11 @@ impl Game {
                         world.spawn_floor(coord);
                         player = Some(world.spawn_player(coord));
                     }
+                    'f' => {
+                        world.spawn_floor(coord);
+                        let entity = world.spawn_former_human(coord);
+                        agents.insert(entity, Agent::new(size));
+                    }
                     _ => panic!("unexpected char: {}", ch),
                 }
             }
@@ -77,6 +92,9 @@ impl Game {
             rng: Isaac64Rng::seed_from_u64(rng.gen()),
             frame_count: 0,
             events: Vec::new(),
+            shadowcast_context: ShadowcastContext::default(),
+            behaviour_context: BehaviourContext::new(size),
+            agents,
         };
         game.update_visibility();
         game
@@ -86,16 +104,19 @@ impl Game {
     }
     fn update_visibility(&mut self) {
         let player_coord = self.world.entity_coord(self.player);
-        self.visibility_grid.update(player_coord, &self.world);
+        self.visibility_grid
+            .update(player_coord, &self.world, &mut self.shadowcast_context);
     }
     pub fn handle_input(&mut self, input: Input) {
         if !self.is_gameplay_blocked() {
             match input {
                 Input::Walk(direction) => self.world.character_walk_in_direction(self.player, direction),
                 Input::Fire(coord) => self.world.character_fire_bullet(self.player, coord),
+                Input::Wait => (),
             }
         }
         self.update_visibility();
+        self.npc_turn();
     }
     pub fn handle_tick(&mut self, _since_last_tick: Duration) {
         self.events.clear();
@@ -120,5 +141,22 @@ impl Game {
     }
     pub fn contains_wall(&self, coord: Coord) -> bool {
         self.world.contains_wall(coord)
+    }
+    pub fn npc_turn(&mut self) {
+        for (entity, agent) in self.agents.iter_mut() {
+            let coord = self.world.entity_coord(entity);
+            if let Some(input) = agent.act(
+                coord,
+                &self.world,
+                &mut self.behaviour_context,
+                &mut self.shadowcast_context,
+            ) {
+                match input {
+                    Input::Walk(direction) => self.world.character_walk_in_direction(entity, direction),
+                    Input::Fire(coord) => self.world.character_fire_bullet(entity, coord),
+                    Input::Wait => (),
+                }
+            }
+        }
     }
 }

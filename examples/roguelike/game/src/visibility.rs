@@ -7,6 +7,7 @@ use shadowcast::{vision_distance, DirectionBitmap, InputGrid, ShadowcastContext}
 
 const VISION_DISTANCE_SQUARED: u32 = 400;
 const VISION_DISTANCE: vision_distance::Circle = vision_distance::Circle::new_squared(VISION_DISTANCE_SQUARED);
+const OMNISCIENT: bool = false;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Light {
@@ -15,7 +16,7 @@ pub struct Light {
     pub diminish: Rational,
 }
 
-struct Visibility;
+pub struct Visibility;
 
 impl InputGrid for Visibility {
     type Grid = World;
@@ -51,8 +52,6 @@ impl Default for VisibilityCell {
 pub struct VisibilityGrid {
     grid: Grid<VisibilityCell>,
     count: u64,
-    #[serde(skip)]
-    shadowcast_context: ShadowcastContext<u8>,
 }
 
 pub enum CellVisibility {
@@ -65,7 +64,6 @@ impl VisibilityGrid {
         Self {
             grid: Grid::new_default(size),
             count: 0,
-            shadowcast_context: ShadowcastContext::default(),
         }
     }
     pub fn cell_visibility(&self, coord: Coord) -> CellVisibility {
@@ -79,24 +77,38 @@ impl VisibilityGrid {
             CellVisibility::NotVisible
         }
     }
-    pub fn update(&mut self, player_coord: Coord, world: &World) {
+    pub fn update(&mut self, player_coord: Coord, world: &World, shadowcast_context: &mut ShadowcastContext<u8>) {
         self.count += 1;
         let count = self.count;
         let grid = &mut self.grid;
-        self.shadowcast_context.for_each_visible(
-            player_coord,
-            &Visibility,
-            world,
-            VISION_DISTANCE,
-            255,
-            |coord, visible_directions, _visibility| {
-                let cell = grid.get_checked_mut(coord);
-                cell.last_seen = count;
-                cell.visible_directions = visible_directions;
-            },
-        );
+        if OMNISCIENT {
+            let size = world.size();
+            for i in 0..size.y() {
+                for j in 0..size.x() {
+                    let coord = Coord::new(j as i32, i as i32);
+                    let cell = grid.get_checked_mut(coord);
+                    cell.last_seen = count;
+                    cell.visible_directions = DirectionBitmap::all();
+                    cell.last_lit = count;
+                    cell.light_colour = Rgb24::new(255, 255, 255);
+                }
+            }
+        } else {
+            shadowcast_context.for_each_visible(
+                player_coord,
+                &Visibility,
+                world,
+                VISION_DISTANCE,
+                255,
+                |coord, visible_directions, _visibility| {
+                    let cell = grid.get_checked_mut(coord);
+                    cell.last_seen = count;
+                    cell.visible_directions = visible_directions;
+                },
+            );
+        }
         for (light_coord, light) in world.lights() {
-            self.shadowcast_context.for_each_visible(
+            shadowcast_context.for_each_visible(
                 light_coord,
                 &Visibility,
                 world,

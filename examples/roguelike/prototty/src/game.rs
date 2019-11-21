@@ -160,6 +160,9 @@ fn render_entity<F: Frame, C: ColModify>(
         let depth = layer_depth(to_render_entity.layer);
         let mut view_cell = match to_render_entity.tile {
             Tile::Player => ViewCell::new().with_character('@'),
+            Tile::FormerHuman => ViewCell::new()
+                .with_character('f')
+                .with_foreground(Rgb24::new(255, 0, 0)),
             Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
             Tile::Carpet => ViewCell::new()
                 .with_character('.')
@@ -461,6 +464,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
                                 match app_input {
                                     AppInput::Aim => Aim::KeyboardFinalise,
                                     AppInput::Move(direction) => Aim::KeyboardDirection(direction),
+                                    AppInput::Wait => Aim::Ignore,
                                 }
                             } else {
                                 match keyboard_input {
@@ -636,6 +640,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                                             instance.game.handle_input(GameInput::Walk(direction))
                                         }
                                         AppInput::Aim => return Handled::Return(GameReturn::Aim),
+                                        AppInput::Wait => instance.game.handle_input(GameInput::Wait),
                                     }
                                 }
                             }
