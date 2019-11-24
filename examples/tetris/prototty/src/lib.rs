@@ -2,6 +2,7 @@ extern crate prototty;
 extern crate rand;
 extern crate tetris;
 
+use prototty::app;
 use prototty::decorator::*;
 use prototty::input::{keys, Input, KeyboardInput};
 use prototty::menu::*;
@@ -11,6 +12,8 @@ use rand::Rng;
 use std::collections::VecDeque;
 use std::time::Duration;
 use tetris::{Input as TetrisInput, Meta, PieceType, Tetris};
+
+pub use app::ControlFlow;
 
 const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24::new(24, 24, 24);
 const FOREGROUND_COLOUR: Rgb24 = Rgb24::new_grey(255);
@@ -187,11 +190,7 @@ impl Timeout {
     }
 }
 
-pub enum ControlFlow {
-    Exit,
-}
-
-pub struct App {
+pub struct AppData {
     main_menu: MenuInstance<MainMenuChoice>,
     state: AppState,
     timeout: Timeout,
@@ -201,7 +200,7 @@ pub struct App {
     border_styles: BorderStyles,
 }
 
-impl App {
+impl AppData {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
         let main_menu = vec![MainMenuChoice::Play, MainMenuChoice::Quit];
         let main_menu = MenuInstance::new(main_menu).unwrap();
@@ -218,7 +217,7 @@ impl App {
         }
     }
 
-    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<ControlFlow>
+    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<app::ControlFlow>
     where
         I: IntoIterator<Item = Input>,
         R: Rng,
@@ -228,9 +227,9 @@ impl App {
                 for input in inputs {
                     if let Some(menu_output) = self.main_menu.choose_or_quit(&view.menu_instance_view, input) {
                         match menu_output {
-                            Err(Quit) => return Some(ControlFlow::Exit),
+                            Err(Quit) => return Some(app::ControlFlow::Exit),
                             Ok(selection) => match selection {
-                                MainMenuChoice::Quit => return Some(ControlFlow::Exit),
+                                MainMenuChoice::Quit => return Some(app::ControlFlow::Exit),
                                 MainMenuChoice::Play => {
                                     self.state = AppState::Game;
                                 }
@@ -242,7 +241,7 @@ impl App {
             AppState::Game => {
                 for input in inputs {
                     match input {
-                        Input::Keyboard(keys::ETX) => return Some(ControlFlow::Exit),
+                        Input::Keyboard(keys::ETX) => return Some(app::ControlFlow::Exit),
                         Input::Keyboard(keys::ESCAPE) => {
                             self.state = AppState::Menu;
                         }
@@ -301,8 +300,8 @@ impl Default for AppView {
     }
 }
 
-impl<'a> View<&'a App> for AppView {
-    fn view<F: Frame, C: ColModify>(&mut self, app: &'a App, context: ViewContext<C>, frame: &mut F) {
+impl<'a> View<&'a AppData> for AppView {
+    fn view<F: Frame, C: ColModify>(&mut self, app: &'a AppData, context: ViewContext<C>, frame: &mut F) {
         match app.state {
             AppState::Game | AppState::GameOver => {
                 let mut view = BorderView {
@@ -344,5 +343,48 @@ impl<'a> View<&'a App> for AppView {
                 .view(&app.end_text, context, frame);
             }
         }
+    }
+}
+
+pub struct TetrisApp<R: Rng> {
+    data: AppData,
+    view: AppView,
+    input_buffer: Vec<app::Input>,
+    rng: R,
+}
+
+impl<R: Rng> TetrisApp<R> {
+    pub fn new(mut rng: R) -> Self {
+        let data = AppData::new(&mut rng);
+        let view = AppView::default();
+        let input_buffer = Vec::new();
+        Self {
+            data,
+            view,
+            input_buffer,
+            rng,
+        }
+    }
+}
+
+impl<R: Rng> app::App for TetrisApp<R> {
+    fn on_input(&mut self, input: app::Input) -> Option<app::ControlFlow> {
+        self.input_buffer.push(input);
+        None
+    }
+    fn on_frame<F, C>(
+        &mut self,
+        since_last_frame: app::Duration,
+        view_context: app::ViewContext<C>,
+        frame: &mut F,
+    ) -> Option<app::ControlFlow>
+    where
+        F: app::Frame,
+        C: app::ColModify,
+    {
+        self.data
+            .tick(self.input_buffer.drain(..), since_last_frame, &self.view, &mut self.rng)?;
+        self.view.view(&self.data, view_context, frame);
+        None
     }
 }

@@ -6,5 +6,6 @@ edition = "2018"
 
 [dependencies]
 tetris_prototty = { path = "../prototty" }
-prototty_graphical = { path = "../../../graphical" }
+prototty_graphical_ = { path = "../../../graphical_" }
 rand = "0.7"
+env_logger = "0.7"

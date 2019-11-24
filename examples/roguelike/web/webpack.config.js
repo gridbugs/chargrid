@@ -7,25 +7,24 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = (env, argv) => {
   return {
     entry: './index.js',
-      output: {
-        path: path.resolve(__dirname, 'dist'),
-        filename: 'index.js',
-        webassemblyModuleFilename: "app.wasm",
-      },
-      plugins: [
-        new HtmlWebpackPlugin({
-          template: './index.html'
-        }),
-        new WasmPackPlugin({
-          crateDirectory: path.resolve(__dirname, ".")
-        }),
-        // Required to work in Edge
-        new webpack.ProvidePlugin({
-          TextDecoder: ['text-encoding', 'TextDecoder'],
-          TextEncoder: ['text-encoding', 'TextEncoder']
-        }),
-        new CopyWebpackPlugin([{ from: "static_web" }]),
-      ],
-      mode: argv.mode,
+    output: {
+      path: path.resolve(__dirname, 'dist'),
+      filename: 'index.js',
+      webassemblyModuleFilename: "app.wasm",
+    },
+    plugins: [
+      new HtmlWebpackPlugin({
+        template: './index.html'
+      }),
+      new WasmPackPlugin({
+        crateDirectory: path.resolve(__dirname, ".")
+      }),
+      // Required to work in Edge
+      new webpack.ProvidePlugin({
+        TextDecoder: ['text-encoding', 'TextDecoder'],
+        TextEncoder: ['text-encoding', 'TextEncoder']
+      }),
+      new CopyWebpackPlugin([{ from: "static_web" }]),
+    ],
   }
 };

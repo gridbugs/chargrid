@@ -2,11 +2,13 @@
 
 members = [
     "prototty",
+    "app",
     "render",
     "decorator",
     "menu",
     "text",
     "graphical",
+    "graphical_",
     "ansi-terminal",
     "web",
     "storage",

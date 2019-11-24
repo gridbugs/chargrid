@@ -9,7 +9,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 prototty_web = { path = "../../../web" }
-roguelike_prototty = { path = "../prototty", features = ["wasm"]}
+prototty_storage = { path = "../../../storage" }
+roguelike_prototty = { path = "../prototty" }
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"
 wasm-logger = "0.2"

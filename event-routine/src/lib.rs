@@ -5,7 +5,9 @@ pub use prototty_render::{ColModify, Frame, View, ViewContext};
 use std::marker::PhantomData;
 use std::time::Duration;
 
+mod app;
 pub mod common_event;
+pub use app::*;
 
 pub enum Handled<R, C> {
     Return(R),
