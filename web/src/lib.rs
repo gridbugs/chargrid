@@ -3,6 +3,7 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
+use prototty_app::App;
 use prototty_audio::{AudioPlayer, AudioProperties};
 pub use prototty_event_routine;
 use prototty_event_routine::{common_event::CommonEvent, Event, EventRoutine, Handled};
@@ -217,14 +218,23 @@ impl Context {
         };
         self.run_event_handler(wasm_event_routine);
     }
-    pub fn run_event_handler<E>(self, event_handler: E)
+    pub fn run_event_handler<E>(self, app: E)
     where
         E: EventHandler + 'static,
     {
-        let event_handler = Rc::new(RefCell::new(event_handler));
+        let app = Rc::new(RefCell::new(app));
         let context = Rc::new(RefCell::new(self));
-        run_frame_handler(event_handler.clone(), context.clone());
-        run_input_handler(event_handler, context);
+        run_frame_handler(app.clone(), context.clone());
+        run_input_handler(app, context);
+    }
+    pub fn run_app<A>(self, app: A)
+    where
+        A: App + 'static,
+    {
+        let app = Rc::new(RefCell::new(app));
+        let context = Rc::new(RefCell::new(self));
+        run_app_frame(app.clone(), context.clone());
+        run_app_input(app, context);
     }
 }
 
@@ -352,7 +362,7 @@ pub trait EventHandler {
     fn on_frame(&mut self, since_last_frame: Duration, context: &mut Context);
 }
 
-fn run_frame_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, context: Rc<RefCell<Context>>) {
+fn run_frame_handler<E: EventHandler + 'static>(app: Rc<RefCell<E>>, context: Rc<RefCell<Context>>) {
     let window = web_sys::window().unwrap();
     let performance = window.performance().unwrap();
     let f: Rc<RefCell<Option<Closure<_>>>> = Rc::new(RefCell::new(None));
@@ -362,10 +372,42 @@ fn run_frame_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
         let frame_time_stamp = performance.now();
         let since_last_frame = frame_time_stamp - last_frame_time_stamp;
         last_frame_time_stamp = frame_time_stamp;
-        event_handler.borrow_mut().on_frame(
+        app.borrow_mut().on_frame(
             Duration::from_millis(since_last_frame as u64),
             &mut *context.borrow_mut(),
         );
+        window
+            .request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+            .unwrap();
+    }) as Box<dyn FnMut()>));
+    g.borrow()
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .unchecked_ref::<Function>()
+        .call0(&JsValue::NULL)
+        .unwrap();
+}
+
+fn run_app_frame<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Context>>) {
+    let window = web_sys::window().unwrap();
+    let performance = window.performance().unwrap();
+    let f: Rc<RefCell<Option<Closure<_>>>> = Rc::new(RefCell::new(None));
+    let g = f.clone();
+    let mut last_frame_time_stamp = performance.now();
+    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        let frame_time_stamp = performance.now();
+        let since_last_frame = frame_time_stamp - last_frame_time_stamp;
+        last_frame_time_stamp = frame_time_stamp;
+        let mut context = context.borrow_mut();
+        context.buffer.clear();
+        let view_context = ViewContext::default_with_size(context.buffer.size());
+        app.borrow_mut().on_frame(
+            Duration::from_millis(since_last_frame as u64),
+            view_context,
+            &mut context.buffer,
+        );
+        context.render_internal();
         window
             .request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref())
             .unwrap();
@@ -409,38 +451,38 @@ mod button {
     }
 }
 
-fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, context: Rc<RefCell<Context>>) {
+fn run_input_handler<E: EventHandler + 'static>(app: Rc<RefCell<E>>, context: Rc<RefCell<Context>>) {
     let window = web_sys::window().unwrap();
     let handle_keydown = {
-        let event_handler = event_handler.clone();
+        let app = app.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
             let keyboard_event = event.unchecked_ref::<KeyboardEvent>();
             if let Some(input) =
                 input::from_js_event_key_press(keyboard_event.key_code() as u8, keyboard_event.shift_key())
             {
-                event_handler.borrow_mut().on_input(input, &mut *context.borrow_mut());
+                app.borrow_mut().on_input(input, &mut *context.borrow_mut());
             }
         }) as Box<dyn FnMut(JsValue)>)
     };
     let handle_mouse_move = {
-        let event_handler = event_handler.clone();
+        let app = app.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let mut event_handler = event_handler.borrow_mut();
+            let mut app = app.borrow_mut();
             let mut context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let buttons = mouse_event.buttons();
             if buttons::has_none(buttons) {
-                event_handler.on_input(
+                app.on_input(
                     Input::Mouse(MouseInput::MouseMove { button: None, coord }),
                     &mut *context,
                 );
             }
             if buttons::has_left(buttons) {
-                event_handler.on_input(
+                app.on_input(
                     Input::Mouse(MouseInput::MouseMove {
                         button: Some(MouseButton::Left),
                         coord,
@@ -449,7 +491,7 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
                 );
             }
             if buttons::has_right(buttons) {
-                event_handler.on_input(
+                app.on_input(
                     Input::Mouse(MouseInput::MouseMove {
                         button: Some(MouseButton::Right),
                         coord,
@@ -458,7 +500,7 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
                 );
             }
             if buttons::has_middle(buttons) {
-                event_handler.on_input(
+                app.on_input(
                     Input::Mouse(MouseInput::MouseMove {
                         button: Some(MouseButton::Middle),
                         coord,
@@ -469,32 +511,32 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
         }) as Box<dyn FnMut(JsValue)>)
     };
     let handle_mouse_down = {
-        let event_handler = event_handler.clone();
+        let app = app.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let mut event_handler = event_handler.borrow_mut();
+            let mut app = app.borrow_mut();
             let mut context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
             if let Some(button) = button::to_mouse_button(button) {
-                event_handler.on_input(Input::Mouse(MouseInput::MousePress { button, coord }), &mut *context);
+                app.on_input(Input::Mouse(MouseInput::MousePress { button, coord }), &mut *context);
             }
         }) as Box<dyn FnMut(JsValue)>)
     };
     let handle_mouse_up = {
-        let event_handler = event_handler.clone();
+        let app = app.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let mut event_handler = event_handler.borrow_mut();
+            let mut app = app.borrow_mut();
             let mut context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
             if let Some(button) = button::to_mouse_button(button) {
-                event_handler.on_input(
+                app.on_input(
                     Input::Mouse(MouseInput::MouseRelease {
                         button: Ok(button),
                         coord,
@@ -506,12 +548,12 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
     };
     let handle_wheel = Closure::wrap(Box::new(move |event: JsValue| {
         let mut context = context.borrow_mut();
-        let mut event_handler = event_handler.borrow_mut();
+        let mut app = app.borrow_mut();
         let element_display_info = context.element_display_info();
         let wheel_event = event.unchecked_ref::<WheelEvent>();
         let coord = element_display_info.mouse_coord(wheel_event.client_x(), wheel_event.client_y());
         if wheel_event.delta_x() < 0. {
-            event_handler.on_input(
+            app.on_input(
                 Input::Mouse(MouseInput::MouseScroll {
                     direction: ScrollDirection::Left,
                     coord,
@@ -519,7 +561,7 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
                 &mut *context,
             );
         } else if wheel_event.delta_x() > 0. {
-            event_handler.on_input(
+            app.on_input(
                 Input::Mouse(MouseInput::MouseScroll {
                     direction: ScrollDirection::Right,
                     coord,
@@ -528,7 +570,7 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
             );
         }
         if wheel_event.delta_y() < 0. {
-            event_handler.on_input(
+            app.on_input(
                 Input::Mouse(MouseInput::MouseScroll {
                     direction: ScrollDirection::Up,
                     coord,
@@ -536,13 +578,143 @@ fn run_input_handler<E: EventHandler + 'static>(event_handler: Rc<RefCell<E>>, c
                 &mut *context,
             );
         } else if wheel_event.delta_y() > 0. {
-            event_handler.on_input(
+            app.on_input(
                 Input::Mouse(MouseInput::MouseScroll {
                     direction: ScrollDirection::Down,
                     coord,
                 }),
                 &mut *context,
             );
+        }
+    }) as Box<dyn FnMut(JsValue)>);
+    window
+        .add_event_listener_with_callback("keydown", handle_keydown.as_ref().unchecked_ref())
+        .unwrap();
+    window
+        .add_event_listener_with_callback("mousemove", handle_mouse_move.as_ref().unchecked_ref())
+        .unwrap();
+    window
+        .add_event_listener_with_callback("mousedown", handle_mouse_down.as_ref().unchecked_ref())
+        .unwrap();
+    window
+        .add_event_listener_with_callback("mouseup", handle_mouse_up.as_ref().unchecked_ref())
+        .unwrap();
+    window
+        .add_event_listener_with_callback("wheel", handle_wheel.as_ref().unchecked_ref())
+        .unwrap();
+    handle_keydown.forget();
+    handle_mouse_move.forget();
+    handle_mouse_down.forget();
+    handle_mouse_up.forget();
+    handle_wheel.forget();
+}
+
+fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Context>>) {
+    let window = web_sys::window().unwrap();
+    let handle_keydown = {
+        let app = app.clone();
+        Closure::wrap(Box::new(move |event: JsValue| {
+            let keyboard_event = event.unchecked_ref::<KeyboardEvent>();
+            if let Some(input) =
+                input::from_js_event_key_press(keyboard_event.key_code() as u8, keyboard_event.shift_key())
+            {
+                app.borrow_mut().on_input(input);
+            }
+        }) as Box<dyn FnMut(JsValue)>)
+    };
+    let handle_mouse_move = {
+        let app = app.clone();
+        let context = context.clone();
+        Closure::wrap(Box::new(move |event: JsValue| {
+            let mut app = app.borrow_mut();
+            let context = context.borrow_mut();
+            let element_display_info = context.element_display_info();
+            let mouse_event = event.unchecked_ref::<MouseEvent>();
+            let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
+            let buttons = mouse_event.buttons();
+            if buttons::has_none(buttons) {
+                app.on_input(Input::Mouse(MouseInput::MouseMove { button: None, coord }));
+            }
+            if buttons::has_left(buttons) {
+                app.on_input(Input::Mouse(MouseInput::MouseMove {
+                    button: Some(MouseButton::Left),
+                    coord,
+                }));
+            }
+            if buttons::has_right(buttons) {
+                app.on_input(Input::Mouse(MouseInput::MouseMove {
+                    button: Some(MouseButton::Right),
+                    coord,
+                }));
+            }
+            if buttons::has_middle(buttons) {
+                app.on_input(Input::Mouse(MouseInput::MouseMove {
+                    button: Some(MouseButton::Middle),
+                    coord,
+                }));
+            }
+        }) as Box<dyn FnMut(JsValue)>)
+    };
+    let handle_mouse_down = {
+        let app = app.clone();
+        let context = context.clone();
+        Closure::wrap(Box::new(move |event: JsValue| {
+            let mut app = app.borrow_mut();
+            let context = context.borrow_mut();
+            let element_display_info = context.element_display_info();
+            let mouse_event = event.unchecked_ref::<MouseEvent>();
+            let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
+            let button = mouse_event.button();
+            if let Some(button) = button::to_mouse_button(button) {
+                app.on_input(Input::Mouse(MouseInput::MousePress { button, coord }));
+            }
+        }) as Box<dyn FnMut(JsValue)>)
+    };
+    let handle_mouse_up = {
+        let app = app.clone();
+        let context = context.clone();
+        Closure::wrap(Box::new(move |event: JsValue| {
+            let mut app = app.borrow_mut();
+            let context = context.borrow_mut();
+            let element_display_info = context.element_display_info();
+            let mouse_event = event.unchecked_ref::<MouseEvent>();
+            let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
+            let button = mouse_event.button();
+            if let Some(button) = button::to_mouse_button(button) {
+                app.on_input(Input::Mouse(MouseInput::MouseRelease {
+                    button: Ok(button),
+                    coord,
+                }));
+            }
+        }) as Box<dyn FnMut(JsValue)>)
+    };
+    let handle_wheel = Closure::wrap(Box::new(move |event: JsValue| {
+        let context = context.borrow_mut();
+        let mut app = app.borrow_mut();
+        let element_display_info = context.element_display_info();
+        let wheel_event = event.unchecked_ref::<WheelEvent>();
+        let coord = element_display_info.mouse_coord(wheel_event.client_x(), wheel_event.client_y());
+        if wheel_event.delta_x() < 0. {
+            app.on_input(Input::Mouse(MouseInput::MouseScroll {
+                direction: ScrollDirection::Left,
+                coord,
+            }));
+        } else if wheel_event.delta_x() > 0. {
+            app.on_input(Input::Mouse(MouseInput::MouseScroll {
+                direction: ScrollDirection::Right,
+                coord,
+            }));
+        }
+        if wheel_event.delta_y() < 0. {
+            app.on_input(Input::Mouse(MouseInput::MouseScroll {
+                direction: ScrollDirection::Up,
+                coord,
+            }));
+        } else if wheel_event.delta_y() > 0. {
+            app.on_input(Input::Mouse(MouseInput::MouseScroll {
+                direction: ScrollDirection::Down,
+                coord,
+            }));
         }
     }) as Box<dyn FnMut(JsValue)>);
     window

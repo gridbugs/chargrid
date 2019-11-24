@@ -14,6 +14,7 @@ edition = "2018"
 serialize = ["prototty_render/serialize", "prototty_input/serialize"]
 
 [dependencies]
+prototty_app = { path = "../app", version = "0.27" }
 prototty_input = { path = "../input", version = "0.27" }
 prototty_render = { path = "../render", version = "0.27" }
 prototty_event_routine = { path = "../event-routine", version = "0.27" }
@@ -24,6 +25,7 @@ js-sys = "0.3"
 grid_2d = "0.14"
 serde_json = "1.0"
 base64 = "0.11"
+log = "0.4"
 
 [dependencies.web-sys]
 version = "0.3"

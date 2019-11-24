@@ -19,6 +19,7 @@ prototty_render = { path = "../render", version = "0.27" }
 prototty_input = { path = "../input", version = "0.27" }
 prototty_event_routine = { path = "../event-routine", version = "0.27" }
 prototty_file_storage = { path = "../file-storage", version = "0.27", optional = true }
+prototty_app = { path = "../app", version = "0.27" }
 libc = "0.2"
 term = "0.6"
 

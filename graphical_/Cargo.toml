@@ -15,3 +15,5 @@ prototty_app = { path = "../app", version = "0.27" }
 wgpu = "0.4"
 wgpu_glyph = "0.5"
 winit = "0.20.0-alpha4"
+zerocopy = "0.2"
+log = "0.4"

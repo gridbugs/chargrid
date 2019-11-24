@@ -1,10 +1,13 @@
 use crate::error::*;
 use crate::terminal::*;
+use prototty_app::{App, ControlFlow};
 use prototty_event_routine::{Event, EventRoutine, Handled};
 use prototty_input::*;
 use prototty_render::*;
 use std::thread;
 use std::time::{Duration, Instant};
+
+const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 
 /// An interface to a terminal for rendering `View`s, and getting input.
 pub struct Context {
@@ -53,6 +56,29 @@ impl Context {
     /// case this method returns `None`.
     pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
         self.terminal.wait_input_timeout(timeout)
+    }
+
+    pub fn run_app<A, E>(mut self, mut app: A, col_encode: E)
+    where
+        A: App + 'static,
+        E: ColEncode,
+    {
+        let _ = col_encode;
+        loop {
+            for input in self.drain_input().unwrap() {
+                if let Some(ControlFlow::Exit) = app.on_input(input) {
+                    return;
+                }
+            }
+            self.resize_if_necessary().unwrap();
+            self.buffer.clear();
+            let view_context = ViewContext::default_with_size(self.size().unwrap());
+            if let Some(ControlFlow::Exit) = app.on_frame(FRAME_DURATION, view_context, &mut self.buffer) {
+                return;
+            }
+            self.terminal.draw_frame::<E>(&mut self.buffer).unwrap();
+            thread::sleep(FRAME_DURATION);
+        }
     }
 
     fn render_internal<E>(&mut self, col_encode: E) -> Result<()>

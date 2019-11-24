@@ -1,8 +1,7 @@
-use prototty_ansi_terminal::{col_encode, ColEncode, Context, EventRoutineRunner};
+use prototty_ansi_terminal::{col_encode, Context};
 use prototty_native_audio::NativeAudioPlayer;
-use roguelike_native::{simon::*, FileStorage, NativeCommon};
-use roguelike_prototty::{event_routine, AppData, AppView, Frontend};
-use std::time::Duration;
+use roguelike_native::{simon::*, NativeCommon};
+use roguelike_prototty::{app, Frontend};
 
 #[derive(Clone)]
 enum ColEncodeChoice {
@@ -23,19 +22,6 @@ impl ColEncodeChoice {
         })
         .with_default(Rgb)
     }
-}
-
-fn run<E>(
-    mut runner: EventRoutineRunner,
-    mut app_data: AppData<FileStorage, NativeAudioPlayer>,
-    mut app_view: AppView,
-    col_encode: E,
-) where
-    E: ColEncode,
-{
-    runner
-        .run(event_routine(), &mut app_data, &mut app_view, col_encode)
-        .unwrap()
 }
 
 struct Args {
@@ -68,9 +54,9 @@ fn main() {
             },
         col_encode_choice,
     } = Args::arg().with_help_default().parse_env_or_exit();
-    let runner = Context::new().unwrap().into_runner(Duration::from_millis(16));
+    let context = Context::new().unwrap();
     let audio_player = NativeAudioPlayer::new_default_device();
-    let app_data = AppData::new(
+    let app = app(
         Frontend::Native,
         controls,
         file_storage,
@@ -78,12 +64,11 @@ fn main() {
         audio_player,
         rng_seed,
     );
-    let app_view = AppView::new();
-    use ColEncodeChoice::*;
+    use ColEncodeChoice as C;
     match col_encode_choice {
-        TrueColour => run(runner, app_data, app_view, col_encode::XtermTrueColour),
-        Rgb => run(runner, app_data, app_view, col_encode::FromTermInfoRgb),
-        Greyscale => run(runner, app_data, app_view, col_encode::FromTermInfoGreyscale),
-        Ansi => run(runner, app_data, app_view, col_encode::FromTermInfoAnsi16Colour),
+        C::TrueColour => context.run_app(app, col_encode::XtermTrueColour),
+        C::Rgb => context.run_app(app, col_encode::FromTermInfoRgb),
+        C::Greyscale => context.run_app(app, col_encode::FromTermInfoGreyscale),
+        C::Ansi => context.run_app(app, col_encode::FromTermInfoAnsi16Colour),
     }
 }

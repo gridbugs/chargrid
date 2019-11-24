@@ -509,3 +509,16 @@ pub fn event_routine<S: Storage, A: AudioPlayer>(
             .return_on_exit(|_| ()),
     )
 }
+
+pub fn app<S: Storage, A: AudioPlayer>(
+    frontend: Frontend,
+    controls: Controls,
+    storage: S,
+    save_key: String,
+    audio_player: A,
+    rng_seed: RngSeed,
+) -> impl app::App {
+    let app_data = AppData::new(frontend, controls, storage, save_key, audio_player, rng_seed);
+    let app_view = AppView::new();
+    event_routine().app_one_shot_ignore_return(app_data, app_view)
+}

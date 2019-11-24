@@ -148,6 +148,14 @@ pub trait EventRoutine: Sized {
         common_event::ConvertInputToCommonEvent(self)
     }
 
+    fn app_one_shot_ignore_return(
+        self,
+        data: Self::Data,
+        view: Self::View,
+    ) -> EventRoutineAppOneShotIgnoreReturn<Self> {
+        EventRoutineAppOneShotIgnoreReturn::new(self, data, view)
+    }
+
     fn return_on_exit<F>(self, f: F) -> common_event::ReturnOnExit<Self, F>
     where
         F: FnOnce(&mut Self::Data) -> Self::Return,

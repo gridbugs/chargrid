@@ -382,9 +382,14 @@ impl<R: Rng> app::App for TetrisApp<R> {
         F: app::Frame,
         C: app::ColModify,
     {
-        self.data
-            .tick(self.input_buffer.drain(..), since_last_frame, &self.view, &mut self.rng)?;
-        self.view.view(&self.data, view_context, frame);
-        None
+        if let Some(control_flow) =
+            self.data
+                .tick(self.input_buffer.drain(..), since_last_frame, &self.view, &mut self.rng)
+        {
+            Some(control_flow)
+        } else {
+            self.view.view(&self.data, view_context, frame);
+            None
+        }
     }
 }

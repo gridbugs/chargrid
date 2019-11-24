@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
+[features]
+wasm = ["rand/wasm-bindgen"]
+
 [dependencies]
 prototty = { path = "../../../prototty", features = ["serialize"] }
 prototty_storage = { path = "../../../storage", features = ["bincode"] }

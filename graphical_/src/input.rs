@@ -1,3 +1,4 @@
+use crate::Dimensions;
 use prototty_input::{
     keys, Input, KeyboardInput, MouseButton as ProtottyMouseButton, MouseButton, MouseInput, ScrollDirection,
 };
@@ -7,10 +8,9 @@ use winit::event::{
     ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent,
 };
 
-pub enum InputEvent {
+pub enum Event {
     Input(Input),
     Resize(LogicalSize),
-    Quit,
 }
 
 macro_rules! convert_char_shift {
@@ -126,18 +126,18 @@ fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input
 
 pub fn convert_event(
     event: WindowEvent,
-    (cell_width, cell_height): (f32, f32),
+    cell_dimensions: Dimensions<f64>,
     last_mouse_coord: &mut Coord,
     last_mouse_button: &mut Option<MouseButton>,
-) -> Option<InputEvent> {
+) -> Option<Event> {
     match event {
-        WindowEvent::CloseRequested => Some(InputEvent::Quit),
-        WindowEvent::Resized(logical_size) => Some(InputEvent::Resize(logical_size)),
+        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(prototty_input::keys::ETX))),
+        WindowEvent::Resized(logical_size) => Some(Event::Resize(logical_size)),
         WindowEvent::KeyboardInput { input, .. } => {
             if let ElementState::Pressed = input.state {
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     if let Some(input) = convert_keycode(virtual_keycode, input.modifiers) {
-                        return Some(InputEvent::Input(input));
+                        return Some(Event::Input(input));
                     }
                 }
             }
@@ -147,11 +147,11 @@ pub fn convert_event(
             position: LogicalPosition { x, y },
             ..
         } => {
-            let x = (x / (cell_width as f64)) as i32;
-            let y = (y / (cell_height as f64)) as i32;
+            let x = (x / cell_dimensions.width) as i32;
+            let y = (y / cell_dimensions.height) as i32;
             let coord = Coord::new(x, y);
             *last_mouse_coord = coord;
-            Some(InputEvent::Input(Input::Mouse(MouseInput::MouseMove {
+            Some(Event::Input(Input::Mouse(MouseInput::MouseMove {
                 coord,
                 button: *last_mouse_button,
             })))
@@ -179,7 +179,7 @@ pub fn convert_event(
                     })
                 }
             };
-            Some(InputEvent::Input(input))
+            Some(Event::Input(input))
         }
         WindowEvent::MouseWheel { delta, .. } => {
             let (x, y) = match delta {
@@ -197,7 +197,7 @@ pub fn convert_event(
             } else {
                 return None;
             };
-            Some(InputEvent::Input(Input::Mouse(MouseInput::MouseScroll {
+            Some(Event::Input(Input::Mouse(MouseInput::MouseScroll {
                 direction,
                 coord: *last_mouse_coord,
             })))

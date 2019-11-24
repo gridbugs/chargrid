@@ -1,16 +1,29 @@
 use crate::{common_event::CommonEvent, Event, EventRoutine, Handled};
 use prototty_app::{App, ColModify, ControlFlow, Duration, Frame, Input, ViewContext};
 
-pub struct EventRoutineOneShotIgnoreReturn<ER>
+pub struct EventRoutineAppOneShotIgnoreReturn<ER>
 where
-    ER: EventRoutine<Event = CommonEvent>,
+    ER: EventRoutine,
 {
     event_routine: Option<ER>,
     data: ER::Data,
     view: ER::View,
 }
 
-impl<ER> App for EventRoutineOneShotIgnoreReturn<ER>
+impl<ER> EventRoutineAppOneShotIgnoreReturn<ER>
+where
+    ER: EventRoutine,
+{
+    pub fn new(event_routine: ER, data: ER::Data, view: ER::View) -> Self {
+        Self {
+            event_routine: Some(event_routine),
+            data,
+            view,
+        }
+    }
+}
+
+impl<ER> App for EventRoutineAppOneShotIgnoreReturn<ER>
 where
     ER: EventRoutine<Event = CommonEvent>,
 {
