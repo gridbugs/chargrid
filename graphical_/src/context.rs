@@ -60,15 +60,18 @@ pub enum ContextBuildError {
 
 struct WgpuContext {
     device: wgpu::Device,
+    sc_desc: wgpu::SwapChainDescriptor,
+    surface: wgpu::Surface,
     swap_chain: wgpu::SwapChain,
     render_pipeline: wgpu::RenderPipeline,
     background_cell_instance_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     queue: wgpu::Queue,
-    num_background_cell_instances: u32,
     background_cell_instance_data: Grid<BackgroundCellInstance>,
     render_buffer: prototty_render::Buffer,
     glyph_brush: wgpu_glyph::GlyphBrush<'static, ()>,
+    global_uniforms_buffer: wgpu::Buffer,
+    window_size: winit::dpi::LogicalSize,
 }
 
 #[repr(C)]
@@ -118,14 +121,15 @@ impl WgpuContext {
     fn new(
         window: &winit::window::Window,
         size_context: &SizeContext,
+        grid_size: Size,
         font_bytes: FontBytes,
     ) -> Result<Self, ContextBuildError> {
         use std::mem;
-        let num_background_cell_instances = size_context.grid_size.count() as u32;
-        let background_cell_instance_data = Grid::new_default(size_context.grid_size);
-        let render_buffer = prototty_render::Buffer::new(size_context.grid_size);
-        let logical_size = window.inner_size();
-        let physical_size = logical_size.to_physical(window.hidpi_factor());
+        let num_background_cell_instances = grid_size.count() as u32;
+        let background_cell_instance_data = Grid::new_default(grid_size);
+        let render_buffer = prototty_render::Buffer::new(grid_size);
+        let window_size = window.inner_size();
+        let physical_size = window_size.to_physical(window.hidpi_factor());
         let surface = wgpu::Surface::create(window);
         let adapter = wgpu::Adapter::request(
             &wgpu::RequestAdapterOptions {
@@ -154,15 +158,9 @@ impl WgpuContext {
             .create_buffer_mapped(num_background_cell_instances as usize, wgpu::BufferUsage::VERTEX)
             .fill_from_slice(background_cell_instance_data.raw());
         let global_uniforms_size = mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress;
-        let global_uniforms = GlobalUniforms {
-            grid_width: size_context.grid_size.width(),
-            cell_size_relative_to_window: [
-                size_context.cell_dimensions.width as f32 / (logical_size.width as f32 / 2.),
-                size_context.cell_dimensions.height as f32 / (logical_size.height as f32 / 2.),
-            ],
-        };
+        let global_uniforms = size_context.global_uniforms(window_size, grid_size);
         let global_uniforms_buffer = device
-            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM)
+            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
             .fill_from_slice(&[global_uniforms]);
         let underline_uniforms_size = mem::size_of::<UnderlineUniforms>() as wgpu::BufferAddress;
         let underline_uniforms = UnderlineUniforms {
@@ -263,15 +261,18 @@ impl WgpuContext {
             .build(&mut device, wgpu::TextureFormat::Bgra8UnormSrgb);
         Ok(Self {
             device,
+            sc_desc,
+            surface,
             swap_chain,
             render_pipeline,
             background_cell_instance_buffer,
             bind_group,
             queue,
-            num_background_cell_instances,
             background_cell_instance_data,
             render_buffer,
             glyph_brush,
+            global_uniforms_buffer,
+            window_size,
         })
     }
     fn render_background(&mut self) {
@@ -286,8 +287,47 @@ impl WgpuContext {
         }
         self.background_cell_instance_buffer = self
             .device
-            .create_buffer_mapped(self.num_background_cell_instances as usize, wgpu::BufferUsage::VERTEX)
+            .create_buffer_mapped(self.render_buffer.size().count(), wgpu::BufferUsage::VERTEX)
             .fill_from_slice(self.background_cell_instance_data.raw());
+    }
+
+    fn resize(
+        &mut self,
+        size_context: &SizeContext,
+        window_size: winit::dpi::LogicalSize,
+        window: &winit::window::Window,
+    ) {
+        use std::mem;
+        let physical_size = window_size.to_physical(window.hidpi_factor());
+        log::info!("resizing to {:?}", window_size);
+        let grid_size = size_context.grid_size(window_size);
+        log::info!("grid size: {:?}", grid_size);
+        self.window_size = window_size;
+        self.render_buffer = prototty_render::Buffer::new(grid_size);
+        self.background_cell_instance_data = Grid::new_default(grid_size);
+        self.sc_desc.width = physical_size.width.round() as u32;
+        self.sc_desc.height = physical_size.height.round() as u32;
+        self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
+        self.background_cell_instance_buffer = self
+            .device
+            .create_buffer_mapped(self.render_buffer.size().count(), wgpu::BufferUsage::VERTEX)
+            .fill_from_slice(self.background_cell_instance_data.raw());
+        let global_uniforms = size_context.global_uniforms(window_size, grid_size);
+        let temp_buffer = self
+            .device
+            .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&[global_uniforms]);
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+        encoder.copy_buffer_to_buffer(
+            &temp_buffer,
+            0,
+            &self.global_uniforms_buffer,
+            0,
+            mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress,
+        );
+        self.queue.submit(&[encoder.finish()]);
     }
 }
 
@@ -311,7 +351,28 @@ struct SizeContext {
     cell_dimensions: Dimensions<NumPixels>,
     underline_width: NumPixels,
     underline_top_offset: NumPixels,
-    grid_size: Size,
+}
+
+impl SizeContext {
+    fn grid_size(&self, window_size: winit::dpi::LogicalSize) -> Size {
+        let width = (window_size.width / self.cell_dimensions.width).floor();
+        let height = (window_size.height / self.cell_dimensions.height).floor();
+        Size::new(width as u32, height as u32)
+    }
+    fn global_uniforms(&self, window_size: winit::dpi::LogicalSize, grid_size: Size) -> GlobalUniforms {
+        log::info!(
+            "window_size {:?}\nrelative_size {:?}",
+            window_size,
+            self.cell_dimensions.width as f32 / (window_size.width as f32 / 2.)
+        );
+        GlobalUniforms {
+            cell_size_relative_to_window: [
+                self.cell_dimensions.width as f32 / (window_size.width as f32 / 2.),
+                self.cell_dimensions.height as f32 / (window_size.height as f32 / 2.),
+            ],
+            grid_width: grid_size.width(),
+        }
+    }
 }
 
 pub struct Context {
@@ -323,11 +384,6 @@ pub struct Context {
 }
 
 impl Context {
-    fn grid_size(window_size: winit::dpi::LogicalSize, cell_dimensions: Dimensions<NumPixels>) -> Size {
-        let width = (window_size.width / cell_dimensions.width).ceil();
-        let height = (window_size.height / cell_dimensions.height).ceil();
-        Size::new(width as u32, height as u32)
-    }
     pub fn new(
         ContextDescription {
             font_bytes,
@@ -354,18 +410,17 @@ impl Context {
         let window = window_builder
             .build(&event_loop)
             .map_err(ContextBuildError::FailedToBuildWindow)?;
-        let grid_size = Self::grid_size(window.inner_size(), cell_dimensions);
         let size_context = SizeContext {
             font_scale: wgpu_glyph::Scale {
                 x: font_dimensions.width as f32,
                 y: font_dimensions.height as f32,
             },
             cell_dimensions,
-            grid_size,
             underline_width,
             underline_top_offset,
         };
-        let wgpu_context = WgpuContext::new(&window, &size_context, font_bytes)?;
+        let grid_size = size_context.grid_size(window.inner_size());
+        let wgpu_context = WgpuContext::new(&window, &size_context, grid_size, font_bytes)?;
         log::info!("grid size: {:?}", grid_size);
         Ok(Context {
             event_loop,
@@ -406,7 +461,7 @@ impl Context {
                                 }
                             }
                             input::Event::Resize(size) => {
-                                log::warn!("resize not implemented (target size: {:?})", size)
+                                wgpu_context.resize(&size_context, size, &window);
                             }
                         }
                     }
@@ -414,7 +469,7 @@ impl Context {
                 winit::event::Event::EventsCleared => {
                     let frame_duration = frame_instant.elapsed();
                     frame_instant = Instant::now();
-                    let view_context = ViewContext::default_with_size(size_context.grid_size);
+                    let view_context = ViewContext::default_with_size(wgpu_context.render_buffer.size());
                     wgpu_context.render_buffer.clear();
                     if let Some(ControlFlow::Exit) =
                         app.on_frame(frame_duration, view_context, &mut wgpu_context.render_buffer)
@@ -433,17 +488,16 @@ impl Context {
                                     resolve_target: None,
                                     load_op: wgpu::LoadOp::Clear,
                                     store_op: wgpu::StoreOp::Store,
-                                    clear_color: wgpu::Color::GREEN,
+                                    clear_color: wgpu::Color::BLACK,
                                 }],
                                 depth_stencil_attachment: None,
                             });
                             render_pass.set_pipeline(&wgpu_context.render_pipeline);
                             render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
                             render_pass.set_vertex_buffers(0, &[(&wgpu_context.background_cell_instance_buffer, 0)]);
-                            render_pass.draw(0..6, 0..wgpu_context.num_background_cell_instances);
+                            render_pass.draw(0..6, 0..wgpu_context.render_buffer.size().count() as u32);
                         }
                         let mut buf: [u8; 4] = [0; 4];
-                        let size = window.inner_size();
                         for (coord, cell) in wgpu_context.render_buffer.enumerate() {
                             if cell.character == ' ' && !cell.underline {
                                 continue;
@@ -471,8 +525,8 @@ impl Context {
                                 &mut wgpu_context.device,
                                 &mut encoder,
                                 &frame.view,
-                                size.width as u32,
-                                size.height as u32,
+                                wgpu_context.window_size.width as u32,
+                                wgpu_context.window_size.height as u32,
                             )
                             .unwrap();
                         wgpu_context.queue.submit(&[encoder.finish()]);
