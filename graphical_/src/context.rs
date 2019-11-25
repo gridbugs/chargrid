@@ -10,7 +10,19 @@ pub struct FontBytes {
     pub bold: Vec<u8>,
 }
 
-#[derive(Clone, Copy)]
+impl FontBytes {
+    fn into_fonts(self) -> Vec<wgpu_glyph::SharedBytes<'static>> {
+        vec![
+            wgpu_glyph::SharedBytes::ByArc(self.normal.into()),
+            wgpu_glyph::SharedBytes::ByArc(self.bold.into()),
+        ]
+    }
+}
+
+const FONT_ID_NORMAL: wgpu_glyph::FontId = wgpu_glyph::FontId(0);
+const FONT_ID_BOLD: wgpu_glyph::FontId = wgpu_glyph::FontId(1);
+
+#[derive(Clone, Copy, Debug)]
 pub struct Dimensions<T> {
     pub width: T,
     pub height: T,
@@ -35,112 +47,20 @@ pub enum WindowDimensions {
     Fullscreen,
 }
 
-pub mod defaults {
-    use super::{Dimensions, NumPixels, WindowDimensions};
-    pub const CELL_DIMENSIONS: Dimensions<NumPixels> = Dimensions {
-        width: 16.,
-        height: 16.,
-    };
-    pub const FONT_DIMENSIONS: Dimensions<NumPixels> = Dimensions {
-        width: 16.,
-        height: 16.,
-    };
-    pub const WINDOW_DIMENSINOS: WindowDimensions = WindowDimensions::Windowed(Dimensions {
-        width: 640.,
-        height: 480.,
-    });
-    pub const UNDERLINE_WIDTH: NumPixels = 2.;
-    pub const UNDERLINE_BOTTOM_OFFSET: NumPixels = 2.;
-}
-
-pub struct ContextBuilder {
-    font_bytes: FontBytes,
-    window_builder: winit::window::WindowBuilder,
-    cell_dimensions: Dimensions<NumPixels>,
-    font_dimensions: Dimensions<NumPixels>,
-    underline_width: NumPixels,
-    underline_bottom_offset: NumPixels,
+pub struct ContextDescription {
+    pub font_bytes: FontBytes,
+    pub title: String,
+    pub window_dimensions: WindowDimensions,
+    pub cell_dimensions: Dimensions<NumPixels>,
+    pub font_dimensions: Dimensions<NumPixels>,
+    pub underline_width: NumPixels,
+    pub underline_bottom_offset: NumPixels,
 }
 
 #[derive(Debug)]
 pub enum ContextBuildError {
     FailedToBuildWindow(winit::error::OsError),
     FailedToRequestGraphicsAdapter,
-}
-
-impl ContextBuilder {
-    pub fn new_with_font_bytes(font_bytes: FontBytes) -> Self {
-        Self {
-            font_bytes,
-            window_builder: winit::window::WindowBuilder::new(),
-            cell_dimensions: defaults::CELL_DIMENSIONS,
-            font_dimensions: defaults::FONT_DIMENSIONS,
-            underline_width: defaults::UNDERLINE_WIDTH,
-            underline_bottom_offset: defaults::UNDERLINE_BOTTOM_OFFSET,
-        }
-    }
-    pub fn with_title(self, title: &str) -> Self {
-        Self {
-            window_builder: self.window_builder.with_title(title),
-            ..self
-        }
-    }
-    pub fn with_cell_dimensions(self, cell_dimensions: Dimensions<NumPixels>) -> Self {
-        Self {
-            cell_dimensions,
-            ..self
-        }
-    }
-    pub fn with_font_dimensions(self, font_dimensions: Dimensions<NumPixels>) -> Self {
-        Self {
-            font_dimensions,
-            ..self
-        }
-    }
-    pub fn with_window_dimensions(self, window_dimensions: WindowDimensions) -> Self {
-        let window_builder = match window_dimensions {
-            WindowDimensions::Fullscreen => self.window_builder.with_fullscreen(None),
-            WindowDimensions::Windowed(dimensions) => {
-                let logical_size = dimensions.to_logical_size();
-                self.window_builder
-                    .with_inner_size(logical_size)
-                    .with_min_inner_size(logical_size)
-                    .with_max_inner_size(logical_size)
-            }
-        };
-        Self { window_builder, ..self }
-    }
-    pub fn with_underline_width(self, underline_width: NumPixels) -> Self {
-        Self {
-            underline_width,
-            ..self
-        }
-    }
-    pub fn with_underline_bottom_offset(self, underline_bottom_offset: NumPixels) -> Self {
-        Self {
-            underline_bottom_offset,
-            ..self
-        }
-    }
-    pub fn build(self) -> Result<Context, ContextBuildError> {
-        let event_loop = winit::event_loop::EventLoop::new();
-        let window = self
-            .window_builder
-            .build(&event_loop)
-            .map_err(ContextBuildError::FailedToBuildWindow)?;
-        let grid_size = Size::new(24, 16);
-        let wgpu_context = WgpuContext::new(&window, grid_size)?;
-        Ok(Context {
-            event_loop,
-            window,
-            wgpu_context,
-            size_context: SizeContext {
-                cell_dimensions: self.cell_dimensions,
-                grid_size,
-            },
-            input_context: Default::default(),
-        })
-    }
 }
 
 struct WgpuContext {
@@ -154,6 +74,7 @@ struct WgpuContext {
     num_background_cell_instances: u32,
     background_cell_instance_data: Grid<BackgroundCellInstance>,
     render_buffer: prototty_render::Buffer,
+    glyph_brush: wgpu_glyph::GlyphBrush<'static, ()>,
 }
 
 #[repr(C)]
@@ -191,27 +112,16 @@ impl WgpuContext {
         assert!(chunks.remainder().is_empty());
         buffer
     }
-    fn copy_global_uniforms(&mut self) {
-        let global_uniforms = GlobalUniforms {
-            grid_width: 16,
-            cell_size_relative_to_window: [0.1, 0.1],
-        };
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
-        let temp_buf = self
-            .device
-            .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(&[global_uniforms]);
-        encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.global_uniform_buffer, 0, 12);
-        encoder.finish();
-    }
-    fn new(window: &winit::window::Window, grid_size: Size) -> Result<Self, ContextBuildError> {
+    fn new(
+        window: &winit::window::Window,
+        size_context: &SizeContext,
+        font_bytes: FontBytes,
+    ) -> Result<Self, ContextBuildError> {
         use std::iter;
         use std::mem;
-        let num_background_cell_instances = grid_size.count() as u32;
-        let background_cell_instance_data = Grid::new_default(grid_size);
-        let render_buffer = prototty_render::Buffer::new(grid_size);
+        let num_background_cell_instances = size_context.grid_size.count() as u32;
+        let background_cell_instance_data = Grid::new_default(size_context.grid_size);
+        let render_buffer = prototty_render::Buffer::new(size_context.grid_size);
         let logical_size = window.inner_size();
         let physical_size = logical_size.to_physical(window.hidpi_factor());
         let surface = wgpu::Surface::create(window);
@@ -222,7 +132,7 @@ impl WgpuContext {
             wgpu::BackendBit::PRIMARY,
         )
         .ok_or(ContextBuildError::FailedToRequestGraphicsAdapter)?;
-        let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
+        let (mut device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
             extensions: wgpu::Extensions {
                 anisotropic_filtering: false,
             },
@@ -243,29 +153,12 @@ impl WgpuContext {
             .fill_from_slice(background_cell_instance_data.raw());
         let global_uniforms_size = mem::size_of::<GlobalUniforms>() as u64;
         let global_uniforms = GlobalUniforms {
-            grid_width: grid_size.width(),
+            grid_width: size_context.grid_size.width(),
             cell_size_relative_to_window: [
-                32. / (logical_size.width as f32 / 2.),
-                48. / (logical_size.height as f32 / 2.),
+                size_context.cell_dimensions.width as f32 / (logical_size.width as f32 / 2.),
+                size_context.cell_dimensions.height as f32 / (logical_size.height as f32 / 2.),
             ],
         };
-        log::info!("global uniforms: {:?}", global_uniforms);
-        assert!(global_uniforms_size == 12);
-        /*
-        let global_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            size: global_uniforms_size,
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        }); */
-        /*
-        {
-            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
-            let temp_buf = device
-                .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-                .fill_from_slice(&[global_uniforms]);
-            encoder.copy_buffer_to_buffer(&temp_buf, 0, &global_uniform_buffer, 0, global_uniforms_size);
-            encoder.finish();
-        }*/
-
         let global_uniform_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM)
             .fill_from_slice(&[global_uniforms]);
@@ -335,6 +228,8 @@ impl WgpuContext {
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
         });
+        let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(font_bytes.into_fonts())
+            .build(&mut device, wgpu::TextureFormat::Bgra8UnormSrgb);
         Ok(Self {
             device,
             swap_chain,
@@ -346,10 +241,10 @@ impl WgpuContext {
             num_background_cell_instances,
             background_cell_instance_data,
             render_buffer,
+            glyph_brush,
         })
     }
-    fn render_internal(&mut self) {
-        //self.copy_global_uniforms();
+    fn render_background(&mut self) {
         for (buffer_cell, background_cell_instance) in self
             .render_buffer
             .iter()
@@ -381,7 +276,9 @@ impl Default for InputContext {
     }
 }
 
+#[derive(Debug)]
 struct SizeContext {
+    font_scale: wgpu_glyph::Scale,
     cell_dimensions: Dimensions<NumPixels>,
     grid_size: Size,
 }
@@ -395,77 +292,165 @@ pub struct Context {
 }
 
 impl Context {
+    fn grid_size(window_size: winit::dpi::LogicalSize, cell_dimensions: Dimensions<NumPixels>) -> Size {
+        let width = (window_size.width / cell_dimensions.width).ceil();
+        let height = (window_size.height / cell_dimensions.height).ceil();
+        Size::new(width as u32, height as u32)
+    }
+    pub fn new(
+        ContextDescription {
+            font_bytes,
+            title,
+            window_dimensions,
+            cell_dimensions,
+            font_dimensions,
+            underline_width,
+            underline_bottom_offset,
+        }: ContextDescription,
+    ) -> Result<Self, ContextBuildError> {
+        let event_loop = winit::event_loop::EventLoop::new();
+        let grid_size = Size::new(24, 16);
+        let window_builder = winit::window::WindowBuilder::new().with_title(title);
+        let window_builder = match window_dimensions {
+            WindowDimensions::Fullscreen => window_builder.with_fullscreen(None),
+            WindowDimensions::Windowed(dimensions) => {
+                let logical_size = dimensions.to_logical_size();
+                window_builder
+                    .with_inner_size(logical_size)
+                    .with_min_inner_size(logical_size)
+                    .with_max_inner_size(logical_size)
+            }
+        };
+        let window = window_builder
+            .build(&event_loop)
+            .map_err(ContextBuildError::FailedToBuildWindow)?;
+        let grid_size = Self::grid_size(window.inner_size(), cell_dimensions);
+        let size_context = SizeContext {
+            font_scale: wgpu_glyph::Scale {
+                x: font_dimensions.width as f32,
+                y: font_dimensions.height as f32,
+            },
+            cell_dimensions,
+            grid_size,
+        };
+        let wgpu_context = WgpuContext::new(&window, &size_context, font_bytes)?;
+        log::info!("grid size: {:?}", grid_size);
+        Ok(Context {
+            event_loop,
+            window,
+            wgpu_context,
+            size_context,
+            input_context: Default::default(),
+        })
+    }
     pub fn run_app<A>(self, mut app: A) -> !
     where
         A: App + 'static,
     {
         let Self {
             event_loop,
-            window: _,
+            window,
             mut wgpu_context,
             size_context,
             mut input_context,
         } = self;
         let mut frame_instant = Instant::now();
-        event_loop.run(move |event, _, control_flow| match event {
-            winit::event::Event::WindowEvent {
-                event: window_event, ..
-            } => {
-                if let Some(event) = input::convert_event(
-                    window_event,
-                    size_context.cell_dimensions,
-                    &mut input_context.last_mouse_coord,
-                    &mut input_context.last_mouse_button,
-                ) {
-                    match event {
-                        input::Event::Input(input) => {
-                            if let Some(ControlFlow::Exit) = app.on_input(input) {
-                                println!("exit");
-                                *control_flow = winit::event_loop::ControlFlow::Exit;
+        event_loop.run(move |event, _, control_flow| {
+            *control_flow = winit::event_loop::ControlFlow::Poll;
+            match event {
+                winit::event::Event::WindowEvent {
+                    event: window_event, ..
+                } => {
+                    if let Some(event) = input::convert_event(
+                        window_event,
+                        size_context.cell_dimensions,
+                        &mut input_context.last_mouse_coord,
+                        &mut input_context.last_mouse_button,
+                    ) {
+                        match event {
+                            input::Event::Input(input) => {
+                                if let Some(ControlFlow::Exit) = app.on_input(input) {
+                                    *control_flow = winit::event_loop::ControlFlow::Exit;
+                                }
+                            }
+                            input::Event::Resize(size) => {
+                                log::warn!("resize not implemented (target size: {:?})", size)
                             }
                         }
-                        input::Event::Resize(size) => println!("{:?}", size),
                     }
                 }
-            }
-            winit::event::Event::EventsCleared => {
-                let frame_duration = frame_instant.elapsed();
-                frame_instant = Instant::now();
-                let view_context = ViewContext::default_with_size(size_context.grid_size);
-                wgpu_context.render_buffer.clear();
-                if let Some(ControlFlow::Exit) =
-                    app.on_frame(frame_duration, view_context, &mut wgpu_context.render_buffer)
-                {
-                    *control_flow = winit::event_loop::ControlFlow::Exit;
-                }
-                wgpu_context.render_internal();
-                if let Ok(frame) = wgpu_context.swap_chain.get_next_texture() {
-                    let mut encoder = wgpu_context
-                        .device
-                        .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+                winit::event::Event::EventsCleared => {
+                    let frame_duration = frame_instant.elapsed();
+                    frame_instant = Instant::now();
+                    let view_context = ViewContext::default_with_size(size_context.grid_size);
+                    wgpu_context.render_buffer.clear();
+                    if let Some(ControlFlow::Exit) =
+                        app.on_frame(frame_duration, view_context, &mut wgpu_context.render_buffer)
                     {
-                        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                                attachment: &frame.view,
-                                resolve_target: None,
-                                load_op: wgpu::LoadOp::Clear,
-                                store_op: wgpu::StoreOp::Store,
-                                clear_color: wgpu::Color::GREEN,
-                            }],
-                            depth_stencil_attachment: None,
-                        });
-                        render_pass.set_pipeline(&wgpu_context.render_pipeline);
-                        render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
-                        render_pass.set_vertex_buffers(0, &[(&wgpu_context.background_cell_instance_buffer, 0)]);
-                        render_pass.draw(0..6, 0..wgpu_context.num_background_cell_instances);
+                        *control_flow = winit::event_loop::ControlFlow::Exit;
                     }
-                    wgpu_context.queue.submit(&[encoder.finish()]);
-                } else {
-                    log::warn!("timeout when acquiring next swapchain texture");
-                    thread::sleep(Duration::from_millis(100));
+                    wgpu_context.render_background();
+                    if let Ok(frame) = wgpu_context.swap_chain.get_next_texture() {
+                        let mut encoder = wgpu_context
+                            .device
+                            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+                        {
+                            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                                    attachment: &frame.view,
+                                    resolve_target: None,
+                                    load_op: wgpu::LoadOp::Clear,
+                                    store_op: wgpu::StoreOp::Store,
+                                    clear_color: wgpu::Color::GREEN,
+                                }],
+                                depth_stencil_attachment: None,
+                            });
+                            render_pass.set_pipeline(&wgpu_context.render_pipeline);
+                            render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
+                            render_pass.set_vertex_buffers(0, &[(&wgpu_context.background_cell_instance_buffer, 0)]);
+                            render_pass.draw(0..6, 0..wgpu_context.num_background_cell_instances);
+                        }
+                        let mut buf: [u8; 4] = [0; 4];
+                        let size = window.inner_size();
+                        for (coord, cell) in wgpu_context.render_buffer.enumerate() {
+                            if cell.character == ' ' && !cell.underline {
+                                continue;
+                            }
+                            let text: &str = cell.character.encode_utf8(&mut buf);
+                            let screen_position = (
+                                coord.x as f32 * size_context.cell_dimensions.width as f32,
+                                coord.y as f32 * size_context.cell_dimensions.height as f32,
+                            );
+                            let font_id = if cell.bold { FONT_ID_BOLD } else { FONT_ID_NORMAL };
+                            let color = cell.foreground_colour.to_f32_rgba(1.);
+                            let section = wgpu_glyph::Section {
+                                text,
+                                screen_position,
+                                font_id,
+                                color,
+                                scale: size_context.font_scale,
+                                ..Default::default()
+                            };
+                            wgpu_context.glyph_brush.queue(section);
+                        }
+                        wgpu_context
+                            .glyph_brush
+                            .draw_queued(
+                                &mut wgpu_context.device,
+                                &mut encoder,
+                                &frame.view,
+                                size.width as u32,
+                                size.height as u32,
+                            )
+                            .unwrap();
+                        wgpu_context.queue.submit(&[encoder.finish()]);
+                    } else {
+                        log::warn!("timeout when acquiring next swapchain texture");
+                        thread::sleep(Duration::from_millis(100));
+                    }
                 }
+                _ => (),
             }
-            _ => (),
         })
     }
 }

@@ -28,7 +28,6 @@ void main() {
     v_BackgroundColour = a_BackgroundColour;
     v_ForegroundColour = a_ForegroundColour;
     vec2 cell_size = u_CellSizeRelativeToWindow;
-    //vec2 cell_size = vec2(0.1, 0.1);
     uint grid_width = u_GridWidth;
     uint coord_x = gl_InstanceIndex % grid_width;
     uint coord_y = gl_InstanceIndex / grid_width;
