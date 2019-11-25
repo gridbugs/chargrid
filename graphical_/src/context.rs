@@ -1,7 +1,7 @@
 use crate::input;
 use grid_2d::{Coord, Grid, Size};
 use prototty_app::{App, ControlFlow};
-use prototty_render::{Blend, Frame, Rgb24, ViewCell, ViewContext};
+use prototty_render::ViewContext;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -29,16 +29,11 @@ pub struct Dimensions<T> {
 }
 
 pub type NumPixels = f64;
+pub type CellRatio = f64;
 
 impl Dimensions<NumPixels> {
     fn to_logical_size(self) -> winit::dpi::LogicalSize {
         winit::dpi::LogicalSize::new(self.width, self.height)
-    }
-    fn to_f32(self) -> Dimensions<f32> {
-        Dimensions {
-            width: self.width as f32,
-            height: self.height as f32,
-        }
     }
 }
 
@@ -53,8 +48,8 @@ pub struct ContextDescription {
     pub window_dimensions: WindowDimensions,
     pub cell_dimensions: Dimensions<NumPixels>,
     pub font_dimensions: Dimensions<NumPixels>,
-    pub underline_width: NumPixels,
-    pub underline_bottom_offset: NumPixels,
+    pub underline_width: CellRatio,
+    pub underline_top_offset: CellRatio,
 }
 
 #[derive(Debug)]
@@ -67,7 +62,6 @@ struct WgpuContext {
     device: wgpu::Device,
     swap_chain: wgpu::SwapChain,
     render_pipeline: wgpu::RenderPipeline,
-    global_uniform_buffer: wgpu::Buffer,
     background_cell_instance_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     queue: wgpu::Queue,
@@ -82,6 +76,7 @@ struct WgpuContext {
 struct BackgroundCellInstance {
     background_colour: [f32; 3],
     foreground_colour: [f32; 3],
+    underline: u32,
 }
 
 impl Default for BackgroundCellInstance {
@@ -89,6 +84,7 @@ impl Default for BackgroundCellInstance {
         Self {
             background_colour: [0.; 3],
             foreground_colour: [1.; 3],
+            underline: 0,
         }
     }
 }
@@ -98,6 +94,13 @@ impl Default for BackgroundCellInstance {
 struct GlobalUniforms {
     cell_size_relative_to_window: [f32; 2],
     grid_width: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, zerocopy::AsBytes, zerocopy::FromBytes)]
+struct UnderlineUniforms {
+    underline_width_cell_ratio: f32,
+    underline_top_offset_cell_ratio: f32,
 }
 
 impl WgpuContext {
@@ -117,7 +120,6 @@ impl WgpuContext {
         size_context: &SizeContext,
         font_bytes: FontBytes,
     ) -> Result<Self, ContextBuildError> {
-        use std::iter;
         use std::mem;
         let num_background_cell_instances = size_context.grid_size.count() as u32;
         let background_cell_instance_data = Grid::new_default(size_context.grid_size);
@@ -151,7 +153,7 @@ impl WgpuContext {
         let background_cell_instance_buffer = device
             .create_buffer_mapped(num_background_cell_instances as usize, wgpu::BufferUsage::VERTEX)
             .fill_from_slice(background_cell_instance_data.raw());
-        let global_uniforms_size = mem::size_of::<GlobalUniforms>() as u64;
+        let global_uniforms_size = mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress;
         let global_uniforms = GlobalUniforms {
             grid_width: size_context.grid_size.width(),
             cell_size_relative_to_window: [
@@ -159,25 +161,49 @@ impl WgpuContext {
                 size_context.cell_dimensions.height as f32 / (logical_size.height as f32 / 2.),
             ],
         };
-        let global_uniform_buffer = device
+        let global_uniforms_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM)
             .fill_from_slice(&[global_uniforms]);
+        let underline_uniforms_size = mem::size_of::<UnderlineUniforms>() as wgpu::BufferAddress;
+        let underline_uniforms = UnderlineUniforms {
+            underline_width_cell_ratio: size_context.underline_width as f32,
+            underline_top_offset_cell_ratio: size_context.underline_top_offset as f32,
+        };
+        let underline_uniforms_buffer = device
+            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM)
+            .fill_from_slice(&[underline_uniforms]);
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            bindings: &[wgpu::BindGroupLayoutBinding {
-                binding: 0,
-                visibility: wgpu::ShaderStage::VERTEX,
-                ty: wgpu::BindingType::UniformBuffer { dynamic: false },
-            }],
+            bindings: &[
+                wgpu::BindGroupLayoutBinding {
+                    binding: 0,
+                    visibility: wgpu::ShaderStage::VERTEX,
+                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+                },
+                wgpu::BindGroupLayoutBinding {
+                    binding: 1,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+                },
+            ],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
-            bindings: &[wgpu::Binding {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer {
-                    buffer: &global_uniform_buffer,
-                    range: 0..global_uniforms_size,
+            bindings: &[
+                wgpu::Binding {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer {
+                        buffer: &global_uniforms_buffer,
+                        range: 0..global_uniforms_size,
+                    },
                 },
-            }],
+                wgpu::Binding {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Buffer {
+                        buffer: &underline_uniforms_buffer,
+                        range: 0..underline_uniforms_size,
+                    },
+                },
+            ],
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             bind_group_layouts: &[&bind_group_layout],
@@ -222,6 +248,11 @@ impl WgpuContext {
                         offset: 12,
                         shader_location: 1,
                     },
+                    wgpu::VertexAttributeDescriptor {
+                        format: wgpu::VertexFormat::Int,
+                        offset: 24,
+                        shader_location: 2,
+                    },
                 ],
             }],
             sample_count: 1,
@@ -234,7 +265,6 @@ impl WgpuContext {
             device,
             swap_chain,
             render_pipeline,
-            global_uniform_buffer,
             background_cell_instance_buffer,
             bind_group,
             queue,
@@ -252,6 +282,7 @@ impl WgpuContext {
         {
             background_cell_instance.background_colour = buffer_cell.background_colour.to_f32_rgb();
             background_cell_instance.foreground_colour = buffer_cell.foreground_colour.to_f32_rgb();
+            background_cell_instance.underline = buffer_cell.underline as u32;
         }
         self.background_cell_instance_buffer = self
             .device
@@ -261,7 +292,6 @@ impl WgpuContext {
 }
 
 struct InputContext {
-    closing: bool,
     last_mouse_coord: Coord,
     last_mouse_button: Option<prototty_input::MouseButton>,
 }
@@ -269,7 +299,6 @@ struct InputContext {
 impl Default for InputContext {
     fn default() -> Self {
         Self {
-            closing: false,
             last_mouse_coord: Coord::new(0, 0),
             last_mouse_button: None,
         }
@@ -280,6 +309,8 @@ impl Default for InputContext {
 struct SizeContext {
     font_scale: wgpu_glyph::Scale,
     cell_dimensions: Dimensions<NumPixels>,
+    underline_width: NumPixels,
+    underline_top_offset: NumPixels,
     grid_size: Size,
 }
 
@@ -305,11 +336,10 @@ impl Context {
             cell_dimensions,
             font_dimensions,
             underline_width,
-            underline_bottom_offset,
+            underline_top_offset,
         }: ContextDescription,
     ) -> Result<Self, ContextBuildError> {
         let event_loop = winit::event_loop::EventLoop::new();
-        let grid_size = Size::new(24, 16);
         let window_builder = winit::window::WindowBuilder::new().with_title(title);
         let window_builder = match window_dimensions {
             WindowDimensions::Fullscreen => window_builder.with_fullscreen(None),
@@ -332,6 +362,8 @@ impl Context {
             },
             cell_dimensions,
             grid_size,
+            underline_width,
+            underline_top_offset,
         };
         let wgpu_context = WgpuContext::new(&window, &size_context, font_bytes)?;
         log::info!("grid size: {:?}", grid_size);

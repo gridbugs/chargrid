@@ -9,10 +9,7 @@ fn main() {
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
         },
         title: "Tetris".to_string(),
-        window_dimensions: WindowDimensions::Windowed(Dimensions {
-            width: 640.,
-            height: 480.,
-        }),
+        window_dimensions: WindowDimensions::Fullscreen,
         cell_dimensions: Dimensions {
             width: 32.,
             height: 32.,
@@ -21,8 +18,8 @@ fn main() {
             width: 32.,
             height: 32.,
         },
-        underline_width: 4.,
-        underline_bottom_offset: 2.,
+        underline_width: 0.1,
+        underline_top_offset: 0.8,
     })
     .unwrap();
     let app = TetrisApp::new(rand::thread_rng());
