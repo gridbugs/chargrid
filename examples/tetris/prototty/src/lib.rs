@@ -105,9 +105,13 @@ impl BorderStyles {
     pub fn new() -> Self {
         let next_piece = BorderStyle {
             title_style: Style::new().with_foreground(Rgb24::new_grey(255)),
+            background: Some(Rgb24::new_grey(127)),
             ..BorderStyle::new_with_title("next")
         };
-        let common = BorderStyle::new();
+        let common = BorderStyle {
+            background: Some(Rgb24::new_grey(127)),
+            ..BorderStyle::new()
+        };
         Self { common, next_piece }
     }
 }

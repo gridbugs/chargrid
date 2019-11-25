@@ -1,6 +1,8 @@
 use crate::input;
+use grid_2d::{Coord, Grid, Size};
 use prototty_app::{App, ControlFlow};
-use prototty_render::{Blend, Coord, Frame, Rgb24, Size, ViewCell, ViewContext};
+use prototty_render::{Blend, Frame, Rgb24, ViewCell, ViewContext};
+use std::thread;
 use std::time::{Duration, Instant};
 
 pub struct FontBytes {
@@ -126,7 +128,7 @@ impl ContextBuilder {
             .window_builder
             .build(&event_loop)
             .map_err(ContextBuildError::FailedToBuildWindow)?;
-        let grid_size = Size::new(10, 10);
+        let grid_size = Size::new(24, 16);
         let wgpu_context = WgpuContext::new(&window, grid_size)?;
         Ok(Context {
             event_loop,
@@ -145,22 +147,36 @@ struct WgpuContext {
     device: wgpu::Device,
     swap_chain: wgpu::SwapChain,
     render_pipeline: wgpu::RenderPipeline,
+    global_uniform_buffer: wgpu::Buffer,
     background_cell_instance_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     queue: wgpu::Queue,
     num_background_cell_instances: u32,
+    background_cell_instance_data: Grid<BackgroundCellInstance>,
+    render_buffer: prototty_render::Buffer,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, zerocopy::AsBytes, zerocopy::FromBytes)]
 struct BackgroundCellInstance {
-    _colour: [f32; 3],
+    background_colour: [f32; 3],
+    foreground_colour: [f32; 3],
 }
 
-impl BackgroundCellInstance {
-    const fn black() -> Self {
-        Self { _colour: [0.; 3] }
+impl Default for BackgroundCellInstance {
+    fn default() -> Self {
+        Self {
+            background_colour: [0.; 3],
+            foreground_colour: [1.; 3],
+        }
     }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, zerocopy::AsBytes, zerocopy::FromBytes)]
+struct GlobalUniforms {
+    cell_size_relative_to_window: [f32; 2],
+    grid_width: u32,
 }
 
 impl WgpuContext {
@@ -175,15 +191,36 @@ impl WgpuContext {
         assert!(chunks.remainder().is_empty());
         buffer
     }
+    fn copy_global_uniforms(&mut self) {
+        let global_uniforms = GlobalUniforms {
+            grid_width: 16,
+            cell_size_relative_to_window: [0.1, 0.1],
+        };
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+        let temp_buf = self
+            .device
+            .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&[global_uniforms]);
+        encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.global_uniform_buffer, 0, 12);
+        encoder.finish();
+    }
     fn new(window: &winit::window::Window, grid_size: Size) -> Result<Self, ContextBuildError> {
         use std::iter;
         use std::mem;
-        let physical_size = window.inner_size().to_physical(window.hidpi_factor());
+        let num_background_cell_instances = grid_size.count() as u32;
+        let background_cell_instance_data = Grid::new_default(grid_size);
+        let render_buffer = prototty_render::Buffer::new(grid_size);
+        let logical_size = window.inner_size();
+        let physical_size = logical_size.to_physical(window.hidpi_factor());
         let surface = wgpu::Surface::create(window);
-        let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::Default,
-            backends: wgpu::BackendBit::PRIMARY,
-        })
+        let adapter = wgpu::Adapter::request(
+            &wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::Default,
+            },
+            wgpu::BackendBit::PRIMARY,
+        )
         .ok_or(ContextBuildError::FailedToRequestGraphicsAdapter)?;
         let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
             extensions: wgpu::Extensions {
@@ -201,17 +238,37 @@ impl WgpuContext {
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
         let vs_module = device.create_shader_module(&Self::u8_slice_to_u32_vec(include_bytes!("./shader.vert.spv")));
         let fs_module = device.create_shader_module(&Self::u8_slice_to_u32_vec(include_bytes!("./shader.frag.spv")));
-        let num_background_cell_instances = grid_size.count() as u32;
         let background_cell_instance_buffer = device
             .create_buffer_mapped(num_background_cell_instances as usize, wgpu::BufferUsage::VERTEX)
-            .fill_from_slice(
-                &iter::repeat_with(BackgroundCellInstance::black)
-                    .take(num_background_cell_instances as usize)
-                    .collect::<Vec<_>>(),
-            );
-        let grid_width_uniform_buffer = device
+            .fill_from_slice(background_cell_instance_data.raw());
+        let global_uniforms_size = mem::size_of::<GlobalUniforms>() as u64;
+        let global_uniforms = GlobalUniforms {
+            grid_width: grid_size.width(),
+            cell_size_relative_to_window: [
+                32. / (logical_size.width as f32 / 2.),
+                48. / (logical_size.height as f32 / 2.),
+            ],
+        };
+        log::info!("global uniforms: {:?}", global_uniforms);
+        assert!(global_uniforms_size == 12);
+        /*
+        let global_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            size: global_uniforms_size,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+        }); */
+        /*
+        {
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+            let temp_buf = device
+                .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+                .fill_from_slice(&[global_uniforms]);
+            encoder.copy_buffer_to_buffer(&temp_buf, 0, &global_uniform_buffer, 0, global_uniforms_size);
+            encoder.finish();
+        }*/
+
+        let global_uniform_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM)
-            .fill_from_slice(&[grid_size.width()]);
+            .fill_from_slice(&[global_uniforms]);
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             bindings: &[wgpu::BindGroupLayoutBinding {
                 binding: 0,
@@ -224,8 +281,8 @@ impl WgpuContext {
             bindings: &[wgpu::Binding {
                 binding: 0,
                 resource: wgpu::BindingResource::Buffer {
-                    buffer: &grid_width_uniform_buffer,
-                    range: 0..1,
+                    buffer: &global_uniform_buffer,
+                    range: 0..global_uniforms_size,
                 },
             }],
         });
@@ -261,11 +318,18 @@ impl WgpuContext {
             vertex_buffers: &[wgpu::VertexBufferDescriptor {
                 stride: mem::size_of::<BackgroundCellInstance>() as wgpu::BufferAddress,
                 step_mode: wgpu::InputStepMode::Instance,
-                attributes: &[wgpu::VertexAttributeDescriptor {
-                    format: wgpu::VertexFormat::Float3,
-                    offset: 0,
-                    shader_location: 0,
-                }],
+                attributes: &[
+                    wgpu::VertexAttributeDescriptor {
+                        format: wgpu::VertexFormat::Float3,
+                        offset: 0,
+                        shader_location: 0,
+                    },
+                    wgpu::VertexAttributeDescriptor {
+                        format: wgpu::VertexFormat::Float3,
+                        offset: 12,
+                        shader_location: 1,
+                    },
+                ],
             }],
             sample_count: 1,
             sample_mask: !0,
@@ -275,11 +339,29 @@ impl WgpuContext {
             device,
             swap_chain,
             render_pipeline,
+            global_uniform_buffer,
             background_cell_instance_buffer,
             bind_group,
             queue,
             num_background_cell_instances,
+            background_cell_instance_data,
+            render_buffer,
         })
+    }
+    fn render_internal(&mut self) {
+        //self.copy_global_uniforms();
+        for (buffer_cell, background_cell_instance) in self
+            .render_buffer
+            .iter()
+            .zip(self.background_cell_instance_data.iter_mut())
+        {
+            background_cell_instance.background_colour = buffer_cell.background_colour.to_f32_rgb();
+            background_cell_instance.foreground_colour = buffer_cell.foreground_colour.to_f32_rgb();
+        }
+        self.background_cell_instance_buffer = self
+            .device
+            .create_buffer_mapped(self.num_background_cell_instances as usize, wgpu::BufferUsage::VERTEX)
+            .fill_from_slice(self.background_cell_instance_data.raw());
     }
 }
 
@@ -350,51 +432,40 @@ impl Context {
                 let frame_duration = frame_instant.elapsed();
                 frame_instant = Instant::now();
                 let view_context = ViewContext::default_with_size(size_context.grid_size);
-                let mut frame = WgpuFrame { x: &3 };
-                if let Some(ControlFlow::Exit) = app.on_frame(frame_duration, view_context, &mut frame) {
+                wgpu_context.render_buffer.clear();
+                if let Some(ControlFlow::Exit) =
+                    app.on_frame(frame_duration, view_context, &mut wgpu_context.render_buffer)
+                {
                     *control_flow = winit::event_loop::ControlFlow::Exit;
                 }
-                let frame = wgpu_context.swap_chain.get_next_texture();
-                let mut encoder = wgpu_context
-                    .device
-                    .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
-                {
-                    let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                            attachment: &frame.view,
-                            resolve_target: None,
-                            load_op: wgpu::LoadOp::Clear,
-                            store_op: wgpu::StoreOp::Store,
-                            clear_color: wgpu::Color::BLACK,
-                        }],
-                        depth_stencil_attachment: None,
-                    });
-                    render_pass.set_pipeline(&wgpu_context.render_pipeline);
-                    render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
-                    render_pass.set_vertex_buffers(0, &[(&wgpu_context.background_cell_instance_buffer, 0)]);
-                    render_pass.draw(0..3, 0..wgpu_context.num_background_cell_instances);
+                wgpu_context.render_internal();
+                if let Ok(frame) = wgpu_context.swap_chain.get_next_texture() {
+                    let mut encoder = wgpu_context
+                        .device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+                    {
+                        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                                attachment: &frame.view,
+                                resolve_target: None,
+                                load_op: wgpu::LoadOp::Clear,
+                                store_op: wgpu::StoreOp::Store,
+                                clear_color: wgpu::Color::GREEN,
+                            }],
+                            depth_stencil_attachment: None,
+                        });
+                        render_pass.set_pipeline(&wgpu_context.render_pipeline);
+                        render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
+                        render_pass.set_vertex_buffers(0, &[(&wgpu_context.background_cell_instance_buffer, 0)]);
+                        render_pass.draw(0..6, 0..wgpu_context.num_background_cell_instances);
+                    }
+                    wgpu_context.queue.submit(&[encoder.finish()]);
+                } else {
+                    log::warn!("timeout when acquiring next swapchain texture");
+                    thread::sleep(Duration::from_millis(100));
                 }
-                wgpu_context.queue.submit(&[encoder.finish()]);
             }
             _ => (),
         })
-    }
-}
-
-struct WgpuFrame<'a> {
-    x: &'a u32,
-}
-impl<'a> Frame for WgpuFrame<'a> {
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
-        println!("{:?} {:?}", absolute_coord, absolute_cell);
-    }
-    fn blend_cell_background_absolute<B: Blend>(
-        &mut self,
-        absolute_coord: Coord,
-        absolute_depth: i8,
-        rgb24: Rgb24,
-        alpha: u8,
-        blend: B,
-    ) {
     }
 }
