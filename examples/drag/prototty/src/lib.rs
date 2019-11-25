@@ -1,4 +1,5 @@
 use line_2d::{Coord, LineSegment};
+use prototty::app;
 use prototty::input::*;
 use prototty::render::*;
 
@@ -18,17 +19,15 @@ impl Default for LineType {
 #[derive(Debug, Clone, Copy)]
 pub struct AppView;
 
-pub struct Quit;
-
 #[derive(Default)]
-pub struct App {
+pub struct AppData {
     coord: Option<Coord>,
     last_clicked_coord: Option<Coord>,
     line_type: LineType,
 }
 
-impl App {
-    pub fn update<I: IntoIterator<Item = Input>>(&mut self, inputs: I) -> Option<Quit> {
+impl AppData {
+    pub fn update<I: IntoIterator<Item = Input>>(&mut self, inputs: I) -> Option<app::ControlFlow> {
         for input in inputs {
             match input {
                 Input::Mouse(MouseInput::MouseMove { coord, .. }) => {
@@ -45,7 +44,7 @@ impl App {
                 Input::Mouse(MouseInput::MouseRelease { .. }) => {
                     self.last_clicked_coord = None;
                 }
-                Input::Keyboard(keys::ETX) | Input::Keyboard(keys::ESCAPE) => return Some(Quit),
+                Input::Keyboard(keys::ETX) | Input::Keyboard(keys::ESCAPE) => return Some(app::ControlFlow::Exit),
                 _ => (),
             }
         }
@@ -71,8 +70,8 @@ fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(frame: &mut 
     }
 }
 
-impl<'a> View<&'a App> for AppView {
-    fn view<F: Frame, C: ColModify>(&mut self, app: &'a App, context: ViewContext<C>, frame: &mut F) {
+impl<'a> View<&'a AppData> for AppView {
+    fn view<F: Frame, C: ColModify>(&mut self, app: &'a AppData, context: ViewContext<C>, frame: &mut F) {
         let context = context.compose_col_modify(ColModifyMap(|rgb24: Rgb24| rgb24.normalised_scalar_mul(128)));
         if let (Some(last_clicked_coord), Some(coord)) = (app.last_clicked_coord, app.coord) {
             if let Ok(line) = LineSegment::try_new(last_clicked_coord, coord) {
@@ -86,6 +85,45 @@ impl<'a> View<&'a App> for AppView {
                     }
                 }
             }
+        }
+    }
+}
+
+pub struct App {
+    input_buffer: Vec<Input>,
+    data: AppData,
+    view: AppView,
+}
+
+impl app::App for App {
+    fn on_input(&mut self, input: Input) -> Option<app::ControlFlow> {
+        self.input_buffer.push(input);
+        None
+    }
+    fn on_frame<F, C>(
+        &mut self,
+        _since_last_frame: app::Duration,
+        view_context: app::ViewContext<C>,
+        frame: &mut F,
+    ) -> Option<app::ControlFlow>
+    where
+        F: app::Frame,
+        C: app::ColModify,
+    {
+        if let Some(app::ControlFlow::Exit) = self.data.update(self.input_buffer.drain(..)) {
+            return Some(app::ControlFlow::Exit);
+        }
+        self.view.view(&self.data, view_context, frame);
+        None
+    }
+}
+
+impl Default for App {
+    fn default() -> Self {
+        App {
+            input_buffer: Vec::new(),
+            data: AppData::default(),
+            view: AppView,
         }
     }
 }

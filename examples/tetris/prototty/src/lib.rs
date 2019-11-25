@@ -13,8 +13,6 @@ use std::collections::VecDeque;
 use std::time::Duration;
 use tetris::{Input as TetrisInput, Meta, PieceType, Tetris};
 
-pub use app::ControlFlow;
-
 const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24::new(24, 24, 24);
 const FOREGROUND_COLOUR: Rgb24 = Rgb24::new_grey(255);
 const BACKGROUND_COLOUR: Rgb24 = Rgb24::new_grey(0);
@@ -102,7 +100,7 @@ struct BorderStyles {
 }
 
 impl BorderStyles {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let next_piece = BorderStyle {
             title_style: Style::new().with_foreground(Rgb24::new_grey(255)),
             background: Some(Rgb24::new_grey(127)),
@@ -170,20 +168,20 @@ enum AppState {
     EndText,
 }
 struct Timeout {
-    pub remaining: Duration,
+    remaining: Duration,
 }
 
 impl Timeout {
-    pub fn from_millis(millis: u64) -> Self {
+    fn from_millis(millis: u64) -> Self {
         Self::new(Duration::from_millis(millis))
     }
-    pub fn zero() -> Self {
+    fn zero() -> Self {
         Self::from_millis(0)
     }
-    pub fn new(remaining: Duration) -> Self {
+    fn new(remaining: Duration) -> Self {
         Self { remaining }
     }
-    pub fn reduce(&mut self, duration: Duration) -> bool {
+    fn reduce(&mut self, duration: Duration) -> bool {
         if let Some(remaining) = self.remaining.checked_sub(duration) {
             self.remaining = remaining;
             false
@@ -194,7 +192,7 @@ impl Timeout {
     }
 }
 
-pub struct AppData {
+struct AppData {
     main_menu: MenuInstance<MainMenuChoice>,
     state: AppState,
     timeout: Timeout,
@@ -205,7 +203,7 @@ pub struct AppData {
 }
 
 impl AppData {
-    pub fn new<R: Rng>(rng: &mut R) -> Self {
+    fn new<R: Rng>(rng: &mut R) -> Self {
         let main_menu = vec![MainMenuChoice::Play, MainMenuChoice::Quit];
         let main_menu = MenuInstance::new(main_menu).unwrap();
         let end_text_style = Style::new().with_bold(true).with_foreground(Rgb24::new(187, 0, 0));
@@ -221,7 +219,7 @@ impl AppData {
         }
     }
 
-    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<app::ControlFlow>
+    fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<app::ControlFlow>
     where
         I: IntoIterator<Item = Input>,
         R: Rng,
@@ -282,25 +280,19 @@ impl AppData {
     }
 }
 
-pub struct AppView {
+struct AppView {
     menu_instance_view: MenuInstanceView<MainMenuEntryView>,
     board: TetrisBoardView,
     next_piece: TetrisNextPieceView,
 }
 
-impl AppView {
-    pub fn new() -> Self {
+impl Default for AppView {
+    fn default() -> Self {
         Self {
             menu_instance_view: MenuInstanceView::new(MainMenuEntryView),
             board: TetrisBoardView,
             next_piece: TetrisNextPieceView,
         }
-    }
-}
-
-impl Default for AppView {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
