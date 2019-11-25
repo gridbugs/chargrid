@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 env_logger = "0.7"
-prototty_graphical = { path = "../../../graphical" }
+prototty_graphical_ = { path = "../../../graphical_" }
 prototty_native_audio = { path = "../../../native-audio" }
 roguelike_prototty = { path = "../prototty" }
 roguelike_native = { path = "../native" }

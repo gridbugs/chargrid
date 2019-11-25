@@ -79,7 +79,7 @@ fn inner() -> impl EventRoutine<Return = Option<()>, Data = AppData, View = AppV
     })
 }
 
-pub fn test() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
+pub fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
     inner()
         .repeat(|event| match event {
             Some(()) => Handled::Return(()),
@@ -167,12 +167,6 @@ pub struct AppData {
 
 impl Default for AppData {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl AppData {
-    pub fn new() -> Self {
         let main_menu = menu::MenuInstance::new(MainMenuChoice::all())
             .unwrap()
             .into_choose_or_cancel();
@@ -195,12 +189,6 @@ pub struct AppView {
 
 impl Default for AppView {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl AppView {
-    pub fn new() -> Self {
         let main_menu = menu::MenuInstanceView::new(ChooseMenuEntryStyle::new());
         let colour_menu = menu::MenuInstanceView::new(menu::MenuEntryStylePair::new(
             render::Style::new(),
@@ -208,4 +196,8 @@ impl AppView {
         ));
         Self { main_menu, colour_menu }
     }
+}
+
+pub fn app() -> impl app::App {
+    event_routine().app_one_shot_ignore_return(AppData::default(), AppView::default())
 }

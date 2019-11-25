@@ -3,27 +3,11 @@ use event_routine::*;
 use prototty::*;
 use render::{Rgb24, View, ViewCell};
 
-#[derive(Default)]
-pub struct AppData {}
-
-impl AppData {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-#[derive(Default)]
-pub struct AppView {}
-
-impl AppView {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
+struct AppData;
+struct AppView;
 struct PressAnyKey;
 
-pub struct ColourSquare;
+struct ColourSquare;
 impl View<()> for ColourSquare {
     fn view<F: Frame, C: ColModify>(&mut self, (): (), context: ViewContext<C>, frame: &mut F) {
         let size = context.size;
@@ -77,6 +61,10 @@ impl EventRoutine for PressAnyKey {
     }
 }
 
-pub fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
+fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
     PressAnyKey
+}
+
+pub fn app() -> impl app::App {
+    event_routine().app_one_shot_ignore_return(AppData, AppView)
 }

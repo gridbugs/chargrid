@@ -64,7 +64,7 @@ impl<'a> From<&'a MainMenuEntry> for &'a str {
     }
 }
 
-pub struct AppData<S: Storage, A: AudioPlayer> {
+struct AppData<S: Storage, A: AudioPlayer> {
     frontend: Frontend,
     game: GameData<S, A>,
     main_menu: menu::MenuInstanceChooseOrEscape<MainMenuEntry>,
@@ -72,13 +72,13 @@ pub struct AppData<S: Storage, A: AudioPlayer> {
     last_mouse_coord: Coord,
 }
 
-pub struct AppView {
+struct AppView {
     game: GameView,
     main_menu: menu::MenuInstanceView<FadeMenuEntryView<MainMenuEntry>>,
 }
 
 impl<S: Storage, A: AudioPlayer> AppData<S, A> {
-    pub fn new(
+    fn new(
         frontend: Frontend,
         controls: Controls,
         storage: S,
@@ -99,7 +99,7 @@ impl<S: Storage, A: AudioPlayer> AppData<S, A> {
 }
 
 impl AppView {
-    pub fn new() -> Self {
+    fn new() -> Self {
         use fade_spec::*;
         let spec = Spec {
             normal: Style {
@@ -495,7 +495,7 @@ fn main_menu_cycle<S: Storage, A: AudioPlayer>(
     })
 }
 
-pub fn event_routine<S: Storage, A: AudioPlayer>(
+fn event_routine<S: Storage, A: AudioPlayer>(
 ) -> impl EventRoutine<Return = (), Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     MouseTracker::new(
         main_menu_cycle()

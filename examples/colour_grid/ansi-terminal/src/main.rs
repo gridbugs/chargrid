@@ -1,7 +1,6 @@
-use colour_grid_prototty::{event_routine, AppData, AppView};
-use prototty_ansi_terminal::{col_encode, ColEncode, Context, EventRoutineRunner};
+use colour_grid_prototty::app;
+use prototty_ansi_terminal::{col_encode, Context};
 use simon::*;
-use std::time::Duration;
 
 #[derive(Clone)]
 enum ColEncodeChoice {
@@ -24,23 +23,15 @@ impl ColEncodeChoice {
     }
 }
 
-fn run<E>(mut runner: EventRoutineRunner, col_encode: E)
-where
-    E: ColEncode,
-{
-    runner
-        .run(event_routine(), &mut AppData::new(), &mut AppView::new(), col_encode)
-        .unwrap()
-}
-
 fn main() {
     let col_encode_choice = ColEncodeChoice::arg().with_help_default().parse_env_or_exit();
-    let runner = Context::new().unwrap().into_runner(Duration::from_millis(16));
-    use ColEncodeChoice::*;
+    let context = Context::new().unwrap();
+    let app = app();
+    use ColEncodeChoice as C;
     match col_encode_choice {
-        TrueColour => run(runner, col_encode::XtermTrueColour),
-        Rgb => run(runner, col_encode::FromTermInfoRgb),
-        Greyscale => run(runner, col_encode::FromTermInfoGreyscale),
-        Ansi => run(runner, col_encode::FromTermInfoAnsi16Colour),
+        C::TrueColour => context.run_app(app, col_encode::XtermTrueColour),
+        C::Rgb => context.run_app(app, col_encode::FromTermInfoRgb),
+        C::Greyscale => context.run_app(app, col_encode::FromTermInfoGreyscale),
+        C::Ansi => context.run_app(app, col_encode::FromTermInfoAnsi16Colour),
     }
 }

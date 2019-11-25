@@ -1,9 +1,7 @@
-use prototty_graphical::{ContextBuilder, Size};
+use prototty_graphical_::*;
 use prototty_native_audio::NativeAudioPlayer;
 use roguelike_native::{simon::Arg, NativeCommon};
-use roguelike_prototty::{event_routine, AppData, AppView, Frontend};
-
-const WINDOW_SIZE_PIXELS: Size = Size::new_u16(640, 480);
+use roguelike_prototty::{app, Frontend};
 
 fn main() {
     env_logger::init();
@@ -13,30 +11,36 @@ fn main() {
         controls,
         save_file,
     } = NativeCommon::arg().with_help_default().parse_env_or_exit();
-    let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
-        .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
-        .with_window_dimensions(WINDOW_SIZE_PIXELS)
-        .with_min_window_dimensions(WINDOW_SIZE_PIXELS)
-        .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
-        .with_font_scale(14.0, 14.0)
-        .with_cell_dimensions(Size::new_u16(14, 14))
-        .with_underline_width(2)
-        .with_underline_position(12)
-        .build()
-        .unwrap();
+    let context = Context::new(ContextDescription {
+        font_bytes: FontBytes {
+            normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
+            bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
+        },
+        title: "Template Roguelike".to_string(),
+        window_dimensions: WindowDimensions::Windowed(Dimensions {
+            width: 640.,
+            height: 480.,
+        }),
+        cell_dimensions: Dimensions {
+            width: 14.,
+            height: 14.,
+        },
+        font_dimensions: Dimensions {
+            width: 14.,
+            height: 14.,
+        },
+        underline_width: 0.1,
+        underline_top_offset: 0.8,
+    })
+    .unwrap();
     let audio_player = NativeAudioPlayer::new_default_device();
-    context
-        .run_event_routine(
-            event_routine(),
-            &mut AppData::new(
-                Frontend::Native,
-                controls,
-                file_storage,
-                save_file,
-                audio_player,
-                rng_seed,
-            ),
-            &mut AppView::new(),
-        )
-        .unwrap();
+    let app = app(
+        Frontend::Native,
+        controls,
+        file_storage,
+        save_file,
+        audio_player,
+        rng_seed,
+    );
+    context.run_app(app);
 }
