@@ -1,4 +1,4 @@
-use crate::input;
+use crate::{input, ContextDescription, Dimensions, FontBytes, NumPixels, WindowDimensions};
 use grid_2d::{Coord, Grid, Size};
 use prototty_app::{App, ControlFlow};
 use prototty_render::ViewContext;
@@ -6,11 +6,6 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
-
-pub struct FontBytes {
-    pub normal: Vec<u8>,
-    pub bold: Vec<u8>,
-}
 
 impl FontBytes {
     fn into_fonts(self) -> Vec<wgpu_glyph::SharedBytes<'static>> {
@@ -24,34 +19,10 @@ impl FontBytes {
 const FONT_ID_NORMAL: wgpu_glyph::FontId = wgpu_glyph::FontId(0);
 const FONT_ID_BOLD: wgpu_glyph::FontId = wgpu_glyph::FontId(1);
 
-#[derive(Clone, Copy, Debug)]
-pub struct Dimensions<T> {
-    pub width: T,
-    pub height: T,
-}
-
-pub type NumPixels = f64;
-pub type CellRatio = f64;
-
 impl Dimensions<NumPixels> {
     fn to_logical_size(self) -> winit::dpi::LogicalSize {
         winit::dpi::LogicalSize::new(self.width, self.height)
     }
-}
-
-pub enum WindowDimensions {
-    Windowed(Dimensions<NumPixels>),
-    Fullscreen,
-}
-
-pub struct ContextDescription {
-    pub font_bytes: FontBytes,
-    pub title: String,
-    pub window_dimensions: WindowDimensions,
-    pub cell_dimensions: Dimensions<NumPixels>,
-    pub font_dimensions: Dimensions<NumPixels>,
-    pub underline_width: CellRatio,
-    pub underline_top_offset: CellRatio,
 }
 
 #[derive(Debug)]
