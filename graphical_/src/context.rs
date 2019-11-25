@@ -5,6 +5,8 @@ use prototty_render::ViewContext;
 use std::thread;
 use std::time::{Duration, Instant};
 
+const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
+
 pub struct FontBytes {
     pub normal: Vec<u8>,
     pub bold: Vec<u8>,
@@ -146,7 +148,7 @@ impl WgpuContext {
         });
         let sc_desc = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            format: TEXTURE_FORMAT,
             width: physical_size.width.round() as u32,
             height: physical_size.height.round() as u32,
             present_mode: wgpu::PresentMode::Vsync,
@@ -225,7 +227,7 @@ impl WgpuContext {
             }),
             primitive_topology: wgpu::PrimitiveTopology::TriangleList,
             color_states: &[wgpu::ColorStateDescriptor {
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: TEXTURE_FORMAT,
                 color_blend: wgpu::BlendDescriptor::REPLACE,
                 alpha_blend: wgpu::BlendDescriptor::REPLACE,
                 write_mask: wgpu::ColorWrite::ALL,
@@ -258,7 +260,7 @@ impl WgpuContext {
             alpha_to_coverage_enabled: false,
         });
         let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(font_bytes.into_fonts())
-            .build(&mut device, wgpu::TextureFormat::Bgra8UnormSrgb);
+            .build(&mut device, TEXTURE_FORMAT);
         Ok(Self {
             device,
             sc_desc,
