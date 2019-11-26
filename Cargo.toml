@@ -19,11 +19,6 @@ members = [
     "native-audio",
     "test-grid",
 
-    "examples/title/prototty",
-    "examples/title/graphical",
-    "examples/title/ansi-terminal",
-    "examples/title/web",
-
     "examples/fib/fib",
     "examples/fib/file",
     "examples/fib/web",
