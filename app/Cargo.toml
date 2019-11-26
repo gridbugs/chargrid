@@ -1,5 +1,6 @@
 [package]
 name = "prototty_app"
+description = "Interface to be implemented by all prototty applications"
 version = "0.27.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"

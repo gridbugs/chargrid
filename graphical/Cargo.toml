@@ -1,9 +1,15 @@
 [package]
 name = "prototty_graphical"
-description = "Graphical prototty context"
-version = "0.1.0"
+description = "Graphical prototty context which renders with wgpu"
+version = "0.27.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/stevebob/prototty.git"
+repository = "https://github.com/stevebob/prototty.git"
+documentation = "https://docs.rs/prototty_graphical"
 edition = "2018"
+
 
 [features]
 serialize = ["prototty_input/serialize", "prototty_render/serialize"]

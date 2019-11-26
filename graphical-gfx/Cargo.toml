@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/stevebob/prototty.git"
 repository = "https://github.com/stevebob/prototty.git"
-documentation = "https://docs.rs/prototty_graphical"
+documentation = "https://docs.rs/prototty_graphical_gfx"
 edition = "2018"
 
 [features]
