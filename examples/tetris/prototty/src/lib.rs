@@ -1,7 +1,3 @@
-extern crate prototty;
-extern crate rand;
-extern crate tetris;
-
 use prototty::app;
 use prototty::decorator::*;
 use prototty::input::{keys, Input, KeyboardInput};

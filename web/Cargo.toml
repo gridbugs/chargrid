@@ -17,7 +17,6 @@ serialize = ["prototty_render/serialize", "prototty_input/serialize"]
 prototty_app = { path = "../app", version = "0.27" }
 prototty_input = { path = "../input", version = "0.27" }
 prototty_render = { path = "../render", version = "0.27" }
-prototty_event_routine = { path = "../event-routine", version = "0.27" }
 prototty_storage = { path = "../storage", version = "0.27" }
 prototty_audio = { path = "../audio", version = "0.27" }
 wasm-bindgen = "0.2"
