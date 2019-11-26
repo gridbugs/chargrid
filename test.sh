@@ -23,11 +23,6 @@ npm install
 npm run build -- --mode development
 popd
 
-pushd $DIR/examples/title/web
-npm install
-npm run build -- --mode development
-popd
-
 pushd $DIR/examples/fib/web
 npm install
 npm run build -- --mode development
