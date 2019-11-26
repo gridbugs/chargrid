@@ -1,9 +1,9 @@
-use prototty_graphical_::*;
+use prototty_graphical::*;
 use tetris_prototty::TetrisApp;
 
 fn main() {
     env_logger::init();
-    let context = Context::new(ContextDescription {
+    let context = Context::new(ContextDescriptor {
         font_bytes: FontBytes {
             normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),

@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 soundboard_prototty = { path = "../prototty" }
-prototty_graphical_ = { path = "../../../graphical_" }
+prototty_graphical = { path = "../../../graphical" }
 prototty_native_audio = { path = "../../../native-audio" }

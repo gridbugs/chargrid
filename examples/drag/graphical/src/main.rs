@@ -1,8 +1,8 @@
 use drag_prototty::App;
-use prototty_graphical_::*;
+use prototty_graphical::*;
 
 fn main() {
-    let context = Context::new(ContextDescription {
+    let context = Context::new(ContextDescriptor {
         font_bytes: FontBytes {
             normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),

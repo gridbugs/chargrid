@@ -1,0 +1,9 @@
+[package]
+name = "prototty_graphical_common"
+version = "0.27.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 pager_prototty = { path = "../prototty" }
-prototty_graphical_ = { path = "../../../graphical_" }
+prototty_graphical = { path = "../../../graphical" }

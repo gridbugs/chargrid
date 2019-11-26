@@ -11,10 +11,10 @@ use gfx::Device;
 use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
 use glutin::dpi::LogicalSize;
 use glutin::Event;
-use prototty_event_routine::{Event as EREvent, EventRoutine, Handled};
+use prototty_app as app;
 use prototty_input::*;
 use prototty_render::*;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 type Resources = gfx_device_gl::Resources;
 
@@ -109,9 +109,9 @@ impl<'a> ContextBuilder<'a> {
         }
     }
 
-    pub fn with_vsync(self, vsync: bool) -> Self {
+    pub fn with_fullscreen(self) -> Self {
         Self {
-            context_builder: self.context_builder.with_vsync(vsync),
+            window_builder: self.window_builder.with_fullscreen(None),
             ..self
         }
     }
@@ -144,21 +144,7 @@ impl<'a> ContextBuilder<'a> {
         }
     }
 
-    pub fn with_bold_font_scale(self, x: f32, y: f32) -> Self {
-        Self {
-            bold_font_scale: Some(gfx_glyph::Scale { x, y }),
-            ..self
-        }
-    }
-
-    pub fn with_max_grid_size(self, size: Size) -> Self {
-        Self {
-            max_grid_size: Some(size),
-            ..self
-        }
-    }
-
-    pub fn build(self) -> Result<Context<'a>> {
+    pub fn build(self) -> Result<(Context<'a>, glutin::EventsLoop)> {
         let events_loop = glutin::EventsLoop::new();
         let windowed_context = self
             .context_builder
@@ -230,29 +216,30 @@ impl<'a> ContextBuilder<'a> {
                 y: s.y * hidpi,
             })
             .unwrap_or(font_scale);
-        Ok(Context {
-            window,
-            device,
-            encoder,
-            factory,
-            rtv,
-            dsv,
+        Ok((
+            Context {
+                window,
+                device,
+                encoder,
+                factory,
+                rtv,
+                dsv,
+                glyph_brush,
+                buffer,
+                char_buf,
+                cell_width,
+                cell_height,
+                unscaled_cell_width,
+                unscaled_cell_height,
+                max_grid_size,
+                background_renderer,
+                font_scale,
+                bold_font_scale,
+                last_mouse_coord: Coord::new(0, 0),
+                last_mouse_button: None,
+            },
             events_loop,
-            glyph_brush,
-            buffer,
-            char_buf,
-            cell_width,
-            cell_height,
-            unscaled_cell_width,
-            unscaled_cell_height,
-            max_grid_size,
-            background_renderer,
-            font_scale,
-            bold_font_scale,
-            closing: false,
-            last_mouse_coord: Coord::new(0, 0),
-            last_mouse_button: None,
-        })
+        ))
     }
 }
 
@@ -279,7 +266,6 @@ pub struct Context<'a> {
     factory: gfx_device_gl::Factory,
     rtv: gfx::handle::RenderTargetView<Resources, ColourFormat>,
     dsv: gfx::handle::DepthStencilView<Resources, DepthFormat>,
-    events_loop: glutin::EventsLoop,
     glyph_brush: gfx_glyph::GlyphBrush<'a, Resources, gfx_device_gl::Factory>,
     buffer: Buffer,
     char_buf: String,
@@ -291,46 +277,11 @@ pub struct Context<'a> {
     background_renderer: BackgroundRenderer<Resources>,
     font_scale: gfx_glyph::Scale,
     bold_font_scale: gfx_glyph::Scale,
-    closing: bool,
     last_mouse_coord: Coord,
     last_mouse_button: Option<MouseButton>,
 }
 
 impl<'a> Context<'a> {
-    pub fn poll_input<F: FnMut(Input)>(&mut self, mut callback: F) {
-        let mut closing = false;
-        let mut resize = None;
-        let cell_dimensions = (self.unscaled_cell_width, self.unscaled_cell_height);
-        let mut last_mouse_coord = self.last_mouse_coord;
-        let mut last_mouse_button = self.last_mouse_button;
-        self.events_loop.poll_events(|event| {
-            if let Event::WindowEvent { event, .. } = event {
-                if let Some(event) =
-                    convert_event(event, cell_dimensions, &mut last_mouse_coord, &mut last_mouse_button)
-                {
-                    match event {
-                        InputEvent::Input(input) => callback(input),
-                        InputEvent::Quit => closing = true,
-                        InputEvent::Resize(width, height) => resize = Some((width, height)),
-                    }
-                }
-            };
-        });
-        self.last_mouse_coord = last_mouse_coord;
-        self.last_mouse_button = last_mouse_button;
-        if let Some((width, height)) = resize {
-            self.handle_resize(width, height);
-        }
-        if closing {
-            self.closing = true;
-            callback(Input::Keyboard(keys::ETX));
-        }
-    }
-
-    pub fn buffer_input(&mut self, buffer: &mut Vec<Input>) {
-        self.poll_input(|input| buffer.push(input));
-    }
-
     fn handle_resize(&mut self, width: f32, height: f32) {
         let (rtv, dsv) = gfx_window_glutin::new_views(&self.window);
         let width_in_cells = ::std::cmp::min((width as f32 / self.unscaled_cell_width) as u32, self.max_grid_size.x());
@@ -394,115 +345,59 @@ impl<'a> Context<'a> {
         Ok(())
     }
 
-    pub fn render<V: View<T>, T>(&mut self, view: &mut V, data: T) -> Result<()> {
-        let context = self.default_context();
-        self.render_at(view, data, context)
-    }
-
-    pub fn render_at<V: View<T>, T, C: ColModify>(
-        &mut self,
-        view: &mut V,
-        data: T,
-        context: ViewContext<C>,
-    ) -> Result<()> {
-        if self.closing {
-            return Ok(());
-        }
-        self.buffer.clear();
-        view.view(data, context, &mut self.buffer);
-        self.render_internal()
-    }
-
-    pub fn size(&self) -> Size {
-        self.buffer.size()
-    }
-
-    pub fn frame<'b>(&'b mut self) -> GlutinFrame<'a, 'b> {
-        self.buffer.clear();
-        GlutinFrame { context: self }
-    }
-    pub fn default_context(&self) -> ViewContextDefault {
-        ViewContext::default_with_size(self.size())
-    }
-    pub fn run_event_routine<E, V>(
-        &mut self,
-        mut event_routine: E,
-        data: &mut E::Data,
-        view: &mut E::View,
-    ) -> Result<E::Return>
+    pub fn run_app<A>(mut self, mut app: A, mut events_loop: glutin::EventsLoop)
     where
-        E: EventRoutine<Event = V>,
-        V: From<Input> + From<Duration>,
+        A: app::App + 'static,
     {
         let mut frame_instant = Instant::now();
+        let mut resize = None;
+        let cell_dimensions = (self.unscaled_cell_width, self.unscaled_cell_height);
         loop {
-            let duration = frame_instant.elapsed();
-            frame_instant = Instant::now();
-            event_routine = {
-                let mut maybe_event_routine = Some(event_routine);
-                let mut maybe_return = None;
-                self.poll_input(|input| {
-                    maybe_event_routine = if let Some(event_routine) = maybe_event_routine.take() {
-                        match event_routine.handle(data, view, EREvent::new(input.into())) {
-                            Handled::Continue(event_routine) => Some(event_routine),
-                            Handled::Return(r) => {
-                                maybe_return = Some(r);
-                                None
+            let mut closing = false;
+            events_loop.poll_events(|event| {
+                match event {
+                    Event::WindowEvent { event, .. } => match event {
+                        glutin::WindowEvent::Refresh => {}
+                        other => {
+                            if let Some(event) = convert_event(
+                                other,
+                                cell_dimensions,
+                                &mut self.last_mouse_coord,
+                                &mut self.last_mouse_button,
+                            ) {
+                                match event {
+                                    InputEvent::Input(input) => {
+                                        if let Some(app::ControlFlow::Exit) = app.on_input(input) {
+                                            closing = true;
+                                            return;
+                                        }
+                                    }
+                                    InputEvent::Quit => {
+                                        app.on_input(Input::Keyboard(keys::ETX));
+                                        closing = true;
+                                        return;
+                                    }
+                                    InputEvent::Resize(width, height) => resize = Some((width, height)),
+                                }
                             }
                         }
-                    } else {
-                        None
-                    };
-                });
-                if let Some(event_routine) = maybe_event_routine {
-                    event_routine
-                } else {
-                    return Ok(maybe_return.expect("event routine terminated without value"));
+                    },
+                    _ => (),
                 }
-            };
-            event_routine = match event_routine.handle(data, view, EREvent::new(duration.into())) {
-                Handled::Continue(event_routine) => event_routine,
-                Handled::Return(r) => return Ok(r),
-            };
-            let mut frame = self.frame();
-            event_routine.view(data, view, frame.default_context(), &mut frame);
-            frame.render()?;
+                if let Some((width, height)) = resize {
+                    log::info!("resize to {}x{}", width, height);
+                    self.handle_resize(width, height);
+                }
+            });
+            if closing {
+                break;
+            }
+            let frame_duration = frame_instant.elapsed();
+            frame_instant = Instant::now();
+            let view_context = ViewContext::default_with_size(self.buffer.size());
+            self.buffer.clear();
+            app.on_frame(frame_duration, view_context, &mut self.buffer);
+            self.render_internal().unwrap();
         }
-    }
-}
-
-pub struct GlutinFrame<'a, 'b> {
-    context: &'b mut Context<'a>,
-}
-
-impl<'a, 'b> GlutinFrame<'a, 'b> {
-    pub fn render(self) -> Result<()> {
-        self.context.render_internal()
-    }
-    pub fn size(&self) -> Size {
-        self.context.size()
-    }
-    pub fn default_context(&self) -> ViewContextDefault {
-        ViewContext::default_with_size(self.size())
-    }
-}
-
-impl<'a, 'b> Frame for GlutinFrame<'a, 'b> {
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
-        self.context
-            .buffer
-            .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
-    }
-    fn blend_cell_background_absolute<B: Blend>(
-        &mut self,
-        absolute_coord: Coord,
-        absolute_depth: i8,
-        rgb24: Rgb24,
-        alpha: u8,
-        blend: B,
-    ) {
-        self.context
-            .buffer
-            .blend_cell_background_absolute(absolute_coord, absolute_depth, rgb24, alpha, blend);
     }
 }

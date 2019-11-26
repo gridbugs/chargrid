@@ -1,11 +1,11 @@
 use pager_prototty::App;
-use prototty_graphical_::*;
+use prototty_graphical::*;
 use std::io::{self, Read};
 
 fn main() -> io::Result<()> {
     let mut text = String::new();
     io::stdin().read_to_string(&mut text)?;
-    let context = Context::new(ContextDescription {
+    let context = Context::new(ContextDescriptor {
         font_bytes: FontBytes {
             normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),

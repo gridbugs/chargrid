@@ -1,8 +1,3 @@
-mod input;
-mod wgpu_context;
-
-pub use wgpu_context::*;
-
 pub struct FontBytes {
     pub normal: Vec<u8>,
     pub bold: Vec<u8>,
@@ -22,7 +17,7 @@ pub enum WindowDimensions {
     Fullscreen,
 }
 
-pub struct ContextDescription {
+pub struct ContextDescriptor {
     pub font_bytes: FontBytes,
     pub title: String,
     pub window_dimensions: WindowDimensions,

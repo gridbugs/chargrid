@@ -1,4 +1,4 @@
-use crate::{input, ContextDescription, Dimensions, FontBytes, NumPixels, WindowDimensions};
+use crate::{input, ContextDescriptor, Dimensions, FontBytes, NumPixels, WindowDimensions};
 use grid_2d::{Coord, Grid, Size};
 use prototty_app::{App, ControlFlow};
 use prototty_render::ViewContext;
@@ -7,23 +7,15 @@ use std::time::{Duration, Instant};
 
 const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
-impl FontBytes {
-    fn into_fonts(self) -> Vec<wgpu_glyph::SharedBytes<'static>> {
-        vec![
-            wgpu_glyph::SharedBytes::ByArc(self.normal.into()),
-            wgpu_glyph::SharedBytes::ByArc(self.bold.into()),
-        ]
-    }
+fn font_bytes_to_fonts(FontBytes { normal, bold }: FontBytes) -> Vec<wgpu_glyph::SharedBytes<'static>> {
+    vec![
+        wgpu_glyph::SharedBytes::ByArc(normal.into()),
+        wgpu_glyph::SharedBytes::ByArc(bold.into()),
+    ]
 }
 
 const FONT_ID_NORMAL: wgpu_glyph::FontId = wgpu_glyph::FontId(0);
 const FONT_ID_BOLD: wgpu_glyph::FontId = wgpu_glyph::FontId(1);
-
-impl Dimensions<NumPixels> {
-    fn to_logical_size(self) -> winit::dpi::LogicalSize {
-        winit::dpi::LogicalSize::new(self.width, self.height)
-    }
-}
 
 #[derive(Debug)]
 pub enum ContextBuildError {
@@ -230,7 +222,8 @@ impl WgpuContext {
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
         });
-        let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(font_bytes.into_fonts())
+        let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(font_bytes_to_fonts(font_bytes))
+            .texture_filter_method(wgpu::FilterMode::Nearest)
             .build(&mut device, TEXTURE_FORMAT);
         Ok(Self {
             device,
@@ -358,7 +351,7 @@ pub struct Context {
 
 impl Context {
     pub fn new(
-        ContextDescription {
+        ContextDescriptor {
             font_bytes,
             title,
             window_dimensions,
@@ -366,14 +359,14 @@ impl Context {
             font_dimensions,
             underline_width,
             underline_top_offset,
-        }: ContextDescription,
+        }: ContextDescriptor,
     ) -> Result<Self, ContextBuildError> {
         let event_loop = winit::event_loop::EventLoop::new();
         let window_builder = winit::window::WindowBuilder::new().with_title(title);
         let window_builder = match window_dimensions {
             WindowDimensions::Fullscreen => window_builder.with_fullscreen(None),
-            WindowDimensions::Windowed(dimensions) => {
-                let logical_size = dimensions.to_logical_size();
+            WindowDimensions::Windowed(Dimensions { width, height }) => {
+                let logical_size = winit::dpi::LogicalSize::new(width, height);
                 window_builder
                     .with_inner_size(logical_size)
                     .with_min_inner_size(logical_size)

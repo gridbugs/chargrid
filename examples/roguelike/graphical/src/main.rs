@@ -1,4 +1,7 @@
-use prototty_graphical_::*;
+#[cfg(feature = "prototty_graphical")]
+use prototty_graphical::*;
+#[cfg(feature = "prototty_graphical_gfx")]
+use prototty_graphical_gfx::*;
 use prototty_native_audio::NativeAudioPlayer;
 use roguelike_native::{simon::Arg, NativeCommon};
 use roguelike_prototty::{app, Frontend};
@@ -11,7 +14,7 @@ fn main() {
         controls,
         save_file,
     } = NativeCommon::arg().with_help_default().parse_env_or_exit();
-    let context = Context::new(ContextDescription {
+    let context = Context::new(ContextDescriptor {
         font_bytes: FontBytes {
             normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
@@ -22,12 +25,12 @@ fn main() {
             height: 480.,
         }),
         cell_dimensions: Dimensions {
-            width: 14.,
-            height: 14.,
+            width: 12.,
+            height: 12.,
         },
         font_dimensions: Dimensions {
-            width: 14.,
-            height: 14.,
+            width: 12.,
+            height: 12.,
         },
         underline_width: 0.1,
         underline_top_offset: 0.8,
