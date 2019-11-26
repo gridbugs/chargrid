@@ -2,7 +2,8 @@
 name = "pager_graphical"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+edition = "2018"
 
 [dependencies]
 pager_prototty = { path = "../prototty" }
-prototty_graphical = { path = "../../../graphical" }
+prototty_graphical_ = { path = "../../../graphical_" }

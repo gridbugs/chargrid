@@ -1,25 +1,30 @@
-use prototty_graphical as pg;
-use prototty_native_audio as audio;
-use soundboard_prototty as app;
-
-const WINDOW_SIZE_PIXELS: pg::Size = pg::Size::new_u16(640, 480);
+use prototty_graphical_::*;
+use prototty_native_audio::NativeAudioPlayer;
+use soundboard_prototty::app;
 
 fn main() {
-    let player = audio::NativeAudioPlayer::new_default_device();
-    let mut context = pg::ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
-        .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
-        .with_window_dimensions(WINDOW_SIZE_PIXELS)
-        .with_min_window_dimensions(WINDOW_SIZE_PIXELS)
-        .with_max_window_dimensions(WINDOW_SIZE_PIXELS)
-        .with_font_scale(16.0, 16.0)
-        .with_cell_dimensions(pg::Size::new_u16(16, 16))
-        .build()
-        .unwrap();
-    context
-        .run_event_routine(
-            app::event_routine(),
-            &mut app::AppData::new(player),
-            &mut app::AppView::new(),
-        )
-        .unwrap();
+    let player = NativeAudioPlayer::new_default_device();
+    let context = Context::new(ContextDescription {
+        font_bytes: FontBytes {
+            normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
+            bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
+        },
+        title: "Soundboard".to_string(),
+        window_dimensions: WindowDimensions::Windowed(Dimensions {
+            width: 640.,
+            height: 480.,
+        }),
+        cell_dimensions: Dimensions {
+            width: 16.,
+            height: 16.,
+        },
+        font_dimensions: Dimensions {
+            width: 16.,
+            height: 16.,
+        },
+        underline_width: 0.1,
+        underline_top_offset: 0.8,
+    })
+    .unwrap();
+    context.run_app(app(player));
 }

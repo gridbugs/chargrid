@@ -1,14 +1,11 @@
+use prototty::app;
 use prototty::decorator::*;
 use prototty::input::*;
 use prototty::input::{keys, Input, KeyboardInput};
 use prototty::render::*;
 use prototty::text::*;
 
-pub enum ControlFlow {
-    Exit,
-}
-
-pub struct AppState {
+pub struct AppData {
     text: String,
     border_style: BorderStyle,
     bound: Size,
@@ -22,21 +19,15 @@ pub struct AppView {
     vertical_scroll_limits: VerticalScrollLimits,
 }
 
-impl AppView {
-    pub fn new() -> Self {
+impl Default for AppView {
+    fn default() -> Self {
         Self {
             vertical_scroll_limits: VerticalScrollLimits::new(),
         }
     }
 }
 
-impl Default for AppView {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl AppState {
+impl AppData {
     pub fn new(text: String) -> Self {
         Self {
             text,
@@ -62,7 +53,7 @@ impl AppState {
             vertical_scroll_bar_style: VerticalScrollBarStyle::new(),
         }
     }
-    pub fn tick<I>(&mut self, inputs: I, view: &AppView) -> Option<ControlFlow>
+    pub fn tick<I>(&mut self, inputs: I, view: &AppView) -> Option<app::ControlFlow>
     where
         I: IntoIterator<Item = Input>,
     {
@@ -71,7 +62,7 @@ impl AppState {
                 Input::Keyboard(keys::ETX)
                 | Input::Keyboard(keys::ESCAPE)
                 | Input::Keyboard(KeyboardInput::Char('q')) => {
-                    return Some(ControlFlow::Exit);
+                    return Some(app::ControlFlow::Exit);
                 }
                 Input::Mouse(MouseInput::MouseScroll { direction, .. }) => match direction {
                     ScrollDirection::Up => self.vertical_scroll_state.scroll_up_line(view.vertical_scroll_limits),
@@ -103,8 +94,8 @@ impl AppState {
     }
 }
 
-impl<'a> View<&'a AppState> for AppView {
-    fn view<F: Frame, C: ColModify>(&mut self, app_state: &'a AppState, context: ViewContext<C>, frame: &mut F) {
+impl<'a> View<&'a AppData> for AppView {
+    fn view<F: Frame, C: ColModify>(&mut self, app_state: &'a AppData, context: ViewContext<C>, frame: &mut F) {
         let rich_text = &[
             ("Hello, World!\nblah\nblah blah ", Style::new()),
             (
@@ -144,5 +135,44 @@ impl<'a> View<&'a AppState> for AppView {
             },
         }
         .view(rich_text, context, frame);
+    }
+}
+
+pub struct App {
+    data: AppData,
+    view: AppView,
+    input_buffer: Vec<Input>,
+}
+
+impl App {
+    pub fn new(text: String) -> Self {
+        Self {
+            data: AppData::new(text),
+            view: AppView::default(),
+            input_buffer: Vec::new(),
+        }
+    }
+}
+
+impl app::App for App {
+    fn on_input(&mut self, input: Input) -> Option<app::ControlFlow> {
+        self.input_buffer.push(input);
+        None
+    }
+    fn on_frame<F, C>(
+        &mut self,
+        _since_last_frame: app::Duration,
+        view_context: app::ViewContext<C>,
+        frame: &mut F,
+    ) -> Option<app::ControlFlow>
+    where
+        F: app::Frame,
+        C: app::ColModify,
+    {
+        if let Some(app::ControlFlow::Exit) = self.data.tick(self.input_buffer.drain(..), &self.view) {
+            return Some(app::ControlFlow::Exit);
+        }
+        self.view.view(&self.data, view_context, frame);
+        None
     }
 }

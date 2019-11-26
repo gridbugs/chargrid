@@ -42,13 +42,13 @@ impl MenuEntry {
     }
 }
 
-pub struct AppData<P: AudioPlayer> {
+struct AppData<P: AudioPlayer> {
     menu: menu::MenuInstanceChooseOrEscape<MenuEntry>,
     player: P,
 }
 
 impl<P: AudioPlayer> AppData<P> {
-    pub fn new(player: P) -> Self {
+    fn new(player: P) -> Self {
         Self {
             menu: menu::MenuInstance::new(MenuEntry::all())
                 .unwrap()
@@ -58,12 +58,12 @@ impl<P: AudioPlayer> AppData<P> {
     }
 }
 
-pub struct AppView {
+struct AppView {
     menu: menu::MenuInstanceView<menu::MenuEntryStylePair>,
 }
 
-impl AppView {
-    pub fn new() -> Self {
+impl Default for AppView {
+    fn default() -> Self {
         Self {
             menu: menu::MenuInstanceView::new(menu::MenuEntryStylePair::new(
                 Style::new(),
@@ -142,7 +142,7 @@ fn single<P: AudioPlayer>() -> impl EventRoutine<Return = Option<()>, Data = App
         })
 }
 
-pub fn event_routine<P: AudioPlayer>(
+fn event_routine<P: AudioPlayer>(
 ) -> impl EventRoutine<Return = (), Data = AppData<P>, View = AppView, Event = CommonEvent> {
     single()
         .repeat(|maybe_entry| match maybe_entry {
@@ -151,4 +151,8 @@ pub fn event_routine<P: AudioPlayer>(
         })
         .convert_input_to_common_event()
         .return_on_exit(|_| ())
+}
+
+pub fn app<P: AudioPlayer>(player: P) -> impl app::App {
+    event_routine().app_one_shot_ignore_return(AppData::new(player), AppView::default())
 }
