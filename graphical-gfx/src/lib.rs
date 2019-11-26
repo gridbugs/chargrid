@@ -1,4 +1,3 @@
-#![feature(vec_leak)]
 mod background;
 mod formats;
 mod gfx_context;
@@ -27,8 +26,8 @@ impl Context {
             underline_top_offset,
         }: ContextDescriptor,
     ) -> Result<Self, ContextBuildError> {
-        let normal_font: &'static [u8] = Vec::leak(font_bytes.normal);
-        let bold_font: &'static [u8] = Vec::leak(font_bytes.bold);
+        let normal_font: &'static [u8] = Box::leak(font_bytes.normal.into_boxed_slice());
+        let bold_font: &'static [u8] = Box::leak(font_bytes.bold.into_boxed_slice());
         let builder = gfx_context::ContextBuilder::new_with_font(normal_font)
             .with_bold_font(bold_font)
             .with_title(title)
