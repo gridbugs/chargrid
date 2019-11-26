@@ -1,7 +1,7 @@
 [package]
 name = "prototty_native_audio"
 description = "Implementation of prototty_audio::AudioPlayer for native applications"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -12,4 +12,4 @@ edition = "2018"
 
 [dependencies]
 rodio = "0.10"
-prototty_audio = { path = "../audio", version = "0.27" }
+prototty_audio = { path = "../audio", version = "0.28" }

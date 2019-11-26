@@ -1,7 +1,7 @@
 [package]
 name = "prototty_graphical_gfx"
 description = "Prototty context which renders with gfx"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -14,10 +14,10 @@ edition = "2018"
 serialize = ["prototty_input/serialize", "prototty_render/serialize"]
 
 [dependencies]
-prototty_app = { path = "../app", version = "0.27" }
-prototty_render = { path = "../render", version = "0.27" }
-prototty_input = { path = "../input", version = "0.27" }
-prototty_graphical_common = { path = "../graphical-common", version = "0.27" }
+prototty_app = { path = "../app", version = "0.28" }
+prototty_render = { path = "../render", version = "0.28" }
+prototty_input = { path = "../input", version = "0.28" }
+prototty_graphical_common = { path = "../graphical-common", version = "0.28" }
 glutin = "0.21"
 gfx_window_glutin = "0.31"
 gfx_device_gl = "0.16"

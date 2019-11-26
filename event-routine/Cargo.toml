@@ -1,7 +1,7 @@
 [package]
 name = "prototty_event_routine"
 description = "Pseudo-synchronous composable event-based state machines for prototty apps"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -14,7 +14,7 @@ edition = "2018"
 serialize = ["prototty_render/serialize", "prototty_input/serialize"]
 
 [dependencies]
-prototty_render = { path = "../render", version = "0.27" }
-prototty_input = { path = "../input", version = "0.27" }
-prototty_app = { path = "../app", version = "0.27" }
+prototty_render = { path = "../render", version = "0.28" }
+prototty_input = { path = "../input", version = "0.28" }
+prototty_app = { path = "../app", version = "0.28" }
 log = "0.4"

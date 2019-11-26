@@ -1,7 +1,7 @@
 [package]
 name = "prototty_render"
 description = "Traits for defining a renderer and a view"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"

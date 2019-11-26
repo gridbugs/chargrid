@@ -1,7 +1,7 @@
 [package]
 name = "prototty_test_grid"
 description = "Prototty frontend that renders to an in-memory buffer for use in tests"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 homepage = "https://github.com/stevebob/prototty.git"
@@ -10,4 +10,4 @@ documentation = "https://docs.rs/prototty_test_grid"
 edition = "2018"
 
 [dependencies]
-prototty_render = { path = "../render", version = "0.27" }
+prototty_render = { path = "../render", version = "0.28" }
