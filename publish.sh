@@ -13,9 +13,9 @@ publish() {
     publish_single input
     publish_single text
     publish_single decorator
-    publish_single menu
-    publish_single event-routine
     publish_single app
+    publish_single event-routine
+    publish_single menu
     publish_single prototty
     publish_single audio
     publish_single native-audio
@@ -23,9 +23,9 @@ publish() {
     publish_single file-storage
     publish_single web
     publish_single ansi-terminal
+    publish_single graphical-common
+    publish_single graphical-gfx
     publish_single graphical
-    publish_single graphical_common
-    publish_single graphical_gfx
 
 }
 
