@@ -408,8 +408,14 @@ impl Context {
             mut input_context,
         } = self;
         let mut frame_instant = Instant::now();
+        let mut exited = false;
         event_loop.run(move |event, _, control_flow| {
-            *control_flow = winit::event_loop::ControlFlow::Poll;
+            if exited {
+                *control_flow = winit::event_loop::ControlFlow::Exit;
+                return;
+            } else {
+                *control_flow = winit::event_loop::ControlFlow::Poll;
+            };
             match event {
                 winit::event::Event::WindowEvent {
                     event: window_event, ..
@@ -423,7 +429,8 @@ impl Context {
                         match event {
                             input::Event::Input(input) => {
                                 if let Some(ControlFlow::Exit) = app.on_input(input) {
-                                    *control_flow = winit::event_loop::ControlFlow::Exit;
+                                    exited = true;
+                                    return;
                                 }
                             }
                             input::Event::Resize(size) => {
@@ -440,7 +447,8 @@ impl Context {
                     if let Some(ControlFlow::Exit) =
                         app.on_frame(frame_duration, view_context, &mut wgpu_context.render_buffer)
                     {
-                        *control_flow = winit::event_loop::ControlFlow::Exit;
+                        exited = true;
+                        return;
                     }
                     wgpu_context.render_background();
                     if let Ok(frame) = wgpu_context.swap_chain.get_next_texture() {

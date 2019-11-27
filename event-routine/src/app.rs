@@ -34,7 +34,7 @@ where
                 Handled::Return(_) => return Some(ControlFlow::Exit),
             }
         } else {
-            log::warn!("app has exited");
+            log::warn!("on_input: app has exited");
             None
         };
         None
@@ -58,7 +58,7 @@ where
                 Handled::Return(_) => return Some(ControlFlow::Exit),
             }
         } else {
-            log::warn!("app has exited");
+            log::warn!("on_frame: app has exited");
             None
         };
         None
