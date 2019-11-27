@@ -212,7 +212,7 @@ impl WgpuContext {
                         shader_location: 1,
                     },
                     wgpu::VertexAttributeDescriptor {
-                        format: wgpu::VertexFormat::Int,
+                        format: wgpu::VertexFormat::Uint,
                         offset: 24,
                         shader_location: 2,
                     },
