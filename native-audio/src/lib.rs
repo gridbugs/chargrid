@@ -7,10 +7,23 @@ pub struct NativeAudioPlayer {
     device: Device,
 }
 
+#[derive(Debug)]
+pub enum Error {
+    NoOutputDevice,
+    PanicDuringInit(Box<dyn std::any::Any + Send + 'static>),
+}
+
 impl NativeAudioPlayer {
-    pub fn try_new_default_device() -> Option<Self> {
-        let device = rodio::default_output_device()?;
-        Some(Self { device })
+    pub fn try_new_default_device() -> Result<Self, Error> {
+        // Initialise audio on a separate thread, to prevent issue on windows
+        // when also using winit to create windows.
+        // More info: https://github.com/RustAudio/cpal/pull/348
+        let init_thread = std::thread::spawn(|| rodio::default_output_device());
+        match init_thread.join() {
+            Ok(Some(device)) => Ok(Self { device }),
+            Ok(None) => Err(Error::NoOutputDevice),
+            Err(e) => Err(Error::PanicDuringInit(e)),
+        }
     }
 
     pub fn new_default_device() -> Self {

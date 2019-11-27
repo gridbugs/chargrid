@@ -20,3 +20,15 @@ pub trait AudioPlayer {
     fn play(&self, sound: &Self::Sound, properties: AudioProperties);
     fn load_sound(&self, bytes: &'static [u8]) -> Self::Sound;
 }
+
+impl<A: AudioPlayer> AudioPlayer for Option<A> {
+    type Sound = Option<A::Sound>;
+    fn play(&self, sound: &Self::Sound, properties: AudioProperties) {
+        if let Some(player) = self.as_ref() {
+            player.play(sound.as_ref().unwrap(), properties);
+        }
+    }
+    fn load_sound(&self, bytes: &'static [u8]) -> Self::Sound {
+        self.as_ref().map(|audio_player| audio_player.load_sound(bytes))
+    }
+}
