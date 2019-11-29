@@ -2,7 +2,6 @@
 use prototty_graphical::*;
 #[cfg(feature = "prototty_graphical_gfx")]
 use prototty_graphical_gfx::*;
-use prototty_native_audio::NativeAudioPlayer;
 use roguelike_native::{simon::Arg, NativeCommon};
 use roguelike_prototty::{app, Frontend};
 
@@ -13,6 +12,7 @@ fn main() {
         file_storage,
         controls,
         save_file,
+        audio_player,
     } = NativeCommon::arg().with_help_default().parse_env_or_exit();
     let context = Context::new(ContextDescriptor {
         font_bytes: FontBytes {
@@ -36,7 +36,6 @@ fn main() {
         underline_top_offset: 0.8,
     })
     .unwrap();
-    let audio_player = NativeAudioPlayer::new_default_device();
     let app = app(
         Frontend::Native,
         controls,

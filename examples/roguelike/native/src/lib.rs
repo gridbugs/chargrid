@@ -1,5 +1,6 @@
 use prototty_file_storage::IfDirectoryMissing;
 pub use prototty_file_storage::{FileStorage, Storage};
+use prototty_native_audio::{Error as NativeAudioError, NativeAudioPlayer};
 use roguelike_prototty::{Controls, RngSeed};
 pub use simon;
 use simon::*;
@@ -19,6 +20,7 @@ pub struct NativeCommon {
     pub save_file: String,
     pub file_storage: FileStorage,
     pub controls: Controls,
+    pub audio_player: Option<NativeAudioPlayer>,
 }
 
 fn hash_string(s: &str) -> u64 {
@@ -65,11 +67,19 @@ impl NativeCommon {
                         log::error!("couldn't find save file to delete");
                     }
                 }
+                let audio_player = match NativeAudioPlayer::try_new_default_device() {
+                    Ok(audio_player) => Some(audio_player),
+                    Err(NativeAudioError::NoOutputDevice) => {
+                        log::warn!("no output audio device - continuing without audio");
+                        None
+                    }
+                };
                 Self {
                     rng_seed,
                     save_file,
                     file_storage,
                     controls,
+                    audio_player,
                 }
             }}
         }

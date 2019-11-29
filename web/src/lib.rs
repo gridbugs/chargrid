@@ -37,7 +37,6 @@ impl ElementCell {
         let element_style = element.style();
         element_style.set_property("color", "rgb(255,255,255)").unwrap();
         element_style.set_property("background-color", "rgb(0,0,0)").unwrap();
-        element_style.set_property("display", "inline-block").unwrap();
         Self {
             element,
             character: ' ',

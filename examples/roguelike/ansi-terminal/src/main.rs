@@ -1,5 +1,4 @@
 use prototty_ansi_terminal::{col_encode, Context};
-use prototty_native_audio::NativeAudioPlayer;
 use roguelike_native::{simon::*, NativeCommon};
 use roguelike_prototty::{app, Frontend};
 
@@ -51,11 +50,11 @@ fn main() {
                 file_storage,
                 controls,
                 save_file,
+                audio_player,
             },
         col_encode_choice,
     } = Args::arg().with_help_default().parse_env_or_exit();
     let context = Context::new().unwrap();
-    let audio_player = NativeAudioPlayer::new_default_device();
     let app = app(
         Frontend::Native,
         controls,
