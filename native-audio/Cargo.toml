@@ -10,6 +10,10 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_native_audio"
 edition = "2018"
 
+[features]
+force_dedicated_audio_thread = []
+
 [dependencies]
+log = "0.4"
 rodio = "0.10"
 prototty_audio = { path = "../audio", version = "0.28" }
