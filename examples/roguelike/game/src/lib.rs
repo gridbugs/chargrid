@@ -4,7 +4,7 @@ use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
-use shadowcast::ShadowcastContext;
+use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod behaviour;
@@ -40,7 +40,6 @@ pub struct Game {
     rng: Isaac64Rng,
     frame_count: u64,
     events: Vec<Event>,
-    #[serde(skip)]
     shadowcast_context: ShadowcastContext<u8>,
     behaviour_context: BehaviourContext,
     agents: ComponentTable<Agent>,
