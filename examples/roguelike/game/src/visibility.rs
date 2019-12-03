@@ -7,7 +7,7 @@ use shadowcast::{vision_distance, Context as ShadowcastContext, DirectionBitmap,
 
 const VISION_DISTANCE_SQUARED: u32 = 400;
 const VISION_DISTANCE: vision_distance::Circle = vision_distance::Circle::new_squared(VISION_DISTANCE_SQUARED);
-const OMNISCIENT: bool = false;
+const OMNISCIENT: bool = true;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Light {

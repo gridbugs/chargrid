@@ -16,3 +16,4 @@ ecs = { path = "../ecs" }
 vector = { path = "../vector" }
 shadowcast = { version = "0.7", features = ["serialize"] }
 grid_search_cardinal_best = { git = "https://github.com/stevebob/grid-search.git", features = ["serialize"] }
+grid_search_cardinal_point_to_point = { git = "https://github.com/stevebob/grid-search.git", features = ["serialize"] }

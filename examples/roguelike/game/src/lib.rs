@@ -147,6 +147,7 @@ impl Game {
             if let Some(input) = agent.act(
                 coord,
                 &self.world,
+                self.player,
                 &mut self.behaviour_context,
                 &mut self.shadowcast_context,
             ) {
