@@ -1,6 +1,6 @@
 use prototty_storage::Storage;
 use prototty_web::{Context, LocalStorage, Size, WebAudioPlayer};
-use roguelike_prototty::{app, Controls, Frontend, RngSeed};
+use roguelike_prototty::{app, Controls, Frontend, GameConfig, RngSeed};
 use wasm_bindgen::prelude::*;
 
 const SAVE_KEY: &str = "save";
@@ -14,6 +14,7 @@ pub fn run() -> Result<(), JsValue> {
     storage.clear();
     let context = Context::new(Size::new(40, 40), "content");
     let app = app(
+        GameConfig { omniscient: None },
         Frontend::Wasm,
         Controls::default(),
         storage,

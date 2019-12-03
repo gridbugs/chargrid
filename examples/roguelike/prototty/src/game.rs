@@ -1,8 +1,8 @@
 use crate::audio::{Audio, AudioTable};
 use crate::controls::{AppInput, Controls};
 use direction::{CardinalDirection, Direction};
-pub use game::Input as GameInput;
 use game::{CellVisibility, Event, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
+pub use game::{Config as GameConfig, Input as GameInput, Omniscient};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
@@ -268,9 +268,9 @@ pub enum RngSeed {
 }
 
 impl GameInstance {
-    fn new(mut rng: Isaac64Rng) -> Self {
+    fn new(game_config: &GameConfig, mut rng: Isaac64Rng) -> Self {
         Self {
-            game: Game::new(&mut rng),
+            game: Game::new(game_config, &mut rng),
             rng,
             screen_shake: None,
         }
@@ -291,6 +291,7 @@ pub struct GameData<S: Storage, A: AudioPlayer> {
     storage_wrapper: StorageWrapper<S>,
     audio_player: A,
     audio_table: AudioTable<A>,
+    game_config: GameConfig,
 }
 
 struct StorageWrapper<S: Storage> {
@@ -319,8 +320,18 @@ impl<S: Storage> StorageWrapper<S> {
 }
 
 impl<S: Storage, A: AudioPlayer> GameData<S, A> {
-    pub fn new(controls: Controls, storage: S, save_key: String, audio_player: A, rng_seed: RngSeed) -> Self {
-        let instance = storage.load(&save_key, format::Bincode).ok();
+    pub fn new(
+        game_config: GameConfig,
+        controls: Controls,
+        storage: S,
+        save_key: String,
+        audio_player: A,
+        rng_seed: RngSeed,
+    ) -> Self {
+        let mut instance: Option<GameInstance> = storage.load(&save_key, format::Bincode).ok();
+        if let Some(instance) = instance.as_mut() {
+            instance.game.update_visibility(&game_config);
+        }
         let rng_source = match rng_seed {
             RngSeed::Entropy => Isaac64Rng::from_entropy(),
             RngSeed::U64(u64) => Isaac64Rng::seed_from_u64(u64),
@@ -338,6 +349,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
             storage_wrapper,
             audio_table: AudioTable::new(&audio_player),
             audio_player,
+            game_config,
         }
     }
     pub fn has_instance(&self) -> bool {
@@ -345,7 +357,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
     }
     pub fn instantiate(&mut self) {
         let rng = Isaac64Rng::from_seed(self.rng_source.gen());
-        self.instance = Some(GameInstance::new(rng));
+        self.instance = Some(GameInstance::new(&self.game_config, rng));
     }
     pub fn save_instance(&mut self) {
         if let Some(instance) = self.instance.as_ref() {
@@ -454,6 +466,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
         let controls = &data.controls;
         let audio_player = &data.audio_player;
         let audio_table = &data.audio_table;
+        let game_config = &data.game_config;
         if let Some(instance) = data.instance.as_mut() {
             event_or_peek_with_handled(event_or_peek, self, |mut s, event| {
                 *last_aim_with_mouse = false;
@@ -500,7 +513,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
                     Aim::Cancel => Handled::Return(None),
                     Aim::Ignore => Handled::Continue(s),
                     Aim::Frame(since_last) => {
-                        instance.game.handle_tick(since_last);
+                        instance.game.handle_tick(since_last, game_config);
                         let mut event_context = EffectContext {
                             rng: &mut instance.rng,
                             screen_shake: &mut instance.screen_shake,
@@ -611,6 +624,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
         let storage_wrapper = &mut data.storage_wrapper;
         let audio_player = &data.audio_player;
         let audio_table = &data.audio_table;
+        let game_config = &data.game_config;
         if let Some(instance) = data.instance.as_mut() {
             let player_coord = GameCoord::of_player(&instance.game);
             for injected_input in self.injected_inputs.drain(..) {
@@ -621,7 +635,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                             player_coord,
                         }
                         .compute();
-                        instance.game.handle_input(GameInput::Fire(raw_game_coord));
+                        instance.game.handle_input(GameInput::Fire(raw_game_coord), game_config);
                     }
                 }
             }
@@ -637,10 +651,10 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                                 if let Some(app_input) = controls.get(keyboard_input) {
                                     match app_input {
                                         AppInput::Move(direction) => {
-                                            instance.game.handle_input(GameInput::Walk(direction))
+                                            instance.game.handle_input(GameInput::Walk(direction), game_config)
                                         }
                                         AppInput::Aim => return Handled::Return(GameReturn::Aim),
-                                        AppInput::Wait => instance.game.handle_input(GameInput::Wait),
+                                        AppInput::Wait => instance.game.handle_input(GameInput::Wait, game_config),
                                     }
                                 }
                             }
@@ -650,7 +664,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                     Handled::Continue(s)
                 }
                 CommonEvent::Frame(period) => {
-                    instance.game.handle_tick(period);
+                    instance.game.handle_tick(period, game_config);
                     storage_wrapper.autosave_tick(instance, period);
                     let mut event_context = EffectContext {
                         rng: &mut instance.rng,

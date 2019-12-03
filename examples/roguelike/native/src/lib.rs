@@ -1,7 +1,7 @@
 use prototty_file_storage::IfDirectoryMissing;
 pub use prototty_file_storage::{FileStorage, Storage};
 use prototty_native_audio::{Error as NativeAudioError, NativeAudioPlayer};
-use roguelike_prototty::{Controls, RngSeed};
+use roguelike_prototty::{Controls, GameConfig, Omniscient, RngSeed};
 pub use simon;
 use simon::*;
 use std::collections::hash_map::DefaultHasher;
@@ -21,6 +21,7 @@ pub struct NativeCommon {
     pub file_storage: FileStorage,
     pub controls: Controls,
     pub audio_player: Option<NativeAudioPlayer>,
+    pub game_config: GameConfig,
 }
 
 fn hash_string(s: &str) -> u64 {
@@ -49,6 +50,7 @@ impl NativeCommon {
                     .with_default(DEFAULT_NEXT_TO_EXE_SAVE_DIR.to_string());
                 controls_file = opt::<String>("c", "controls-file", "controls file", "PATH");
                 delete_save = flag("", "delete-save", "delete save game file");
+                omniscient = flag("", "omniscient", "enable omniscience").some_if(Omniscient);
             } in {{
                 let controls_file = if let Some(controls_file) = controls_file {
                     controls_file.into()
@@ -74,12 +76,14 @@ impl NativeCommon {
                         None
                     }
                 };
+                let game_config = GameConfig { omniscient };
                 Self {
                     rng_seed,
                     save_file,
                     file_storage,
                     controls,
                     audio_player,
+                    game_config,
                 }
             }}
         }

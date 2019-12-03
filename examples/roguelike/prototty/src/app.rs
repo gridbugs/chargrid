@@ -1,6 +1,6 @@
 use crate::controls::Controls;
-pub use crate::game::RngSeed;
 use crate::game::{AimEventRoutine, GameData, GameEventRoutine, GameReturn, GameView, InjectedInput, ScreenCoord};
+pub use crate::game::{GameConfig, Omniscient, RngSeed};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
@@ -79,6 +79,7 @@ struct AppView {
 
 impl<S: Storage, A: AudioPlayer> AppData<S, A> {
     fn new(
+        game_config: GameConfig,
         frontend: Frontend,
         controls: Controls,
         storage: S,
@@ -88,7 +89,7 @@ impl<S: Storage, A: AudioPlayer> AppData<S, A> {
     ) -> Self {
         Self {
             frontend,
-            game: GameData::new(controls, storage, save_key, audio_player, rng_seed),
+            game: GameData::new(game_config, controls, storage, save_key, audio_player, rng_seed),
             main_menu: menu::MenuInstance::new(MainMenuEntry::init(frontend))
                 .unwrap()
                 .into_choose_or_escape(),
@@ -511,6 +512,7 @@ fn event_routine<S: Storage, A: AudioPlayer>(
 }
 
 pub fn app<S: Storage, A: AudioPlayer>(
+    game_config: GameConfig,
     frontend: Frontend,
     controls: Controls,
     storage: S,
@@ -518,7 +520,15 @@ pub fn app<S: Storage, A: AudioPlayer>(
     audio_player: A,
     rng_seed: RngSeed,
 ) -> impl app::App {
-    let app_data = AppData::new(frontend, controls, storage, save_key, audio_player, rng_seed);
+    let app_data = AppData::new(
+        game_config,
+        frontend,
+        controls,
+        storage,
+        save_key,
+        audio_player,
+        rng_seed,
+    );
     let app_view = AppView::new();
     event_routine().app_one_shot_ignore_return(app_data, app_view)
 }

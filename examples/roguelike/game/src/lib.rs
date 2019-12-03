@@ -14,9 +14,13 @@ mod world;
 
 use behaviour::{Agent, BehaviourContext};
 use ecs::ComponentTable;
-pub use visibility::{CellVisibility, VisibilityGrid};
+pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
 use world::{Entity, World};
 pub use world::{Layer, Tile, ToRenderEntity};
+
+pub struct Config {
+    pub omniscient: Option<Omniscient>,
+}
 
 /// Events which the game can report back to the io layer so it can
 /// respond with a sound/visual effect.
@@ -46,7 +50,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new<R: Rng>(rng: &mut R) -> Self {
+    pub fn new<R: Rng>(config: &Config, rng: &mut R) -> Self {
         let s = include_str!("terrain.txt");
         let rows = s.split('\n').filter(|s| !s.is_empty()).collect::<Vec<_>>();
         let size = Size::new_u16(rows[0].len() as u16, rows.len() as u16);
@@ -95,18 +99,22 @@ impl Game {
             behaviour_context: BehaviourContext::new(size),
             agents,
         };
-        game.update_visibility();
+        game.update_visibility(config);
         game
     }
     pub fn is_gameplay_blocked(&self) -> bool {
         self.world.is_gameplay_blocked()
     }
-    fn update_visibility(&mut self) {
+    pub fn update_visibility(&mut self, config: &Config) {
         let player_coord = self.world.entity_coord(self.player);
-        self.visibility_grid
-            .update(player_coord, &self.world, &mut self.shadowcast_context);
+        self.visibility_grid.update(
+            player_coord,
+            &self.world,
+            &mut self.shadowcast_context,
+            config.omniscient,
+        );
     }
-    pub fn handle_input(&mut self, input: Input) {
+    pub fn handle_input(&mut self, input: Input, config: &Config) {
         if !self.is_gameplay_blocked() {
             match input {
                 Input::Walk(direction) => self.world.character_walk_in_direction(self.player, direction),
@@ -114,12 +122,12 @@ impl Game {
                 Input::Wait => (),
             }
         }
-        self.update_visibility();
+        self.update_visibility(config);
         self.npc_turn();
     }
-    pub fn handle_tick(&mut self, _since_last_tick: Duration) {
+    pub fn handle_tick(&mut self, _since_last_tick: Duration, config: &Config) {
         self.events.clear();
-        self.update_visibility();
+        self.update_visibility(config);
         self.world.animation_tick(&mut self.events, &mut self.rng);
         self.frame_count += 1;
     }

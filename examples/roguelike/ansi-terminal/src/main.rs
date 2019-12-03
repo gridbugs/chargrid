@@ -51,11 +51,13 @@ fn main() {
                 controls,
                 save_file,
                 audio_player,
+                game_config,
             },
         col_encode_choice,
     } = Args::arg().with_help_default().parse_env_or_exit();
     let context = Context::new().unwrap();
     let app = app(
+        game_config,
         Frontend::Native,
         controls,
         file_storage,

@@ -7,7 +7,6 @@ use shadowcast::{vision_distance, Context as ShadowcastContext, DirectionBitmap,
 
 const VISION_DISTANCE_SQUARED: u32 = 400;
 const VISION_DISTANCE: vision_distance::Circle = vision_distance::Circle::new_squared(VISION_DISTANCE_SQUARED);
-const OMNISCIENT: bool = true;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Light {
@@ -28,6 +27,9 @@ impl InputGrid for Visibility {
         world.opacity(coord)
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct Omniscient;
 
 #[derive(Serialize, Deserialize)]
 struct VisibilityCell {
@@ -77,11 +79,17 @@ impl VisibilityGrid {
             CellVisibility::NotVisible
         }
     }
-    pub fn update(&mut self, player_coord: Coord, world: &World, shadowcast_context: &mut ShadowcastContext<u8>) {
+    pub fn update(
+        &mut self,
+        player_coord: Coord,
+        world: &World,
+        shadowcast_context: &mut ShadowcastContext<u8>,
+        omniscient: Option<Omniscient>,
+    ) {
         self.count += 1;
         let count = self.count;
         let grid = &mut self.grid;
-        if OMNISCIENT {
+        if let Some(Omniscient) = omniscient {
             let size = world.size();
             for i in 0..size.y() {
                 for j in 0..size.x() {
