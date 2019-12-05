@@ -27,6 +27,7 @@ pub enum Tile {
     Smoke,
     ExplosionFlame,
     FormerHuman,
+    Human,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,6 +55,17 @@ pub enum OnCollision {
     Explode,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum Disposition {
+    Hostile,
+    Afraid,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Npc {
+    pub disposition: Disposition,
+}
+
 ecs_components! {
     components {
         location: Location,
@@ -69,6 +81,7 @@ ecs_components! {
         light: Light,
         on_collision: OnCollision,
         colour_hint: Rgb24,
+        npc: Npc,
     }
 }
 use components::Components;
@@ -608,8 +621,33 @@ impl World {
         )
         .unwrap();
         self.ecs.components.tile.insert(entity, Tile::FormerHuman);
+        self.ecs.components.npc.insert(
+            entity,
+            Npc {
+                disposition: Disposition::Hostile,
+            },
+        );
         entity
     }
+    pub fn spawn_human(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.create();
+        location_insert(
+            entity,
+            Location::new(coord, Layer::Character),
+            &mut self.ecs.components.location,
+            &mut self.spatial_grid,
+        )
+        .unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Human);
+        self.ecs.components.npc.insert(
+            entity,
+            Npc {
+                disposition: Disposition::Afraid,
+            },
+        );
+        entity
+    }
+
     pub fn spawn_floor(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
         location_insert(
@@ -763,6 +801,9 @@ impl World {
     }
     pub fn entity_coord(&self, entity: Entity) -> Coord {
         self.ecs.components.location.get(entity).unwrap().coord
+    }
+    pub fn entity_npc(&self, entity: Entity) -> &Npc {
+        self.ecs.components.npc.get(entity).unwrap()
     }
     pub fn size(&self) -> Size {
         self.spatial_grid.size()
@@ -1080,6 +1121,20 @@ impl World {
         } else {
             false
         }
+    }
+    pub fn contains_npc(&self, coord: Coord) -> bool {
+        if let Some(spatial_cell) = self.spatial_grid.get(coord) {
+            if let Some(entity) = spatial_cell.character {
+                self.ecs.components.npc.contains(entity)
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+    pub fn character_at(&self, coord: Coord) -> Option<Entity> {
+        self.spatial_grid.get(coord).and_then(|cell| cell.character)
     }
 }
 

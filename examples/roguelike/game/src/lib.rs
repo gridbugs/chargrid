@@ -84,6 +84,12 @@ impl Game {
                         let entity = world.spawn_former_human(coord);
                         agents.insert(entity, Agent::new(size));
                     }
+                    'h' => {
+                        world.spawn_floor(coord);
+                        let entity = world.spawn_human(coord);
+                        agents.insert(entity, Agent::new(size));
+                    }
+
                     _ => panic!("unexpected char: {}", ch),
                 }
             }
@@ -99,6 +105,7 @@ impl Game {
             behaviour_context: BehaviourContext::new(size),
             agents,
         };
+        game.update_behaviour();
         game.update_visibility(config);
         game
     }
@@ -114,6 +121,9 @@ impl Game {
             config.omniscient,
         );
     }
+    pub fn update_behaviour(&mut self) {
+        self.behaviour_context.update(self.player, &self.world);
+    }
     pub fn handle_input(&mut self, input: Input, config: &Config) {
         if !self.is_gameplay_blocked() {
             match input {
@@ -123,6 +133,7 @@ impl Game {
             }
         }
         self.update_visibility(config);
+        self.update_behaviour();
         self.npc_turn();
     }
     pub fn handle_tick(&mut self, _since_last_tick: Duration, config: &Config) {
@@ -151,9 +162,8 @@ impl Game {
     }
     pub fn npc_turn(&mut self) {
         for (entity, agent) in self.agents.iter_mut() {
-            let coord = self.world.entity_coord(entity);
             if let Some(input) = agent.act(
-                coord,
+                entity,
                 &self.world,
                 self.player,
                 &mut self.behaviour_context,

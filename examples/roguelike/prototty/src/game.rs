@@ -163,6 +163,10 @@ fn render_entity<F: Frame, C: ColModify>(
             Tile::FormerHuman => ViewCell::new()
                 .with_character('f')
                 .with_foreground(Rgb24::new(255, 0, 0)),
+            Tile::Human => ViewCell::new()
+                .with_character('h')
+                .with_foreground(Rgb24::new(0, 255, 255)),
+
             Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
             Tile::Carpet => ViewCell::new()
                 .with_character('.')
