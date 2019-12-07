@@ -13,6 +13,7 @@ edition = "2018"
 
 [features]
 serialize = ["prototty_input/serialize", "prototty_render/serialize"]
+force_vulkan = ["wgpu/vulkan"]
 
 [dependencies]
 prototty_render = { path = "../render", version = "0.28" }

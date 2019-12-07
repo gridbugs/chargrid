@@ -4,11 +4,13 @@ use crate::Input;
 use crate::World;
 use ecs::Entity;
 use grid_2d::{Coord, Grid, Size};
-use grid_search_cardinal_best::{BestSearch, Context as BestSearchContext, Depth};
-use grid_search_cardinal_distance_map::{
-    CanEnter, DistanceMap, PopulateContext as DistanceMapPopulateContext, SearchContext as DistanceMapSearchContext,
+use grid_search_cardinal::{
+    best::{BestSearch, Context as BestSearchContext, Depth},
+    distance_map::{
+        CanEnter, DistanceMap, PopulateContext as DistanceMapPopulateContext, SearchContext as DistanceMapSearchContext,
+    },
+    point_to_point::{expand, Context as PointToPointSearchContext, NoPath, PointToPointSearch},
 };
-use grid_search_cardinal_point_to_point::{expand, Context as PointToPointSearchContext, NoPath, PointToPointSearch};
 use serde::{Deserialize, Serialize};
 use shadowcast::{vision_distance, Context as ShadowcastContext};
 

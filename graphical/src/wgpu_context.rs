@@ -96,11 +96,16 @@ impl WgpuContext {
         let window_size = window.inner_size();
         let physical_size = window_size.to_physical(window.hidpi_factor());
         let surface = wgpu::Surface::create(window);
+        let backend = if cfg!(feature = "force_vulkan") {
+            wgpu::BackendBit::VULKAN
+        } else {
+            wgpu::BackendBit::PRIMARY
+        };
         let adapter = wgpu::Adapter::request(
             &wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::Default,
             },
-            wgpu::BackendBit::PRIMARY,
+            backend,
         )
         .ok_or(ContextBuildError::FailedToRequestGraphicsAdapter)?;
         let (mut device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
