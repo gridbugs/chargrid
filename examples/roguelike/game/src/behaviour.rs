@@ -7,17 +7,34 @@ use grid_2d::{Coord, Grid, Size};
 use grid_search_cardinal::{
     best::{BestSearch, Context as BestSearchContext, Depth},
     distance_map::{
-        DistanceMap, PopulateContext as DistanceMapPopulateContext, SearchContext as DistanceMapSearchContext,
+        Distance, DistanceMap, PopulateContext as DistanceMapPopulateContext, SearchContext as DistanceMapSearchContext,
     },
     point_to_point::{expand, Context as PointToPointSearchContext, NoPath},
     CanEnter,
 };
+use line_2d::LineSegment;
 use serde::{Deserialize, Serialize};
-use shadowcast::{vision_distance, Context as ShadowcastContext};
+use shadowcast::{vision_distance, Context as ShadowcastContext, VisionDistance};
+
+const FLEE_DISTANCE: Distance = 5;
+
+fn has_line_of_sight(eye: Coord, dest: Coord, world: &World, vision_distance: vision_distance::Circle) -> bool {
+    for coord in LineSegment::new(eye, dest).iter() {
+        let eye_to_coord = coord - eye;
+        if !vision_distance.in_range(eye_to_coord) {
+            return false;
+        }
+        if world.contains_wall(coord) {
+            return false;
+        }
+    }
+    true
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct LastSeenCell {
     count: u64,
+    avoid_until: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -32,7 +49,10 @@ impl LastSeenGrid {
     fn new(size: Size) -> Self {
         Self {
             count: 1,
-            last_seen: Grid::new_fn(size, |_| LastSeenCell { count: 0 }),
+            last_seen: Grid::new_fn(size, |_| LastSeenCell {
+                count: 0,
+                avoid_until: 0,
+            }),
         }
     }
 
@@ -42,10 +62,13 @@ impl LastSeenGrid {
         vision_distance: vision_distance::Circle,
         world: &World,
         player_coord: Coord,
+        behaviour_context: &BehaviourContext,
         shadowcast: &mut ShadowcastContext<u8>,
     ) -> Option<PlayerVisible> {
         let mut player_visible = None;
         self.count += 1;
+        let can_see_player = has_line_of_sight(eye, player_coord, world, vision_distance);
+        let distance_map_to_player = &behaviour_context.player_approach;
         shadowcast.for_each_visible(
             eye,
             &Visibility,
@@ -58,6 +81,13 @@ impl LastSeenGrid {
                 }
                 if let Some(cell) = self.last_seen.get_mut(cell_coord) {
                     cell.count = self.count;
+                    if can_see_player {
+                        if let Some(distance_to_player) = distance_map_to_player.distance(cell_coord) {
+                            if distance_to_player < FLEE_DISTANCE {
+                                cell.avoid_until = self.count + 20;
+                            }
+                        }
+                    }
                 }
             },
         );
@@ -131,7 +161,11 @@ impl<'a> BestSearch for Wander<'a> {
                     return false;
                 }
             }
-            let last_seen_count = self.last_seen_grid.last_seen.get_checked(coord).count;
+            let last_seen_cell = self.last_seen_grid.last_seen.get_checked(coord);
+            if last_seen_cell.avoid_until >= self.min_last_seen_count {
+                return false;
+            }
+            let last_seen_count = last_seen_cell.count;
             if last_seen_count < self.min_last_seen_count {
                 self.min_last_seen_count = last_seen_count;
                 self.min_last_seen_coord = Some(coord);
@@ -143,16 +177,6 @@ impl<'a> BestSearch for Wander<'a> {
     }
     fn best_coord(&self) -> Option<Coord> {
         self.min_last_seen_coord
-    }
-}
-
-struct Attack<'a> {
-    world: &'a World,
-}
-
-impl<'a> CanEnter for Attack<'a> {
-    fn can_enter(&self, coord: Coord) -> bool {
-        !self.world.contains_wall(coord)
     }
 }
 
@@ -195,15 +219,25 @@ impl Agent {
         let coord = world.entity_coord(entity);
         let npc = world.entity_npc(entity);
         let player_coord = world.entity_coord(player);
-        self.behaviour = if let Some(PlayerVisible(player_coord)) =
-            self.last_seen_grid
-                .update(coord, self.vision_distance, world, player_coord, shadowcast_context)
-        {
+        self.behaviour = if let Some(PlayerVisible(player_coord)) = self.last_seen_grid.update(
+            coord,
+            self.vision_distance,
+            world,
+            player_coord,
+            behaviour_context,
+            shadowcast_context,
+        ) {
             match npc.disposition {
                 Disposition::Hostile => Behaviour::Chase {
                     last_seen_player_coord: player_coord,
                 },
-                Disposition::Afraid => Behaviour::Flee,
+                Disposition::Afraid => {
+                    if behaviour_context.player_approach.distance(coord).unwrap() < FLEE_DISTANCE {
+                        Behaviour::Flee
+                    } else {
+                        Behaviour::Wander
+                    }
+                }
             }
         } else {
             match self.behaviour {
@@ -274,7 +308,7 @@ impl Agent {
                         .point_to_point_search_context
                         .point_to_point_search_first(
                             expand::JumpPoint,
-                            &Attack { world },
+                            &WorldCanEnterAvoidNpcs { world },
                             coord,
                             last_seen_player_coord,
                         );
