@@ -7,9 +7,10 @@ use grid_2d::{Coord, Grid, Size};
 use grid_search_cardinal::{
     best::{BestSearch, Context as BestSearchContext, Depth},
     distance_map::{
-        CanEnter, DistanceMap, PopulateContext as DistanceMapPopulateContext, SearchContext as DistanceMapSearchContext,
+        DistanceMap, PopulateContext as DistanceMapPopulateContext, SearchContext as DistanceMapSearchContext,
     },
-    point_to_point::{expand, Context as PointToPointSearchContext, NoPath, PointToPointSearch},
+    point_to_point::{expand, Context as PointToPointSearchContext, NoPath},
+    CanEnter,
 };
 use serde::{Deserialize, Serialize};
 use shadowcast::{vision_distance, Context as ShadowcastContext};
@@ -149,7 +150,7 @@ struct Attack<'a> {
     world: &'a World,
 }
 
-impl<'a> PointToPointSearch for Attack<'a> {
+impl<'a> CanEnter for Attack<'a> {
     fn can_enter(&self, coord: Coord) -> bool {
         !self.world.contains_wall(coord)
     }
@@ -273,7 +274,7 @@ impl Agent {
                         .point_to_point_search_context
                         .point_to_point_search_first(
                             expand::JumpPoint,
-                            Attack { world },
+                            &Attack { world },
                             coord,
                             last_seen_player_coord,
                         );
