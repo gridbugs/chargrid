@@ -1,7 +1,7 @@
 use crate::audio::{Audio, AudioTable};
 use crate::controls::{AppInput, Controls};
 use direction::{CardinalDirection, Direction};
-use game::{CellVisibility, Event, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
+use game::{CellVisibility, ExternalEvent, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
 pub use game::{Config as GameConfig, Input as GameInput, Omniscient};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
@@ -51,9 +51,9 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
     fn next_frame(&mut self) {
         *self.screen_shake = self.screen_shake.and_then(|screen_shake| screen_shake.next());
     }
-    fn handle_event(&mut self, event: Event) {
+    fn handle_event(&mut self, event: ExternalEvent) {
         match event {
-            Event::Explosion(coord) => {
+            ExternalEvent::Explosion(coord) => {
                 let direction: Direction = self.rng.gen();
                 *self.screen_shake = Some(ScreenShake {
                     remaining_frames: 2,

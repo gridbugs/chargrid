@@ -8,6 +8,8 @@ use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod behaviour;
+mod realtime_periodic;
+//mod particle;
 mod rational;
 mod visibility;
 mod world;
@@ -25,7 +27,7 @@ pub struct Config {
 /// Events which the game can report back to the io layer so it can
 /// respond with a sound/visual effect.
 #[derive(Serialize, Deserialize, Clone, Copy)]
-pub enum Event {
+pub enum ExternalEvent {
     Explosion(Coord),
 }
 
@@ -43,7 +45,7 @@ pub struct Game {
     player: Entity,
     rng: Isaac64Rng,
     frame_count: u64,
-    events: Vec<Event>,
+    events: Vec<ExternalEvent>,
     shadowcast_context: ShadowcastContext<u8>,
     behaviour_context: BehaviourContext,
     agents: ComponentTable<Agent>,
@@ -142,7 +144,7 @@ impl Game {
         self.world.animation_tick(&mut self.events, &mut self.rng);
         self.frame_count += 1;
     }
-    pub fn events(&self) -> impl '_ + Iterator<Item = Event> {
+    pub fn events(&self) -> impl '_ + Iterator<Item = ExternalEvent> {
         self.events.iter().cloned()
     }
     pub fn player_coord(&self) -> Coord {
