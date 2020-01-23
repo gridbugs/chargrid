@@ -143,6 +143,9 @@ impl FadeState {
         let period = full_duration / 256;
         Self { progress, period }
     }
+    pub fn fading(self) -> Option<u8> {
+        self.progress.fading()
+    }
 }
 
 impl RealtimePeriodicState for FadeState {

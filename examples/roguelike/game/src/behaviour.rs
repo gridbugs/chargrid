@@ -1,5 +1,5 @@
 use crate::visibility::Visibility;
-use crate::world::Disposition;
+use crate::world_data::Disposition;
 use crate::Input;
 use crate::World;
 use ecs::Entity;

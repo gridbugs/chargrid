@@ -22,9 +22,9 @@ pub use components::Components;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SpatialCell {
-    floor: Option<Entity>,
-    feature: Option<Entity>,
-    character: Option<Entity>,
+    pub floor: Option<Entity>,
+    pub feature: Option<Entity>,
+    pub character: Option<Entity>,
 }
 
 impl Default for SpatialCell {

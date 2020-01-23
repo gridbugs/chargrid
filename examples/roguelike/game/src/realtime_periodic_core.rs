@@ -78,8 +78,16 @@ macro_rules! realtime_periodic {
                 $($component_name: Option<&'a mut ScheduledRealtimePeriodicState<$component_type>>,)*
             }
 
+            impl RealtimeComponents {
+                pub fn get_mut_of_entity(&mut self, entity: Entity) -> RealtimeEntityComponents {
+                    RealtimeEntityComponents {
+                        $($component_name: self.$component_name.get_mut(entity),)*
+                    }
+                }
+            }
+
             impl<'a> RealtimeEntityComponents<'a> {
-                fn tick<R: Rng>(&mut self, frame_remaining: Duration, rng: &mut R) -> TimeConsumingEvent<RealtimeEntityEvents> {
+                pub fn tick<R: Rng>(&mut self, frame_remaining: Duration, rng: &mut R) -> TimeConsumingEvent<RealtimeEntityEvents> {
                     let mut until_next_event = frame_remaining;
                     $(if let Some(event) = self.$component_name.as_ref() {
                         until_next_event = until_next_event.min(event.until_next_event);
