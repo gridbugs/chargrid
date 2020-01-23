@@ -8,11 +8,14 @@ use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod behaviour;
-mod realtime_periodic;
-//mod particle;
+mod particle;
 mod rational;
+mod realtime_periodic_core;
+mod realtime_periodic_data;
+mod spawn;
 mod visibility;
 mod world;
+mod world_data;
 
 use behaviour::{Agent, BehaviourContext};
 use ecs::ComponentTable;

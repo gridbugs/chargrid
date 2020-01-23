@@ -84,7 +84,7 @@ ecs_components! {
         npc: Npc,
     }
 }
-use components::Components;
+pub use components::Components;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LightColourFadeState {
@@ -425,10 +425,10 @@ impl Movement {
 }
 
 #[derive(Debug)]
-struct OccupiedBy(Entity);
+pub struct OccupiedBy(Entity);
 
 #[derive(Debug, Serialize, Deserialize)]
-struct SpatialCell {
+pub struct SpatialCell {
     floor: Option<Entity>,
     feature: Option<Entity>,
     character: Option<Entity>,
@@ -478,7 +478,7 @@ impl SpatialCell {
     }
 }
 
-fn location_insert(
+pub fn location_insert(
     entity: Entity,
     location: Location,
     location_component: &mut ComponentTable<Location>,
@@ -498,7 +498,7 @@ fn location_insert(
     Ok(())
 }
 
-fn is_solid_feature_at_coord(
+pub fn is_solid_feature_at_coord(
     coord: Coord,
     solid_component: &ComponentTable<()>,
     spatial_grid: &Grid<SpatialCell>,
@@ -946,7 +946,7 @@ impl World {
             },
         );
     }
-    fn explosion(ecs: &mut Ecs<Components>, spatial_grid: &mut Grid<SpatialCell>, coord: Coord) {
+    pub fn explosion(ecs: &mut Ecs<Components>, spatial_grid: &mut Grid<SpatialCell>, coord: Coord) {
         Self::spawn_explosion_emitter(
             ecs,
             spatial_grid,
