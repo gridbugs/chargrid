@@ -1,13 +1,9 @@
 use crate::{
-    particle::{
-        DurationRange, ParticleAngleRange, ParticleColourSpec, ParticleEmitterFadeOutState, ParticleEmitterSpec,
-        ParticleEmitterState, ParticleFadeSpec, ParticleInitialFadeProgress, ParticleMovementSpec,
-    },
     rational::Rational,
     realtime_periodic_core::ScheduledRealtimePeriodicState,
     realtime_periodic_data::{period_per_frame, FadeState, LightColourFadeState, RealtimeComponents},
     visibility::Light,
-    world_data::{location_insert, Components, Layer, Location, SpatialCell, Tile},
+    world_data::{location_insert, Components, Layer, Location, SpatialCell},
     ExternalEvent,
 };
 use ecs::Ecs;
@@ -46,53 +42,51 @@ fn explosion_emitter(
     realtime_components.particle_emitter.insert(
         emitter_entity,
         ScheduledRealtimePeriodicState {
-            state: ParticleEmitterState {
-                period: period_per_frame(num_particles_per_frame),
-                movement_spec: Some(ParticleMovementSpec {
-                    angle_range: ParticleAngleRange::all(),
-                    cardinal_period_range: DurationRange {
-                        min: min_step,
-                        max: max_step,
-                    },
-                }),
-                particle_fade_spec: ParticleFadeSpec {
-                    initial_progress: ParticleInitialFadeProgress::FromEmitter,
-                    full_duration: fade_duration,
-                },
-                tile: Tile::ExplosionFlame,
-                colour_spec: Some(ParticleColourSpec {
-                    from: Rgb24::new(255, 255, 63),
-                    to: Rgb24::new(255, 127, 0),
-                }),
-                light_spec: None,
-                fade_out_state: Some(ParticleEmitterFadeOutState::new(duration)),
-                light_colour_fade_spec: None,
-                particle_emitter_spec: Some(ParticleEmitterSpec {
-                    chance: Rational {
-                        numerator: 1,
-                        denominator: 20,
-                    },
-                    particle_emitter: Box::new(ParticleEmitterState {
-                        period: min_step,
-                        movement_spec: Some(ParticleMovementSpec {
-                            angle_range: ParticleAngleRange::all(),
+            state: {
+                use crate::particle::spec::*;
+                ParticleEmitter {
+                    emit_particle_every_period: period_per_frame(num_particles_per_frame),
+                    fade_out_duration: Some(duration),
+                    particle: Particle {
+                        tile: Some(Tile::ExplosionFlame),
+                        movement: Some(Movement {
+                            angle_range: AngleRange::all(),
                             cardinal_period_range: DurationRange {
-                                min: Duration::from_millis(200),
-                                max: Duration::from_millis(500),
+                                min: min_step,
+                                max: max_step,
                             },
                         }),
-                        particle_fade_spec: ParticleFadeSpec {
-                            initial_progress: ParticleInitialFadeProgress::Zero,
-                            full_duration: Duration::from_millis(1000),
-                        },
-                        tile: Tile::Smoke,
-                        fade_out_state: None,
-                        colour_spec: None,
-                        light_spec: None,
-                        light_colour_fade_spec: None,
-                        particle_emitter_spec: None,
-                    }),
-                }),
+                        fade_duration: Some(fade_duration),
+                        colour_hint: Some(ColourRange {
+                            from: Rgb24::new(255, 255, 63),
+                            to: Rgb24::new(255, 127, 0),
+                        }),
+                        possible_particle_emitter: Some(Possible {
+                            chance: Rational {
+                                numerator: 1,
+                                denominator: 20,
+                            },
+                            value: Box::new(ParticleEmitter {
+                                emit_particle_every_period: min_step,
+                                fade_out_duration: None,
+                                particle: Particle {
+                                    tile: Some(Tile::Smoke),
+                                    movement: Some(Movement {
+                                        angle_range: AngleRange::all(),
+                                        cardinal_period_range: DurationRange {
+                                            min: Duration::from_millis(200),
+                                            max: Duration::from_millis(500),
+                                        },
+                                    }),
+                                    fade_duration: Some(Duration::from_millis(1000)),
+                                    ..Default::default()
+                                },
+                            }),
+                        }),
+                        ..Default::default()
+                    },
+                }
+                .build()
             },
             until_next_event: Duration::from_millis(0),
         },

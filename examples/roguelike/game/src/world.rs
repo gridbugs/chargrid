@@ -1,9 +1,5 @@
 use crate::ExternalEvent;
 use crate::{
-    particle::{
-        DurationRange, ParticleAngleRange, ParticleEmitterState, ParticleFadeSpec, ParticleInitialFadeProgress,
-        ParticleMovementSpec,
-    },
     rational::Rational,
     realtime_periodic_core::{ScheduledRealtimePeriodicState, TimeConsumingEvent},
     realtime_periodic_data::{MovementState, RealtimeComponents, FRAME_DURATION},
@@ -208,25 +204,25 @@ impl World {
         self.realtime_components.particle_emitter.insert(
             bullet_entity,
             ScheduledRealtimePeriodicState {
-                state: ParticleEmitterState {
-                    period: Duration::from_micros(500),
-                    movement_spec: Some(ParticleMovementSpec {
-                        angle_range: ParticleAngleRange::all(),
-                        cardinal_period_range: DurationRange {
-                            min: Duration::from_millis(200),
-                            max: Duration::from_millis(500),
+                state: {
+                    use crate::particle::spec::*;
+                    ParticleEmitter {
+                        emit_particle_every_period: Duration::from_micros(500),
+                        fade_out_duration: None,
+                        particle: Particle {
+                            tile: Some(Tile::Smoke),
+                            movement: Some(Movement {
+                                angle_range: AngleRange::all(),
+                                cardinal_period_range: DurationRange {
+                                    min: Duration::from_millis(200),
+                                    max: Duration::from_millis(500),
+                                },
+                            }),
+                            fade_duration: Some(Duration::from_millis(1000)),
+                            ..Default::default()
                         },
-                    }),
-                    particle_fade_spec: ParticleFadeSpec {
-                        initial_progress: ParticleInitialFadeProgress::Zero,
-                        full_duration: Duration::from_millis(1000),
-                    },
-                    tile: Tile::Smoke,
-                    fade_out_state: None,
-                    colour_spec: None,
-                    light_spec: None,
-                    light_colour_fade_spec: None,
-                    particle_emitter_spec: None,
+                    }
+                    .build()
                 },
                 until_next_event: Duration::from_millis(0),
             },

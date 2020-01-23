@@ -1,5 +1,5 @@
 use crate::{
-    particle::{Particle, ParticleEmitterState},
+    particle::ParticleEmitterState,
     realtime_periodic_core::{RealtimePeriodicState, TimeConsumingEvent},
     spawn,
     world_data::{is_solid_feature_at_coord, Components, OnCollision, SpatialCell},
@@ -227,30 +227,5 @@ impl RealtimePeriodicState for LightColourFadeState {
                 ecs.components.light.remove(entity);
             }
         }
-    }
-}
-
-impl RealtimePeriodicState for ParticleEmitterState {
-    type Event = Particle;
-    type Components = RealtimeComponents;
-    fn tick<R: Rng>(&mut self, rng: &mut R) -> TimeConsumingEvent<Self::Event> {
-        ParticleEmitterState::tick(self, rng)
-    }
-    fn animate_event(
-        particle: Self::Event,
-        ecs: &mut Ecs<Components>,
-        realtime_components: &mut Self::Components,
-        spatial_grid: &mut Grid<SpatialCell>,
-        entity: Entity,
-        external_events: &mut Vec<ExternalEvent>,
-    ) {
-        ParticleEmitterState::animate_event(
-            particle,
-            ecs,
-            realtime_components,
-            spatial_grid,
-            entity,
-            external_events,
-        );
     }
 }
