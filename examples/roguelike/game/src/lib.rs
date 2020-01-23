@@ -19,9 +19,10 @@ mod world_data;
 
 use behaviour::{Agent, BehaviourContext};
 use ecs::ComponentTable;
+pub use ecs::Entity;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
 pub use world::ToRenderEntity;
-use world::{Entity, World};
+use world::World;
 pub use world_data::{Layer, Tile};
 
 pub struct Config {

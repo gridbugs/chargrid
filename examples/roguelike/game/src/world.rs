@@ -1,19 +1,20 @@
-use crate::particle::{
-    DurationRange, ParticleAngleRange, ParticleEmitterState, ParticleFadeSpec, ParticleInitialFadeProgress,
-    ParticleMovementSpec,
-};
-use crate::rational::Rational;
-use crate::realtime_periodic_core::{ScheduledRealtimePeriodicState, TimeConsumingEvent};
-use crate::realtime_periodic_data::{MovementState, RealtimeComponents, FRAME_DURATION};
-use crate::visibility::Light;
-use crate::world_data::{
-    is_solid_feature_at_coord, location_insert, Components, Disposition, Layer, Location, Npc, OccupiedBy, OnCollision,
-    SpatialCell, Tile,
-};
 use crate::ExternalEvent;
-use direction::{CardinalDirection, Direction};
-pub use ecs::Entity;
-use ecs::{ecs_components, ComponentTable, Ecs};
+use crate::{
+    particle::{
+        DurationRange, ParticleAngleRange, ParticleEmitterState, ParticleFadeSpec, ParticleInitialFadeProgress,
+        ParticleMovementSpec,
+    },
+    rational::Rational,
+    realtime_periodic_core::{ScheduledRealtimePeriodicState, TimeConsumingEvent},
+    realtime_periodic_data::{MovementState, RealtimeComponents, FRAME_DURATION},
+    visibility::Light,
+    world_data::{
+        is_solid_feature_at_coord, location_insert, Components, Disposition, Layer, Location, Npc, OccupiedBy,
+        OnCollision, SpatialCell, Tile,
+    },
+};
+use direction::CardinalDirection;
+use ecs::{Ecs, Entity};
 use grid_2d::{Coord, Grid, Size};
 use line_2d::InfiniteStepIter;
 use rand::Rng;
@@ -21,7 +22,6 @@ use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use shadowcast::vision_distance::Circle;
 use std::time::Duration;
-use vector::Radial;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct World {

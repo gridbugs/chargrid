@@ -167,10 +167,10 @@ impl RealtimePeriodicState for FadeState {
     fn animate_event(
         progress: Self::Event,
         ecs: &mut Ecs<Components>,
-        realtime_components: &mut Self::Components,
-        spatial_grid: &mut Grid<SpatialCell>,
+        _realtime_components: &mut Self::Components,
+        _spatial_grid: &mut Grid<SpatialCell>,
         entity: Entity,
-        external_events: &mut Vec<ExternalEvent>,
+        _external_events: &mut Vec<ExternalEvent>,
     ) {
         if progress.is_complete() {
             ecs.remove(entity);
@@ -212,10 +212,10 @@ impl RealtimePeriodicState for LightColourFadeState {
     fn animate_event(
         progress: Self::Event,
         ecs: &mut Ecs<Components>,
-        realtime_components: &mut Self::Components,
-        spatial_grid: &mut Grid<SpatialCell>,
+        _realtime_components: &mut Self::Components,
+        _spatial_grid: &mut Grid<SpatialCell>,
         entity: Entity,
-        external_events: &mut Vec<ExternalEvent>,
+        _external_events: &mut Vec<ExternalEvent>,
     ) {
         match progress {
             LightColourFadeProgress::Colour(colour) => {

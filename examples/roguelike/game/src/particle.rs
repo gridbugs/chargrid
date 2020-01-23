@@ -86,7 +86,7 @@ impl ParticleEmitterState {
         realtime_components: &mut RealtimeComponents,
         spatial_grid: &mut Grid<SpatialCell>,
         entity: Entity,
-        external_events: &mut Vec<ExternalEvent>,
+        _external_events: &mut Vec<ExternalEvent>,
     ) {
         let coord = if let Some(location) = ecs.components.location.get(entity) {
             location.coord

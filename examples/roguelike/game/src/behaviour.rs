@@ -219,7 +219,6 @@ impl Agent {
         } else {
             None
         };
-        println!("{:?}", can_see_player);
         self.last_seen_grid.update(
             coord,
             self.vision_distance,
@@ -229,7 +228,6 @@ impl Agent {
             shadowcast_context,
         );
         self.behaviour = if let Some(CanSeePlayer) = can_see_player {
-            println!("{:?}", npc.disposition);
             match npc.disposition {
                 Disposition::Hostile => Behaviour::Chase {
                     last_seen_player_coord: player_coord,
@@ -259,7 +257,6 @@ impl Agent {
                 }
             }
         };
-        println!("{:?}", self.behaviour);
         match self.behaviour {
             Behaviour::Wander => {
                 if let Some(cardinal_direction) = behaviour_context.best_search_context.best_search_first(

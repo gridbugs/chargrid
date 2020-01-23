@@ -54,7 +54,7 @@ macro_rules! realtime_periodic {
 
             impl RealtimeEntityEvents {
                 pub fn animate(
-                    mut self,
+                    self,
                     ecs: &mut ecs::Ecs<Components>,
                     realtime_components: &mut RealtimeComponents,
                     spatial_grid: &mut grid_2d::Grid<SpatialCell>,

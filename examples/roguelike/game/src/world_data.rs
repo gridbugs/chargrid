@@ -1,6 +1,6 @@
 use crate::visibility::Light;
 use ecs::{ecs_components, ComponentTable, Entity};
-use grid_2d::{Coord, Grid, Size};
+use grid_2d::{Coord, Grid};
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 
