@@ -456,7 +456,7 @@ impl WebAudioPlayer {
     pub fn play(&self, sound: &WebSound, properties: AudioProperties) {
         let element = web_sys::HtmlAudioElement::new_with_src(sound.uri.as_str()).unwrap();
         element.set_volume(properties.volume as f64);
-        element.play().unwrap();
+        let _ = element.play().unwrap();
     }
 }
 
