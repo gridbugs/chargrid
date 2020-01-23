@@ -36,7 +36,9 @@ struct WgpuContext {
     render_buffer: prototty_render::Buffer,
     glyph_brush: wgpu_glyph::GlyphBrush<'static, ()>,
     global_uniforms_buffer: wgpu::Buffer,
-    window_size: winit::dpi::LogicalSize,
+    window_size: winit::dpi::LogicalSize<f64>,
+    scale_factor: f64,
+    modifier_state: winit::event::ModifiersState,
 }
 
 #[repr(C)]
@@ -93,8 +95,9 @@ impl WgpuContext {
         let num_background_cell_instances = grid_size.count() as u32;
         let background_cell_instance_data = Grid::new_default(grid_size);
         let render_buffer = prototty_render::Buffer::new(grid_size);
-        let window_size = window.inner_size();
-        let physical_size = window_size.to_physical(window.hidpi_factor());
+        let scale_factor = window.scale_factor();
+        let physical_size = window.inner_size();
+        let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
         let surface = wgpu::Surface::create(window);
         let backend = if cfg!(feature = "force_vulkan") {
             wgpu::BackendBit::VULKAN
@@ -117,8 +120,8 @@ impl WgpuContext {
         let sc_desc = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
             format: TEXTURE_FORMAT,
-            width: physical_size.width.round() as u32,
-            height: physical_size.height.round() as u32,
+            width: physical_size.width,
+            height: physical_size.height,
             present_mode: wgpu::PresentMode::Vsync,
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
@@ -230,6 +233,7 @@ impl WgpuContext {
         let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(font_bytes_to_fonts(font_bytes))
             .texture_filter_method(wgpu::FilterMode::Nearest)
             .build(&mut device, TEXTURE_FORMAT);
+        let modifier_state = winit::event::ModifiersState::default();
         Ok(Self {
             device,
             sc_desc,
@@ -244,6 +248,8 @@ impl WgpuContext {
             glyph_brush,
             global_uniforms_buffer,
             window_size,
+            scale_factor,
+            modifier_state,
         })
     }
     fn render_background(&mut self) {
@@ -262,17 +268,10 @@ impl WgpuContext {
             .fill_from_slice(self.background_cell_instance_data.raw());
     }
 
-    fn resize(
-        &mut self,
-        size_context: &SizeContext,
-        window_size: winit::dpi::LogicalSize,
-        window: &winit::window::Window,
-    ) {
+    fn resize(&mut self, size_context: &SizeContext, window_size: winit::dpi::LogicalSize<f64>) {
         use std::mem;
-        let physical_size = window_size.to_physical(window.hidpi_factor());
-        log::info!("resizing to {:?}", window_size);
+        let physical_size: winit::dpi::PhysicalSize<f64> = window_size.to_physical(self.scale_factor);
         let grid_size = size_context.grid_size(window_size);
-        log::info!("grid size: {:?}", grid_size);
         self.window_size = window_size;
         self.render_buffer = prototty_render::Buffer::new(grid_size);
         self.background_cell_instance_data = Grid::new_default(grid_size);
@@ -318,19 +317,20 @@ impl Default for InputContext {
 
 #[derive(Debug)]
 struct SizeContext {
-    font_scale: wgpu_glyph::Scale,
+    font_source_scale: wgpu_glyph::Scale,
+    font_dimensions: Dimensions<NumPixels>,
     cell_dimensions: Dimensions<NumPixels>,
     underline_width: NumPixels,
     underline_top_offset: NumPixels,
 }
 
 impl SizeContext {
-    fn grid_size(&self, window_size: winit::dpi::LogicalSize) -> Size {
+    fn grid_size(&self, window_size: winit::dpi::LogicalSize<f64>) -> Size {
         let width = (window_size.width / self.cell_dimensions.width).floor();
         let height = (window_size.height / self.cell_dimensions.height).floor();
         Size::new(width as u32, height as u32)
     }
-    fn global_uniforms(&self, window_size: winit::dpi::LogicalSize, grid_size: Size) -> GlobalUniforms {
+    fn global_uniforms(&self, window_size: winit::dpi::LogicalSize<f64>, grid_size: Size) -> GlobalUniforms {
         log::info!(
             "window_size {:?}\nrelative_size {:?}",
             window_size,
@@ -362,6 +362,7 @@ impl Context {
             window_dimensions,
             cell_dimensions,
             font_dimensions,
+            font_source_dimensions,
             underline_width,
             underline_top_offset,
         }: ContextDescriptor,
@@ -382,15 +383,16 @@ impl Context {
             .build(&event_loop)
             .map_err(ContextBuildError::FailedToBuildWindow)?;
         let size_context = SizeContext {
-            font_scale: wgpu_glyph::Scale {
-                x: font_dimensions.width as f32,
-                y: font_dimensions.height as f32,
+            font_source_scale: wgpu_glyph::Scale {
+                x: font_source_dimensions.width,
+                y: font_source_dimensions.height,
             },
+            font_dimensions,
             cell_dimensions,
             underline_width,
             underline_top_offset,
         };
-        let grid_size = size_context.grid_size(window.inner_size());
+        let grid_size = size_context.grid_size(window.inner_size().to_logical(window.scale_factor()));
         let wgpu_context = WgpuContext::new(&window, &size_context, grid_size, font_bytes)?;
         log::info!("grid size: {:?}", grid_size);
         Ok(Context {
@@ -412,8 +414,10 @@ impl Context {
             size_context,
             mut input_context,
         } = self;
+        let _ = window;
         let mut frame_instant = Instant::now();
         let mut exited = false;
+        log::info!("Entering main event loop");
         event_loop.run(move |event, _, control_flow| {
             if exited {
                 *control_flow = winit::event_loop::ControlFlow::Exit;
@@ -430,6 +434,8 @@ impl Context {
                         size_context.cell_dimensions,
                         &mut input_context.last_mouse_coord,
                         &mut input_context.last_mouse_button,
+                        wgpu_context.scale_factor,
+                        wgpu_context.modifier_state,
                     ) {
                         match event {
                             input::Event::Input(input) => {
@@ -439,12 +445,18 @@ impl Context {
                                 }
                             }
                             input::Event::Resize(size) => {
-                                wgpu_context.resize(&size_context, size, &window);
+                                wgpu_context.resize(&size_context, size);
                             }
                         }
                     }
                 }
-                winit::event::Event::EventsCleared => {
+                winit::event::Event::DeviceEvent {
+                    event: winit::event::DeviceEvent::ModifiersChanged(modifier_state),
+                    ..
+                } => {
+                    wgpu_context.modifier_state = modifier_state;
+                }
+                winit::event::Event::MainEventsCleared => {
                     let frame_duration = frame_instant.elapsed();
                     frame_instant = Instant::now();
                     let view_context = ViewContext::default_with_size(wgpu_context.render_buffer.size());
@@ -493,7 +505,10 @@ impl Context {
                                 screen_position,
                                 font_id,
                                 color,
-                                scale: size_context.font_scale,
+                                scale: wgpu_glyph::Scale {
+                                    x: size_context.font_dimensions.width as f32,
+                                    y: size_context.font_dimensions.height as f32,
+                                },
                                 ..Default::default()
                             };
                             wgpu_context.glyph_brush.queue(section);

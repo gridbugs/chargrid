@@ -23,6 +23,10 @@ fn main() -> io::Result<()> {
             width: 12.,
             height: 12.,
         },
+        font_source_dimensions: Dimensions {
+            width: 12.,
+            height: 12.,
+        },
         underline_width: 0.1,
         underline_top_offset: 0.8,
     })

@@ -18,6 +18,10 @@ fn main() {
             width: 32.,
             height: 32.,
         },
+        font_source_dimensions: Dimensions {
+            width: 32.,
+            height: 32.,
+        },
         underline_width: 0.1,
         underline_top_offset: 0.8,
     })

@@ -22,6 +22,7 @@ impl Context {
             window_dimensions,
             cell_dimensions,
             font_dimensions,
+            font_source_dimensions: _,
             underline_width,
             underline_top_offset,
         }: ContextDescriptor,

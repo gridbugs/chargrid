@@ -22,7 +22,7 @@ prototty_app = { path = "../app", version = "0.28" }
 prototty_graphical_common = { path = "../graphical-common", version = "0.28" }
 wgpu = "0.4"
 wgpu_glyph = "0.6"
-winit = "0.20.0-alpha4"
+winit = "0.20"
 zerocopy = "0.2"
 log = "0.4"
 grid_2d = "0.14"

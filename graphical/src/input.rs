@@ -10,7 +10,7 @@ use winit::event::{
 
 pub enum Event {
     Input(Input),
-    Resize(LogicalSize),
+    Resize(LogicalSize<f64>),
 }
 
 macro_rules! convert_char_shift {
@@ -121,7 +121,7 @@ fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<K
 }
 
 fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input> {
-    convert_keycode_keyboard_input(code, keymod.shift).map(Input::Keyboard)
+    convert_keycode_keyboard_input(code, keymod.shift()).map(Input::Keyboard)
 }
 
 pub fn convert_event(
@@ -129,14 +129,16 @@ pub fn convert_event(
     cell_dimensions: Dimensions<f64>,
     last_mouse_coord: &mut Coord,
     last_mouse_button: &mut Option<MouseButton>,
+    scale_factor: f64,
+    modifier_state: ModifiersState,
 ) -> Option<Event> {
     match event {
         WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(prototty_input::keys::ETX))),
-        WindowEvent::Resized(logical_size) => Some(Event::Resize(logical_size)),
+        WindowEvent::Resized(physical_size) => Some(Event::Resize(physical_size.to_logical(scale_factor))),
         WindowEvent::KeyboardInput { input, .. } => {
             if let ElementState::Pressed = input.state {
                 if let Some(virtual_keycode) = input.virtual_keycode {
-                    if let Some(input) = convert_keycode(virtual_keycode, input.modifiers) {
+                    if let Some(input) = convert_keycode(virtual_keycode, modifier_state) {
                         return Some(Event::Input(input));
                     }
                 }
@@ -144,9 +146,10 @@ pub fn convert_event(
             None
         }
         WindowEvent::CursorMoved {
-            position: LogicalPosition { x, y },
+            position: physical_position,
             ..
         } => {
+            let LogicalPosition { x, y }: LogicalPosition<f64> = physical_position.to_logical(scale_factor);
             let x = (x / cell_dimensions.width) as i32;
             let y = (y / cell_dimensions.height) as i32;
             let coord = Coord::new(x, y);

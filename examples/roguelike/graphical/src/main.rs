@@ -5,6 +5,8 @@ use prototty_graphical_gfx::*;
 use roguelike_native::{simon::Arg, NativeCommon};
 use roguelike_prototty::{app, Frontend};
 
+const CELL_SIZE: f64 = 16.;
+
 fn main() {
     env_logger::init();
     let NativeCommon {
@@ -22,16 +24,20 @@ fn main() {
         },
         title: "Template Roguelike".to_string(),
         window_dimensions: WindowDimensions::Windowed(Dimensions {
-            width: 640.,
-            height: 480.,
+            width: 720.,
+            height: 540.,
         }),
         cell_dimensions: Dimensions {
-            width: 12.,
-            height: 12.,
+            width: CELL_SIZE,
+            height: CELL_SIZE,
         },
         font_dimensions: Dimensions {
-            width: 12.,
-            height: 12.,
+            width: CELL_SIZE,
+            height: CELL_SIZE,
+        },
+        font_source_dimensions: Dimensions {
+            width: CELL_SIZE as f32,
+            height: CELL_SIZE as f32,
         },
         underline_width: 0.1,
         underline_top_offset: 0.8,

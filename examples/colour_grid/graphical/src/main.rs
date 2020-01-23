@@ -20,6 +20,10 @@ fn main() {
             width: 14.,
             height: 14.,
         },
+        font_source_dimensions: Dimensions {
+            width: 14.,
+            height: 14.,
+        },
         underline_width: 0.1,
         underline_top_offset: 0.8,
     })

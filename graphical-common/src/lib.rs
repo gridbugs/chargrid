@@ -11,6 +11,7 @@ pub struct Dimensions<T> {
 
 pub type NumPixels = f64;
 pub type CellRatio = f64;
+pub type FontSourceScale = f32;
 
 pub enum WindowDimensions {
     Windowed(Dimensions<NumPixels>),
@@ -23,6 +24,7 @@ pub struct ContextDescriptor {
     pub window_dimensions: WindowDimensions,
     pub cell_dimensions: Dimensions<NumPixels>,
     pub font_dimensions: Dimensions<NumPixels>,
+    pub font_source_dimensions: Dimensions<FontSourceScale>,
     pub underline_width: CellRatio,
     pub underline_top_offset: CellRatio,
 }
