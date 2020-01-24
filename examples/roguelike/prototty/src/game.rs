@@ -20,6 +20,7 @@ const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
 const AIM_UI_DEPTH: i8 = 3;
 const PLAYER_OFFSET: Coord = Coord::new(16, 16);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
+const STORAGE_FORMAT: format::Json = format::Json;
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 struct ScreenShake {
@@ -307,7 +308,7 @@ struct StorageWrapper<S: Storage> {
 impl<S: Storage> StorageWrapper<S> {
     pub fn save_instance(&mut self, instance: &GameInstance) {
         self.storage
-            .store(&self.save_key, instance, format::Bincode)
+            .store(&self.save_key, instance, STORAGE_FORMAT)
             .expect("failed to save instance");
     }
     pub fn clear_instance(&mut self) {
@@ -332,7 +333,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         audio_player: A,
         rng_seed: RngSeed,
     ) -> Self {
-        let mut instance: Option<GameInstance> = storage.load(&save_key, format::Bincode).ok();
+        let mut instance: Option<GameInstance> = storage.load(&save_key, STORAGE_FORMAT).ok();
         if let Some(instance) = instance.as_mut() {
             instance.game.update_visibility(&game_config);
         }

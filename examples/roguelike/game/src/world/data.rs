@@ -16,6 +16,8 @@ ecs_components! {
         on_collision: OnCollision,
         colour_hint: Rgb24,
         npc: Npc,
+        character: (),
+        colides_with: ColidesWith,
     }
 }
 pub use components::Components;
@@ -47,4 +49,19 @@ pub struct Npc {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum OnCollision {
     Explode,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ColidesWith {
+    pub solid: bool,
+    pub character: bool,
+}
+
+impl Default for ColidesWith {
+    fn default() -> Self {
+        Self {
+            solid: true,
+            character: false,
+        }
+    }
 }

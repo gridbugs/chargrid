@@ -1,7 +1,7 @@
 use crate::{
     visibility::Light,
     world::{
-        data::{Components, Disposition, Layer, Location, Npc, OnCollision, Tile},
+        data::{ColidesWith, Components, Disposition, Layer, Location, Npc, OnCollision, Tile},
         realtime_periodic::{
             core::ScheduledRealtimePeriodicState,
             data::{period_per_frame, FadeState, LightColourFadeState, MovementState, RealtimeComponents},
@@ -170,6 +170,7 @@ pub fn player(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: 
             },
         },
     );
+    ecs.components.character.insert(entity, ());
     entity
 }
 
@@ -210,6 +211,7 @@ pub fn former_human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, c
             disposition: Disposition::Hostile,
         },
     );
+    ecs.components.character.insert(entity, ());
     entity
 }
 
@@ -232,6 +234,7 @@ pub fn human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: C
             disposition: Disposition::Afraid,
         },
     );
+    ecs.components.character.insert(entity, ());
     entity
 }
 
@@ -357,6 +360,13 @@ pub fn rocket(
                 numerator: 1,
                 denominator: 10,
             },
+        },
+    );
+    ecs.components.colides_with.insert(
+        entity,
+        ColidesWith {
+            solid: true,
+            character: true,
         },
     );
     entity

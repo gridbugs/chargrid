@@ -10,26 +10,13 @@ use ecs::{Ecs, Entity};
 use grid_2d::Coord;
 use rgb24::Rgb24;
 
-pub mod component {
-    use super::*;
-    use ecs::ComponentTable;
-
-    pub fn is_solid_feature_at_coord(
-        solid_component: &ComponentTable<()>,
-        spatial_grid: &SpatialGrid,
-        coord: Coord,
-    ) -> bool {
-        let cell = spatial_grid.get_checked(coord);
-        if let Some(feature) = cell.feature {
-            solid_component.contains(feature)
-        } else {
-            false
-        }
-    }
-}
-
 pub fn is_solid_feature_at_coord(ecs: &Ecs<Components>, spatial_grid: &SpatialGrid, coord: Coord) -> bool {
-    component::is_solid_feature_at_coord(&ecs.components.solid, spatial_grid, coord)
+    let cell = spatial_grid.get_checked(coord);
+    if let Some(feature) = cell.feature {
+        ecs.components.solid.contains(feature)
+    } else {
+        false
+    }
 }
 
 pub fn is_wall_at_coord(ecs: &Ecs<Components>, spatial_grid: &SpatialGrid, coord: Coord) -> bool {
