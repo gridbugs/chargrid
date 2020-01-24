@@ -1,17 +1,18 @@
 use crate::{
     world::{
-        data::{is_solid_feature_at_coord, Components, OnCollision, SpatialCell},
+        data::{Components, OnCollision},
+        query,
         realtime_periodic::{
             core::{RealtimePeriodicState, TimeConsumingEvent},
             particle::ParticleEmitterState,
         },
+        spatial_grid::SpatialGrid,
         spawn,
     },
     ExternalEvent,
 };
 use direction::Direction;
 use ecs::{Ecs, Entity};
-use grid_2d::Grid;
 use line_2d::InfiniteStepIter;
 use rand::Rng;
 use rgb24::Rgb24;
@@ -81,13 +82,13 @@ impl RealtimePeriodicState for MovementState {
         movement_direction: Self::Event,
         ecs: &mut Ecs<Components>,
         realtime_components: &mut Self::Components,
-        spatial_grid: &mut Grid<SpatialCell>,
+        spatial_grid: &mut SpatialGrid,
         entity: Entity,
         external_events: &mut Vec<ExternalEvent>,
     ) {
         if let Some(current_location) = ecs.components.location.get_mut(entity) {
             let next_coord = current_location.coord + movement_direction.coord();
-            if is_solid_feature_at_coord(next_coord, &ecs.components.solid, spatial_grid) {
+            if query::component::is_solid_feature_at_coord(&ecs.components.solid, spatial_grid, next_coord) {
                 if let Some(on_collision) = ecs.components.on_collision.get(entity) {
                     let current_coord = current_location.coord;
                     match on_collision {
@@ -172,7 +173,7 @@ impl RealtimePeriodicState for FadeState {
         progress: Self::Event,
         ecs: &mut Ecs<Components>,
         _realtime_components: &mut Self::Components,
-        _spatial_grid: &mut Grid<SpatialCell>,
+        _spatial_grid: &mut SpatialGrid,
         entity: Entity,
         _external_events: &mut Vec<ExternalEvent>,
     ) {
@@ -217,7 +218,7 @@ impl RealtimePeriodicState for LightColourFadeState {
         progress: Self::Event,
         ecs: &mut Ecs<Components>,
         _realtime_components: &mut Self::Components,
-        _spatial_grid: &mut Grid<SpatialCell>,
+        _spatial_grid: &mut SpatialGrid,
         entity: Entity,
         _external_events: &mut Vec<ExternalEvent>,
     ) {

@@ -1,14 +1,16 @@
 use crate::visibility::Light;
-use crate::world::data::{location_insert, Components, Layer, Location, SpatialCell, Tile};
-use crate::world::realtime_periodic::core::{
-    RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent,
+use crate::{
+    world::{
+        data::{Components, Layer, Location, Tile},
+        realtime_periodic::{
+            core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent},
+            data::{FadeProgress, FadeState, LightColourFadeState, MovementState, RealtimeComponents},
+        },
+        spatial_grid::{LocationUpdate, SpatialGrid},
+    },
+    ExternalEvent,
 };
-use crate::world::realtime_periodic::data::{
-    FadeProgress, FadeState, LightColourFadeState, MovementState, RealtimeComponents,
-};
-use crate::ExternalEvent;
 use ecs::{Ecs, Entity};
-use grid_2d::Grid;
 use line_2d::InfiniteStepIter;
 use rand::Rng;
 use rgb24::Rgb24;
@@ -233,7 +235,7 @@ impl RealtimePeriodicState for ParticleEmitterState {
         mut spawn_particle: Self::Event,
         ecs: &mut Ecs<Components>,
         realtime_components: &mut RealtimeComponents,
-        spatial_grid: &mut Grid<SpatialCell>,
+        spatial_grid: &mut SpatialGrid,
         entity: Entity,
         _external_events: &mut Vec<ExternalEvent>,
     ) {
@@ -252,13 +254,16 @@ impl RealtimePeriodicState for ParticleEmitterState {
                 },
             );
         }
-        location_insert(
-            particle_entity,
-            Location::new(coord, Layer::Particle),
-            &mut ecs.components.location,
-            spatial_grid,
-        )
-        .unwrap();
+        spatial_grid
+            .location_update(
+                ecs,
+                particle_entity,
+                Location {
+                    coord,
+                    layer: Layer::Particle,
+                },
+            )
+            .unwrap();
         if let Some(tile) = spawn_particle.tile {
             ecs.components.tile.insert(particle_entity, tile);
         }

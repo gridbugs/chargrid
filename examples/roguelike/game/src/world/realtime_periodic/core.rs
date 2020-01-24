@@ -1,9 +1,8 @@
 use crate::{
-    world::data::{Components, SpatialCell},
+    world::{data::Components, spatial_grid::SpatialGrid},
     ExternalEvent,
 };
 use ecs::{Ecs, Entity};
-use grid_2d::Grid;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -16,7 +15,7 @@ pub trait RealtimePeriodicState {
         event: Self::Event,
         ecs: &mut Ecs<Components>,
         realtime_components: &mut Self::Components,
-        spatial_grid: &mut Grid<SpatialCell>,
+        spatial_grid: &mut SpatialGrid,
         entity: Entity,
         external_events: &mut Vec<ExternalEvent>,
     );
@@ -57,7 +56,7 @@ macro_rules! realtime_periodic {
                     self,
                     ecs: &mut ecs::Ecs<Components>,
                     realtime_components: &mut RealtimeComponents,
-                    spatial_grid: &mut grid_2d::Grid<SpatialCell>,
+                    spatial_grid: &mut SpatialGrid,
                     entity: ecs::Entity,
                     external_events: &mut Vec<crate::ExternalEvent>,
                 ) {

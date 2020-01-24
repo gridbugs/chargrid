@@ -15,9 +15,8 @@ use behaviour::{Agent, BehaviourContext};
 use ecs::ComponentTable;
 pub use ecs::Entity;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
-pub use world::ToRenderEntity;
-use world::World;
-pub use world::{Layer, Tile};
+use world::{AnimationContext, World};
+pub use world::{Layer, Tile, ToRenderEntity};
 
 pub struct Config {
     pub omniscient: Option<Omniscient>,
@@ -47,6 +46,7 @@ pub struct Game {
     events: Vec<ExternalEvent>,
     shadowcast_context: ShadowcastContext<u8>,
     behaviour_context: BehaviourContext,
+    animation_context: AnimationContext,
     agents: ComponentTable<Agent>,
 }
 
@@ -104,6 +104,7 @@ impl Game {
             events: Vec::new(),
             shadowcast_context: ShadowcastContext::default(),
             behaviour_context: BehaviourContext::new(size),
+            animation_context: AnimationContext::default(),
             agents,
         };
         game.update_behaviour();
@@ -129,7 +130,7 @@ impl Game {
         if !self.is_gameplay_blocked() {
             match input {
                 Input::Walk(direction) => self.world.character_walk_in_direction(self.player, direction),
-                Input::Fire(coord) => self.world.character_fire_bullet(self.player, coord),
+                Input::Fire(coord) => self.world.character_fire_rocket(self.player, coord),
                 Input::Wait => (),
             }
         }
@@ -140,7 +141,8 @@ impl Game {
     pub fn handle_tick(&mut self, _since_last_tick: Duration, config: &Config) {
         self.events.clear();
         self.update_visibility(config);
-        self.world.animation_tick(&mut self.events, &mut self.rng);
+        self.world
+            .animation_tick(&mut self.animation_context, &mut self.events, &mut self.rng);
         self.frame_count += 1;
     }
     pub fn events(&self) -> impl '_ + Iterator<Item = ExternalEvent> {
@@ -172,7 +174,7 @@ impl Game {
             ) {
                 match input {
                     Input::Walk(direction) => self.world.character_walk_in_direction(entity, direction),
-                    Input::Fire(coord) => self.world.character_fire_bullet(entity, coord),
+                    Input::Fire(coord) => self.world.character_fire_rocket(entity, coord),
                     Input::Wait => (),
                 }
             }

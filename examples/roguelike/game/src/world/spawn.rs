@@ -1,18 +1,19 @@
 use crate::{
     visibility::Light,
     world::{
-        location_insert,
+        data::{Components, Disposition, Layer, Location, Npc, OnCollision, Tile},
         realtime_periodic::{
             core::ScheduledRealtimePeriodicState,
-            data::{period_per_frame, FadeState, LightColourFadeState, RealtimeComponents},
+            data::{period_per_frame, FadeState, LightColourFadeState, MovementState, RealtimeComponents},
             particle,
         },
-        Components, Layer, Location, SpatialCell, Tile,
+        spatial_grid::{LocationUpdate, SpatialGrid},
     },
     ExternalEvent,
 };
 use ecs::{Ecs, Entity};
-use grid_2d::{Coord, Grid};
+use grid_2d::Coord;
+use line_2d::InfiniteStepIter;
 use rational::Rational;
 use rgb24::Rgb24;
 use shadowcast::vision_distance::Circle;
@@ -21,7 +22,7 @@ use std::time::Duration;
 fn explosion_emitter(
     ecs: &mut Ecs<Components>,
     realtime_components: &mut RealtimeComponents,
-    spatial_grid: &mut Grid<SpatialCell>,
+    spatial_grid: &mut SpatialGrid,
     coord: Coord,
     duration: Duration,
     num_particles_per_frame: u32,
@@ -30,13 +31,16 @@ fn explosion_emitter(
     fade_duration: Duration,
 ) {
     let emitter_entity = ecs.entity_allocator.alloc();
-    location_insert(
-        emitter_entity,
-        Location::new(coord, Layer::Particle),
-        &mut ecs.components.location,
-        spatial_grid,
-    )
-    .unwrap();
+    spatial_grid
+        .location_update(
+            ecs,
+            emitter_entity,
+            Location {
+                coord,
+                layer: Layer::Particle,
+            },
+        )
+        .unwrap();
     realtime_components.fade.insert(
         emitter_entity,
         ScheduledRealtimePeriodicState {
@@ -124,7 +128,7 @@ fn explosion_emitter(
 pub fn explosion(
     ecs: &mut Ecs<Components>,
     realtime_components: &mut RealtimeComponents,
-    spatial_grid: &mut Grid<SpatialCell>,
+    spatial_grid: &mut SpatialGrid,
     coord: Coord,
     external_events: &mut Vec<ExternalEvent>,
 ) {
@@ -142,20 +146,212 @@ pub fn explosion(
     external_events.push(ExternalEvent::Explosion(coord));
 }
 
-pub fn player(ecs: &mut Ecs<Components>, spatial_grid: &mut Grid<SpatialCell>, coord: Coord) -> Entity {
+pub fn player(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
     let entity = ecs.create();
-    location_insert(
-        entity,
-        Location::new(coord, Layer::Character),
-        &mut ecs.components.location,
-        spatial_grid,
-    )
-    .unwrap();
+    spatial_grid
+        .location_update(
+            ecs,
+            entity,
+            Location {
+                coord,
+                layer: Layer::Character,
+            },
+        )
+        .unwrap();
     ecs.components.tile.insert(entity, Tile::Player);
     ecs.components.light.insert(
         entity,
         Light {
             colour: Rgb24::new(255, 187, 127),
+            vision_distance: Circle::new_squared(90),
+            diminish: Rational {
+                numerator: 1,
+                denominator: 10,
+            },
+        },
+    );
+    entity
+}
+
+pub fn wall(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
+    let entity = ecs.create();
+    spatial_grid
+        .location_update(
+            ecs,
+            entity,
+            Location {
+                coord,
+                layer: Layer::Feature,
+            },
+        )
+        .unwrap();
+    ecs.components.tile.insert(entity, Tile::Wall);
+    ecs.components.solid.insert(entity, ());
+    ecs.components.opacity.insert(entity, 255);
+    entity
+}
+
+pub fn former_human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
+    let entity = ecs.create();
+    spatial_grid
+        .location_update(
+            ecs,
+            entity,
+            Location {
+                coord,
+                layer: Layer::Character,
+            },
+        )
+        .unwrap();
+    ecs.components.tile.insert(entity, Tile::FormerHuman);
+    ecs.components.npc.insert(
+        entity,
+        Npc {
+            disposition: Disposition::Hostile,
+        },
+    );
+    entity
+}
+
+pub fn human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
+    let entity = ecs.create();
+    spatial_grid
+        .location_update(
+            ecs,
+            entity,
+            Location {
+                coord,
+                layer: Layer::Character,
+            },
+        )
+        .unwrap();
+    ecs.components.tile.insert(entity, Tile::Human);
+    ecs.components.npc.insert(
+        entity,
+        Npc {
+            disposition: Disposition::Afraid,
+        },
+    );
+    entity
+}
+
+pub fn floor(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
+    let entity = ecs.create();
+    spatial_grid
+        .location_update(
+            ecs,
+            entity,
+            Location {
+                coord,
+                layer: Layer::Floor,
+            },
+        )
+        .unwrap();
+    ecs.components.tile.insert(entity, Tile::Floor);
+    entity
+}
+
+pub fn carpet(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
+    let entity = ecs.create();
+    spatial_grid
+        .location_update(
+            ecs,
+            entity,
+            Location {
+                coord,
+                layer: Layer::Floor,
+            },
+        )
+        .unwrap();
+    ecs.components.tile.insert(entity, Tile::Carpet);
+    entity
+}
+
+pub fn light(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord, colour: Rgb24) -> Entity {
+    let entity = ecs.create();
+    spatial_grid
+        .location_update(
+            ecs,
+            entity,
+            Location {
+                coord,
+                layer: Layer::Feature,
+            },
+        )
+        .unwrap();
+    ecs.components.light.insert(
+        entity,
+        Light {
+            colour,
+            vision_distance: Circle::new_squared(420),
+            diminish: Rational {
+                numerator: 1,
+                denominator: 25,
+            },
+        },
+    );
+    entity
+}
+
+pub fn rocket(
+    ecs: &mut Ecs<Components>,
+    realtime_components: &mut RealtimeComponents,
+    spatial_grid: &mut SpatialGrid,
+    start: Coord,
+    target: Coord,
+) -> Entity {
+    let entity = ecs.create();
+    spatial_grid
+        .location_update(
+            ecs,
+            entity,
+            Location {
+                coord: start,
+                layer: Layer::Particle,
+            },
+        )
+        .unwrap();
+    ecs.components.realtime.insert(entity, ());
+    ecs.components.blocks_gameplay.insert(entity, ());
+    realtime_components.movement.insert(
+        entity,
+        ScheduledRealtimePeriodicState {
+            state: MovementState::new(InfiniteStepIter::new(target - start), Duration::from_millis(16)),
+            until_next_event: Duration::from_millis(0),
+        },
+    );
+    realtime_components.particle_emitter.insert(
+        entity,
+        ScheduledRealtimePeriodicState {
+            state: {
+                use particle::spec::*;
+                ParticleEmitter {
+                    emit_particle_every_period: Duration::from_micros(500),
+                    fade_out_duration: None,
+                    particle: Particle {
+                        tile: Some(Tile::Smoke),
+                        movement: Some(Movement {
+                            angle_range: AngleRange::all(),
+                            cardinal_period_range: DurationRange {
+                                min: Duration::from_millis(200),
+                                max: Duration::from_millis(500),
+                            },
+                        }),
+                        fade_duration: Some(Duration::from_millis(1000)),
+                        ..Default::default()
+                    },
+                }
+                .build()
+            },
+            until_next_event: Duration::from_millis(0),
+        },
+    );
+    ecs.components.tile.insert(entity, Tile::Bullet);
+    ecs.components.on_collision.insert(entity, OnCollision::Explode);
+    ecs.components.light.insert(
+        entity,
+        Light {
+            colour: Rgb24::new(255, 187, 63),
             vision_distance: Circle::new_squared(90),
             diminish: Rational {
                 numerator: 1,
