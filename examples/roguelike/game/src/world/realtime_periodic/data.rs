@@ -1,12 +1,12 @@
 use crate::{
     world::{
-        data::{Components, OnCollision},
+        action,
+        data::Components,
         realtime_periodic::{
             core::{RealtimePeriodicState, TimeConsumingEvent},
             particle::ParticleEmitterState,
         },
         spatial_grid::SpatialGrid,
-        spawn,
     },
     ExternalEvent,
 };
@@ -85,36 +85,14 @@ impl RealtimePeriodicState for MovementState {
         entity: Entity,
         external_events: &mut Vec<ExternalEvent>,
     ) {
-        if let Some(current_location) = ecs.components.location.get_mut(entity) {
-            let next_coord = current_location.coord + movement_direction.coord();
-            let colides_with = ecs.components.colides_with.get(entity).cloned().unwrap_or_default();
-            let spatial_cell = spatial_grid.get_checked(next_coord);
-            if let Some(entity_in_cell) = spatial_cell.feature.or(spatial_cell.character) {
-                if (colides_with.solid && ecs.components.solid.contains(entity_in_cell))
-                    || (colides_with.character && ecs.components.character.contains(entity_in_cell))
-                {
-                    if let Some(on_collision) = ecs.components.on_collision.get(entity) {
-                        let current_coord = current_location.coord;
-                        match on_collision {
-                            OnCollision::Explode => {
-                                spawn::explosion(
-                                    ecs,
-                                    realtime_components,
-                                    spatial_grid,
-                                    current_coord,
-                                    external_events,
-                                );
-                            }
-                        }
-                    }
-                    ecs.remove(entity);
-                    return;
-                }
-            }
-            current_location.coord += movement_direction.coord();
-        } else {
-            ecs.remove(entity);
-        }
+        action::projectile_move(
+            ecs,
+            realtime_components,
+            spatial_grid,
+            entity,
+            movement_direction,
+            external_events,
+        )
     }
 }
 

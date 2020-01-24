@@ -104,11 +104,14 @@ impl World {
 }
 
 impl World {
-    pub fn entity_coord(&self, entity: Entity) -> Coord {
-        self.ecs.components.location.get(entity).unwrap().coord
+    pub fn entity_coord(&self, entity: Entity) -> Option<Coord> {
+        self.ecs.components.location.get(entity).map(|l| l.coord)
     }
     pub fn entity_npc(&self, entity: Entity) -> &Npc {
         self.ecs.components.npc.get(entity).unwrap()
+    }
+    pub fn entity_exists(&self, entity: Entity) -> bool {
+        self.ecs.entity_allocator.exists(entity)
     }
     pub fn size(&self) -> Size {
         self.spatial_grid.size()

@@ -29,6 +29,10 @@ pub enum ExternalEvent {
     Explosion(Coord),
 }
 
+pub enum GameControlFlow {
+    GameOver,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum Input {
     Walk(CardinalDirection),
@@ -41,6 +45,7 @@ pub struct Game {
     world: World,
     visibility_grid: VisibilityGrid,
     player: Entity,
+    last_player_coord: Coord,
     rng: Isaac64Rng,
     frame_count: u64,
     events: Vec<ExternalEvent>,
@@ -48,6 +53,7 @@ pub struct Game {
     behaviour_context: BehaviourContext,
     animation_context: AnimationContext,
     agents: ComponentTable<Agent>,
+    agents_to_remove: Vec<Entity>,
 }
 
 impl Game {
@@ -95,10 +101,13 @@ impl Game {
                 }
             }
         }
+        let player = player.expect("didn't create player");
+        let last_player_coord = world.entity_coord(player).expect("player lacks a location");
         let mut game = Self {
             world,
             visibility_grid: VisibilityGrid::new(size),
-            player: player.expect("didn't create player"),
+            player,
+            last_player_coord,
             rng: Isaac64Rng::seed_from_u64(rng.gen()),
             frame_count: 0,
             events: Vec::new(),
@@ -106,6 +115,7 @@ impl Game {
             behaviour_context: BehaviourContext::new(size),
             animation_context: AnimationContext::default(),
             agents,
+            agents_to_remove: Vec::new(),
         };
         game.update_behaviour();
         game.update_visibility(config);
@@ -115,18 +125,20 @@ impl Game {
         self.world.is_gameplay_blocked()
     }
     pub fn update_visibility(&mut self, config: &Config) {
-        let player_coord = self.world.entity_coord(self.player);
-        self.visibility_grid.update(
-            player_coord,
-            &self.world,
-            &mut self.shadowcast_context,
-            config.omniscient,
-        );
+        if let Some(player_coord) = self.world.entity_coord(self.player) {
+            self.visibility_grid.update(
+                player_coord,
+                &self.world,
+                &mut self.shadowcast_context,
+                config.omniscient,
+            );
+        }
     }
-    pub fn update_behaviour(&mut self) {
+    fn update_behaviour(&mut self) {
         self.behaviour_context.update(self.player, &self.world);
     }
-    pub fn handle_input(&mut self, input: Input, config: &Config) {
+    #[must_use]
+    pub fn handle_input(&mut self, input: Input, config: &Config) -> Option<GameControlFlow> {
         if !self.is_gameplay_blocked() {
             match input {
                 Input::Walk(direction) => self.world.character_walk_in_direction(self.player, direction),
@@ -137,34 +149,19 @@ impl Game {
         self.update_visibility(config);
         self.update_behaviour();
         self.npc_turn();
+        if let Some(player_coord) = self.world.entity_coord(self.player) {
+            self.last_player_coord = player_coord;
+            None
+        } else {
+            Some(GameControlFlow::GameOver)
+        }
     }
-    pub fn handle_tick(&mut self, _since_last_tick: Duration, config: &Config) {
-        self.events.clear();
-        self.update_visibility(config);
-        self.world
-            .animation_tick(&mut self.animation_context, &mut self.events, &mut self.rng);
-        self.frame_count += 1;
-    }
-    pub fn events(&self) -> impl '_ + Iterator<Item = ExternalEvent> {
-        self.events.iter().cloned()
-    }
-    pub fn player_coord(&self) -> Coord {
-        self.world.entity_coord(self.player)
-    }
-    pub fn world_size(&self) -> Size {
-        self.world.size()
-    }
-    pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
-        self.world.to_render_entities()
-    }
-    pub fn visibility_grid(&self) -> &VisibilityGrid {
-        &self.visibility_grid
-    }
-    pub fn contains_wall(&self, coord: Coord) -> bool {
-        self.world.contains_wall(coord)
-    }
-    pub fn npc_turn(&mut self) {
+    fn npc_turn(&mut self) {
         for (entity, agent) in self.agents.iter_mut() {
+            if !self.world.entity_exists(entity) {
+                self.agents_to_remove.push(entity);
+                continue;
+            }
             if let Some(input) = agent.act(
                 entity,
                 &self.world,
@@ -179,5 +176,40 @@ impl Game {
                 }
             }
         }
+        for entity in self.agents_to_remove.drain(..) {
+            self.agents.remove(entity);
+        }
+    }
+    #[must_use]
+    pub fn handle_tick(&mut self, _since_last_tick: Duration, config: &Config) -> Option<GameControlFlow> {
+        self.events.clear();
+        self.update_visibility(config);
+        self.world
+            .animation_tick(&mut self.animation_context, &mut self.events, &mut self.rng);
+        self.frame_count += 1;
+        if let Some(player_coord) = self.world.entity_coord(self.player) {
+            self.last_player_coord = player_coord;
+            None
+        } else {
+            Some(GameControlFlow::GameOver)
+        }
+    }
+    pub fn events(&self) -> impl '_ + Iterator<Item = ExternalEvent> {
+        self.events.iter().cloned()
+    }
+    pub fn player_coord(&self) -> Coord {
+        self.last_player_coord
+    }
+    pub fn world_size(&self) -> Size {
+        self.world.size()
+    }
+    pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
+        self.world.to_render_entities()
+    }
+    pub fn visibility_grid(&self) -> &VisibilityGrid {
+        &self.visibility_grid
+    }
+    pub fn contains_wall(&self, coord: Coord) -> bool {
+        self.world.contains_wall(coord)
     }
 }

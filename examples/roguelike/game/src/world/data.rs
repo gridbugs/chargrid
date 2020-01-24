@@ -18,6 +18,10 @@ ecs_components! {
         npc: Npc,
         character: (),
         colides_with: ColidesWith,
+        projectile_damage: ProjectileDamage,
+        hit_points: HitPoints,
+        blood: (),
+        player: (),
     }
 }
 pub use components::Components;
@@ -63,5 +67,23 @@ impl Default for ColidesWith {
             solid: true,
             character: false,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ProjectileDamage {
+    pub hit_points: u32,
+    pub push_back: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct HitPoints {
+    pub current: u32,
+    pub max: u32,
+}
+
+impl HitPoints {
+    pub fn new_full(max: u32) -> Self {
+        Self { current: max, max }
     }
 }

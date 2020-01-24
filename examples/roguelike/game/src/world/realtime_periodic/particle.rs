@@ -1,7 +1,7 @@
 use crate::visibility::Light;
 use crate::{
     world::{
-        data::{Components, Layer, Location, Tile},
+        data::{Components, Layer, Location, ProjectileDamage, Tile},
         realtime_periodic::{
             core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent},
             data::{FadeProgress, FadeState, LightColourFadeState, MovementState, RealtimeComponents},
@@ -49,6 +49,18 @@ pub mod spec {
         pub to: Rgb24,
     }
 
+    #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+    pub struct DamageRange {
+        pub min: u32,
+        pub max: u32,
+    }
+
+    #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+    pub struct Damage {
+        pub range: DamageRange,
+        pub push_back: bool,
+    }
+
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Movement {
         pub angle_range: AngleRange,
@@ -71,6 +83,7 @@ pub mod spec {
         pub light_colour_fade: Option<LightColourFade>,
         pub possible_light: Option<Possible<Light>>,
         pub possible_particle_emitter: Option<Possible<Box<ParticleEmitter>>>,
+        pub possible_damage: Option<Possible<Damage>>,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +115,7 @@ pub struct SpawnParticle {
     light_colour_fade_state: Option<LightColourFadeState>,
     light: Option<Light>,
     particle_emitter: Option<Box<ParticleEmitterState>>,
+    damage: Option<ProjectileDamage>,
 }
 
 impl<T: Clone> spec::Possible<T> {
@@ -136,6 +150,12 @@ impl spec::AngleRange {
 impl spec::ColourRange {
     fn choose<R: Rng>(self, rng: &mut R) -> Rgb24 {
         self.from.linear_interpolate(self.to, rng.gen())
+    }
+}
+
+impl spec::DamageRange {
+    fn choose<R: Rng>(&self, rng: &mut R) -> u32 {
+        rng.gen_range(self.min, self.max)
     }
 }
 
@@ -225,6 +245,12 @@ impl RealtimePeriodicState for ParticleEmitterState {
                 .possible_particle_emitter
                 .as_ref()
                 .and_then(|p| p.choose(rng).map(|p| Box::new(p.build()))),
+            damage: self.particle_spec.possible_damage.as_ref().and_then(|d| {
+                d.choose(rng).map(|d| ProjectileDamage {
+                    hit_points: d.range.choose(rng),
+                    push_back: d.push_back,
+                })
+            }),
         };
         TimeConsumingEvent {
             event,
@@ -260,7 +286,7 @@ impl RealtimePeriodicState for ParticleEmitterState {
                 particle_entity,
                 Location {
                     coord,
-                    layer: Layer::Particle,
+                    layer: Layer::Untracked,
                 },
             )
             .unwrap();
@@ -300,6 +326,11 @@ impl RealtimePeriodicState for ParticleEmitterState {
                     until_next_event: Duration::from_millis(0),
                 },
             );
+        }
+        if let Some(projectile_damage) = spawn_particle.damage.take() {
+            ecs.components
+                .projectile_damage
+                .insert(particle_entity, projectile_damage);
         }
     }
 }

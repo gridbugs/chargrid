@@ -1,7 +1,7 @@
 use crate::{
     visibility::Light,
     world::{
-        data::{ColidesWith, Components, Disposition, Layer, Location, Npc, OnCollision, Tile},
+        data::{ColidesWith, Components, Disposition, HitPoints, Layer, Location, Npc, OnCollision, Tile},
         realtime_periodic::{
             core::ScheduledRealtimePeriodicState,
             data::{period_per_frame, FadeState, LightColourFadeState, MovementState, RealtimeComponents},
@@ -37,7 +37,7 @@ fn explosion_emitter(
             emitter_entity,
             Location {
                 coord,
-                layer: Layer::Particle,
+                layer: Layer::Untracked,
             },
         )
         .unwrap();
@@ -70,6 +70,16 @@ fn explosion_emitter(
                         colour_hint: Some(ColourRange {
                             from: Rgb24::new(255, 255, 63),
                             to: Rgb24::new(255, 127, 0),
+                        }),
+                        possible_damage: Some(Possible {
+                            chance: Rational {
+                                numerator: 1,
+                                denominator: 20,
+                            },
+                            value: Damage {
+                                range: DamageRange { min: 1, max: 5 },
+                                push_back: true,
+                            },
                         }),
                         possible_particle_emitter: Some(Possible {
                             chance: Rational {
@@ -171,6 +181,8 @@ pub fn player(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: 
         },
     );
     ecs.components.character.insert(entity, ());
+    ecs.components.hit_points.insert(entity, HitPoints::new_full(1));
+    ecs.components.player.insert(entity, ());
     entity
 }
 
@@ -212,6 +224,7 @@ pub fn former_human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, c
         },
     );
     ecs.components.character.insert(entity, ());
+    ecs.components.hit_points.insert(entity, HitPoints::new_full(20));
     entity
 }
 
@@ -235,6 +248,7 @@ pub fn human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: C
         },
     );
     ecs.components.character.insert(entity, ());
+    ecs.components.hit_points.insert(entity, HitPoints::new_full(20));
     entity
 }
 
@@ -310,7 +324,7 @@ pub fn rocket(
             entity,
             Location {
                 coord: start,
-                layer: Layer::Particle,
+                layer: Layer::Untracked,
             },
         )
         .unwrap();

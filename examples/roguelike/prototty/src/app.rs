@@ -453,6 +453,7 @@ fn game_loop<S: Storage, A: AudioPlayer>(
     make_either!(Ei = A | B);
     Ei::A(game()).repeat(|game_return| match game_return {
         GameReturn::Pause => Handled::Return(GameReturn::Pause),
+        GameReturn::GameOver => Handled::Return(GameReturn::GameOver),
         GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_screen_coord| {
             make_either!(Ei = A | B);
             if let Some(screen_coord) = maybe_screen_coord {

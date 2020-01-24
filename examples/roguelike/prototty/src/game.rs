@@ -1,7 +1,7 @@
 use crate::audio::{Audio, AudioTable};
 use crate::controls::{AppInput, Controls};
 use direction::{CardinalDirection, Direction};
-use game::{CellVisibility, ExternalEvent, Game, Layer, Tile, ToRenderEntity, VisibilityGrid};
+use game::{CellVisibility, ExternalEvent, Game, GameControlFlow, Layer, Tile, ToRenderEntity, VisibilityGrid};
 pub use game::{Config as GameConfig, Input as GameInput, Omniscient};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
@@ -95,7 +95,7 @@ fn layer_depth(layer: Layer) -> i8 {
         Layer::Floor => 0,
         Layer::Feature => 1,
         Layer::Character => 2,
-        Layer::Particle => 3,
+        Layer::Untracked => 3,
     }
 }
 
@@ -219,6 +219,9 @@ fn render_entity<F: Frame, C: ColModify>(
         }
         if let Some(background) = view_cell.style.background.as_mut() {
             *background = background.normalised_mul(light_colour);
+        }
+        if to_render_entity.blood {
+            view_cell.style.foreground = Some(Rgb24::new(255, 0, 0));
         }
         frame.set_cell_relative(screen_coord.0, depth, view_cell, context);
     }
@@ -518,7 +521,8 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
                     Aim::Cancel => Handled::Return(None),
                     Aim::Ignore => Handled::Continue(s),
                     Aim::Frame(since_last) => {
-                        instance.game.handle_tick(since_last, game_config);
+                        let game_control_flow = instance.game.handle_tick(since_last, game_config);
+                        assert!(game_control_flow.is_none(), "meaningful event while aiming");
                         let mut event_context = EffectContext {
                             rng: &mut instance.rng,
                             screen_shake: &mut instance.screen_shake,
@@ -614,6 +618,7 @@ impl<S: Storage, A: AudioPlayer> GameEventRoutine<S, A> {
 pub enum GameReturn {
     Pause,
     Aim,
+    GameOver,
 }
 
 impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
@@ -640,7 +645,13 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                             player_coord,
                         }
                         .compute();
-                        instance.game.handle_input(GameInput::Fire(raw_game_coord), game_config);
+                        if let Some(game_control_flow) =
+                            instance.game.handle_input(GameInput::Fire(raw_game_coord), game_config)
+                        {
+                            match game_control_flow {
+                                GameControlFlow::GameOver => return Handled::Return(GameReturn::GameOver),
+                            }
+                        }
                     }
                 }
             }
@@ -654,12 +665,18 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                             }
                             if !instance.game.is_gameplay_blocked() {
                                 if let Some(app_input) = controls.get(keyboard_input) {
-                                    match app_input {
+                                    let game_control_flow = match app_input {
                                         AppInput::Move(direction) => {
                                             instance.game.handle_input(GameInput::Walk(direction), game_config)
                                         }
+
                                         AppInput::Aim => return Handled::Return(GameReturn::Aim),
                                         AppInput::Wait => instance.game.handle_input(GameInput::Wait, game_config),
+                                    };
+                                    if let Some(game_control_flow) = game_control_flow {
+                                        match game_control_flow {
+                                            GameControlFlow::GameOver => return Handled::Return(GameReturn::GameOver),
+                                        }
                                     }
                                 }
                             }
@@ -669,7 +686,11 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                     Handled::Continue(s)
                 }
                 CommonEvent::Frame(period) => {
-                    instance.game.handle_tick(period, game_config);
+                    if let Some(game_control_flow) = instance.game.handle_tick(period, game_config) {
+                        match game_control_flow {
+                            GameControlFlow::GameOver => return Handled::Return(GameReturn::GameOver),
+                        }
+                    }
                     storage_wrapper.autosave_tick(instance, period);
                     let mut event_context = EffectContext {
                         rng: &mut instance.rng,

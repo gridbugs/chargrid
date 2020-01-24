@@ -112,14 +112,15 @@ impl BehaviourContext {
         }
     }
     pub fn update(&mut self, player: Entity, world: &World) {
-        let player_coord = world.entity_coord(player);
-        let can_enter = WorldCanEnterIgnoreCharacters { world };
-        self.distance_map_populate_context.add(player_coord);
-        self.distance_map_populate_context
-            .populate_approach(&can_enter, 20, &mut self.player_approach);
-        self.distance_map_populate_context.add(player_coord);
-        self.distance_map_populate_context
-            .populate_flee(&can_enter, 20, &mut self.player_flee);
+        if let Some(player_coord) = world.entity_coord(player) {
+            let can_enter = WorldCanEnterIgnoreCharacters { world };
+            self.distance_map_populate_context.add(player_coord);
+            self.distance_map_populate_context
+                .populate_approach(&can_enter, 20, &mut self.player_approach);
+            self.distance_map_populate_context.add(player_coord);
+            self.distance_map_populate_context
+                .populate_flee(&can_enter, 20, &mut self.player_flee);
+        }
     }
 }
 
@@ -211,9 +212,9 @@ impl Agent {
         behaviour_context: &mut BehaviourContext,
         shadowcast_context: &mut ShadowcastContext<u8>,
     ) -> Option<Input> {
-        let coord = world.entity_coord(entity);
+        let coord = world.entity_coord(entity)?;
         let npc = world.entity_npc(entity);
-        let player_coord = world.entity_coord(player);
+        let player_coord = world.entity_coord(player)?;
         let can_see_player = if has_line_of_sight(coord, player_coord, world, self.vision_distance) {
             Some(CanSeePlayer)
         } else {

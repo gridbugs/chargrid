@@ -10,7 +10,7 @@ pub enum Layer {
     Floor,
     Feature,
     Character,
-    Particle,
+    Untracked,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -19,7 +19,13 @@ pub struct Location {
     pub layer: Layer,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+impl Location {
+    pub fn is_untracked(&self) -> bool {
+        self.layer == Layer::Untracked
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct SpatialCell {
     pub floor: Option<Entity>,
     pub feature: Option<Entity>,
@@ -50,7 +56,7 @@ impl SpatialCell {
             Layer::Character => SelectFieldMut::Tracked(&mut self.character),
             Layer::Feature => SelectFieldMut::Tracked(&mut self.feature),
             Layer::Floor => SelectFieldMut::Tracked(&mut self.floor),
-            Layer::Particle => SelectFieldMut::Untracked,
+            Layer::Untracked => SelectFieldMut::Untracked,
         }
     }
     fn insert(&mut self, entity: Entity, layer: Layer) -> Result<(), OccupiedBy> {
@@ -88,6 +94,7 @@ pub trait LocationUpdate {
     ) -> Result<(), OccupiedBy> {
         self.component_location_update(&mut ecs.components.location, entity, location)
     }
+    fn remove_entity(&mut self, ecs: &mut Ecs<Components>, entity: Entity);
 }
 
 impl LocationUpdate for SpatialGrid {
@@ -109,5 +116,13 @@ impl LocationUpdate for SpatialGrid {
             );
         }
         Ok(())
+    }
+    fn remove_entity(&mut self, ecs: &mut Ecs<Components>, entity: Entity) {
+        if let Some(location) = ecs.components.location.get(entity) {
+            if let Some(cell) = self.get_mut(location.coord) {
+                cell.clear(location.layer);
+            }
+        }
+        ecs.remove(entity);
     }
 }

@@ -72,16 +72,19 @@ pub fn all_entites_to_render<'a>(
     let location_component = &ecs.components.location;
     let realtime_fade_component = &realtime_components.fade;
     let colour_hint_component = &ecs.components.colour_hint;
+    let blood_component = &ecs.components.blood;
     tile_component.iter().filter_map(move |(entity, &tile)| {
         if let Some(location) = location_component.get(entity) {
             let fade = realtime_fade_component.get(entity).and_then(|f| f.state.fading());
             let colour_hint = colour_hint_component.get(entity).cloned();
+            let blood = blood_component.contains(entity);
             Some(ToRenderEntity {
                 coord: location.coord,
                 layer: location.layer,
                 tile,
                 fade,
                 colour_hint,
+                blood,
             })
         } else {
             None
@@ -95,4 +98,5 @@ pub struct ToRenderEntity {
     pub tile: Tile,
     pub fade: Option<u8>,
     pub colour_hint: Option<Rgb24>,
+    pub blood: bool,
 }
