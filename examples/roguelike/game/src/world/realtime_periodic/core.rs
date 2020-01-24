@@ -1,5 +1,5 @@
 use crate::{
-    world_data::{Components, SpatialCell},
+    world::data::{Components, SpatialCell},
     ExternalEvent,
 };
 use ecs::{Ecs, Entity};
@@ -39,7 +39,7 @@ macro_rules! realtime_periodic {
         mod $module_name {
             #[allow(unused_imports)]
             use super::*;
-            use $crate::realtime_periodic_core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent};
+            use $crate::world::realtime_periodic::core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent};
 
             ecs::ecs_components! {
                 components {

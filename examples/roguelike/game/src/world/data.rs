@@ -94,19 +94,6 @@ pub fn location_insert(
     Ok(())
 }
 
-pub fn is_solid_feature_at_coord(
-    coord: Coord,
-    solid_component: &ComponentTable<()>,
-    spatial_grid: &Grid<SpatialCell>,
-) -> bool {
-    let cell = spatial_grid.get_checked(coord);
-    if let Some(feature) = cell.feature {
-        solid_component.contains(feature)
-    } else {
-        false
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Layer {
     Floor,
@@ -154,4 +141,25 @@ pub struct Npc {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum OnCollision {
     Explode,
+}
+
+pub fn is_solid_feature_at_coord(
+    coord: Coord,
+    solid_component: &ComponentTable<()>,
+    spatial_grid: &Grid<SpatialCell>,
+) -> bool {
+    let cell = spatial_grid.get_checked(coord);
+    if let Some(feature) = cell.feature {
+        solid_component.contains(feature)
+    } else {
+        false
+    }
+}
+
+pub fn get_opacity(coord: Coord, opacity_component: &ComponentTable<u8>, spatial_grid: &Grid<SpatialCell>) -> u8 {
+    spatial_grid
+        .get(coord)
+        .and_then(|c| c.feature)
+        .and_then(|e| opacity_component.get(e).cloned())
+        .unwrap_or(0)
 }

@@ -1,13 +1,19 @@
 use crate::{
-    rational::Rational,
-    realtime_periodic_core::ScheduledRealtimePeriodicState,
-    realtime_periodic_data::{period_per_frame, FadeState, LightColourFadeState, RealtimeComponents},
     visibility::Light,
-    world_data::{location_insert, Components, Layer, Location, SpatialCell},
+    world::{
+        location_insert,
+        realtime_periodic::{
+            core::ScheduledRealtimePeriodicState,
+            data::{period_per_frame, FadeState, LightColourFadeState, RealtimeComponents},
+            particle,
+        },
+        Components, Layer, Location, SpatialCell, Tile,
+    },
     ExternalEvent,
 };
-use ecs::Ecs;
+use ecs::{Ecs, Entity};
 use grid_2d::{Coord, Grid};
+use rational::Rational;
 use rgb24::Rgb24;
 use shadowcast::vision_distance::Circle;
 use std::time::Duration;
@@ -43,7 +49,7 @@ fn explosion_emitter(
         emitter_entity,
         ScheduledRealtimePeriodicState {
             state: {
-                use crate::particle::spec::*;
+                use particle::spec::*;
                 ParticleEmitter {
                     emit_particle_every_period: period_per_frame(num_particles_per_frame),
                     fade_out_duration: Some(duration),
@@ -134,4 +140,28 @@ pub fn explosion(
         Duration::from_millis(250),
     );
     external_events.push(ExternalEvent::Explosion(coord));
+}
+
+pub fn player(ecs: &mut Ecs<Components>, spatial_grid: &mut Grid<SpatialCell>, coord: Coord) -> Entity {
+    let entity = ecs.create();
+    location_insert(
+        entity,
+        Location::new(coord, Layer::Character),
+        &mut ecs.components.location,
+        spatial_grid,
+    )
+    .unwrap();
+    ecs.components.tile.insert(entity, Tile::Player);
+    ecs.components.light.insert(
+        entity,
+        Light {
+            colour: Rgb24::new(255, 187, 127),
+            vision_distance: Circle::new_squared(90),
+            diminish: Rational {
+                numerator: 1,
+                denominator: 10,
+            },
+        },
+    );
+    entity
 }

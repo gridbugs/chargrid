@@ -1,8 +1,12 @@
 use crate::{
-    particle::ParticleEmitterState,
-    realtime_periodic_core::{RealtimePeriodicState, TimeConsumingEvent},
-    spawn,
-    world_data::{is_solid_feature_at_coord, Components, OnCollision, SpatialCell},
+    world::{
+        data::{is_solid_feature_at_coord, Components, OnCollision, SpatialCell},
+        realtime_periodic::{
+            core::{RealtimePeriodicState, TimeConsumingEvent},
+            particle::ParticleEmitterState,
+        },
+        spawn,
+    },
     ExternalEvent,
 };
 use direction::Direction;

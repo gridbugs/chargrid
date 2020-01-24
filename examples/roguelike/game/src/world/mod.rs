@@ -1,23 +1,30 @@
-use crate::ExternalEvent;
-use crate::{
-    rational::Rational,
-    realtime_periodic_core::{ScheduledRealtimePeriodicState, TimeConsumingEvent},
-    realtime_periodic_data::{MovementState, RealtimeComponents, FRAME_DURATION},
-    visibility::Light,
-    world_data::{
-        is_solid_feature_at_coord, location_insert, Components, Disposition, Layer, Location, Npc, OccupiedBy,
-        OnCollision, SpatialCell, Tile,
-    },
-};
+use crate::{visibility::Light, ExternalEvent};
 use direction::CardinalDirection;
 use ecs::{Ecs, Entity};
 use grid_2d::{Coord, Grid, Size};
 use line_2d::InfiniteStepIter;
 use rand::Rng;
+use rational::Rational;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use shadowcast::vision_distance::Circle;
 use std::time::Duration;
+
+mod data;
+use data::{
+    get_opacity, is_solid_feature_at_coord, location_insert, Components, Location, Npc, OccupiedBy, OnCollision,
+    SpatialCell,
+};
+pub use data::{Disposition, Layer, Tile};
+
+mod realtime_periodic;
+use realtime_periodic::{
+    core::{ScheduledRealtimePeriodicState, TimeConsumingEvent},
+    data::{MovementState, RealtimeComponents, FRAME_DURATION},
+    particle,
+};
+
+mod spawn;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct World {
@@ -40,27 +47,7 @@ impl World {
         }
     }
     pub fn spawn_player(&mut self, coord: Coord) -> Entity {
-        let entity = self.ecs.create();
-        location_insert(
-            entity,
-            Location::new(coord, Layer::Character),
-            &mut self.ecs.components.location,
-            &mut self.spatial_grid,
-        )
-        .unwrap();
-        self.ecs.components.tile.insert(entity, Tile::Player);
-        self.ecs.components.light.insert(
-            entity,
-            Light {
-                colour: Rgb24::new(255, 187, 127),
-                vision_distance: Circle::new_squared(90),
-                diminish: Rational {
-                    numerator: 1,
-                    denominator: 10,
-                },
-            },
-        );
-        entity
+        spawn::player(&mut self.ecs, &mut self.spatial_grid, coord)
     }
     pub fn spawn_former_human(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
@@ -205,7 +192,7 @@ impl World {
             bullet_entity,
             ScheduledRealtimePeriodicState {
                 state: {
-                    use crate::particle::spec::*;
+                    use particle::spec::*;
                     ParticleEmitter {
                         emit_particle_every_period: Duration::from_micros(500),
                         fade_out_duration: None,
@@ -245,11 +232,7 @@ impl World {
         );
     }
     pub fn opacity(&self, coord: Coord) -> u8 {
-        self.spatial_grid
-            .get(coord)
-            .and_then(|c| c.feature)
-            .and_then(|e| self.ecs.components.opacity.get(e).cloned())
-            .unwrap_or(0)
+        get_opacity(coord, &self.ecs.components.opacity, &self.spatial_grid)
     }
     pub fn entity_coord(&self, entity: Entity) -> Coord {
         self.ecs.components.location.get(entity).unwrap().coord

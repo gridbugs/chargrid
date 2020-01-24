@@ -14,5 +14,6 @@ line_2d = { version = "0.4", features = ["serialize"] }
 rgb24 = { version = "0.2", features = ["serialize"] }
 ecs = { path = "../ecs" }
 vector = { path = "../vector" }
+rational = { path = "../rational" }
 shadowcast = { version = "0.7", features = ["serialize"] }
 grid_search_cardinal = { version = "0.1", features = ["serialize"] }

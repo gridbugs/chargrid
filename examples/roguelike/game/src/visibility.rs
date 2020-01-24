@@ -1,6 +1,6 @@
-use crate::rational::Rational;
 use crate::world::World;
 use grid_2d::{Coord, Grid, Size};
+use rational::Rational;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use shadowcast::{vision_distance, Context as ShadowcastContext, DirectionBitmap, InputGrid};

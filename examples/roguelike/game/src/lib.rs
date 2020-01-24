@@ -8,14 +8,8 @@ use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod behaviour;
-mod particle;
-mod rational;
-mod realtime_periodic_core;
-mod realtime_periodic_data;
-mod spawn;
 mod visibility;
 mod world;
-mod world_data;
 
 use behaviour::{Agent, BehaviourContext};
 use ecs::ComponentTable;
@@ -23,7 +17,7 @@ pub use ecs::Entity;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
 pub use world::ToRenderEntity;
 use world::World;
-pub use world_data::{Layer, Tile};
+pub use world::{Layer, Tile};
 
 pub struct Config {
     pub omniscient: Option<Omniscient>,

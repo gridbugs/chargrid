@@ -1,7 +1,11 @@
-use crate::realtime_periodic_core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent};
-use crate::realtime_periodic_data::{FadeProgress, FadeState, LightColourFadeState, MovementState, RealtimeComponents};
 use crate::visibility::Light;
-use crate::world_data::{location_insert, Components, Layer, Location, SpatialCell, Tile};
+use crate::world::data::{location_insert, Components, Layer, Location, SpatialCell, Tile};
+use crate::world::realtime_periodic::core::{
+    RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent,
+};
+use crate::world::realtime_periodic::data::{
+    FadeProgress, FadeState, LightColourFadeState, MovementState, RealtimeComponents,
+};
 use crate::ExternalEvent;
 use ecs::{Ecs, Entity};
 use grid_2d::Grid;
@@ -13,7 +17,8 @@ use std::time::Duration;
 use vector::Radial;
 
 pub mod spec {
-    pub use crate::{rational::Rational, visibility::Light, world_data::Tile};
+    pub use crate::{visibility::Light, world::Tile};
+    pub use rational::Rational;
     pub use rgb24::Rgb24;
     use serde::{Deserialize, Serialize};
     pub use std::time::Duration;
