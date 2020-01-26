@@ -88,6 +88,34 @@ impl GameView {
     pub fn absolute_coord_to_game_relative_screen_coord(&self, coord: Coord) -> ScreenCoord {
         ScreenCoord(coord - self.last_offset)
     }
+    pub fn view<F: Frame, C: ColModify>(
+        &mut self,
+        game_to_render: GameToRender,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
+        let game = &game_to_render.game;
+        let player_coord = GameCoord::of_player(&game);
+        let visibility_grid = game.visibility_grid();
+        let offset = game_to_render
+            .screen_shake
+            .as_ref()
+            .map(|d| d.coord())
+            .unwrap_or_else(|| Coord::new(0, 0));
+        for to_render_entity in game.to_render_entities() {
+            render_entity(
+                game_to_render.status,
+                &to_render_entity,
+                game,
+                visibility_grid,
+                player_coord,
+                offset,
+                context,
+                frame,
+            );
+        }
+        self.last_offset = context.offset;
+    }
 }
 
 fn layer_depth(layer: Layer) -> i8 {
@@ -137,6 +165,7 @@ impl ScreenCoordToGameCoord {
 }
 
 fn render_entity<F: Frame, C: ColModify>(
+    game_status: GameStatus,
     to_render_entity: &ToRenderEntity,
     game: &Game,
     visibility_grid: &VisibilityGrid,
@@ -146,87 +175,94 @@ fn render_entity<F: Frame, C: ColModify>(
     frame: &mut F,
 ) {
     let entity_coord = GameCoord(to_render_entity.coord);
-    if let CellVisibility::VisibleWithLightColour(light_colour) = visibility_grid.cell_visibility(entity_coord.0) {
-        if light_colour == Rgb24::new(0, 0, 0) {
-            return;
-        }
-        let screen_coord = GameCoordToScreenCoord {
-            game_coord: entity_coord,
-            player_coord: GameCoord(player_coord.0 + offset),
-        }
-        .compute();
-        if !screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
-            return;
-        }
-        let depth = layer_depth(to_render_entity.layer);
-        let mut view_cell = match to_render_entity.tile {
-            Tile::Player => ViewCell::new().with_character('@'),
-            Tile::FormerHuman => ViewCell::new()
-                .with_character('f')
-                .with_foreground(Rgb24::new(255, 0, 0)),
-            Tile::Human => ViewCell::new()
-                .with_character('h')
-                .with_foreground(Rgb24::new(0, 255, 255)),
+    let light_colour = if let GameStatus::Over = game_status {
+        Rgb24::new(255, 0, 0)
+    } else if let CellVisibility::VisibleWithLightColour(light_colour) = visibility_grid.cell_visibility(entity_coord.0)
+    {
+        light_colour
+    } else {
+        return;
+    };
+    if game_status == GameStatus::Playing && light_colour == Rgb24::new(0, 0, 0) {
+        return;
+    }
+    let screen_coord = GameCoordToScreenCoord {
+        game_coord: entity_coord,
+        player_coord: GameCoord(player_coord.0 + offset),
+    }
+    .compute();
+    if !screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
+        return;
+    }
+    let depth = layer_depth(to_render_entity.layer);
+    let mut view_cell = match to_render_entity.tile {
+        Tile::Player => ViewCell::new().with_character('@'),
+        Tile::FormerHuman => ViewCell::new()
+            .with_character('f')
+            .with_foreground(Rgb24::new(255, 0, 0)),
+        Tile::Human => ViewCell::new()
+            .with_character('h')
+            .with_foreground(Rgb24::new(0, 255, 255)),
 
-            Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
-            Tile::Carpet => ViewCell::new()
-                .with_character('.')
-                .with_background(Rgb24::new(0, 0, 127)),
-            Tile::Wall => if game.contains_wall(entity_coord.0 + Coord::new(0, 1)) {
-                ViewCell::new().with_character('█')
-            } else {
-                ViewCell::new().with_character('▀')
+        Tile::Floor => ViewCell::new().with_character('.').with_background(Rgb24::new(0, 0, 0)),
+        Tile::Carpet => ViewCell::new()
+            .with_character('.')
+            .with_background(Rgb24::new(0, 0, 127)),
+        Tile::Wall => if game.contains_wall(entity_coord.0 + Coord::new(0, 1)) {
+            ViewCell::new().with_character('█')
+        } else {
+            ViewCell::new().with_character('▀')
+        }
+        .with_foreground(Rgb24::new(255, 255, 255))
+        .with_background(Rgb24::new(127, 127, 127)),
+        Tile::Bullet => ViewCell::new().with_character('*'),
+        Tile::Smoke => {
+            if let Some(fade) = to_render_entity.fade {
+                frame.blend_cell_background_relative(
+                    screen_coord.0,
+                    depth,
+                    Rgb24::new_grey(187).normalised_mul(light_colour),
+                    (255 - fade) / 10,
+                    blend_mode::LinearInterpolate,
+                    context,
+                )
             }
-            .with_foreground(Rgb24::new(255, 255, 255))
-            .with_background(Rgb24::new(127, 127, 127)),
-            Tile::Bullet => ViewCell::new().with_character('*'),
-            Tile::Smoke => {
-                if let Some(fade) = to_render_entity.fade {
+            return;
+        }
+        Tile::ExplosionFlame => {
+            if let Some(fade) = to_render_entity.fade {
+                if let Some(colour_hint) = to_render_entity.colour_hint {
+                    let quad_fade = (((fade as u16) * (fade as u16)) / 256) as u8;
+                    let start_colour = colour_hint;
+                    let end_colour = Rgb24::new(255, 0, 0);
+                    let interpolated_colour = start_colour.linear_interpolate(end_colour, quad_fade);
+                    let lit_colour = interpolated_colour.normalised_mul(light_colour);
                     frame.blend_cell_background_relative(
                         screen_coord.0,
                         depth,
-                        Rgb24::new_grey(187).normalised_mul(light_colour),
-                        (255 - fade) / 10,
+                        lit_colour,
+                        (255 - fade) / 1,
                         blend_mode::LinearInterpolate,
                         context,
                     )
                 }
-                return;
             }
-            Tile::ExplosionFlame => {
-                if let Some(fade) = to_render_entity.fade {
-                    if let Some(colour_hint) = to_render_entity.colour_hint {
-                        let quad_fade = (((fade as u16) * (fade as u16)) / 256) as u8;
-                        let start_colour = colour_hint;
-                        let end_colour = Rgb24::new(255, 0, 0);
-                        let interpolated_colour = start_colour.linear_interpolate(end_colour, quad_fade);
-                        let lit_colour = interpolated_colour.normalised_mul(light_colour);
-                        frame.blend_cell_background_relative(
-                            screen_coord.0,
-                            depth,
-                            lit_colour,
-                            (255 - fade) / 1,
-                            blend_mode::LinearInterpolate,
-                            context,
-                        )
-                    }
-                }
-                return;
-            }
-        };
-        if let Some(foreground) = view_cell.style.foreground.as_mut() {
-            *foreground = foreground.normalised_mul(light_colour);
+            return;
         }
-        if let Some(background) = view_cell.style.background.as_mut() {
-            *background = background.normalised_mul(light_colour);
-        }
-        if to_render_entity.blood {
-            view_cell.style.foreground = Some(Rgb24::new(255, 0, 0));
-        }
-        frame.set_cell_relative(screen_coord.0, depth, view_cell, context);
+    };
+    if let Some(foreground) = view_cell.style.foreground.as_mut() {
+        *foreground = foreground.normalised_mul(light_colour);
     }
+    if let Some(background) = view_cell.style.background.as_mut() {
+        *background = background.normalised_mul(light_colour);
+    }
+    if to_render_entity.blood {
+        view_cell.style.foreground = Some(Rgb24::new(255, 0, 0));
+    }
+    frame.set_cell_relative(screen_coord.0, depth, view_cell, context);
 }
 
+/*
 impl<'a> View<GameToRender<'a>> for GameView {
     fn view<F: Frame, C: ColModify>(
         &mut self,
@@ -255,7 +291,7 @@ impl<'a> View<GameToRender<'a>> for GameView {
         }
         self.last_offset = context.offset;
     }
-}
+} */
 
 #[derive(Serialize, Deserialize)]
 pub struct GameInstance {
@@ -264,9 +300,16 @@ pub struct GameInstance {
     screen_shake: Option<ScreenShake>,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy)]
+enum GameStatus {
+    Playing,
+    Over,
+}
+
 pub struct GameToRender<'a> {
     game: &'a Game,
     screen_shake: Option<ScreenShake>,
+    status: GameStatus,
 }
 
 #[derive(Clone)]
@@ -287,6 +330,14 @@ impl GameInstance {
         GameToRender {
             game: &self.game,
             screen_shake: self.screen_shake,
+            status: GameStatus::Playing,
+        }
+    }
+    fn to_render_game_over(&self) -> GameToRender {
+        GameToRender {
+            game: &self.game,
+            screen_shake: self.screen_shake,
+            status: GameStatus::Over,
         }
     }
 }
@@ -719,6 +770,65 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
     {
         if let Some(instance) = data.instance.as_ref() {
             view.view(instance.to_render(), context, frame);
+        }
+    }
+}
+
+pub struct GameOverEventRoutine<S: Storage, A: AudioPlayer> {
+    s: PhantomData<S>,
+    a: PhantomData<A>,
+    duration: Duration,
+}
+
+impl<S: Storage, A: AudioPlayer> GameOverEventRoutine<S, A> {
+    pub fn new() -> Self {
+        Self {
+            s: PhantomData,
+            a: PhantomData,
+            duration: Duration::from_millis(0),
+        }
+    }
+}
+
+impl<S: Storage, A: AudioPlayer> EventRoutine for GameOverEventRoutine<S, A> {
+    type Return = ();
+    type Data = GameData<S, A>;
+    type View = GameView;
+    type Event = CommonEvent;
+
+    fn handle<EP>(self, data: &mut Self::Data, _view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        let game_config = &data.game_config;
+        if let Some(instance) = data.instance.as_mut() {
+            event_or_peek_with_handled(event_or_peek, self, |mut s, event| match event {
+                CommonEvent::Input(input) => match input {
+                    Input::Keyboard(_) => Handled::Return(()),
+                    Input::Mouse(_) => Handled::Continue(s),
+                },
+                CommonEvent::Frame(period) => {
+                    s.duration += period;
+                    const NPC_TURN_PERIOD: Duration = Duration::from_millis(250);
+                    if s.duration > NPC_TURN_PERIOD {
+                        s.duration -= NPC_TURN_PERIOD;
+                        instance.game.handle_npc_turn();
+                    }
+                    let _ = instance.game.handle_tick(period, game_config);
+                    Handled::Continue(s)
+                }
+            })
+        } else {
+            Handled::Return(())
+        }
+    }
+    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
+    where
+        F: Frame,
+        C: ColModify,
+    {
+        if let Some(instance) = data.instance.as_ref() {
+            view.view(instance.to_render_game_over(), context, frame);
         }
     }
 }

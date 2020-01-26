@@ -120,6 +120,9 @@ impl BehaviourContext {
             self.distance_map_populate_context.add(player_coord);
             self.distance_map_populate_context
                 .populate_flee(&can_enter, 20, &mut self.player_flee);
+        } else {
+            self.player_approach.clear();
+            self.player_flee.clear();
         }
     }
 }
@@ -133,8 +136,13 @@ pub struct Agent {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 enum Behaviour {
-    Wander,
-    Chase { last_seen_player_coord: Coord },
+    Wander {
+        avoid: bool,
+    },
+    Chase {
+        last_seen_player_coord: Coord,
+        accurate: bool,
+    },
     Flee,
 }
 
@@ -144,6 +152,7 @@ struct Wander<'a> {
     min_last_seen_coord: Option<Coord>,
     min_last_seen_count: u64,
     entity: Entity,
+    avoid: bool,
 }
 
 impl<'a> BestSearch for Wander<'a> {
@@ -158,7 +167,7 @@ impl<'a> BestSearch for Wander<'a> {
                 }
             }
             let last_seen_cell = self.last_seen_grid.last_seen.get_checked(coord);
-            if last_seen_cell.avoid_until >= self.min_last_seen_count {
+            if self.avoid && last_seen_cell.avoid_until > self.min_last_seen_count {
                 return false;
             }
             let last_seen_count = last_seen_cell.count;
@@ -201,7 +210,7 @@ impl Agent {
         Self {
             last_seen_grid: LastSeenGrid::new(size),
             vision_distance: vision_distance::Circle::new_squared(40),
-            behaviour: Behaviour::Wander,
+            behaviour: Behaviour::Wander { avoid: true },
         }
     }
     pub fn act(
@@ -214,52 +223,69 @@ impl Agent {
     ) -> Option<Input> {
         let coord = world.entity_coord(entity)?;
         let npc = world.entity_npc(entity);
-        let player_coord = world.entity_coord(player)?;
-        let can_see_player = if has_line_of_sight(coord, player_coord, world, self.vision_distance) {
-            Some(CanSeePlayer)
-        } else {
-            None
-        };
-        self.last_seen_grid.update(
-            coord,
-            self.vision_distance,
-            world,
-            can_see_player,
-            behaviour_context,
-            shadowcast_context,
-        );
-        self.behaviour = if let Some(CanSeePlayer) = can_see_player {
-            match npc.disposition {
-                Disposition::Hostile => Behaviour::Chase {
-                    last_seen_player_coord: player_coord,
-                },
-                Disposition::Afraid => {
-                    if behaviour_context.player_approach.distance(coord).unwrap() < FLEE_DISTANCE {
-                        Behaviour::Flee
-                    } else {
-                        Behaviour::Wander
+        self.behaviour = if let Some(player_coord) = world.entity_coord(player) {
+            let can_see_player = if has_line_of_sight(coord, player_coord, world, self.vision_distance) {
+                Some(CanSeePlayer)
+            } else {
+                None
+            };
+            self.last_seen_grid.update(
+                coord,
+                self.vision_distance,
+                world,
+                can_see_player,
+                behaviour_context,
+                shadowcast_context,
+            );
+            if let Some(CanSeePlayer) = can_see_player {
+                match npc.disposition {
+                    Disposition::Hostile => Behaviour::Chase {
+                        last_seen_player_coord: player_coord,
+                        accurate: true,
+                    },
+                    Disposition::Afraid => {
+                        if behaviour_context.player_approach.distance(coord).unwrap() < FLEE_DISTANCE {
+                            Behaviour::Flee
+                        } else {
+                            Behaviour::Wander { avoid: true }
+                        }
+                    }
+                }
+            } else {
+                match self.behaviour {
+                    Behaviour::Chase {
+                        last_seen_player_coord, ..
+                    } => {
+                        if last_seen_player_coord == coord {
+                            // walk up to where the player was last seen, then go back to wandering
+                            Behaviour::Wander { avoid: true }
+                        } else {
+                            Behaviour::Chase {
+                                last_seen_player_coord,
+                                accurate: last_seen_player_coord == player_coord,
+                            }
+                        }
+                    }
+                    Behaviour::Wander { avoid } => Behaviour::Wander { avoid },
+                    Behaviour::Flee => {
+                        // stop fleeing the player if you can't see them
+                        Behaviour::Wander { avoid: true }
                     }
                 }
             }
         } else {
-            match self.behaviour {
-                Behaviour::Chase { last_seen_player_coord } => {
-                    if last_seen_player_coord == coord {
-                        // walk up to where the player was last seen, then go back to wandering
-                        Behaviour::Wander
-                    } else {
-                        Behaviour::Chase { last_seen_player_coord }
-                    }
-                }
-                Behaviour::Wander => Behaviour::Wander,
-                Behaviour::Flee => {
-                    // stop fleeing the player if you can't see them
-                    Behaviour::Wander
-                }
-            }
+            self.last_seen_grid.update(
+                coord,
+                self.vision_distance,
+                world,
+                None,
+                behaviour_context,
+                shadowcast_context,
+            );
+            Behaviour::Wander { avoid: false }
         };
         match self.behaviour {
-            Behaviour::Wander => {
+            Behaviour::Wander { avoid } => {
                 if let Some(cardinal_direction) = behaviour_context.best_search_context.best_search_first(
                     Wander {
                         world,
@@ -267,6 +293,7 @@ impl Agent {
                         min_last_seen_coord: None,
                         min_last_seen_count: self.last_seen_grid.last_seen.get_checked(coord).count,
                         entity,
+                        avoid,
                     },
                     coord,
                 ) {
@@ -284,14 +311,17 @@ impl Agent {
                 );
                 match maybe_cardinal_direction {
                     None => {
-                        self.behaviour = Behaviour::Wander;
+                        self.behaviour = Behaviour::Wander { avoid: true };
                         None
                     }
                     Some(cardinal_direction) => Some(Input::Walk(cardinal_direction)),
                 }
             }
-            Behaviour::Chase { last_seen_player_coord } => {
-                if last_seen_player_coord == player_coord {
+            Behaviour::Chase {
+                last_seen_player_coord,
+                accurate,
+            } => {
+                if accurate {
                     let maybe_cardinal_direction = behaviour_context.distance_map_search_context.search_first(
                         &WorldCanEnterAvoidNpcs { world },
                         coord,
@@ -300,7 +330,7 @@ impl Agent {
                     );
                     match maybe_cardinal_direction {
                         None => {
-                            self.behaviour = Behaviour::Wander;
+                            self.behaviour = Behaviour::Wander { avoid: true };
                             None
                         }
                         Some(cardinal_direction) => Some(Input::Walk(cardinal_direction)),
@@ -316,7 +346,7 @@ impl Agent {
                         );
                     match result {
                         Err(NoPath) | Ok(None) => {
-                            self.behaviour = Behaviour::Wander;
+                            self.behaviour = Behaviour::Wander { avoid: true };
                             None
                         }
                         Ok(Some(cardinal_direction)) => Some(Input::Walk(cardinal_direction)),

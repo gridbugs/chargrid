@@ -156,6 +156,12 @@ impl Game {
             Some(GameControlFlow::GameOver)
         }
     }
+    pub fn handle_npc_turn(&mut self) {
+        if !self.is_gameplay_blocked() {
+            self.update_behaviour();
+            self.npc_turn();
+        }
+    }
     fn npc_turn(&mut self) {
         for (entity, agent) in self.agents.iter_mut() {
             if !self.world.entity_exists(entity) {

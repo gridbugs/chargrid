@@ -1,5 +1,7 @@
 use crate::controls::Controls;
-use crate::game::{AimEventRoutine, GameData, GameEventRoutine, GameReturn, GameView, InjectedInput, ScreenCoord};
+use crate::game::{
+    AimEventRoutine, GameData, GameEventRoutine, GameOverEventRoutine, GameReturn, GameView, InjectedInput, ScreenCoord,
+};
 pub use crate::game::{GameConfig, Omniscient, RngSeed};
 use common_event::*;
 use decorator::*;
@@ -429,6 +431,13 @@ fn game_injecting_inputs<S: Storage, A: AudioPlayer>(
         .decorated(DecorateGame::new())
 }
 
+fn game_over<S: Storage, A: AudioPlayer>(
+) -> impl EventRoutine<Return = (), Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
+    GameOverEventRoutine::new()
+        .select(SelectGame::new())
+        .decorated(DecorateGame::new())
+}
+
 fn aim<S: Storage, A: AudioPlayer>(
 ) -> impl EventRoutine<Return = Option<ScreenCoord>, Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B);
@@ -448,21 +457,39 @@ fn aim<S: Storage, A: AudioPlayer>(
     })
 }
 
+enum GameLoopBreak {
+    GameOver,
+    Pause,
+}
+
 fn game_loop<S: Storage, A: AudioPlayer>(
-) -> impl EventRoutine<Return = GameReturn, Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
+) -> impl EventRoutine<Return = (), Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B);
-    Ei::A(game()).repeat(|game_return| match game_return {
-        GameReturn::Pause => Handled::Return(GameReturn::Pause),
-        GameReturn::GameOver => Handled::Return(GameReturn::GameOver),
-        GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_screen_coord| {
+    Ei::A(game())
+        .repeat(|game_return| match game_return {
+            GameReturn::Pause => Handled::Return(GameLoopBreak::Pause),
+            GameReturn::GameOver => Handled::Return(GameLoopBreak::GameOver),
+            GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_screen_coord| {
+                make_either!(Ei = A | B);
+                if let Some(screen_coord) = maybe_screen_coord {
+                    Ei::A(game_injecting_inputs(vec![InjectedInput::Fire(screen_coord)]))
+                } else {
+                    Ei::B(game())
+                }
+            }))),
+        })
+        .and_then(|game_loop_break| {
             make_either!(Ei = A | B);
-            if let Some(screen_coord) = maybe_screen_coord {
-                Ei::A(game_injecting_inputs(vec![InjectedInput::Fire(screen_coord)]))
-            } else {
-                Ei::B(game())
+            match game_loop_break {
+                GameLoopBreak::Pause => Ei::A(Value::new(())),
+                GameLoopBreak::GameOver => Ei::B(game_over().and_then(|()| {
+                    SideEffectThen::new(|data: &mut AppData<S, A>, _| {
+                        data.game.clear_instance();
+                        Value::new(())
+                    })
+                })),
             }
-        }))),
-    })
+        })
 }
 
 fn main_menu_cycle<S: Storage, A: AudioPlayer>(
