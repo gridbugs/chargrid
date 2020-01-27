@@ -4,8 +4,8 @@ use crate::{
         data::{ColidesWith, Components, Disposition, HitPoints, Layer, Location, Npc, OnCollision, Tile},
         realtime_periodic::{
             core::ScheduledRealtimePeriodicState,
-            data::{period_per_frame, FadeState, LightColourFadeState, MovementState, RealtimeComponents},
-            particle,
+            data::{period_per_frame, FadeState, LightColourFadeState, RealtimeComponents},
+            movement, particle,
         },
         spatial_grid::{LocationUpdate, SpatialGrid},
     },
@@ -13,7 +13,6 @@ use crate::{
 };
 use ecs::{Ecs, Entity};
 use grid_2d::Coord;
-use line_2d::InfiniteStepIter;
 use rational::Rational;
 use rgb24::Rgb24;
 use shadowcast::vision_distance::Circle;
@@ -333,7 +332,12 @@ pub fn rocket(
     realtime_components.movement.insert(
         entity,
         ScheduledRealtimePeriodicState {
-            state: MovementState::new(InfiniteStepIter::new(target - start), Duration::from_millis(16)),
+            state: movement::spec::Movement {
+                path: target - start,
+                cardinal_step_duration: Duration::from_millis(16),
+                infinite: false,
+            }
+            .build(),
             until_next_event: Duration::from_millis(0),
         },
     );

@@ -1,18 +1,16 @@
 use crate::{
     world::{
-        action,
         data::Components,
         realtime_periodic::{
             core::{RealtimePeriodicState, TimeConsumingEvent},
+            movement::MovementState,
             particle::ParticleEmitterState,
         },
         spatial_grid::SpatialGrid,
     },
     ExternalEvent,
 };
-use direction::Direction;
 use ecs::{Ecs, Entity};
-use line_2d::InfiniteStepIter;
 use rand::Rng;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
@@ -34,67 +32,6 @@ crate::realtime_periodic! {
 }
 
 pub use realtime_periodic::RealtimeComponents;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MovementState {
-    path: InfiniteStepIter,
-    cardinal_period: Duration,
-    ordinal_period: Duration,
-}
-
-impl MovementState {
-    fn ordinal_duration_from_cardinal_duration(duration: Duration) -> Duration {
-        const SQRT_2_X_1_000_000: u64 = 1_414_214;
-        let ordinal_micros = (duration.as_micros() as u64 * SQRT_2_X_1_000_000) / 1_000_000;
-        Duration::from_micros(ordinal_micros)
-    }
-
-    pub fn new(path: InfiniteStepIter, cardinal_period: Duration) -> Self {
-        Self {
-            path,
-            cardinal_period,
-            ordinal_period: Self::ordinal_duration_from_cardinal_duration(cardinal_period),
-        }
-    }
-
-    pub fn cardinal_period(&self) -> Duration {
-        self.cardinal_period
-    }
-}
-
-impl RealtimePeriodicState for MovementState {
-    type Event = Direction;
-    type Components = RealtimeComponents;
-    fn tick<R: Rng>(&mut self, _rng: &mut R) -> TimeConsumingEvent<Self::Event> {
-        let direction = self.path.step();
-        let until_next_event = if direction.is_cardinal() {
-            self.cardinal_period
-        } else {
-            self.ordinal_period
-        };
-        TimeConsumingEvent {
-            event: direction,
-            until_next_event,
-        }
-    }
-    fn animate_event(
-        movement_direction: Self::Event,
-        ecs: &mut Ecs<Components>,
-        realtime_components: &mut Self::Components,
-        spatial_grid: &mut SpatialGrid,
-        entity: Entity,
-        external_events: &mut Vec<ExternalEvent>,
-    ) {
-        action::projectile_move(
-            ecs,
-            realtime_components,
-            spatial_grid,
-            entity,
-            movement_direction,
-            external_events,
-        )
-    }
-}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum FadeProgress {

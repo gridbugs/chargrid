@@ -6,7 +6,7 @@ use crate::world::{
     spawn, ExternalEvent,
 };
 use direction::{CardinalDirection, Direction};
-use ecs::{Ecs, Entity};
+use ecs::{ComponentsTrait, Ecs, Entity};
 use grid_2d::Coord;
 
 pub fn character_walk_in_direction(
@@ -106,6 +106,28 @@ fn apply_projectile_damage(
     ecs.remove(projectile_entity);
 }
 
+pub fn projectile_stop(
+    ecs: &mut Ecs<Components>,
+    realtime_components: &mut RealtimeComponents,
+    spatial_grid: &mut SpatialGrid,
+    projectile_entity: Entity,
+    external_events: &mut Vec<ExternalEvent>,
+) {
+    if let Some(&current_location) = ecs.components.location.get(projectile_entity) {
+        if let Some(on_collision) = ecs.components.on_collision.get(projectile_entity) {
+            let current_coord = current_location.coord;
+            match on_collision {
+                OnCollision::Explode => {
+                    spawn::explosion(ecs, realtime_components, spatial_grid, current_coord, external_events);
+                    ecs.remove(projectile_entity);
+                    realtime_components.remove_entity(projectile_entity);
+                }
+            }
+        }
+    }
+    realtime_components.movement.remove(projectile_entity);
+}
+
 pub fn projectile_move(
     ecs: &mut Ecs<Components>,
     realtime_components: &mut RealtimeComponents,
@@ -140,15 +162,13 @@ pub fn projectile_move(
             if (colides_with.solid && ecs.components.solid.contains(entity_in_cell))
                 || (colides_with.character && ecs.components.character.contains(entity_in_cell))
             {
-                if let Some(on_collision) = ecs.components.on_collision.get(projectile_entity) {
-                    let current_coord = current_location.coord;
-                    match on_collision {
-                        OnCollision::Explode => {
-                            spawn::explosion(ecs, realtime_components, spatial_grid, current_coord, external_events);
-                        }
-                    }
-                }
-                ecs.remove(projectile_entity);
+                projectile_stop(
+                    ecs,
+                    realtime_components,
+                    spatial_grid,
+                    projectile_entity,
+                    external_events,
+                );
                 return;
             }
         }
@@ -161,5 +181,6 @@ pub fn projectile_move(
         );
     } else {
         ecs.remove(projectile_entity);
+        realtime_components.remove_entity(projectile_entity);
     }
 }

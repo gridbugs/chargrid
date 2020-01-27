@@ -4,14 +4,14 @@ use crate::{
         data::{Components, Layer, Location, ProjectileDamage, Tile},
         realtime_periodic::{
             core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent},
-            data::{FadeProgress, FadeState, LightColourFadeState, MovementState, RealtimeComponents},
+            data::{FadeProgress, FadeState, LightColourFadeState, RealtimeComponents},
+            movement,
         },
         spatial_grid::{LocationUpdate, SpatialGrid},
     },
     ExternalEvent,
 };
 use ecs::{Ecs, Entity};
-use line_2d::InfiniteStepIter;
 use rand::Rng;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
@@ -108,7 +108,7 @@ pub struct ParticleEmitterState {
 }
 
 pub struct SpawnParticle {
-    movement_state: Option<MovementState>,
+    movement_state: Option<movement::MovementState>,
     fade_state: Option<FadeState>,
     tile: Option<Tile>,
     colour_hint: Option<Rgb24>,
@@ -160,17 +160,19 @@ impl spec::DamageRange {
 }
 
 impl spec::Movement {
-    fn choose<R: Rng>(&self, rng: &mut R) -> MovementState {
+    fn choose<R: Rng>(&self, rng: &mut R) -> movement::MovementState {
         const VECTOR_LENGTH: f64 = 1000.;
         let angle_radians = self.angle_range.choose(rng);
         let radial = Radial {
             angle_radians,
             length: VECTOR_LENGTH,
         };
-        let delta = radial.to_cartesian().to_coord_round_nearest();
-        let path = InfiniteStepIter::new(delta);
-        let cardinal_period = self.cardinal_period_range.choose(rng);
-        MovementState::new(path, cardinal_period)
+        movement::spec::Movement {
+            path: radial.to_cartesian().to_coord_round_nearest(),
+            infinite: true,
+            cardinal_step_duration: self.cardinal_period_range.choose(rng),
+        }
+        .build()
     }
 }
 
@@ -275,7 +277,7 @@ impl RealtimePeriodicState for ParticleEmitterState {
             realtime_components.movement.insert(
                 particle_entity,
                 ScheduledRealtimePeriodicState {
-                    until_next_event: movement.cardinal_period(),
+                    until_next_event: movement.cardinal_step_duration(),
                     state: movement,
                 },
             );
