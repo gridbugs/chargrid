@@ -18,16 +18,26 @@ use rgb24::Rgb24;
 use shadowcast::vision_distance::Circle;
 use std::time::Duration;
 
-fn explosion_emitter(
-    ecs: &mut Ecs<Components>,
-    realtime_components: &mut RealtimeComponents,
-    spatial_grid: &mut SpatialGrid,
-    coord: Coord,
+struct Explosion {
     duration: Duration,
     num_particles_per_frame: u32,
     min_step: Duration,
     max_step: Duration,
     fade_duration: Duration,
+}
+
+fn explosion_emitter(
+    ecs: &mut Ecs<Components>,
+    realtime_components: &mut RealtimeComponents,
+    spatial_grid: &mut SpatialGrid,
+    coord: Coord,
+    Explosion {
+        duration,
+        num_particles_per_frame,
+        min_step,
+        max_step,
+        fade_duration,
+    }: Explosion,
 ) {
     let emitter_entity = ecs.entity_allocator.alloc();
     spatial_grid
@@ -146,11 +156,13 @@ pub fn explosion(
         realtime_components,
         spatial_grid,
         coord,
-        Duration::from_millis(250),
-        50,
-        Duration::from_millis(10),
-        Duration::from_millis(30),
-        Duration::from_millis(250),
+        Explosion {
+            duration: Duration::from_millis(250),
+            num_particles_per_frame: 50,
+            min_step: Duration::from_millis(10),
+            max_step: Duration::from_millis(30),
+            fade_duration: Duration::from_millis(250),
+        },
     );
     external_events.push(ExternalEvent::Explosion(coord));
 }
