@@ -66,6 +66,9 @@ impl Game {
         let mut player = None;
         for (y, row) in rows.iter().enumerate() {
             for (x, ch) in row.chars().enumerate() {
+                if ch.is_control() {
+                    continue;
+                }
                 let coord = Coord::new(x as i32, y as i32);
                 match ch {
                     '.' => {
@@ -96,8 +99,7 @@ impl Game {
                         let entity = world.spawn_human(coord);
                         agents.insert(entity, Agent::new(size));
                     }
-
-                    _ => panic!("unexpected char: {}", ch),
+                    _ => log::warn!("unexpected char in terrain: {} ({})", ch.escape_unicode(), ch),
                 }
             }
         }
