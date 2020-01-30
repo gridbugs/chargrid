@@ -1,7 +1,7 @@
 use crate::visibility::Light;
 use crate::{
     world::{
-        data::{Components, Layer, Location, ProjectileDamage, Tile},
+        data::{Components, Location, ProjectileDamage, Tile},
         realtime_periodic::{
             core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent},
             data::{FadeProgress, FadeState, LightColourFadeState, RealtimeComponents},
@@ -169,7 +169,7 @@ impl spec::Movement {
         };
         movement::spec::Movement {
             path: radial.to_cartesian().to_coord_round_nearest(),
-            infinite: true,
+            repeat: movement::spec::Repeat::Forever,
             cardinal_step_duration: self.cardinal_period_range.choose(rng),
         }
         .build()
@@ -283,14 +283,7 @@ impl RealtimePeriodicState for ParticleEmitterState {
             );
         }
         spatial_grid
-            .location_update(
-                ecs,
-                particle_entity,
-                Location {
-                    coord,
-                    layer: Layer::Untracked,
-                },
-            )
+            .update_entity_location(ecs, particle_entity, Location { coord, layer: None })
             .unwrap();
         if let Some(tile) = spawn_particle.tile {
             ecs.components.tile.insert(particle_entity, tile);

@@ -1,5 +1,5 @@
 use crate::world::data::Components;
-use ecs::{ComponentTable, Ecs, Entity};
+use ecs::{Ecs, Entity};
 use grid_2d::{Coord, Grid};
 use serde::{Deserialize, Serialize};
 
@@ -10,19 +10,12 @@ pub enum Layer {
     Floor,
     Feature,
     Character,
-    Untracked,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Location {
     pub coord: Coord,
-    pub layer: Layer,
-}
-
-impl Location {
-    pub fn is_untracked(&self) -> bool {
-        self.layer == Layer::Untracked
-    }
+    pub layer: Option<Layer>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -42,28 +35,19 @@ impl Default for SpatialCell {
     }
 }
 
-enum SelectFieldMut<'a> {
-    Tracked(&'a mut Option<Entity>),
-    Untracked,
-}
-
 #[derive(Debug)]
 pub struct OccupiedBy(pub Entity);
 
 impl SpatialCell {
-    fn select_field_mut(&mut self, layer: Layer) -> SelectFieldMut {
+    fn select_field_mut(&mut self, layer: Layer) -> &mut Option<Entity> {
         match layer {
-            Layer::Character => SelectFieldMut::Tracked(&mut self.character),
-            Layer::Feature => SelectFieldMut::Tracked(&mut self.feature),
-            Layer::Floor => SelectFieldMut::Tracked(&mut self.floor),
-            Layer::Untracked => SelectFieldMut::Untracked,
+            Layer::Character => &mut self.character,
+            Layer::Feature => &mut self.feature,
+            Layer::Floor => &mut self.floor,
         }
     }
     fn insert(&mut self, entity: Entity, layer: Layer) -> Result<(), OccupiedBy> {
-        let layer_field = match self.select_field_mut(layer) {
-            SelectFieldMut::Tracked(layer_field) => layer_field,
-            SelectFieldMut::Untracked => return Ok(()),
-        };
+        let layer_field = self.select_field_mut(layer);
         if let Some(&occupant) = layer_field.as_ref() {
             Err(OccupiedBy(occupant))
         } else {
@@ -72,55 +56,50 @@ impl SpatialCell {
         }
     }
     fn clear(&mut self, layer: Layer) -> Option<Entity> {
-        match self.select_field_mut(layer) {
-            SelectFieldMut::Tracked(field) => field.take(),
-            SelectFieldMut::Untracked => None,
-        }
+        self.select_field_mut(layer).take()
     }
 }
 
 pub trait LocationUpdate {
-    fn component_location_update(
+    fn update_entity_location(
         &mut self,
-        location_component: &mut ComponentTable<Location>,
+        ecs: &mut Ecs<Components>,
         entity: Entity,
         location: Location,
     ) -> Result<(), OccupiedBy>;
-    fn location_update(
+    fn remove_entity(&mut self, ecs: &mut Ecs<Components>, entity: Entity);
+}
+
+impl LocationUpdate for SpatialGrid {
+    fn update_entity_location(
         &mut self,
         ecs: &mut Ecs<Components>,
         entity: Entity,
         location: Location,
     ) -> Result<(), OccupiedBy> {
-        self.component_location_update(&mut ecs.components.location, entity, location)
-    }
-    fn remove_entity(&mut self, ecs: &mut Ecs<Components>, entity: Entity);
-}
-
-impl LocationUpdate for SpatialGrid {
-    fn component_location_update(
-        &mut self,
-        location_component: &mut ComponentTable<Location>,
-        entity: Entity,
-        location: Location,
-    ) -> Result<(), OccupiedBy> {
-        let cell = self.get_checked_mut(location.coord);
-        cell.insert(entity, location.layer)?;
-        if let Some(original_location) = location_component.insert(entity, location) {
+        if let Some(layer) = location.layer {
+            let cell = self.get_checked_mut(location.coord);
+            cell.insert(entity, layer)?;
+        }
+        if let Some(original_location) = ecs.components.location.insert(entity, location) {
             let original_cell = self.get_checked_mut(original_location.coord);
-            let should_match_entity = original_cell.clear(original_location.layer);
-            debug_assert_eq!(
-                should_match_entity,
-                Some(entity),
-                "Current location of entity doesn't contain entity in spatial grid"
-            );
+            if let Some(original_layer) = original_location.layer {
+                let should_match_entity = original_cell.clear(original_layer);
+                debug_assert_eq!(
+                    should_match_entity,
+                    Some(entity),
+                    "Current location of entity doesn't contain entity in spatial grid"
+                );
+            }
         }
         Ok(())
     }
     fn remove_entity(&mut self, ecs: &mut Ecs<Components>, entity: Entity) {
         if let Some(location) = ecs.components.location.get(entity) {
-            if let Some(cell) = self.get_mut(location.coord) {
-                cell.clear(location.layer);
+            if let Some(layer) = location.layer {
+                if let Some(cell) = self.get_mut(location.coord) {
+                    cell.clear(layer);
+                }
             }
         }
         ecs.remove(entity);

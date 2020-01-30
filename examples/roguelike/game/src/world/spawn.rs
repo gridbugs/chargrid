@@ -41,14 +41,7 @@ fn explosion_emitter(
 ) {
     let emitter_entity = ecs.entity_allocator.alloc();
     spatial_grid
-        .location_update(
-            ecs,
-            emitter_entity,
-            Location {
-                coord,
-                layer: Layer::Untracked,
-            },
-        )
+        .update_entity_location(ecs, emitter_entity, Location { coord, layer: None })
         .unwrap();
     realtime_components.fade.insert(
         emitter_entity,
@@ -79,16 +72,6 @@ fn explosion_emitter(
                         colour_hint: Some(ColourRange {
                             from: Rgb24::new(255, 255, 63),
                             to: Rgb24::new(255, 127, 0),
-                        }),
-                        possible_damage: Some(Possible {
-                            chance: Rational {
-                                numerator: 1,
-                                denominator: 20,
-                            },
-                            value: Damage {
-                                range: DamageRange { min: 1, max: 5 },
-                                push_back: true,
-                            },
                         }),
                         possible_particle_emitter: Some(Possible {
                             chance: Rational {
@@ -170,12 +153,12 @@ pub fn explosion(
 pub fn player(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
     let entity = ecs.create();
     spatial_grid
-        .location_update(
+        .update_entity_location(
             ecs,
             entity,
             Location {
                 coord,
-                layer: Layer::Character,
+                layer: Some(Layer::Character),
             },
         )
         .unwrap();
@@ -200,12 +183,12 @@ pub fn player(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: 
 pub fn wall(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
     let entity = ecs.create();
     spatial_grid
-        .location_update(
+        .update_entity_location(
             ecs,
             entity,
             Location {
                 coord,
-                layer: Layer::Feature,
+                layer: Some(Layer::Feature),
             },
         )
         .unwrap();
@@ -218,12 +201,12 @@ pub fn wall(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Co
 pub fn former_human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
     let entity = ecs.create();
     spatial_grid
-        .location_update(
+        .update_entity_location(
             ecs,
             entity,
             Location {
                 coord,
-                layer: Layer::Character,
+                layer: Some(Layer::Character),
             },
         )
         .unwrap();
@@ -242,12 +225,12 @@ pub fn former_human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, c
 pub fn human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
     let entity = ecs.create();
     spatial_grid
-        .location_update(
+        .update_entity_location(
             ecs,
             entity,
             Location {
                 coord,
-                layer: Layer::Character,
+                layer: Some(Layer::Character),
             },
         )
         .unwrap();
@@ -266,12 +249,12 @@ pub fn human(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: C
 pub fn floor(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
     let entity = ecs.create();
     spatial_grid
-        .location_update(
+        .update_entity_location(
             ecs,
             entity,
             Location {
                 coord,
-                layer: Layer::Floor,
+                layer: Some(Layer::Floor),
             },
         )
         .unwrap();
@@ -282,12 +265,12 @@ pub fn floor(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: C
 pub fn carpet(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) -> Entity {
     let entity = ecs.create();
     spatial_grid
-        .location_update(
+        .update_entity_location(
             ecs,
             entity,
             Location {
                 coord,
-                layer: Layer::Floor,
+                layer: Some(Layer::Floor),
             },
         )
         .unwrap();
@@ -298,12 +281,12 @@ pub fn carpet(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: 
 pub fn light(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord, colour: Rgb24) -> Entity {
     let entity = ecs.create();
     spatial_grid
-        .location_update(
+        .update_entity_location(
             ecs,
             entity,
             Location {
                 coord,
-                layer: Layer::Feature,
+                layer: Some(Layer::Feature),
             },
         )
         .unwrap();
@@ -330,12 +313,12 @@ pub fn rocket(
 ) -> Entity {
     let entity = ecs.create();
     spatial_grid
-        .location_update(
+        .update_entity_location(
             ecs,
             entity,
             Location {
                 coord: start,
-                layer: Layer::Untracked,
+                layer: None,
             },
         )
         .unwrap();
@@ -347,7 +330,7 @@ pub fn rocket(
             state: movement::spec::Movement {
                 path: target - start,
                 cardinal_step_duration: Duration::from_millis(16),
-                infinite: false,
+                repeat: movement::spec::Repeat::Once,
             }
             .build(),
             until_next_event: Duration::from_millis(0),

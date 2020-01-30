@@ -94,7 +94,7 @@ pub fn all_entites_to_render<'a>(
 
 pub struct ToRenderEntity {
     pub coord: Coord,
-    pub layer: Layer,
+    pub layer: Option<Layer>,
     pub tile: Tile,
     pub fade: Option<u8>,
     pub colour_hint: Option<Rgb24>,

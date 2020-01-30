@@ -17,7 +17,7 @@ use std::marker::PhantomData;
 use std::time::Duration;
 
 const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
-const AIM_UI_DEPTH: i8 = 3;
+const AIM_UI_DEPTH: i8 = std::i8::MAX;
 const PLAYER_OFFSET: Coord = Coord::new(16, 16);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
 const STORAGE_FORMAT: format::Json = format::Json;
@@ -118,12 +118,15 @@ impl GameView {
     }
 }
 
-fn layer_depth(layer: Layer) -> i8 {
-    match layer {
-        Layer::Floor => 0,
-        Layer::Feature => 1,
-        Layer::Character => 2,
-        Layer::Untracked => 3,
+fn layer_depth(layer: Option<Layer>) -> i8 {
+    if let Some(layer) = layer {
+        match layer {
+            Layer::Floor => 0,
+            Layer::Feature => 1,
+            Layer::Character => 2,
+        }
+    } else {
+        std::i8::MAX - 1
     }
 }
 

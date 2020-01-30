@@ -20,17 +20,28 @@ use std::time::Duration;
 pub mod spec {
     pub use grid_2d::Coord;
     pub use std::time::Duration;
+
+    pub enum Repeat {
+        Once,
+        Forever,
+        N(usize),
+    }
+
     pub struct Movement {
         pub path: Coord,
-        pub infinite: bool,
+        pub repeat: Repeat,
         pub cardinal_step_duration: Duration,
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum Path {
-    Infinite(InfiniteStepIter),
-    Finite(StepIter),
+    Forever(InfiniteStepIter),
+    Once(StepIter),
+    N {
+        infinite_step_iter: InfiniteStepIter,
+        remaining_steps: usize,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,10 +60,13 @@ fn ordinal_duration_from_cardinal_duration(duration: Duration) -> Duration {
 impl spec::Movement {
     pub fn build(self) -> MovementState {
         MovementState {
-            path: if self.infinite {
-                Path::Infinite(InfiniteStepIter::new(self.path))
-            } else {
-                Path::Finite(StepIter::new(self.path))
+            path: match self.repeat {
+                spec::Repeat::Forever => Path::Forever(InfiniteStepIter::new(self.path)),
+                spec::Repeat::Once => Path::Once(StepIter::new(self.path)),
+                spec::Repeat::N(n) => Path::N {
+                    infinite_step_iter: InfiniteStepIter::new(self.path),
+                    remaining_steps: n,
+                },
             },
             cardinal_step_duration: self.cardinal_step_duration,
             ordinal_step_duration: ordinal_duration_from_cardinal_duration(self.cardinal_step_duration),
@@ -71,8 +85,19 @@ impl RealtimePeriodicState for MovementState {
     type Components = RealtimeComponents;
     fn tick<R: Rng>(&mut self, _rng: &mut R) -> TimeConsumingEvent<Self::Event> {
         let event = match self.path {
-            Path::Finite(ref mut path) => path.next(),
-            Path::Infinite(ref mut path) => path.next(),
+            Path::Forever(ref mut path) => path.next(),
+            Path::Once(ref mut path) => path.next(),
+            Path::N {
+                ref mut infinite_step_iter,
+                ref mut remaining_steps,
+            } => {
+                if let Some(next_remaining_steps) = remaining_steps.checked_sub(1) {
+                    *remaining_steps = next_remaining_steps;
+                    infinite_step_iter.next()
+                } else {
+                    None
+                }
+            }
         };
         let until_next_event = if let Some(direction) = event {
             if direction.is_cardinal() {
