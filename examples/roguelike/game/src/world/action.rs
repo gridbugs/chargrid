@@ -161,9 +161,8 @@ pub fn explosion(
                     let mut solid_neighbour_vector = Coord::new(0, 0);
                     for direction in CardinalDirection::all() {
                         let neighbour_coord = coord + direction.coord();
-                        if let Some(neighbour_feature) = spatial_grid.get(neighbour_coord).and_then(|cell| cell.feature)
-                        {
-                            if ecs.components.solid.contains(neighbour_feature) {
+                        if let Some(spatial_cell) = spatial_grid.get(neighbour_coord) {
+                            if spatial_cell.feature.is_some() || spatial_cell.character.is_some() {
                                 solid_neighbour_vector += direction.coord();
                             }
                         }
@@ -270,16 +269,14 @@ pub fn projectile_move(
                 return;
             }
         }
-        spatial_grid
-            .update_entity_location(
-                ecs,
-                projectile_entity,
-                Location {
-                    coord: next_coord,
-                    ..current_location
-                },
-            )
-            .unwrap();
+        let _ = spatial_grid.update_entity_location(
+            ecs,
+            projectile_entity,
+            Location {
+                coord: next_coord,
+                ..current_location
+            },
+        );
     } else {
         ecs.remove(projectile_entity);
         realtime_components.remove_entity(projectile_entity);
