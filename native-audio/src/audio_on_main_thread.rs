@@ -1,3 +1,4 @@
+use crate::common;
 use crate::Error;
 use prototty_audio::{AudioPlayer, AudioProperties};
 use rodio::source::Source;
@@ -9,7 +10,7 @@ pub struct NativeAudioPlayer {
 }
 impl NativeAudioPlayer {
     pub fn try_new_default_device() -> Result<Self, Error> {
-        let device = rodio::default_output_device().ok_or(Error::NoOutputDevice)?;
+        let device = common::output_device().ok_or(Error::NoOutputDevice)?;
         Ok(Self { device })
     }
 

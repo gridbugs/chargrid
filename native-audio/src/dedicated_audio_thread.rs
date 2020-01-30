@@ -2,6 +2,7 @@
 // when also using winit to create windows.
 // More info: https://github.com/RustAudio/cpal/pull/348
 
+use crate::common;
 use crate::Error;
 use prototty_audio::{AudioPlayer, AudioProperties};
 use rodio::source::Source;
@@ -20,7 +21,7 @@ impl NativeAudioPlayer {
         let (sender, receiver): (_, mpsc::Receiver<(NativeSound, AudioProperties)>) = mpsc::channel();
         let (init_sender, init_receiver) = mpsc::channel();
         let _audio_thread = std::thread::spawn(move || {
-            if let Some(device) = rodio::default_output_device() {
+            if let Some(device) = common::output_device() {
                 init_sender.send(Ok(())).unwrap();
                 for (sound, properties) in receiver {
                     let sink = Sink::new(&device);
