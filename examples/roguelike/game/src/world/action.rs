@@ -146,16 +146,19 @@ fn does_explosion_hit_entity(
     }
 }
 
-pub fn explosion(
+fn explosion(
     ecs: &mut Ecs<Components>,
     realtime_components: &mut RealtimeComponents,
     spatial_grid: &mut SpatialGrid,
     coord: Coord,
+    range: u32,
     external_events: &mut Vec<ExternalEvent>,
 ) {
     spawn::explosion(ecs, realtime_components, spatial_grid, coord, external_events);
     for character_entity in ecs.components.character.entities() {
-        if let Some(explosion_hit) = does_explosion_hit_entity(ecs, spatial_grid, coord, 10, character_entity) {
+        if let Some(explosion_hit) = does_explosion_hit_entity(ecs, spatial_grid, coord, range, character_entity) {
+            let character_coord = ecs.components.location.get(character_entity).unwrap().coord;
+            let character_to_explosion_distance_squared = coord.distance2(character_coord);
             match explosion_hit {
                 ExplosionHit::Direct => {
                     let mut solid_neighbour_vector = Coord::new(0, 0);
@@ -175,7 +178,7 @@ pub fn explosion(
                             ScheduledRealtimePeriodicState {
                                 state: movement::spec::Movement {
                                     path: travel_vector,
-                                    repeat: movement::spec::Repeat::N(4),
+                                    repeat: movement::spec::Repeat::N((range / 3) as usize),
                                     cardinal_step_duration: Duration::from_millis(100),
                                 }
                                 .build(),
@@ -185,13 +188,14 @@ pub fn explosion(
                     }
                 }
                 ExplosionHit::Indirect(path) => {
+                    let push_back = 1 + (range / (2 * (character_to_explosion_distance_squared + 1)));
                     ecs.components.realtime.insert(character_entity, ());
                     realtime_components.movement.insert(
                         character_entity,
                         ScheduledRealtimePeriodicState {
                             state: movement::spec::Movement {
                                 path: path.delta(),
-                                repeat: movement::spec::Repeat::N(4),
+                                repeat: movement::spec::Repeat::N(push_back as usize),
                                 cardinal_step_duration: Duration::from_millis(100),
                             }
                             .build(),
@@ -216,7 +220,14 @@ pub fn projectile_stop(
             let current_coord = current_location.coord;
             match on_collision {
                 OnCollision::Explode => {
-                    explosion(ecs, realtime_components, spatial_grid, current_coord, external_events);
+                    explosion(
+                        ecs,
+                        realtime_components,
+                        spatial_grid,
+                        current_coord,
+                        10, // range
+                        external_events,
+                    );
                     ecs.remove(projectile_entity);
                     realtime_components.remove_entity(projectile_entity);
                 }
