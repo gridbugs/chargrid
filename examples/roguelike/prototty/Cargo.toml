@@ -8,6 +8,7 @@ edition = "2018"
 wasm = ["rand/wasm-bindgen"]
 
 [dependencies]
+log = "0.4"
 prototty = { path = "../../../prototty", features = ["serialize"] }
 prototty_storage = { path = "../../../storage", features = ["json"] }
 prototty_audio = { path = "../../../audio" }

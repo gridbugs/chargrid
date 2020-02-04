@@ -3,7 +3,7 @@ use prototty_audio::AudioPlayer;
 
 const EXPLOSION: &[u8] = include_bytes!("./audio/explosion.ogg");
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum Audio {
     Explosion,
 }

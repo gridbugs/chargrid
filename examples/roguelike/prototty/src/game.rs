@@ -55,6 +55,11 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
     fn next_frame(&mut self) {
         *self.screen_shake = self.screen_shake.and_then(|screen_shake| screen_shake.next());
     }
+    fn play_audio(&self, audio: Audio, properties: AudioProperties) {
+        log::info!("Playing sound: {:?}", audio);
+        let sound = self.audio_table.get(audio);
+        self.audio_player.play(&sound, properties);
+    }
     fn handle_event(&mut self, event: ExternalEvent) {
         match event {
             ExternalEvent::Explosion(coord) => {
@@ -67,8 +72,7 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
                 let distance_squared = (self.player_coord.0 - coord).magnitude2();
                 let volume = (BASE_VOLUME / (distance_squared as f32)).min(1.);
                 let properties = AudioProperties::default().with_volume(volume);
-                let sound = self.audio_table.get(Audio::Explosion);
-                self.audio_player.play(&sound, properties);
+                self.play_audio(Audio::Explosion, properties);
             }
         }
     }
