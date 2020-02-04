@@ -1,7 +1,7 @@
 use crate::world::{
-    data::{Layer, Location, OnCollision, ProjectileDamage},
+    data::{OnCollision, ProjectileDamage},
     explosion,
-    spatial_grid::{LocationUpdate, OccupiedBy},
+    spatial::OccupiedBy,
     spawn::WorldSpawn,
     ExternalEvent, World, WorldQuery,
 };
@@ -24,26 +24,18 @@ pub trait WorldAction {
 
 impl WorldAction for World {
     fn character_walk_in_direction(&mut self, character: Entity, direction: CardinalDirection) {
-        let &current_location = self.ecs.components.location.get(character).unwrap();
-        debug_assert_eq!(current_location.layer, Some(Layer::Character));
-        let target_coord = current_location.coord + direction.coord();
+        let &current_coord = self.spatial.coord(character).unwrap();
+        let target_coord = current_coord + direction.coord();
         if self.is_solid_feature_at_coord(target_coord) {
             return;
         }
-        let target_location = Location {
-            coord: target_coord,
-            ..current_location
-        };
-        if let Err(OccupiedBy(_occupant)) =
-            self.spatial_grid
-                .update_entity_location(&mut self.ecs, character, target_location)
-        {
+        if let Err(OccupiedBy(_occupant)) = self.spatial.update_coord(character, target_coord) {
             // TODO melee
         }
     }
 
     fn character_fire_rocket(&mut self, character: Entity, target: Coord) {
-        let character_coord = self.ecs.components.location.get(character).unwrap().coord;
+        let &character_coord = self.spatial.coord(character).unwrap();
         if character_coord == target {
             return;
         }
@@ -51,9 +43,8 @@ impl WorldAction for World {
     }
 
     fn projectile_stop(&mut self, projectile_entity: Entity, external_events: &mut Vec<ExternalEvent>) {
-        if let Some(&current_location) = self.ecs.components.location.get(projectile_entity) {
+        if let Some(&current_coord) = self.spatial.coord(projectile_entity) {
             if let Some(on_collision) = self.ecs.components.on_collision.get(projectile_entity).cloned() {
-                let current_coord = current_location.coord;
                 match on_collision {
                     OnCollision::Explode(explosion_spec) => {
                         explosion::explode(self, current_coord, explosion_spec, external_events);
@@ -72,8 +63,8 @@ impl WorldAction for World {
         movement_direction: Direction,
         external_events: &mut Vec<ExternalEvent>,
     ) {
-        if let Some(&current_location) = self.ecs.components.location.get(projectile_entity) {
-            let next_coord = current_location.coord + movement_direction.coord();
+        if let Some(&current_coord) = self.spatial.coord(projectile_entity) {
+            let next_coord = current_coord + movement_direction.coord();
             let colides_with = self
                 .ecs
                 .components
@@ -81,7 +72,7 @@ impl WorldAction for World {
                 .get(projectile_entity)
                 .cloned()
                 .unwrap_or_default();
-            let &spatial_cell = self.spatial_grid.get_checked(next_coord);
+            let &spatial_cell = self.spatial.get_cell_checked(next_coord);
             if let Some(character_entity) = spatial_cell.character {
                 if let Some(&projectile_damage) = self.ecs.components.projectile_damage.get(projectile_entity) {
                     self.apply_projectile_damage(
@@ -100,23 +91,17 @@ impl WorldAction for World {
                     return;
                 }
             }
-            let _ = self.spatial_grid.update_entity_location(
-                &mut self.ecs,
-                projectile_entity,
-                Location {
-                    coord: next_coord,
-                    ..current_location
-                },
-            );
+            let _ignore_if_occupied = self.spatial.update_coord(projectile_entity, next_coord);
         } else {
             self.ecs.remove(projectile_entity);
             self.realtime_components.remove_entity(projectile_entity);
+            self.spatial.remove(projectile_entity);
         }
     }
 
     fn damage_character(&mut self, character: Entity, hit_points_to_lose: u32) {
         if let Some(hit_points) = self.ecs.components.hit_points.get_mut(character) {
-            let coord = self.ecs.components.location.get(character).unwrap().coord;
+            let &coord = self.spatial.coord(character).unwrap();
             match hit_points.current.checked_sub(hit_points_to_lose) {
                 None | Some(0) => {
                     hit_points.current = 0;
@@ -148,28 +133,21 @@ trait WorldActionPrivate {
 
 impl WorldActionPrivate for World {
     fn character_push_in_direction(&mut self, entity: Entity, direction: Direction) {
-        if let Some(&current_location) = self.ecs.components.location.get(entity) {
-            debug_assert_eq!(current_location.layer, Some(Layer::Character));
-            let target_coord = current_location.coord + direction.coord();
+        if let Some(&current_coord) = self.spatial.coord(entity) {
+            let target_coord = current_coord + direction.coord();
             if self.is_solid_feature_at_coord(target_coord) {
                 return;
             }
-            let target_location = Location {
-                coord: target_coord,
-                ..current_location
-            };
-            let _ignore_if_occupied = self
-                .spatial_grid
-                .update_entity_location(&mut self.ecs, entity, target_location);
+            let _ignore_if_occupied = self.spatial.update_coord(entity, target_coord);
         }
     }
 
     fn character_die(&mut self, character: Entity) {
-        self.spatial_grid.remove_entity(&mut self.ecs, character);
+        self.spatial.remove(character);
     }
 
     fn add_blood_stain_to_floor(&mut self, coord: Coord) {
-        if let Some(floor_entity) = self.spatial_grid.get_checked(coord).floor {
+        if let Some(floor_entity) = self.spatial.get_cell_checked(coord).floor {
             self.ecs.components.blood.insert(floor_entity, ());
         }
     }

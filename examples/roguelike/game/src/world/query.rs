@@ -14,7 +14,7 @@ pub trait WorldQuery {
 
 impl WorldQuery for World {
     fn is_solid_feature_at_coord(&self, coord: Coord) -> bool {
-        let cell = self.spatial_grid.get_checked(coord);
+        let cell = self.spatial.get_cell_checked(coord);
         if let Some(feature) = cell.feature {
             self.ecs.components.solid.contains(feature)
         } else {
@@ -32,7 +32,7 @@ impl WorldQuery for World {
     }
 
     fn is_wall_at_coord(&self, coord: Coord) -> bool {
-        if let Some(spatial_cell) = self.spatial_grid.get(coord) {
+        if let Some(spatial_cell) = self.spatial.get_cell(coord) {
             if let Some(entity) = spatial_cell.feature {
                 self.ecs.components.tile.get(entity) == Some(&Tile::Wall)
             } else {
@@ -44,7 +44,7 @@ impl WorldQuery for World {
     }
 
     fn is_npc_at_coord(&self, coord: Coord) -> bool {
-        if let Some(spatial_cell) = self.spatial_grid.get(coord) {
+        if let Some(spatial_cell) = self.spatial.get_cell(coord) {
             if let Some(entity) = spatial_cell.character {
                 self.ecs.components.npc.contains(entity)
             } else {
@@ -56,14 +56,14 @@ impl WorldQuery for World {
     }
 
     fn get_opacity_at_coord(&self, coord: Coord) -> u8 {
-        self.spatial_grid
-            .get(coord)
+        self.spatial
+            .get_cell(coord)
             .and_then(|c| c.feature)
             .and_then(|e| self.ecs.components.opacity.get(e).cloned())
             .unwrap_or(0)
     }
 
     fn get_character_at_coord(&self, coord: Coord) -> Option<Entity> {
-        self.spatial_grid.get(coord).and_then(|cell| cell.character)
+        self.spatial.get_cell(coord).and_then(|cell| cell.character)
     }
 }

@@ -8,7 +8,6 @@ use crate::{
             data::{period_per_frame, FadeState, LightColourFadeState},
             movement, particle,
         },
-        spatial_grid::LocationUpdate,
         World,
     },
 };
@@ -34,9 +33,8 @@ pub trait WorldSpawn {
 impl WorldSpawn for World {
     fn spawn_player(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
-        self.spatial_grid
-            .update_entity_location(
-                &mut self.ecs,
+        self.spatial
+            .insert(
                 entity,
                 Location {
                     coord,
@@ -64,9 +62,8 @@ impl WorldSpawn for World {
 
     fn spawn_wall(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
-        self.spatial_grid
-            .update_entity_location(
-                &mut self.ecs,
+        self.spatial
+            .insert(
                 entity,
                 Location {
                     coord,
@@ -82,9 +79,8 @@ impl WorldSpawn for World {
 
     fn spawn_former_human(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
-        self.spatial_grid
-            .update_entity_location(
-                &mut self.ecs,
+        self.spatial
+            .insert(
                 entity,
                 Location {
                     coord,
@@ -106,9 +102,8 @@ impl WorldSpawn for World {
 
     fn spawn_human(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
-        self.spatial_grid
-            .update_entity_location(
-                &mut self.ecs,
+        self.spatial
+            .insert(
                 entity,
                 Location {
                     coord,
@@ -130,9 +125,8 @@ impl WorldSpawn for World {
 
     fn spawn_floor(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
-        self.spatial_grid
-            .update_entity_location(
-                &mut self.ecs,
+        self.spatial
+            .insert(
                 entity,
                 Location {
                     coord,
@@ -146,9 +140,8 @@ impl WorldSpawn for World {
 
     fn spawn_carpet(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
-        self.spatial_grid
-            .update_entity_location(
-                &mut self.ecs,
+        self.spatial
+            .insert(
                 entity,
                 Location {
                     coord,
@@ -162,9 +155,8 @@ impl WorldSpawn for World {
 
     fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
         let entity = self.ecs.create();
-        self.spatial_grid
-            .update_entity_location(
-                &mut self.ecs,
+        self.spatial
+            .insert(
                 entity,
                 Location {
                     coord,
@@ -188,9 +180,8 @@ impl WorldSpawn for World {
 
     fn spawn_rocket(&mut self, start: Coord, target: Coord) -> Entity {
         let entity = self.ecs.create();
-        self.spatial_grid
-            .update_entity_location(
-                &mut self.ecs,
+        self.spatial
+            .insert(
                 entity,
                 Location {
                     coord: start,
@@ -278,8 +269,8 @@ impl WorldSpawn for World {
 
     fn spawn_explosion_emitter(&mut self, coord: Coord, spec: &explosion::spec::ParticleEmitter) {
         let emitter_entity = self.ecs.entity_allocator.alloc();
-        self.spatial_grid
-            .update_entity_location(&mut self.ecs, emitter_entity, Location { coord, layer: None })
+        self.spatial
+            .insert(emitter_entity, Location { coord, layer: None })
             .unwrap();
         self.realtime_components.fade.insert(
             emitter_entity,

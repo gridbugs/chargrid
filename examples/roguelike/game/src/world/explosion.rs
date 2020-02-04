@@ -1,6 +1,5 @@
 use crate::world::{
     realtime_periodic::{core::ScheduledRealtimePeriodicState, movement},
-    spatial_grid::Location,
     ExternalEvent, World, WorldAction, WorldQuery, WorldSpawn,
 };
 use direction::CardinalDirection;
@@ -84,7 +83,7 @@ fn apply_direct_hit(world: &mut World, explosion_coord: Coord, mechanics: &spec:
     let mut solid_neighbour_vector = Coord::new(0, 0);
     for direction in CardinalDirection::all() {
         let neighbour_coord = explosion_coord + direction.coord();
-        if let Some(spatial_cell) = world.spatial_grid.get(neighbour_coord) {
+        if let Some(spatial_cell) = world.spatial.get_cell(neighbour_coord) {
             if spatial_cell.feature.is_some() || spatial_cell.character.is_some() {
                 solid_neighbour_vector += direction.coord();
             }
@@ -118,10 +117,7 @@ fn is_in_explosion_range(explosion_coord: Coord, mechanics: &spec::Mechanics, co
 
 fn apply_mechanics(world: &mut World, explosion_coord: Coord, mechanics: &spec::Mechanics) {
     for character_entity in world.ecs.components.character.entities().collect::<Vec<_>>() {
-        if let Some(&Location {
-            coord: character_coord, ..
-        }) = world.ecs.components.location.get(character_entity)
-        {
+        if let Some(&character_coord) = world.spatial.coord(character_entity) {
             if character_coord == explosion_coord {
                 apply_direct_hit(world, explosion_coord, mechanics, character_entity);
             } else {

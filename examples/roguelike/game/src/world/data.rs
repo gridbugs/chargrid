@@ -1,7 +1,7 @@
 use crate::visibility::Light;
 pub use crate::world::{
     explosion_spec,
-    spatial_grid::{Layer, Location},
+    spatial::{Layer, Location},
 };
 use ecs::ecs_components;
 use rgb24::Rgb24;
@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 
 ecs_components! {
     components {
-        location: Location,
         tile: Tile,
         opacity: u8,
         solid: (),

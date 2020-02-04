@@ -1,13 +1,12 @@
 use crate::visibility::Light;
 use crate::{
     world::{
-        data::{Location, ProjectileDamage, Tile},
+        data::{ProjectileDamage, Tile},
         realtime_periodic::{
             core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent},
             data::{FadeProgress, FadeState, LightColourFadeState, RealtimeComponents},
             movement,
         },
-        spatial_grid::LocationUpdate,
         World,
     },
     ExternalEvent,
@@ -261,8 +260,8 @@ impl RealtimePeriodicState for ParticleEmitterState {
         }
     }
     fn animate_event(mut spawn_particle: Self::Event, entity: Entity, world: &mut World, _: &mut Vec<ExternalEvent>) {
-        let coord = if let Some(location) = world.ecs.components.location.get(entity) {
-            location.coord
+        let coord = if let Some(&coord) = world.spatial.coord(entity) {
+            coord
         } else {
             return;
         };
@@ -276,10 +275,7 @@ impl RealtimePeriodicState for ParticleEmitterState {
                 },
             );
         }
-        world
-            .spatial_grid
-            .update_entity_location(&mut world.ecs, particle_entity, Location { coord, layer: None })
-            .unwrap();
+        world.spatial.update_coord(particle_entity, coord).unwrap();
         if let Some(tile) = spawn_particle.tile {
             world.ecs.components.tile.insert(particle_entity, tile);
         }

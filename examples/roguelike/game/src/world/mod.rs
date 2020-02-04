@@ -1,12 +1,12 @@
 use crate::{visibility::Light, ExternalEvent};
 use ecs::{Ecs, Entity};
-use grid_2d::{Coord, Grid, Size};
+use grid_2d::{Coord, Size};
 use rand::Rng;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 
-mod spatial_grid;
-use spatial_grid::SpatialGrid;
+mod spatial;
+use spatial::Spatial;
 
 mod data;
 use data::{Components, Npc};
@@ -32,18 +32,18 @@ pub use spawn::WorldSpawn;
 pub struct World {
     pub ecs: Ecs<Components>,
     pub realtime_components: RealtimeComponents,
-    pub spatial_grid: SpatialGrid,
+    pub spatial: Spatial,
 }
 
 impl World {
     pub fn new(size: Size) -> Self {
         let ecs = Ecs::new();
         let realtime_components = RealtimeComponents::default();
-        let spatial_grid = Grid::new_default(size);
+        let spatial = Spatial::new(size);
         Self {
             ecs,
             realtime_components,
-            spatial_grid,
+            spatial,
         }
     }
 }
@@ -51,12 +51,12 @@ impl World {
 impl World {
     pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
         let tile_component = &self.ecs.components.tile;
-        let location_component = &self.ecs.components.location;
+        let spatial = &self.spatial;
         let realtime_fade_component = &self.realtime_components.fade;
         let colour_hint_component = &self.ecs.components.colour_hint;
         let blood_component = &self.ecs.components.blood;
         tile_component.iter().filter_map(move |(entity, &tile)| {
-            if let Some(location) = location_component.get(entity) {
+            if let Some(location) = spatial.location(entity) {
                 let fade = realtime_fade_component.get(entity).and_then(|f| f.state.fading());
                 let colour_hint = colour_hint_component.get(entity).cloned();
                 let blood = blood_component.contains(entity);
@@ -75,19 +75,17 @@ impl World {
     }
 
     pub fn all_lights_by_coord<'a>(&'a self) -> impl 'a + Iterator<Item = (Coord, &'a Light)> {
-        self.ecs.components.light.iter().filter_map(move |(entity, light)| {
-            self.ecs
-                .components
-                .location
-                .get(entity)
-                .map(|location| (location.coord, light))
-        })
+        self.ecs
+            .components
+            .light
+            .iter()
+            .filter_map(move |(entity, light)| self.spatial.coord(entity).map(|&coord| (coord, light)))
     }
 }
 
 impl World {
     pub fn entity_coord(&self, entity: Entity) -> Option<Coord> {
-        self.ecs.components.location.get(entity).map(|l| l.coord)
+        self.spatial.coord(entity).cloned()
     }
     pub fn entity_npc(&self, entity: Entity) -> &Npc {
         self.ecs.components.npc.get(entity).unwrap()
@@ -96,7 +94,7 @@ impl World {
         self.ecs.entity_allocator.exists(entity)
     }
     pub fn size(&self) -> Size {
-        self.spatial_grid.size()
+        self.spatial.grid_size()
     }
     pub fn is_gameplay_blocked(&self) -> bool {
         !self.ecs.components.blocks_gameplay.is_empty()
