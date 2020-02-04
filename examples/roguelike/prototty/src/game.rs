@@ -56,7 +56,7 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
         *self.screen_shake = self.screen_shake.and_then(|screen_shake| screen_shake.next());
     }
     fn play_audio(&self, audio: Audio, properties: AudioProperties) {
-        log::info!("Playing sound: {:?}", audio);
+        log::info!("Playing sound: {:?} {:?}", audio, properties);
         let sound = self.audio_table.get(audio);
         self.audio_player.play(&sound, properties);
     }
@@ -70,7 +70,7 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
                 });
                 const BASE_VOLUME: f32 = 50.;
                 let distance_squared = (self.player_coord.0 - coord).magnitude2();
-                let volume = (BASE_VOLUME / (distance_squared as f32)).min(1.);
+                let volume = (BASE_VOLUME / (distance_squared as f32).max(1.)).min(1.);
                 let properties = AudioProperties::default().with_volume(volume);
                 self.play_audio(Audio::Explosion, properties);
             }
@@ -775,11 +775,8 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                     Handled::Continue(s)
                 }
                 CommonEvent::Frame(period) => {
-                    if let Some(game_control_flow) = instance.game.handle_tick(period, game_config) {
-                        match game_control_flow {
-                            GameControlFlow::GameOver => return Handled::Return(GameReturn::GameOver),
-                        }
-                    }
+                    let maybe_control_flow = instance.game.handle_tick(period, game_config);
+
                     storage_wrapper.autosave_tick(instance, period);
                     let mut event_context = EffectContext {
                         rng: &mut instance.rng,
@@ -791,6 +788,11 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                     event_context.next_frame();
                     for event in instance.game.events() {
                         event_context.handle_event(event);
+                    }
+                    if let Some(game_control_flow) = maybe_control_flow {
+                        match game_control_flow {
+                            GameControlFlow::GameOver => return Handled::Return(GameReturn::GameOver),
+                        }
                     }
                     Handled::Continue(s)
                 }
@@ -839,6 +841,8 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameOverEventRoutine<S, A> {
         EP: EventOrPeek<Event = Self::Event>,
     {
         let game_config = &data.game_config;
+        let audio_player = &data.audio_player;
+        let audio_table = &data.audio_table;
         if let Some(instance) = data.instance.as_mut() {
             event_or_peek_with_handled(event_or_peek, self, |mut s, event| match event {
                 CommonEvent::Input(input) => match input {
@@ -853,6 +857,17 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameOverEventRoutine<S, A> {
                         instance.game.handle_npc_turn();
                     }
                     let _ = instance.game.handle_tick(period, game_config);
+                    let mut event_context = EffectContext {
+                        rng: &mut instance.rng,
+                        screen_shake: &mut instance.screen_shake,
+                        audio_player,
+                        audio_table,
+                        player_coord: GameCoord::of_player(instance.game.player_info()),
+                    };
+                    event_context.next_frame();
+                    for event in instance.game.events() {
+                        event_context.handle_event(event);
+                    }
                     Handled::Continue(s)
                 }
             })
