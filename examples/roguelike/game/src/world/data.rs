@@ -1,5 +1,8 @@
 use crate::visibility::Light;
-pub use crate::world::spatial_grid::{Layer, Location};
+pub use crate::world::{
+    explosion_spec,
+    spatial_grid::{Layer, Location},
+};
 use ecs::ecs_components;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
@@ -52,7 +55,7 @@ pub struct Npc {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum OnCollision {
-    Explode,
+    Explode(explosion_spec::Explosion),
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

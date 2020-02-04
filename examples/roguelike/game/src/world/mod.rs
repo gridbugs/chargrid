@@ -20,6 +20,9 @@ use realtime_periodic::data::RealtimeComponents;
 mod query;
 pub use query::ToRenderEntity;
 
+mod explosion;
+pub use explosion::spec as explosion_spec;
+
 mod action;
 mod spawn;
 

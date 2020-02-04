@@ -8,6 +8,7 @@ use crate::{
 };
 use ecs::{Ecs, Entity};
 use grid_2d::Coord;
+use line_2d::LineSegment;
 use rgb24::Rgb24;
 
 pub fn is_solid_feature_at_coord(ecs: &Ecs<Components>, spatial_grid: &SpatialGrid, coord: Coord) -> bool {
@@ -17,6 +18,19 @@ pub fn is_solid_feature_at_coord(ecs: &Ecs<Components>, spatial_grid: &SpatialGr
     } else {
         false
     }
+}
+
+pub fn is_solid_feature_in_line_segment(
+    ecs: &Ecs<Components>,
+    spatial_grid: &SpatialGrid,
+    line_segment: LineSegment,
+) -> bool {
+    for coord in line_segment.iter() {
+        if is_solid_feature_at_coord(ecs, spatial_grid, coord) {
+            return true;
+        }
+    }
+    false
 }
 
 pub fn is_wall_at_coord(ecs: &Ecs<Components>, spatial_grid: &SpatialGrid, coord: Coord) -> bool {

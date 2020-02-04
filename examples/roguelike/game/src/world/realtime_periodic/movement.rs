@@ -24,7 +24,7 @@ pub mod spec {
     pub enum Repeat {
         Once,
         Forever,
-        N(usize),
+        Steps(usize),
     }
 
     pub struct Movement {
@@ -38,7 +38,7 @@ pub mod spec {
 enum Path {
     Forever(InfiniteStepIter),
     Once(StepIter),
-    N {
+    Steps {
         infinite_step_iter: InfiniteStepIter,
         remaining_steps: usize,
     },
@@ -63,7 +63,7 @@ impl spec::Movement {
             path: match self.repeat {
                 spec::Repeat::Forever => Path::Forever(InfiniteStepIter::new(self.path)),
                 spec::Repeat::Once => Path::Once(StepIter::new(self.path)),
-                spec::Repeat::N(n) => Path::N {
+                spec::Repeat::Steps(n) => Path::Steps {
                     infinite_step_iter: InfiniteStepIter::new(self.path),
                     remaining_steps: n,
                 },
@@ -87,7 +87,7 @@ impl RealtimePeriodicState for MovementState {
         let event = match self.path {
             Path::Forever(ref mut path) => path.next(),
             Path::Once(ref mut path) => path.next(),
-            Path::N {
+            Path::Steps {
                 ref mut infinite_step_iter,
                 ref mut remaining_steps,
             } => {

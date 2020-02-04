@@ -1,15 +1,13 @@
 use crate::world::{
     data::{Components, Layer, Location, OnCollision, ProjectileDamage},
-    query,
-    realtime_periodic::{core::ScheduledRealtimePeriodicState, data::RealtimeComponents, movement},
+    explosion, query,
+    realtime_periodic::data::RealtimeComponents,
     spatial_grid::{LocationUpdate, OccupiedBy, SpatialGrid},
     spawn, ExternalEvent,
 };
 use direction::{CardinalDirection, Direction};
 use ecs::{ComponentsTrait, Ecs, Entity};
 use grid_2d::Coord;
-use line_2d::{LineSegment, StartAndEndAreTheSame};
-use std::time::Duration;
 
 pub fn character_walk_in_direction(
     ecs: &mut Ecs<Components>,
@@ -76,16 +74,17 @@ fn add_blood_stain_to_floor(ecs: &mut Ecs<Components>, spatial_grid: &mut Spatia
     }
 }
 
-fn take_damage(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, entity: Entity, hit_points_to_lose: u32) {
+pub fn take_damage(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, entity: Entity, hit_points_to_lose: u32) {
     if let Some(hit_points) = ecs.components.hit_points.get_mut(entity) {
         let coord = ecs.components.location.get(entity).unwrap().coord;
-        if let Some(remaining_hit_points) = hit_points.current.checked_sub(hit_points_to_lose) {
-            hit_points.current = remaining_hit_points;
-            if ecs.components.player.contains(entity) {
-                println!("{:?}", hit_points);
+        match hit_points.current.checked_sub(hit_points_to_lose) {
+            None | Some(0) => {
+                hit_points.current = 0;
+                die(ecs, spatial_grid, entity);
             }
-        } else {
-            die(ecs, spatial_grid, entity);
+            Some(non_zero_remaining_hit_points) => {
+                hit_points.current = non_zero_remaining_hit_points;
+            }
         }
         add_blood_stain_to_floor(ecs, spatial_grid, coord);
     } else {
@@ -108,106 +107,6 @@ fn apply_projectile_damage(
     ecs.remove(projectile_entity);
 }
 
-enum ExplosionHit {
-    Direct,
-    Indirect(LineSegment),
-}
-
-fn does_explosion_hit_entity(
-    ecs: &Ecs<Components>,
-    spatial_grid: &SpatialGrid,
-    explosion_coord: Coord,
-    explosion_range: u32,
-    entity: Entity,
-) -> Option<ExplosionHit> {
-    if let Some(Location {
-        coord: entity_coord, ..
-    }) = ecs.components.location.get(entity)
-    {
-        match LineSegment::try_new(explosion_coord, *entity_coord) {
-            Ok(explosion_to_entity) => {
-                for (i, coord) in explosion_to_entity.iter().enumerate() {
-                    if i > explosion_range as usize {
-                        return None;
-                    }
-                    let spatial_cell = spatial_grid.get_checked(coord);
-                    if let Some(feature_entity) = spatial_cell.feature {
-                        if ecs.components.solid.contains(feature_entity) {
-                            return None;
-                        }
-                    }
-                }
-                Some(ExplosionHit::Indirect(explosion_to_entity))
-            }
-            Err(StartAndEndAreTheSame) => Some(ExplosionHit::Direct),
-        }
-    } else {
-        None
-    }
-}
-
-fn explosion(
-    ecs: &mut Ecs<Components>,
-    realtime_components: &mut RealtimeComponents,
-    spatial_grid: &mut SpatialGrid,
-    coord: Coord,
-    range: u32,
-    external_events: &mut Vec<ExternalEvent>,
-) {
-    spawn::explosion(ecs, realtime_components, spatial_grid, coord, external_events);
-    for character_entity in ecs.components.character.entities() {
-        if let Some(explosion_hit) = does_explosion_hit_entity(ecs, spatial_grid, coord, range, character_entity) {
-            let character_coord = ecs.components.location.get(character_entity).unwrap().coord;
-            let character_to_explosion_distance_squared = coord.distance2(character_coord);
-            match explosion_hit {
-                ExplosionHit::Direct => {
-                    let mut solid_neighbour_vector = Coord::new(0, 0);
-                    for direction in CardinalDirection::all() {
-                        let neighbour_coord = coord + direction.coord();
-                        if let Some(spatial_cell) = spatial_grid.get(neighbour_coord) {
-                            if spatial_cell.feature.is_some() || spatial_cell.character.is_some() {
-                                solid_neighbour_vector += direction.coord();
-                            }
-                        }
-                    }
-                    if !solid_neighbour_vector.is_zero() {
-                        let travel_vector = -solid_neighbour_vector;
-                        ecs.components.realtime.insert(character_entity, ());
-                        realtime_components.movement.insert(
-                            character_entity,
-                            ScheduledRealtimePeriodicState {
-                                state: movement::spec::Movement {
-                                    path: travel_vector,
-                                    repeat: movement::spec::Repeat::N((range / 3) as usize),
-                                    cardinal_step_duration: Duration::from_millis(100),
-                                }
-                                .build(),
-                                until_next_event: Duration::from_millis(0),
-                            },
-                        );
-                    }
-                }
-                ExplosionHit::Indirect(path) => {
-                    let push_back = 1 + (range / (2 * (character_to_explosion_distance_squared + 1)));
-                    ecs.components.realtime.insert(character_entity, ());
-                    realtime_components.movement.insert(
-                        character_entity,
-                        ScheduledRealtimePeriodicState {
-                            state: movement::spec::Movement {
-                                path: path.delta(),
-                                repeat: movement::spec::Repeat::N(push_back as usize),
-                                cardinal_step_duration: Duration::from_millis(100),
-                            }
-                            .build(),
-                            until_next_event: Duration::from_millis(0),
-                        },
-                    );
-                }
-            }
-        }
-    }
-}
-
 pub fn projectile_stop(
     ecs: &mut Ecs<Components>,
     realtime_components: &mut RealtimeComponents,
@@ -216,16 +115,16 @@ pub fn projectile_stop(
     external_events: &mut Vec<ExternalEvent>,
 ) {
     if let Some(&current_location) = ecs.components.location.get(projectile_entity) {
-        if let Some(on_collision) = ecs.components.on_collision.get(projectile_entity) {
+        if let Some(on_collision) = ecs.components.on_collision.get(projectile_entity).cloned() {
             let current_coord = current_location.coord;
             match on_collision {
-                OnCollision::Explode => {
-                    explosion(
+                OnCollision::Explode(explosion_spec) => {
+                    explosion::explode(
                         ecs,
                         realtime_components,
                         spatial_grid,
                         current_coord,
-                        10, // range
+                        explosion_spec,
                         external_events,
                     );
                     ecs.remove(projectile_entity);
