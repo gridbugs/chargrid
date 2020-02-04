@@ -2,7 +2,7 @@ use crate::world::{
     realtime_periodic::{core::ScheduledRealtimePeriodicState, movement},
     ExternalEvent, World, WorldAction, WorldQuery, WorldSpawn,
 };
-use direction::CardinalDirection;
+use direction::Direction;
 use ecs::Entity;
 use grid_2d::Coord;
 use line_2d::LineSegment;
@@ -81,7 +81,7 @@ fn character_effect_direct_hit(mechanics: &spec::Mechanics) -> CharacterEffect {
 
 fn apply_direct_hit(world: &mut World, explosion_coord: Coord, mechanics: &spec::Mechanics, character_entity: Entity) {
     let mut solid_neighbour_vector = Coord::new(0, 0);
-    for direction in CardinalDirection::all() {
+    for direction in Direction::all() {
         let neighbour_coord = explosion_coord + direction.coord();
         if let Some(spatial_cell) = world.spatial.get_cell(neighbour_coord) {
             if spatial_cell.feature.is_some() || spatial_cell.character.is_some() {
