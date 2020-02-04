@@ -1,194 +1,190 @@
 use crate::world::{
-    data::{Components, Layer, Location, OnCollision, ProjectileDamage},
-    explosion, query,
-    realtime_periodic::data::RealtimeComponents,
-    spatial_grid::{LocationUpdate, OccupiedBy, SpatialGrid},
-    spawn, ExternalEvent,
+    data::{Layer, Location, OnCollision, ProjectileDamage},
+    explosion,
+    spatial_grid::{LocationUpdate, OccupiedBy},
+    spawn::WorldSpawn,
+    ExternalEvent, World, WorldQuery,
 };
 use direction::{CardinalDirection, Direction};
-use ecs::{ComponentsTrait, Ecs, Entity};
+use ecs::{ComponentsTrait, Entity};
 use grid_2d::Coord;
 
-pub fn character_walk_in_direction(
-    ecs: &mut Ecs<Components>,
-    spatial_grid: &mut SpatialGrid,
-    entity: Entity,
-    direction: CardinalDirection,
-) {
-    let &current_location = ecs.components.location.get(entity).unwrap();
-    debug_assert_eq!(current_location.layer, Some(Layer::Character));
-    let target_coord = current_location.coord + direction.coord();
-    if query::is_solid_feature_at_coord(&ecs, spatial_grid, target_coord) {
-        return;
-    }
-    let target_location = Location {
-        coord: target_coord,
-        ..current_location
-    };
-    if let Err(OccupiedBy(_occupant)) = spatial_grid.update_entity_location(ecs, entity, target_location) {
-        // TODO melee
-    }
+pub trait WorldAction {
+    fn character_walk_in_direction(&mut self, character: Entity, direction: CardinalDirection);
+    fn character_fire_rocket(&mut self, character: Entity, target: Coord);
+    fn projectile_stop(&mut self, projectile_entity: Entity, external_events: &mut Vec<ExternalEvent>);
+    fn projectile_move(
+        &mut self,
+        projectile_entity: Entity,
+        movement_direction: Direction,
+        external_events: &mut Vec<ExternalEvent>,
+    );
+    fn damage_character(&mut self, character: Entity, hit_points_to_lose: u32);
 }
 
-fn character_push_in_direction(
-    ecs: &mut Ecs<Components>,
-    spatial_grid: &mut SpatialGrid,
-    entity: Entity,
-    direction: Direction,
-) {
-    if let Some(&current_location) = ecs.components.location.get(entity) {
+impl WorldAction for World {
+    fn character_walk_in_direction(&mut self, character: Entity, direction: CardinalDirection) {
+        let &current_location = self.ecs.components.location.get(character).unwrap();
         debug_assert_eq!(current_location.layer, Some(Layer::Character));
         let target_coord = current_location.coord + direction.coord();
-        if query::is_solid_feature_at_coord(&ecs, spatial_grid, target_coord) {
+        if self.is_solid_feature_at_coord(target_coord) {
             return;
         }
         let target_location = Location {
             coord: target_coord,
             ..current_location
         };
-        let _ignore_if_occupied = spatial_grid.update_entity_location(ecs, entity, target_location);
-    }
-}
-
-pub fn character_fire_rocket(
-    ecs: &mut Ecs<Components>,
-    realtime_components: &mut RealtimeComponents,
-    spatial_grid: &mut SpatialGrid,
-    character: Entity,
-    target: Coord,
-) {
-    let character_coord = ecs.components.location.get(character).unwrap().coord;
-    if character_coord == target {
-        return;
-    }
-    spawn::rocket(ecs, realtime_components, spatial_grid, character_coord, target);
-}
-
-fn die(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, entity: Entity) {
-    spatial_grid.remove_entity(ecs, entity);
-}
-
-fn add_blood_stain_to_floor(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, coord: Coord) {
-    if let Some(floor_entity) = spatial_grid.get_checked(coord).floor {
-        ecs.components.blood.insert(floor_entity, ());
-    }
-}
-
-pub fn take_damage(ecs: &mut Ecs<Components>, spatial_grid: &mut SpatialGrid, entity: Entity, hit_points_to_lose: u32) {
-    if let Some(hit_points) = ecs.components.hit_points.get_mut(entity) {
-        let coord = ecs.components.location.get(entity).unwrap().coord;
-        match hit_points.current.checked_sub(hit_points_to_lose) {
-            None | Some(0) => {
-                hit_points.current = 0;
-                die(ecs, spatial_grid, entity);
-            }
-            Some(non_zero_remaining_hit_points) => {
-                hit_points.current = non_zero_remaining_hit_points;
-            }
+        if let Err(OccupiedBy(_occupant)) =
+            self.spatial_grid
+                .update_entity_location(&mut self.ecs, character, target_location)
+        {
+            // TODO melee
         }
-        add_blood_stain_to_floor(ecs, spatial_grid, coord);
-    } else {
-        log::warn!("attempt to damage entity without hit_points component");
     }
-}
 
-fn apply_projectile_damage(
-    ecs: &mut Ecs<Components>,
-    spatial_grid: &mut SpatialGrid,
-    projectile_entity: Entity,
-    projectile_damage: ProjectileDamage,
-    projectile_movement_direction: Direction,
-    entity_to_damage: Entity,
-) {
-    take_damage(ecs, spatial_grid, entity_to_damage, projectile_damage.hit_points);
-    if projectile_damage.push_back {
-        character_push_in_direction(ecs, spatial_grid, entity_to_damage, projectile_movement_direction);
+    fn character_fire_rocket(&mut self, character: Entity, target: Coord) {
+        let character_coord = self.ecs.components.location.get(character).unwrap().coord;
+        if character_coord == target {
+            return;
+        }
+        self.spawn_rocket(character_coord, target);
     }
-    ecs.remove(projectile_entity);
-}
 
-pub fn projectile_stop(
-    ecs: &mut Ecs<Components>,
-    realtime_components: &mut RealtimeComponents,
-    spatial_grid: &mut SpatialGrid,
-    projectile_entity: Entity,
-    external_events: &mut Vec<ExternalEvent>,
-) {
-    if let Some(&current_location) = ecs.components.location.get(projectile_entity) {
-        if let Some(on_collision) = ecs.components.on_collision.get(projectile_entity).cloned() {
-            let current_coord = current_location.coord;
-            match on_collision {
-                OnCollision::Explode(explosion_spec) => {
-                    explosion::explode(
-                        ecs,
-                        realtime_components,
-                        spatial_grid,
-                        current_coord,
-                        explosion_spec,
-                        external_events,
-                    );
-                    ecs.remove(projectile_entity);
-                    realtime_components.remove_entity(projectile_entity);
+    fn projectile_stop(&mut self, projectile_entity: Entity, external_events: &mut Vec<ExternalEvent>) {
+        if let Some(&current_location) = self.ecs.components.location.get(projectile_entity) {
+            if let Some(on_collision) = self.ecs.components.on_collision.get(projectile_entity).cloned() {
+                let current_coord = current_location.coord;
+                match on_collision {
+                    OnCollision::Explode(explosion_spec) => {
+                        explosion::explode(self, current_coord, explosion_spec, external_events);
+                        self.ecs.remove(projectile_entity);
+                        self.realtime_components.remove_entity(projectile_entity);
+                    }
                 }
             }
         }
+        self.realtime_components.movement.remove(projectile_entity);
     }
-    realtime_components.movement.remove(projectile_entity);
+
+    fn projectile_move(
+        &mut self,
+        projectile_entity: Entity,
+        movement_direction: Direction,
+        external_events: &mut Vec<ExternalEvent>,
+    ) {
+        if let Some(&current_location) = self.ecs.components.location.get(projectile_entity) {
+            let next_coord = current_location.coord + movement_direction.coord();
+            let colides_with = self
+                .ecs
+                .components
+                .colides_with
+                .get(projectile_entity)
+                .cloned()
+                .unwrap_or_default();
+            let &spatial_cell = self.spatial_grid.get_checked(next_coord);
+            if let Some(character_entity) = spatial_cell.character {
+                if let Some(&projectile_damage) = self.ecs.components.projectile_damage.get(projectile_entity) {
+                    self.apply_projectile_damage(
+                        projectile_entity,
+                        projectile_damage,
+                        movement_direction,
+                        character_entity,
+                    );
+                }
+            }
+            if let Some(entity_in_cell) = spatial_cell.feature.or(spatial_cell.character) {
+                if (colides_with.solid && self.ecs.components.solid.contains(entity_in_cell))
+                    || (colides_with.character && self.ecs.components.character.contains(entity_in_cell))
+                {
+                    self.projectile_stop(projectile_entity, external_events);
+                    return;
+                }
+            }
+            let _ = self.spatial_grid.update_entity_location(
+                &mut self.ecs,
+                projectile_entity,
+                Location {
+                    coord: next_coord,
+                    ..current_location
+                },
+            );
+        } else {
+            self.ecs.remove(projectile_entity);
+            self.realtime_components.remove_entity(projectile_entity);
+        }
+    }
+
+    fn damage_character(&mut self, character: Entity, hit_points_to_lose: u32) {
+        if let Some(hit_points) = self.ecs.components.hit_points.get_mut(character) {
+            let coord = self.ecs.components.location.get(character).unwrap().coord;
+            match hit_points.current.checked_sub(hit_points_to_lose) {
+                None | Some(0) => {
+                    hit_points.current = 0;
+                    self.character_die(character);
+                }
+                Some(non_zero_remaining_hit_points) => {
+                    hit_points.current = non_zero_remaining_hit_points;
+                }
+            }
+            self.add_blood_stain_to_floor(coord);
+        } else {
+            log::warn!("attempt to damage entity without hit_points component");
+        }
+    }
 }
 
-pub fn projectile_move(
-    ecs: &mut Ecs<Components>,
-    realtime_components: &mut RealtimeComponents,
-    spatial_grid: &mut SpatialGrid,
-    projectile_entity: Entity,
-    movement_direction: Direction,
-    external_events: &mut Vec<ExternalEvent>,
-) {
-    if let Some(&current_location) = ecs.components.location.get(projectile_entity) {
-        let next_coord = current_location.coord + movement_direction.coord();
-        let colides_with = ecs
-            .components
-            .colides_with
-            .get(projectile_entity)
-            .cloned()
-            .unwrap_or_default();
-        let &spatial_cell = spatial_grid.get_checked(next_coord);
-        if let Some(character_entity) = spatial_cell.character {
-            if let Some(&projectile_damage) = ecs.components.projectile_damage.get(projectile_entity) {
-                apply_projectile_damage(
-                    ecs,
-                    spatial_grid,
-                    projectile_entity,
-                    projectile_damage,
-                    movement_direction,
-                    character_entity,
-                );
-            }
-        }
-        if let Some(entity_in_cell) = spatial_cell.feature.or(spatial_cell.character) {
-            if (colides_with.solid && ecs.components.solid.contains(entity_in_cell))
-                || (colides_with.character && ecs.components.character.contains(entity_in_cell))
-            {
-                projectile_stop(
-                    ecs,
-                    realtime_components,
-                    spatial_grid,
-                    projectile_entity,
-                    external_events,
-                );
+trait WorldActionPrivate {
+    fn character_push_in_direction(&mut self, entity: Entity, direction: Direction);
+    fn character_die(&mut self, character: Entity);
+    fn add_blood_stain_to_floor(&mut self, coord: Coord);
+    fn apply_projectile_damage(
+        &mut self,
+        projectile_entity: Entity,
+        projectile_damage: ProjectileDamage,
+        projectile_movement_direction: Direction,
+        entity_to_damage: Entity,
+    );
+}
+
+impl WorldActionPrivate for World {
+    fn character_push_in_direction(&mut self, entity: Entity, direction: Direction) {
+        if let Some(&current_location) = self.ecs.components.location.get(entity) {
+            debug_assert_eq!(current_location.layer, Some(Layer::Character));
+            let target_coord = current_location.coord + direction.coord();
+            if self.is_solid_feature_at_coord(target_coord) {
                 return;
             }
-        }
-        let _ = spatial_grid.update_entity_location(
-            ecs,
-            projectile_entity,
-            Location {
-                coord: next_coord,
+            let target_location = Location {
+                coord: target_coord,
                 ..current_location
-            },
-        );
-    } else {
-        ecs.remove(projectile_entity);
-        realtime_components.remove_entity(projectile_entity);
+            };
+            let _ignore_if_occupied = self
+                .spatial_grid
+                .update_entity_location(&mut self.ecs, entity, target_location);
+        }
+    }
+
+    fn character_die(&mut self, character: Entity) {
+        self.spatial_grid.remove_entity(&mut self.ecs, character);
+    }
+
+    fn add_blood_stain_to_floor(&mut self, coord: Coord) {
+        if let Some(floor_entity) = self.spatial_grid.get_checked(coord).floor {
+            self.ecs.components.blood.insert(floor_entity, ());
+        }
+    }
+
+    fn apply_projectile_damage(
+        &mut self,
+        projectile_entity: Entity,
+        projectile_damage: ProjectileDamage,
+        projectile_movement_direction: Direction,
+        entity_to_damage: Entity,
+    ) {
+        self.damage_character(entity_to_damage, projectile_damage.hit_points);
+        if projectile_damage.push_back {
+            self.character_push_in_direction(entity_to_damage, projectile_movement_direction);
+        }
+        self.ecs.remove(projectile_entity);
     }
 }

@@ -1,22 +1,20 @@
 use crate::{
     world::{
-        data::Components,
         realtime_periodic::{
+            animation::FRAME_DURATION,
             core::{RealtimePeriodicState, TimeConsumingEvent},
             movement::MovementState,
             particle::ParticleEmitterState,
         },
-        spatial_grid::SpatialGrid,
+        World,
     },
     ExternalEvent,
 };
-use ecs::{Ecs, Entity};
+use ecs::Entity;
 use rand::Rng;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-
-pub const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 
 pub fn period_per_frame(num_per_frame: u32) -> Duration {
     FRAME_DURATION / num_per_frame
@@ -95,16 +93,9 @@ impl RealtimePeriodicState for FadeState {
             until_next_event: self.period,
         }
     }
-    fn animate_event(
-        progress: Self::Event,
-        ecs: &mut Ecs<Components>,
-        _realtime_components: &mut Self::Components,
-        _spatial_grid: &mut SpatialGrid,
-        entity: Entity,
-        _external_events: &mut Vec<ExternalEvent>,
-    ) {
+    fn animate_event(progress: Self::Event, entity: Entity, world: &mut World, _: &mut Vec<ExternalEvent>) {
         if progress.is_complete() {
-            ecs.remove(entity);
+            world.ecs.remove(entity);
         }
     }
 }
@@ -142,20 +133,18 @@ impl RealtimePeriodicState for LightColourFadeState {
     }
     fn animate_event(
         progress: Self::Event,
-        ecs: &mut Ecs<Components>,
-        _realtime_components: &mut Self::Components,
-        _spatial_grid: &mut SpatialGrid,
         entity: Entity,
+        world: &mut World,
         _external_events: &mut Vec<ExternalEvent>,
     ) {
         match progress {
             LightColourFadeProgress::Colour(colour) => {
-                if let Some(light) = ecs.components.light.get_mut(entity) {
+                if let Some(light) = world.ecs.components.light.get_mut(entity) {
                     light.colour = colour;
                 }
             }
             LightColourFadeProgress::Complete => {
-                ecs.components.light.remove(entity);
+                world.ecs.components.light.remove(entity);
             }
         }
     }

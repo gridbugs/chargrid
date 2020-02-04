@@ -1,7 +1,7 @@
 use crate::visibility::Visibility;
 use crate::world::Disposition;
+use crate::world::{World, WorldQuery};
 use crate::Input;
-use crate::World;
 use ecs::Entity;
 use grid_2d::{Coord, Grid, Size};
 use grid_search_cardinal::{
@@ -24,7 +24,7 @@ fn has_line_of_sight(eye: Coord, dest: Coord, world: &World, vision_distance: vi
         if !vision_distance.in_range(eye_to_coord) {
             return false;
         }
-        if world.contains_wall(coord) {
+        if world.is_wall_at_coord(coord) {
             return false;
         }
     }
@@ -160,8 +160,8 @@ impl<'a> BestSearch for Wander<'a> {
         false
     }
     fn can_enter_updating_best(&mut self, coord: Coord) -> bool {
-        if !self.world.contains_wall(coord) {
-            if let Some(entity) = self.world.character_at(coord) {
+        if !self.world.is_wall_at_coord(coord) {
+            if let Some(entity) = self.world.get_character_at_coord(coord) {
                 if entity != self.entity {
                     return false;
                 }
@@ -191,7 +191,7 @@ struct WorldCanEnterIgnoreCharacters<'a> {
 
 impl<'a> CanEnter for WorldCanEnterIgnoreCharacters<'a> {
     fn can_enter(&self, coord: Coord) -> bool {
-        !self.world.contains_wall(coord)
+        !self.world.is_wall_at_coord(coord)
     }
 }
 
@@ -201,7 +201,7 @@ struct WorldCanEnterAvoidNpcs<'a> {
 
 impl<'a> CanEnter for WorldCanEnterAvoidNpcs<'a> {
     fn can_enter(&self, coord: Coord) -> bool {
-        !self.world.contains_wall(coord) && !self.world.contains_npc(coord)
+        !self.world.is_wall_at_coord(coord) && !self.world.is_npc_at_coord(coord)
     }
 }
 

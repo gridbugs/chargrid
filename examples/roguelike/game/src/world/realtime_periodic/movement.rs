@@ -1,17 +1,15 @@
 use crate::{
     world::{
-        action,
-        data::Components,
         realtime_periodic::{
             core::{RealtimePeriodicState, TimeConsumingEvent},
             data::RealtimeComponents,
         },
-        spatial_grid::SpatialGrid,
+        World, WorldAction,
     },
     ExternalEvent,
 };
 use direction::Direction;
-use ecs::{Ecs, Entity};
+use ecs::Entity;
 use line_2d::{InfiniteStepIter, StepIter};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -113,25 +111,11 @@ impl RealtimePeriodicState for MovementState {
             until_next_event,
         }
     }
-    fn animate_event(
-        event: Self::Event,
-        ecs: &mut Ecs<Components>,
-        realtime_components: &mut Self::Components,
-        spatial_grid: &mut SpatialGrid,
-        entity: Entity,
-        external_events: &mut Vec<ExternalEvent>,
-    ) {
+    fn animate_event(event: Self::Event, entity: Entity, world: &mut World, external_events: &mut Vec<ExternalEvent>) {
         if let Some(movement_direction) = event {
-            action::projectile_move(
-                ecs,
-                realtime_components,
-                spatial_grid,
-                entity,
-                movement_direction,
-                external_events,
-            )
+            world.projectile_move(entity, movement_direction, external_events);
         } else {
-            action::projectile_stop(ecs, realtime_components, spatial_grid, entity, external_events)
+            world.projectile_stop(entity, external_events);
         }
     }
 }

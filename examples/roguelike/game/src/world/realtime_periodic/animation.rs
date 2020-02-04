@@ -1,18 +1,13 @@
 use crate::{
-    world::{
-        data::Components,
-        realtime_periodic::{
-            core::TimeConsumingEvent,
-            data::{RealtimeComponents, FRAME_DURATION},
-        },
-        spatial_grid::SpatialGrid,
-    },
+    world::{realtime_periodic::core::TimeConsumingEvent, World},
     ExternalEvent,
 };
-use ecs::{Ecs, Entity};
+use ecs::Entity;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+
+pub const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 
 #[derive(Default)]
 pub struct Context {
@@ -33,25 +28,18 @@ impl<'a> Deserialize<'a> for Context {
 }
 
 impl Context {
-    pub fn tick<R: Rng>(
-        &mut self,
-        ecs: &mut Ecs<Components>,
-        realtime_components: &mut RealtimeComponents,
-        spatial_grid: &mut SpatialGrid,
-        external_events: &mut Vec<ExternalEvent>,
-        rng: &mut R,
-    ) {
-        self.realtime_entities.extend(ecs.components.realtime.entities());
+    pub fn tick<R: Rng>(&mut self, world: &mut World, external_events: &mut Vec<ExternalEvent>, rng: &mut R) {
+        self.realtime_entities.extend(world.ecs.components.realtime.entities());
         for entity in self.realtime_entities.drain(..) {
             let mut frame_remaining = FRAME_DURATION;
             while frame_remaining > Duration::from_micros(0) {
-                let mut realtime_entity_components = realtime_components.get_mut_of_entity(entity);
+                let mut realtime_entity_components = world.realtime_components.get_mut_of_entity(entity);
                 let TimeConsumingEvent {
                     event,
                     until_next_event,
                 } = realtime_entity_components.tick(frame_remaining, rng);
                 frame_remaining -= until_next_event;
-                event.animate(ecs, realtime_components, spatial_grid, entity, external_events);
+                event.animate(entity, world, external_events);
             }
         }
     }

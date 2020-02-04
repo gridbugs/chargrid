@@ -15,7 +15,7 @@ use behaviour::{Agent, BehaviourContext};
 use ecs::ComponentTable;
 pub use ecs::Entity;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
-use world::{AnimationContext, World};
+use world::{AnimationContext, World, WorldAction, WorldQuery, WorldSpawn};
 pub use world::{Layer, Tile, ToRenderEntity};
 
 pub struct Config {
@@ -218,6 +218,6 @@ impl Game {
         &self.visibility_grid
     }
     pub fn contains_wall(&self, coord: Coord) -> bool {
-        self.world.contains_wall(coord)
+        self.world.is_wall_at_coord(coord)
     }
 }

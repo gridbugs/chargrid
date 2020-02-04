@@ -1,5 +1,4 @@
 use crate::{visibility::Light, ExternalEvent};
-use direction::CardinalDirection;
 use ecs::{Ecs, Entity};
 use grid_2d::{Coord, Grid, Size};
 use rand::Rng;
@@ -18,19 +17,22 @@ pub use realtime_periodic::animation::Context as AnimationContext;
 use realtime_periodic::data::RealtimeComponents;
 
 mod query;
-pub use query::ToRenderEntity;
+pub use query::WorldQuery;
 
 mod explosion;
 pub use explosion::spec as explosion_spec;
 
 mod action;
+pub use action::WorldAction;
+
 mod spawn;
+pub use spawn::WorldSpawn;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct World {
-    ecs: Ecs<Components>,
-    realtime_components: RealtimeComponents,
-    spatial_grid: SpatialGrid,
+    pub ecs: Ecs<Components>,
+    pub realtime_components: RealtimeComponents,
+    pub spatial_grid: SpatialGrid,
 }
 
 impl World {
@@ -47,62 +49,39 @@ impl World {
 }
 
 impl World {
-    pub fn spawn_player(&mut self, coord: Coord) -> Entity {
-        spawn::player(&mut self.ecs, &mut self.spatial_grid, coord)
-    }
-    pub fn spawn_former_human(&mut self, coord: Coord) -> Entity {
-        spawn::former_human(&mut self.ecs, &mut self.spatial_grid, coord)
-    }
-    pub fn spawn_human(&mut self, coord: Coord) -> Entity {
-        spawn::human(&mut self.ecs, &mut self.spatial_grid, coord)
-    }
-    pub fn spawn_floor(&mut self, coord: Coord) -> Entity {
-        spawn::floor(&mut self.ecs, &mut self.spatial_grid, coord)
-    }
-    pub fn spawn_carpet(&mut self, coord: Coord) -> Entity {
-        spawn::carpet(&mut self.ecs, &mut self.spatial_grid, coord)
-    }
-    pub fn spawn_wall(&mut self, coord: Coord) -> Entity {
-        spawn::wall(&mut self.ecs, &mut self.spatial_grid, coord)
-    }
-    pub fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
-        spawn::light(&mut self.ecs, &mut self.spatial_grid, coord, colour)
-    }
-}
-
-impl World {
-    pub fn contains_wall(&self, coord: Coord) -> bool {
-        query::is_wall_at_coord(&self.ecs, &self.spatial_grid, coord)
-    }
-    pub fn contains_npc(&self, coord: Coord) -> bool {
-        query::is_npc_at_coord(&self.ecs, &self.spatial_grid, coord)
-    }
-    pub fn character_at(&self, coord: Coord) -> Option<Entity> {
-        query::get_character_at_coord(&self.spatial_grid, coord)
-    }
-    pub fn opacity(&self, coord: Coord) -> u8 {
-        query::get_opacity_at_coord(&self.ecs, &self.spatial_grid, coord)
-    }
-    pub fn lights<'a>(&'a self) -> impl 'a + Iterator<Item = (Coord, &'a Light)> {
-        query::all_lights_by_coord(&self.ecs)
-    }
     pub fn to_render_entities<'a>(&'a self) -> impl 'a + Iterator<Item = ToRenderEntity> {
-        query::all_entites_to_render(&self.ecs, &self.realtime_components)
+        let tile_component = &self.ecs.components.tile;
+        let location_component = &self.ecs.components.location;
+        let realtime_fade_component = &self.realtime_components.fade;
+        let colour_hint_component = &self.ecs.components.colour_hint;
+        let blood_component = &self.ecs.components.blood;
+        tile_component.iter().filter_map(move |(entity, &tile)| {
+            if let Some(location) = location_component.get(entity) {
+                let fade = realtime_fade_component.get(entity).and_then(|f| f.state.fading());
+                let colour_hint = colour_hint_component.get(entity).cloned();
+                let blood = blood_component.contains(entity);
+                Some(ToRenderEntity {
+                    coord: location.coord,
+                    layer: location.layer,
+                    tile,
+                    fade,
+                    colour_hint,
+                    blood,
+                })
+            } else {
+                None
+            }
+        })
     }
-}
 
-impl World {
-    pub fn character_walk_in_direction(&mut self, entity: Entity, direction: CardinalDirection) {
-        action::character_walk_in_direction(&mut self.ecs, &mut self.spatial_grid, entity, direction)
-    }
-    pub fn character_fire_rocket(&mut self, character: Entity, target: Coord) {
-        action::character_fire_rocket(
-            &mut self.ecs,
-            &mut self.realtime_components,
-            &mut self.spatial_grid,
-            character,
-            target,
-        )
+    pub fn all_lights_by_coord<'a>(&'a self) -> impl 'a + Iterator<Item = (Coord, &'a Light)> {
+        self.ecs.components.light.iter().filter_map(move |(entity, light)| {
+            self.ecs
+                .components
+                .location
+                .get(entity)
+                .map(|location| (location.coord, light))
+        })
     }
 }
 
@@ -128,12 +107,15 @@ impl World {
         external_events: &mut Vec<ExternalEvent>,
         rng: &mut R,
     ) {
-        animation_context.tick(
-            &mut self.ecs,
-            &mut self.realtime_components,
-            &mut self.spatial_grid,
-            external_events,
-            rng,
-        )
+        animation_context.tick(self, external_events, rng)
     }
+}
+
+pub struct ToRenderEntity {
+    pub coord: Coord,
+    pub layer: Option<Layer>,
+    pub tile: Tile,
+    pub fade: Option<u8>,
+    pub colour_hint: Option<Rgb24>,
+    pub blood: bool,
 }

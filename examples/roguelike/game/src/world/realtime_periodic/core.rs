@@ -1,8 +1,5 @@
-use crate::{
-    world::{data::Components, spatial_grid::SpatialGrid},
-    ExternalEvent,
-};
-use ecs::{Ecs, Entity};
+use crate::{world::World, ExternalEvent};
+use ecs::Entity;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -11,14 +8,7 @@ pub trait RealtimePeriodicState {
     type Event;
     type Components;
     fn tick<R: Rng>(&mut self, rng: &mut R) -> TimeConsumingEvent<Self::Event>;
-    fn animate_event(
-        event: Self::Event,
-        ecs: &mut Ecs<Components>,
-        realtime_components: &mut Self::Components,
-        spatial_grid: &mut SpatialGrid,
-        entity: Entity,
-        external_events: &mut Vec<ExternalEvent>,
-    );
+    fn animate_event(event: Self::Event, entity: Entity, world: &mut World, external_events: &mut Vec<ExternalEvent>);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,7 +28,9 @@ macro_rules! realtime_periodic {
         mod $module_name {
             #[allow(unused_imports)]
             use super::*;
-            use $crate::world::realtime_periodic::core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent};
+            use $crate::world::{
+                World,
+                realtime_periodic::core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent}};
 
             ecs::ecs_components! {
                 components {
@@ -54,19 +46,15 @@ macro_rules! realtime_periodic {
             impl RealtimeEntityEvents {
                 pub fn animate(
                     self,
-                    ecs: &mut ecs::Ecs<Components>,
-                    realtime_components: &mut RealtimeComponents,
-                    spatial_grid: &mut SpatialGrid,
                     entity: ecs::Entity,
+                    world: &mut World,
                     external_events: &mut Vec<crate::ExternalEvent>,
                 ) {
                     $(if let Some(event) = self.$component_name {
                         <$component_type as RealtimePeriodicState>::animate_event(
                             event,
-                            ecs,
-                            realtime_components,
-                            spatial_grid,
                             entity,
+                            world,
                             external_events,
                         );
                     })*

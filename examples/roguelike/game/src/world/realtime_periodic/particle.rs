@@ -1,17 +1,18 @@
 use crate::visibility::Light;
 use crate::{
     world::{
-        data::{Components, Location, ProjectileDamage, Tile},
+        data::{Location, ProjectileDamage, Tile},
         realtime_periodic::{
             core::{RealtimePeriodicState, ScheduledRealtimePeriodicState, TimeConsumingEvent},
             data::{FadeProgress, FadeState, LightColourFadeState, RealtimeComponents},
             movement,
         },
-        spatial_grid::{LocationUpdate, SpatialGrid},
+        spatial_grid::LocationUpdate,
+        World,
     },
     ExternalEvent,
 };
-use ecs::{Ecs, Entity};
+use ecs::Entity;
 use rand::Rng;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
@@ -259,22 +260,15 @@ impl RealtimePeriodicState for ParticleEmitterState {
             until_next_event,
         }
     }
-    fn animate_event(
-        mut spawn_particle: Self::Event,
-        ecs: &mut Ecs<Components>,
-        realtime_components: &mut RealtimeComponents,
-        spatial_grid: &mut SpatialGrid,
-        entity: Entity,
-        _external_events: &mut Vec<ExternalEvent>,
-    ) {
-        let coord = if let Some(location) = ecs.components.location.get(entity) {
+    fn animate_event(mut spawn_particle: Self::Event, entity: Entity, world: &mut World, _: &mut Vec<ExternalEvent>) {
+        let coord = if let Some(location) = world.ecs.components.location.get(entity) {
             location.coord
         } else {
             return;
         };
-        let particle_entity = ecs.entity_allocator.alloc();
+        let particle_entity = world.ecs.entity_allocator.alloc();
         if let Some(movement) = spawn_particle.movement_state.take() {
-            realtime_components.movement.insert(
+            world.realtime_components.movement.insert(
                 particle_entity,
                 ScheduledRealtimePeriodicState {
                     until_next_event: movement.cardinal_step_duration(),
@@ -282,14 +276,15 @@ impl RealtimePeriodicState for ParticleEmitterState {
                 },
             );
         }
-        spatial_grid
-            .update_entity_location(ecs, particle_entity, Location { coord, layer: None })
+        world
+            .spatial_grid
+            .update_entity_location(&mut world.ecs, particle_entity, Location { coord, layer: None })
             .unwrap();
         if let Some(tile) = spawn_particle.tile {
-            ecs.components.tile.insert(particle_entity, tile);
+            world.ecs.components.tile.insert(particle_entity, tile);
         }
         if let Some(fade_state) = spawn_particle.fade_state {
-            realtime_components.fade.insert(
+            world.realtime_components.fade.insert(
                 particle_entity,
                 ScheduledRealtimePeriodicState {
                     state: fade_state,
@@ -297,15 +292,15 @@ impl RealtimePeriodicState for ParticleEmitterState {
                 },
             );
         }
-        ecs.components.realtime.insert(particle_entity, ());
+        world.ecs.components.realtime.insert(particle_entity, ());
         if let Some(colour_hint) = spawn_particle.colour_hint {
-            ecs.components.colour_hint.insert(particle_entity, colour_hint);
+            world.ecs.components.colour_hint.insert(particle_entity, colour_hint);
         }
         if let Some(light) = spawn_particle.light.take() {
-            ecs.components.light.insert(particle_entity, light);
+            world.ecs.components.light.insert(particle_entity, light);
         }
         if let Some(light_colour_fade) = spawn_particle.light_colour_fade_state.take() {
-            realtime_components.light_colour_fade.insert(
+            world.realtime_components.light_colour_fade.insert(
                 particle_entity,
                 ScheduledRealtimePeriodicState {
                     state: light_colour_fade,
@@ -314,7 +309,7 @@ impl RealtimePeriodicState for ParticleEmitterState {
             );
         }
         if let Some(particle_emitter) = spawn_particle.particle_emitter.take() {
-            realtime_components.particle_emitter.insert(
+            world.realtime_components.particle_emitter.insert(
                 particle_entity,
                 ScheduledRealtimePeriodicState {
                     state: *particle_emitter,
@@ -323,7 +318,9 @@ impl RealtimePeriodicState for ParticleEmitterState {
             );
         }
         if let Some(projectile_damage) = spawn_particle.damage.take() {
-            ecs.components
+            world
+                .ecs
+                .components
                 .projectile_damage
                 .insert(particle_entity, projectile_damage);
         }

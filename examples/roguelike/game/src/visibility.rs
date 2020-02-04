@@ -1,4 +1,4 @@
-use crate::world::World;
+use crate::world::{World, WorldQuery};
 use grid_2d::{Coord, Grid, Size};
 use rational::Rational;
 use rgb24::Rgb24;
@@ -24,7 +24,7 @@ impl InputGrid for Visibility {
         world.size()
     }
     fn get_opacity(&self, world: &Self::Grid, coord: Coord) -> Self::Opacity {
-        world.opacity(coord)
+        world.get_opacity_at_coord(coord)
     }
 }
 
@@ -115,7 +115,7 @@ impl VisibilityGrid {
                 },
             );
         }
-        for (light_coord, light) in world.lights() {
+        for (light_coord, light) in world.all_lights_by_coord() {
             shadowcast_context.for_each_visible(
                 light_coord,
                 &Visibility,
