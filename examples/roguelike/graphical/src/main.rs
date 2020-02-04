@@ -25,7 +25,7 @@ fn main() {
         title: "Template Roguelike".to_string(),
         window_dimensions: WindowDimensions::Windowed(Dimensions {
             width: 720.,
-            height: 540.,
+            height: 640.,
         }),
         cell_dimensions: Dimensions {
             width: CELL_SIZE,

@@ -10,7 +10,7 @@ use spatial::Spatial;
 
 mod data;
 use data::{Components, Npc};
-pub use data::{Disposition, Layer, Tile};
+pub use data::{Disposition, HitPoints, Layer, Tile};
 
 mod realtime_periodic;
 pub use realtime_periodic::animation::Context as AnimationContext;
@@ -81,6 +81,12 @@ impl World {
             .iter()
             .filter_map(move |(entity, light)| self.spatial.coord(entity).map(|&coord| (coord, light)))
     }
+
+    pub fn character_info(&self, entity: Entity) -> Option<CharacterInfo> {
+        let &coord = self.spatial.coord(entity)?;
+        let &hit_points = self.ecs.components.hit_points.get(entity)?;
+        Some(CharacterInfo { coord, hit_points })
+    }
 }
 
 impl World {
@@ -116,4 +122,10 @@ pub struct ToRenderEntity {
     pub fade: Option<u8>,
     pub colour_hint: Option<Rgb24>,
     pub blood: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CharacterInfo {
+    pub coord: Coord,
+    pub hit_points: HitPoints,
 }

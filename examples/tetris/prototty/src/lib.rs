@@ -152,7 +152,13 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             MainMenuChoice::Quit => vec![("> Quit", base_style)],
         };
         RichTextViewSingleLine::new()
-            .view_size(&rich_text, context, frame)
+            .view_size(
+                rich_text
+                    .iter()
+                    .map(|(string, style)| RichTextPart::new(string, *style)),
+                context,
+                frame,
+            )
             .width()
     }
 }
@@ -332,7 +338,7 @@ impl<'a> View<&'a AppData> for AppView {
                     alignment: Alignment::centre(),
                     view: RichStringViewSingleLine,
                 }
-                .view(&app.end_text, context, frame);
+                .view(app.end_text.as_rich_text_part(), context, frame);
             }
         }
     }

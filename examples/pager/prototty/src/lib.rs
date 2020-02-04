@@ -134,7 +134,13 @@ impl<'a> View<&'a AppData> for AppView {
                 },
             },
         }
-        .view(rich_text, context, frame);
+        .view(
+            rich_text
+                .iter()
+                .map(|(string, style)| RichTextPart::new(string, *style)),
+            context,
+            frame,
+        );
     }
 }
 

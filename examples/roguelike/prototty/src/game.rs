@@ -1,13 +1,16 @@
 use crate::audio::{Audio, AudioTable};
 use crate::controls::{AppInput, Controls};
 use direction::{CardinalDirection, Direction};
-use game::{CellVisibility, ExternalEvent, Game, GameControlFlow, Layer, Tile, ToRenderEntity, VisibilityGrid};
+use game::{
+    CellVisibility, CharacterInfo, ExternalEvent, Game, GameControlFlow, Layer, Tile, ToRenderEntity, VisibilityGrid,
+};
 pub use game::{Config as GameConfig, Input as GameInput, Omniscient};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
 use prototty::event_routine::*;
 use prototty::input::*;
 use prototty::render::*;
+use prototty::text::*;
 use prototty_audio::{AudioPlayer, AudioProperties};
 use prototty_storage::{format, Storage};
 use rand::{Rng, SeedableRng};
@@ -18,7 +21,7 @@ use std::time::Duration;
 
 const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
 const AIM_UI_DEPTH: i8 = std::i8::MAX;
-const PLAYER_OFFSET: Coord = Coord::new(16, 16);
+const PLAYER_OFFSET: Coord = Coord::new(20, 18);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
 const STORAGE_FORMAT: format::Json = format::Json;
 
@@ -75,14 +78,66 @@ pub enum InjectedInput {
     Fire(ScreenCoord),
 }
 
+mod status_line_parts {
+    pub const HP_TITLE: usize = 0;
+    pub const HP_CURRENT: usize = 1;
+    pub const HP_MAX: usize = 2;
+    pub const N: usize = 3;
+}
+
+struct StatusLineView {
+    buffer: Vec<RichTextPartOwned>,
+}
+
+impl StatusLineView {
+    fn new() -> Self {
+        let mut buffer = Vec::new();
+        for _ in 0..status_line_parts::N {
+            buffer.push(RichTextPartOwned {
+                text: String::new(),
+                style: Style::new(),
+            });
+        }
+        Self { buffer }
+    }
+    fn update(&mut self, player_info: &CharacterInfo) {
+        use std::fmt::Write;
+        {
+            let hp_title = &mut self.buffer[status_line_parts::HP_TITLE];
+            hp_title.style = Style::new().with_foreground(Rgb24::new(255, 255, 255));
+            hp_title.text.clear();
+            write!(&mut hp_title.text, "HP: ").unwrap();
+        }
+        {
+            let hp_current_colour = if player_info.hit_points.current < player_info.hit_points.max / 4 {
+                Rgb24::new(255, 0, 0)
+            } else {
+                Rgb24::new(255, 255, 255)
+            };
+            let hp_current = &mut self.buffer[status_line_parts::HP_CURRENT];
+            hp_current.style = Style::new().with_foreground(hp_current_colour);
+            hp_current.text.clear();
+            write!(&mut hp_current.text, "{}", player_info.hit_points.current).unwrap();
+        }
+        {
+            let hp_max = &mut self.buffer[status_line_parts::HP_MAX];
+            hp_max.style = Style::new().with_foreground(Rgb24::new(255, 255, 255));
+            hp_max.text.clear();
+            write!(&mut hp_max.text, "/{}", player_info.hit_points.max).unwrap();
+        }
+    }
+}
+
 pub struct GameView {
     last_offset: Coord,
+    status_line_view: StatusLineView,
 }
 
 impl GameView {
     pub fn new() -> Self {
         Self {
             last_offset: Coord::new(0, 0),
+            status_line_view: StatusLineView::new(),
         }
     }
     pub fn absolute_coord_to_game_relative_screen_coord(&self, coord: Coord) -> ScreenCoord {
@@ -95,7 +150,8 @@ impl GameView {
         frame: &mut F,
     ) {
         let game = &game_to_render.game;
-        let player_coord = GameCoord::of_player(&game);
+        let player_info = game.player_info();
+        let player_coord = GameCoord::of_player(player_info);
         let visibility_grid = game.visibility_grid();
         let offset = game_to_render
             .screen_shake
@@ -115,6 +171,12 @@ impl GameView {
             );
         }
         self.last_offset = context.offset;
+        self.status_line_view.update(player_info);
+        RichTextViewSingleLine.view(
+            self.status_line_view.buffer.iter().map(|s| s.as_rich_text_part()),
+            context.add_offset(Coord::new(1, 1 + GAME_WINDOW_SIZE.height() as i32)),
+            frame,
+        );
     }
 }
 
@@ -140,8 +202,8 @@ struct GameCoord(Coord);
 struct PlayerCoord(Coord);
 
 impl GameCoord {
-    fn of_player(game: &Game) -> Self {
-        Self(game.player_coord())
+    fn of_player(player_info: &CharacterInfo) -> Self {
+        Self(player_info.coord)
     }
 }
 
@@ -264,37 +326,6 @@ fn render_entity<F: Frame, C: ColModify>(
     }
     frame.set_cell_relative(screen_coord.0, depth, view_cell, context);
 }
-
-/*
-impl<'a> View<GameToRender<'a>> for GameView {
-    fn view<F: Frame, C: ColModify>(
-        &mut self,
-        game_to_render: GameToRender<'a>,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) {
-        let game = &game_to_render.game;
-        let player_coord = GameCoord::of_player(&game);
-        let visibility_grid = game.visibility_grid();
-        let offset = game_to_render
-            .screen_shake
-            .as_ref()
-            .map(|d| d.coord())
-            .unwrap_or_else(|| Coord::new(0, 0));
-        for to_render_entity in game.to_render_entities() {
-            render_entity(
-                &to_render_entity,
-                game,
-                visibility_grid,
-                player_coord,
-                offset,
-                context,
-                frame,
-            );
-        }
-        self.last_offset = context.offset;
-    }
-} */
 
 #[derive(Serialize, Deserialize)]
 pub struct GameInstance {
@@ -440,7 +471,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
             if self.last_aim_with_mouse {
                 Ok(screen_coord_of_mouse)
             } else {
-                let player_coord = GameCoord::of_player(&instance.game);
+                let player_coord = GameCoord::of_player(instance.game.player_info());
                 let screen_coord = GameCoordToScreenCoord {
                     game_coord: player_coord,
                     player_coord,
@@ -582,7 +613,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
                             screen_shake: &mut instance.screen_shake,
                             audio_player,
                             audio_table,
-                            player_coord: GameCoord::of_player(&instance.game),
+                            player_coord: GameCoord::of_player(instance.game.player_info()),
                         };
                         event_context.next_frame();
                         for event in instance.game.events() {
@@ -605,7 +636,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
     {
         if let Some(instance) = data.instance.as_ref() {
             view.view(instance.to_render(), context, frame);
-            let player_coord = GameCoord::of_player(&instance.game);
+            let player_coord = GameCoord::of_player(instance.game.player_info());
             let screen_coord = self.screen_coord;
             let game_coord = ScreenCoordToGameCoord {
                 screen_coord,
@@ -690,7 +721,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
         let audio_table = &data.audio_table;
         let game_config = &data.game_config;
         if let Some(instance) = data.instance.as_mut() {
-            let player_coord = GameCoord::of_player(&instance.game);
+            let player_coord = GameCoord::of_player(instance.game.player_info());
             for injected_input in self.injected_inputs.drain(..) {
                 match injected_input {
                     InjectedInput::Fire(screen_coord) => {

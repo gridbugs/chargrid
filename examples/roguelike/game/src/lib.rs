@@ -16,7 +16,7 @@ use ecs::ComponentTable;
 pub use ecs::Entity;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
 use world::{AnimationContext, World, WorldAction, WorldQuery, WorldSpawn};
-pub use world::{Layer, Tile, ToRenderEntity};
+pub use world::{CharacterInfo, HitPoints, Layer, Tile, ToRenderEntity};
 
 pub struct Config {
     pub omniscient: Option<Omniscient>,
@@ -45,7 +45,7 @@ pub struct Game {
     world: World,
     visibility_grid: VisibilityGrid,
     player: Entity,
-    last_player_coord: Coord,
+    last_player_info: CharacterInfo,
     rng: Isaac64Rng,
     frame_count: u64,
     events: Vec<ExternalEvent>,
@@ -104,12 +104,12 @@ impl Game {
             }
         }
         let player = player.expect("didn't create player");
-        let last_player_coord = world.entity_coord(player).expect("player lacks a location");
+        let last_player_info = world.character_info(player).expect("couldn't get info for player");
         let mut game = Self {
             world,
             visibility_grid: VisibilityGrid::new(size),
             player,
-            last_player_coord,
+            last_player_info,
             rng: Isaac64Rng::seed_from_u64(rng.gen()),
             frame_count: 0,
             events: Vec::new(),
@@ -151,11 +151,11 @@ impl Game {
         self.update_visibility(config);
         self.update_behaviour();
         self.npc_turn();
-        if let Some(player_coord) = self.world.entity_coord(self.player) {
-            self.last_player_coord = player_coord;
-            None
-        } else {
+        self.update_last_player_info();
+        if self.is_game_over() {
             Some(GameControlFlow::GameOver)
+        } else {
+            None
         }
     }
     pub fn handle_npc_turn(&mut self) {
@@ -195,18 +195,18 @@ impl Game {
         self.world
             .animation_tick(&mut self.animation_context, &mut self.events, &mut self.rng);
         self.frame_count += 1;
-        if let Some(player_coord) = self.world.entity_coord(self.player) {
-            self.last_player_coord = player_coord;
-            None
-        } else {
+        self.update_last_player_info();
+        if self.is_game_over() {
             Some(GameControlFlow::GameOver)
+        } else {
+            None
         }
     }
     pub fn events(&self) -> impl '_ + Iterator<Item = ExternalEvent> {
         self.events.iter().cloned()
     }
-    pub fn player_coord(&self) -> Coord {
-        self.last_player_coord
+    pub fn player_info(&self) -> &CharacterInfo {
+        &self.last_player_info
     }
     pub fn world_size(&self) -> Size {
         self.world.size()
@@ -219,5 +219,15 @@ impl Game {
     }
     pub fn contains_wall(&self, coord: Coord) -> bool {
         self.world.is_wall_at_coord(coord)
+    }
+    fn update_last_player_info(&mut self) {
+        if let Some(character_info) = self.world.character_info(self.player) {
+            self.last_player_info = character_info;
+        } else {
+            self.last_player_info.hit_points.current = 0;
+        }
+    }
+    fn is_game_over(&self) -> bool {
+        self.last_player_info.hit_points.current == 0
     }
 }

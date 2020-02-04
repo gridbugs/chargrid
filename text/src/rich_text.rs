@@ -1,4 +1,3 @@
-use crate::default::*;
 use crate::wrap::{self, Wrap};
 use prototty_render::*;
 #[cfg(feature = "serialize")]
@@ -11,24 +10,15 @@ pub struct RichTextPartOwned {
     pub style: Style,
 }
 
-impl From<(String, Style)> for RichTextPartOwned {
-    fn from((text, style): (String, Style)) -> Self {
-        Self::new(text, style)
-    }
-}
-
-impl<'a> From<&'a RichTextPartOwned> for RichTextPart<'a> {
-    fn from(owned: &'a RichTextPartOwned) -> Self {
-        Self {
-            text: owned.text.as_str(),
-            style: owned.style,
-        }
-    }
-}
-
 impl RichTextPartOwned {
     pub fn new(text: String, style: Style) -> Self {
         Self { text, style }
+    }
+    pub fn as_rich_text_part(&self) -> RichTextPart {
+        RichTextPart {
+            text: self.text.as_str(),
+            style: self.style,
+        }
     }
 }
 
@@ -42,38 +32,6 @@ pub struct RichTextPart<'a> {
 impl<'a> RichTextPart<'a> {
     pub fn new(text: &'a str, style: Style) -> Self {
         Self { text, style }
-    }
-}
-
-impl<'a, S: AsRef<str>> From<&'a (S, Style)> for RichTextPart<'a> {
-    fn from(&(ref text, style): &'a (S, Style)) -> Self {
-        let text = text.as_ref();
-        Self { text, style }
-    }
-}
-
-impl<'a> From<(&'a str, Style)> for RichTextPart<'a> {
-    fn from((text, style): (&'a str, Style)) -> Self {
-        Self { text, style }
-    }
-}
-
-impl<'a> From<&'a str> for RichTextPart<'a> {
-    fn from(text: &'a str) -> Self {
-        Self {
-            text,
-            style: DEFAULT_STYLE,
-        }
-    }
-}
-
-impl<'a> From<&'a String> for RichTextPart<'a> {
-    fn from(text: &'a String) -> Self {
-        let text = text.as_str();
-        Self {
-            text,
-            style: DEFAULT_STYLE,
-        }
     }
 }
 
@@ -93,16 +51,14 @@ impl<W: Wrap> RichTextView<W> {
     }
 }
 
-impl<'a, T, I, W> View<I> for RichTextView<W>
+impl<'a, I, W> View<I> for RichTextView<W>
 where
-    T: 'a + Into<RichTextPart<'a>> + Copy,
-    I: IntoIterator<Item = &'a T>,
+    I: IntoIterator<Item = RichTextPart<'a>>,
     W: Wrap,
 {
     fn view<F: Frame, C: ColModify>(&mut self, parts: I, context: ViewContext<C>, frame: &mut F) {
         self.wrap.clear();
         for part in parts {
-            let part: RichTextPart = (*part).into();
             for character in part.text.chars() {
                 self.wrap.process_character(character, part.style, context, frame);
             }
@@ -120,10 +76,9 @@ impl RichTextViewSingleLine {
     }
 }
 
-impl<'a, T, I> View<I> for RichTextViewSingleLine
+impl<'a, I> View<I> for RichTextViewSingleLine
 where
-    T: 'a + Into<RichTextPart<'a>> + Copy,
-    I: IntoIterator<Item = &'a T>,
+    I: IntoIterator<Item = RichTextPart<'a>>,
 {
     fn view<F: Frame, C: ColModify>(&mut self, parts: I, context: ViewContext<C>, frame: &mut F) {
         RichTextView::new(wrap::None::new()).view(parts, context, frame)
@@ -140,12 +95,11 @@ impl<W: Wrap> RichStringView<W> {
     }
 }
 
-impl<'a, T, W> View<T> for RichStringView<W>
+impl<'a, W> View<RichTextPart<'a>> for RichStringView<W>
 where
-    T: 'a + Into<RichTextPart<'a>> + Copy,
     W: Wrap,
 {
-    fn view<F: Frame, C: ColModify>(&mut self, part: T, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(&mut self, part: RichTextPart<'a>, context: ViewContext<C>, frame: &mut F) {
         self.wrap.clear();
         let part: RichTextPart = part.into();
         for character in part.text.chars() {
@@ -164,11 +118,8 @@ impl RichStringViewSingleLine {
     }
 }
 
-impl<'a, T> View<T> for RichStringViewSingleLine
-where
-    T: 'a + Into<RichTextPart<'a>> + Copy,
-{
-    fn view<F: Frame, C: ColModify>(&mut self, part: T, context: ViewContext<C>, frame: &mut F) {
+impl<'a> View<RichTextPart<'a>> for RichStringViewSingleLine {
+    fn view<F: Frame, C: ColModify>(&mut self, part: RichTextPart<'a>, context: ViewContext<C>, frame: &mut F) {
         RichStringView::new(wrap::None::new()).view(part, context, frame);
     }
 }
