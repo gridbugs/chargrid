@@ -1,7 +1,7 @@
 use crate::{
     visibility::Light,
     world::{
-        data::{ColidesWith, Disposition, HitPoints, Layer, Location, Npc, OnCollision, Tile},
+        data::{CollidesWith, Disposition, HitPoints, Layer, Location, Npc, OnCollision, Tile},
         explosion,
         realtime_periodic::{
             core::ScheduledRealtimePeriodicState,
@@ -166,6 +166,94 @@ impl World {
         entity
     }
 
+    pub fn spawn_flash(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.create();
+        self.spatial.insert(entity, Location { coord, layer: None }).unwrap();
+        self.ecs.components.light.insert(
+            entity,
+            Light {
+                colour: Rgb24::new(127, 127, 127),
+                vision_distance: Circle::new_squared(90),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 20,
+                },
+            },
+        );
+        self.ecs.components.realtime.insert(entity, ());
+        self.realtime_components.fade.insert(
+            entity,
+            ScheduledRealtimePeriodicState {
+                state: FadeState::new(Duration::from_millis(32)),
+                until_next_event: Duration::from_millis(0),
+            },
+        );
+        entity
+    }
+
+    pub fn spawn_bullet(&mut self, start: Coord, target: Coord) -> Entity {
+        let entity = self.ecs.create();
+        self.spatial
+            .insert(
+                entity,
+                Location {
+                    coord: start,
+                    layer: None,
+                },
+            )
+            .unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Bullet);
+        self.ecs.components.realtime.insert(entity, ());
+        self.ecs.components.blocks_gameplay.insert(entity, ());
+        self.ecs.components.on_collision.insert(entity, OnCollision::Remove);
+        self.realtime_components.movement.insert(
+            entity,
+            ScheduledRealtimePeriodicState {
+                state: movement::spec::Movement {
+                    path: target - start,
+                    cardinal_step_duration: Duration::from_millis(12),
+                    repeat: movement::spec::Repeat::Once,
+                }
+                .build(),
+                until_next_event: Duration::from_millis(0),
+            },
+        );
+        self.realtime_components.particle_emitter.insert(
+            entity,
+            ScheduledRealtimePeriodicState {
+                state: {
+                    use particle::spec::*;
+                    ParticleEmitter {
+                        emit_particle_every_period: Duration::from_micros(2000),
+                        fade_out_duration: None,
+                        particle: Particle {
+                            tile: Some(Tile::Smoke),
+                            movement: Some(Movement {
+                                angle_range: AngleRange::all(),
+                                cardinal_period_range: DurationRange {
+                                    min: Duration::from_millis(200),
+                                    max: Duration::from_millis(500),
+                                },
+                            }),
+                            fade_duration: Some(Duration::from_millis(1000)),
+                            ..Default::default()
+                        },
+                    }
+                    .build()
+                },
+                until_next_event: Duration::from_millis(0),
+            },
+        );
+        self.ecs.components.collides_with.insert(
+            entity,
+            CollidesWith {
+                solid: true,
+                character: true,
+            },
+        );
+        entity
+    }
+
     pub fn spawn_rocket(&mut self, start: Coord, target: Coord) -> Entity {
         let entity = self.ecs.create();
         self.spatial
@@ -245,9 +333,9 @@ impl World {
                 },
             },
         );
-        self.ecs.components.colides_with.insert(
+        self.ecs.components.collides_with.insert(
             entity,
-            ColidesWith {
+            CollidesWith {
                 solid: true,
                 character: true,
             },

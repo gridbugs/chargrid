@@ -20,6 +20,15 @@ impl World {
         }
     }
 
+    pub fn character_fire_bullet(&mut self, character: Entity, target: Coord) {
+        let &character_coord = self.spatial.coord(character).unwrap();
+        if character_coord == target {
+            return;
+        }
+        self.spawn_bullet(character_coord, target);
+        self.spawn_flash(character_coord);
+    }
+
     pub fn character_fire_rocket(&mut self, character: Entity, target: Coord) {
         let &character_coord = self.spatial.coord(character).unwrap();
         if character_coord == target {
@@ -34,6 +43,12 @@ impl World {
                 match on_collision {
                     OnCollision::Explode(explosion_spec) => {
                         explosion::explode(self, current_coord, explosion_spec, external_events);
+                        self.spatial.remove(projectile_entity);
+                        self.ecs.remove(projectile_entity);
+                        self.realtime_components.remove_entity(projectile_entity);
+                    }
+                    OnCollision::Remove => {
+                        self.spatial.remove(projectile_entity);
                         self.ecs.remove(projectile_entity);
                         self.realtime_components.remove_entity(projectile_entity);
                     }
@@ -51,10 +66,10 @@ impl World {
     ) {
         if let Some(&current_coord) = self.spatial.coord(projectile_entity) {
             let next_coord = current_coord + movement_direction.coord();
-            let colides_with = self
+            let collides_with = self
                 .ecs
                 .components
-                .colides_with
+                .collides_with
                 .get(projectile_entity)
                 .cloned()
                 .unwrap_or_default();
@@ -70,8 +85,8 @@ impl World {
                 }
             }
             if let Some(entity_in_cell) = spatial_cell.feature.or(spatial_cell.character) {
-                if (colides_with.solid && self.ecs.components.solid.contains(entity_in_cell))
-                    || (colides_with.character && self.ecs.components.character.contains(entity_in_cell))
+                if (collides_with.solid && self.ecs.components.solid.contains(entity_in_cell))
+                    || (collides_with.character && self.ecs.components.character.contains(entity_in_cell))
                 {
                     self.projectile_stop(projectile_entity, external_events);
                     return;
