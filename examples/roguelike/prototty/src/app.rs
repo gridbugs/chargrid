@@ -6,6 +6,7 @@ pub use crate::game::{GameConfig, Omniscient, RngSeed};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
+use maplit::*;
 use menu::{fade_spec, FadeMenuEntryView, MenuInstanceChoose};
 use prototty::input::*;
 use prototty::*;
@@ -37,31 +38,51 @@ enum MainMenuEntry {
 }
 
 impl MainMenuEntry {
-    fn init(frontend: Frontend) -> Vec<Self> {
+    fn init(frontend: Frontend) -> menu::MenuInstance<Self> {
         use MainMenuEntry::*;
-        match frontend {
-            Frontend::Native => vec![NewGame, Quit],
-            Frontend::Wasm => vec![NewGame],
+        let (items, hotkeys) = match frontend {
+            Frontend::Native => (vec![NewGame, Quit], hashmap!['n' => NewGame, 'q' => Quit]),
+            Frontend::Wasm => (vec![NewGame], hashmap!['n' => NewGame]),
+        };
+        menu::MenuInstanceBuilder {
+            items,
+            selected_index: 0,
+            hotkeys: Some(hotkeys),
         }
+        .build()
+        .unwrap()
     }
-    fn pause(frontend: Frontend) -> Vec<Self> {
+    fn pause(frontend: Frontend) -> menu::MenuInstance<Self> {
         use MainMenuEntry::*;
-        match frontend {
-            Frontend::Native => vec![Resume, SaveQuit, NewGame, Clear],
-            Frontend::Wasm => vec![Resume, Save, NewGame, Clear],
+        let (items, hotkeys) = match frontend {
+            Frontend::Native => (
+                vec![Resume, SaveQuit, NewGame, Clear],
+                hashmap!['r' => Resume, 'q' => SaveQuit, 'n' => NewGame, 'c' => Clear],
+            ),
+            Frontend::Wasm => (
+                vec![Resume, Save, NewGame, Clear],
+                hashmap!['r' => Resume, 's' => Save, 'n' => NewGame, 'c' => Clear],
+            ),
+        };
+        menu::MenuInstanceBuilder {
+            items,
+            selected_index: 0,
+            hotkeys: Some(hotkeys),
         }
+        .build()
+        .unwrap()
     }
 }
 
 impl<'a> From<&'a MainMenuEntry> for &'a str {
     fn from(main_menu_entry: &'a MainMenuEntry) -> Self {
         match main_menu_entry {
-            MainMenuEntry::NewGame => "New Game",
-            MainMenuEntry::Resume => "Resume",
-            MainMenuEntry::Quit => "Quit",
-            MainMenuEntry::SaveQuit => "Save and Quit",
-            MainMenuEntry::Save => "Save",
-            MainMenuEntry::Clear => "Clear",
+            MainMenuEntry::NewGame => "(n) New Game",
+            MainMenuEntry::Resume => "(r) Resume",
+            MainMenuEntry::Quit => "(q) Quit",
+            MainMenuEntry::SaveQuit => "(q) Save and Quit",
+            MainMenuEntry::Save => "(s) Save",
+            MainMenuEntry::Clear => "(c) Clear",
         }
     }
 }
@@ -92,9 +113,7 @@ impl<S: Storage, A: AudioPlayer> AppData<S, A> {
         Self {
             frontend,
             game: GameData::new(game_config, controls, storage, save_key, audio_player, rng_seed),
-            main_menu: menu::MenuInstance::new(MainMenuEntry::init(frontend))
-                .unwrap()
-                .into_choose_or_escape(),
+            main_menu: MainMenuEntry::init(frontend).into_choose_or_escape(),
             main_menu_type: MainMenuType::Init,
             last_mouse_coord: Coord::new(0, 0),
         }
@@ -392,9 +411,7 @@ fn main_menu<S: Storage, A: AudioPlayer>(
         if data.game.has_instance() {
             match data.main_menu_type {
                 MainMenuType::Init => {
-                    data.main_menu = menu::MenuInstance::new(MainMenuEntry::pause(data.frontend))
-                        .unwrap()
-                        .into_choose_or_escape();
+                    data.main_menu = MainMenuEntry::pause(data.frontend).into_choose_or_escape();
                     data.main_menu_type = MainMenuType::Pause;
                 }
                 MainMenuType::Pause => (),
@@ -403,9 +420,7 @@ fn main_menu<S: Storage, A: AudioPlayer>(
             match data.main_menu_type {
                 MainMenuType::Init => (),
                 MainMenuType::Pause => {
-                    data.main_menu = menu::MenuInstance::new(MainMenuEntry::init(data.frontend))
-                        .unwrap()
-                        .into_choose_or_escape();
+                    data.main_menu = MainMenuEntry::init(data.frontend).into_choose_or_escape();
                     data.main_menu_type = MainMenuType::Init;
                 }
             }

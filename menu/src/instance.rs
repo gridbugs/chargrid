@@ -2,12 +2,14 @@ use prototty_input::{keys, Input, KeyboardInput, MouseInput, ScrollDirection};
 use prototty_render::Coord;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct MenuInstance<T: Clone> {
-    pub(crate) menu: Vec<T>,
+    pub(crate) items: Vec<T>,
     pub(crate) selected_index: usize,
+    pub(crate) hotkeys: HashMap<char, T>,
 }
 
 #[derive(Debug, Clone)]
@@ -36,36 +38,57 @@ pub trait MenuIndexFromScreenCoord {
     fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize>;
 }
 
-impl<T: Clone> MenuInstance<T> {
-    pub fn new_with_selection(menu: Vec<T>, selected_index: usize) -> Result<Self, InitialIndexOutOfBounds> {
-        if selected_index >= menu.len() {
-            Err(InitialIndexOutOfBounds)
-        } else {
-            Ok(Self { menu, selected_index })
-        }
-    }
+pub struct MenuInstanceBuilder<T: Clone> {
+    pub items: Vec<T>,
+    pub selected_index: usize,
+    pub hotkeys: Option<HashMap<char, T>>,
+}
 
+impl<T: Clone> MenuInstanceBuilder<T> {
+    pub fn build(self) -> Result<MenuInstance<T>, InitialIndexOutOfBounds> {
+        let Self {
+            items,
+            selected_index,
+            hotkeys,
+        } = self;
+        if selected_index >= items.len() {
+            return Err(InitialIndexOutOfBounds);
+        }
+        Ok(MenuInstance {
+            items,
+            selected_index,
+            hotkeys: hotkeys.unwrap_or_default(),
+        })
+    }
+}
+
+impl<T: Clone> MenuInstance<T> {
     pub fn len(&self) -> usize {
-        self.menu.len()
+        self.items.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.menu.is_empty()
+        self.items.is_empty()
     }
 
-    pub fn new(menu: Vec<T>) -> Result<Self, InitialIndexOutOfBounds> {
-        Self::new_with_selection(menu, 0)
+    pub fn new(items: Vec<T>) -> Result<Self, InitialIndexOutOfBounds> {
+        MenuInstanceBuilder {
+            items,
+            selected_index: 0,
+            hotkeys: None,
+        }
+        .build()
     }
 
     pub fn up(&mut self) {
         match self.selected_index.checked_sub(1) {
             Some(index) => self.selected_index = index,
-            None => self.selected_index = self.menu.len() - 1,
+            None => self.selected_index = self.items.len() - 1,
         }
     }
 
     pub fn down(&mut self) {
-        if self.selected_index < self.menu.len() - 1 {
+        if self.selected_index < self.items.len() - 1 {
             self.selected_index += 1;
         } else {
             self.selected_index = 0;
@@ -73,13 +96,13 @@ impl<T: Clone> MenuInstance<T> {
     }
 
     pub fn set_index(&mut self, index: usize) {
-        if index < self.menu.len() {
+        if index < self.items.len() {
             self.selected_index = index;
         }
     }
 
     pub fn selected(&self) -> T {
-        self.menu[self.selected_index].clone()
+        self.items[self.selected_index].clone()
     }
 
     pub fn choose<M>(&mut self, view: &M, input: Input) -> Option<T>
@@ -100,13 +123,18 @@ impl<T: Clone> MenuInstance<T> {
                 direction: ScrollDirection::Down,
                 ..
             }) => self.down(),
+            Input::Keyboard(KeyboardInput::Char(c)) => {
+                if let Some(item) = self.hotkeys.get(&c).cloned() {
+                    return Some(item);
+                }
+            }
             Input::Mouse(MouseInput::MouseMove { coord, .. }) => {
-                if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
+                if let Some(index) = view.menu_index_from_screen_coord(self.items.len(), coord) {
                     self.set_index(index);
                 }
             }
             Input::Mouse(MouseInput::MousePress { coord, .. }) => {
-                if let Some(index) = view.menu_index_from_screen_coord(self.menu.len(), coord) {
+                if let Some(index) = view.menu_index_from_screen_coord(self.items.len(), coord) {
                     self.set_index(index);
                     return Some(self.selected());
                 }

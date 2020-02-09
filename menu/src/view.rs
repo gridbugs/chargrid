@@ -42,7 +42,7 @@ where
     ) {
         self.last_offset = context.offset;
         let mut max_width = 0;
-        for (i, entry) in menu_instance.menu.iter().enumerate() {
+        for (i, entry) in menu_instance.items.iter().enumerate() {
             let width = if i == menu_instance.selected_index {
                 self.entry_view
                     .selected(entry, context.add_offset(Coord::new(0, i as i32)), frame)
@@ -52,7 +52,7 @@ where
             };
             max_width = max_width.max(width);
         }
-        self.last_size = Size::new(max_width, menu_instance.menu.len() as u32);
+        self.last_size = Size::new(max_width, menu_instance.items.len() as u32);
     }
 }
 
@@ -69,7 +69,7 @@ where
     ) {
         self.last_offset = context.offset;
         let mut max_width = 0;
-        for (i, entry) in menu_instance.menu.iter().enumerate() {
+        for (i, entry) in menu_instance.items.iter().enumerate() {
             let width = if i == menu_instance.selected_index {
                 self.entry_view
                     .selected(entry, extra, context.add_offset(Coord::new(0, i as i32)), frame)
@@ -79,7 +79,7 @@ where
             };
             max_width = max_width.max(width);
         }
-        self.last_size = Size::new(max_width, menu_instance.menu.len() as u32);
+        self.last_size = Size::new(max_width, menu_instance.items.len() as u32);
     }
 }
 
