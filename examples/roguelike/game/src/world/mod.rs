@@ -17,16 +17,13 @@ pub use realtime_periodic::animation::Context as AnimationContext;
 use realtime_periodic::data::RealtimeComponents;
 
 mod query;
-pub use query::WorldQuery;
 
 mod explosion;
 pub use explosion::spec as explosion_spec;
 
 mod action;
-pub use action::WorldAction;
 
 mod spawn;
-pub use spawn::WorldSpawn;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct World {

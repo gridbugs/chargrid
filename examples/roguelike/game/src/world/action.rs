@@ -2,28 +2,14 @@ use crate::world::{
     data::{OnCollision, ProjectileDamage},
     explosion,
     spatial::OccupiedBy,
-    spawn::WorldSpawn,
-    ExternalEvent, World, WorldQuery,
+    ExternalEvent, World,
 };
 use direction::{CardinalDirection, Direction};
 use ecs::{ComponentsTrait, Entity};
 use grid_2d::Coord;
 
-pub trait WorldAction {
-    fn character_walk_in_direction(&mut self, character: Entity, direction: CardinalDirection);
-    fn character_fire_rocket(&mut self, character: Entity, target: Coord);
-    fn projectile_stop(&mut self, projectile_entity: Entity, external_events: &mut Vec<ExternalEvent>);
-    fn projectile_move(
-        &mut self,
-        projectile_entity: Entity,
-        movement_direction: Direction,
-        external_events: &mut Vec<ExternalEvent>,
-    );
-    fn damage_character(&mut self, character: Entity, hit_points_to_lose: u32);
-}
-
-impl WorldAction for World {
-    fn character_walk_in_direction(&mut self, character: Entity, direction: CardinalDirection) {
+impl World {
+    pub fn character_walk_in_direction(&mut self, character: Entity, direction: CardinalDirection) {
         let &current_coord = self.spatial.coord(character).unwrap();
         let target_coord = current_coord + direction.coord();
         if self.is_solid_feature_at_coord(target_coord) {
@@ -34,7 +20,7 @@ impl WorldAction for World {
         }
     }
 
-    fn character_fire_rocket(&mut self, character: Entity, target: Coord) {
+    pub fn character_fire_rocket(&mut self, character: Entity, target: Coord) {
         let &character_coord = self.spatial.coord(character).unwrap();
         if character_coord == target {
             return;
@@ -42,7 +28,7 @@ impl WorldAction for World {
         self.spawn_rocket(character_coord, target);
     }
 
-    fn projectile_stop(&mut self, projectile_entity: Entity, external_events: &mut Vec<ExternalEvent>) {
+    pub fn projectile_stop(&mut self, projectile_entity: Entity, external_events: &mut Vec<ExternalEvent>) {
         if let Some(&current_coord) = self.spatial.coord(projectile_entity) {
             if let Some(on_collision) = self.ecs.components.on_collision.get(projectile_entity).cloned() {
                 match on_collision {
@@ -57,7 +43,7 @@ impl WorldAction for World {
         self.realtime_components.movement.remove(projectile_entity);
     }
 
-    fn projectile_move(
+    pub fn projectile_move(
         &mut self,
         projectile_entity: Entity,
         movement_direction: Direction,
@@ -99,7 +85,7 @@ impl WorldAction for World {
         }
     }
 
-    fn damage_character(&mut self, character: Entity, hit_points_to_lose: u32) {
+    pub fn damage_character(&mut self, character: Entity, hit_points_to_lose: u32) {
         if let Some(hit_points) = self.ecs.components.hit_points.get_mut(character) {
             let &coord = self.spatial.coord(character).unwrap();
             match hit_points.current.checked_sub(hit_points_to_lose) {
@@ -116,22 +102,7 @@ impl WorldAction for World {
             log::warn!("attempt to damage entity without hit_points component");
         }
     }
-}
 
-trait WorldActionPrivate {
-    fn character_push_in_direction(&mut self, entity: Entity, direction: Direction);
-    fn character_die(&mut self, character: Entity);
-    fn add_blood_stain_to_floor(&mut self, coord: Coord);
-    fn apply_projectile_damage(
-        &mut self,
-        projectile_entity: Entity,
-        projectile_damage: ProjectileDamage,
-        projectile_movement_direction: Direction,
-        entity_to_damage: Entity,
-    );
-}
-
-impl WorldActionPrivate for World {
     fn character_push_in_direction(&mut self, entity: Entity, direction: Direction) {
         if let Some(&current_coord) = self.spatial.coord(entity) {
             let target_coord = current_coord + direction.coord();

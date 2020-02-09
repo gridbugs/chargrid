@@ -1,6 +1,6 @@
 use crate::visibility::Visibility;
 use crate::world::Disposition;
-use crate::world::{World, WorldQuery};
+use crate::world::World;
 use crate::Input;
 use ecs::Entity;
 use grid_2d::{Coord, Grid, Size};

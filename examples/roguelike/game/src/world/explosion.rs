@@ -1,6 +1,6 @@
 use crate::world::{
     realtime_periodic::{core::ScheduledRealtimePeriodicState, movement},
-    ExternalEvent, World, WorldAction, WorldQuery, WorldSpawn,
+    ExternalEvent, World,
 };
 use direction::Direction;
 use ecs::Entity;

@@ -4,7 +4,7 @@ use crate::{
             core::{RealtimePeriodicState, TimeConsumingEvent},
             data::RealtimeComponents,
         },
-        World, WorldAction,
+        World,
     },
     ExternalEvent,
 };

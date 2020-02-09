@@ -15,7 +15,7 @@ use behaviour::{Agent, BehaviourContext};
 use ecs::ComponentTable;
 pub use ecs::Entity;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
-use world::{AnimationContext, World, WorldAction, WorldQuery, WorldSpawn};
+use world::{AnimationContext, World};
 pub use world::{CharacterInfo, HitPoints, Layer, Tile, ToRenderEntity};
 
 pub struct Config {

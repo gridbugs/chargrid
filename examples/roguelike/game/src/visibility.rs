@@ -1,4 +1,4 @@
-use crate::world::{World, WorldQuery};
+use crate::world::World;
 use grid_2d::{Coord, Grid, Size};
 use rational::Rational;
 use rgb24::Rgb24;

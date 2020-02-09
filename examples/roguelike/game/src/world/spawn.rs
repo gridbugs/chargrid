@@ -18,20 +18,8 @@ use rgb24::Rgb24;
 use shadowcast::vision_distance::Circle;
 use std::time::Duration;
 
-pub trait WorldSpawn {
-    fn spawn_player(&mut self, coord: Coord) -> Entity;
-    fn spawn_wall(&mut self, coord: Coord) -> Entity;
-    fn spawn_former_human(&mut self, coord: Coord) -> Entity;
-    fn spawn_human(&mut self, coord: Coord) -> Entity;
-    fn spawn_floor(&mut self, coord: Coord) -> Entity;
-    fn spawn_carpet(&mut self, coord: Coord) -> Entity;
-    fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity;
-    fn spawn_rocket(&mut self, start: Coord, target: Coord) -> Entity;
-    fn spawn_explosion_emitter(&mut self, coord: Coord, spec: &explosion::spec::ParticleEmitter);
-}
-
-impl WorldSpawn for World {
-    fn spawn_player(&mut self, coord: Coord) -> Entity {
+impl World {
+    pub fn spawn_player(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
         self.spatial
             .insert(
@@ -60,7 +48,7 @@ impl WorldSpawn for World {
         entity
     }
 
-    fn spawn_wall(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_wall(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
         self.spatial
             .insert(
@@ -77,7 +65,7 @@ impl WorldSpawn for World {
         entity
     }
 
-    fn spawn_former_human(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_former_human(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
         self.spatial
             .insert(
@@ -100,7 +88,7 @@ impl WorldSpawn for World {
         entity
     }
 
-    fn spawn_human(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_human(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
         self.spatial
             .insert(
@@ -123,7 +111,7 @@ impl WorldSpawn for World {
         entity
     }
 
-    fn spawn_floor(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_floor(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
         self.spatial
             .insert(
@@ -138,7 +126,7 @@ impl WorldSpawn for World {
         entity
     }
 
-    fn spawn_carpet(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_carpet(&mut self, coord: Coord) -> Entity {
         let entity = self.ecs.create();
         self.spatial
             .insert(
@@ -153,7 +141,7 @@ impl WorldSpawn for World {
         entity
     }
 
-    fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
+    pub fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
         let entity = self.ecs.create();
         self.spatial
             .insert(
@@ -178,7 +166,7 @@ impl WorldSpawn for World {
         entity
     }
 
-    fn spawn_rocket(&mut self, start: Coord, target: Coord) -> Entity {
+    pub fn spawn_rocket(&mut self, start: Coord, target: Coord) -> Entity {
         let entity = self.ecs.create();
         self.spatial
             .insert(
@@ -267,7 +255,7 @@ impl WorldSpawn for World {
         entity
     }
 
-    fn spawn_explosion_emitter(&mut self, coord: Coord, spec: &explosion::spec::ParticleEmitter) {
+    pub fn spawn_explosion_emitter(&mut self, coord: Coord, spec: &explosion::spec::ParticleEmitter) {
         let emitter_entity = self.ecs.entity_allocator.alloc();
         self.spatial
             .insert(emitter_entity, Location { coord, layer: None })
