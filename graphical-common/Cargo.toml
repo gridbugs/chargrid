@@ -1,7 +1,7 @@
 [package]
 name = "prototty_graphical_common"
 description = "Definition of common types used by graphical prototty frontends"
-version = "0.28.0"
+version = "0.29.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"

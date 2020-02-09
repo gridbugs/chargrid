@@ -1,7 +1,7 @@
 [package]
 name = "prototty_ansi_terminal"
 description = "Prototty context for ansi terminals."
-version = "0.28.0"
+version = "0.29.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -14,11 +14,11 @@ edition = "2018"
 serialize = ["prototty_render/serialize", "prototty_input/serialize"]
 
 [dependencies]
-prototty_render = { path = "../render", version = "0.28" }
-prototty_input = { path = "../input", version = "0.28" }
-prototty_app = { path = "../app", version = "0.28" }
+prototty_render = { path = "../render", version = "0.29" }
+prototty_input = { path = "../input", version = "0.29" }
+prototty_app = { path = "../app", version = "0.29" }
 libc = "0.2"
 term = "0.6"
 
 [dev-dependencies]
-prototty = { path = "../prototty", version = "0.28" }
+prototty = { path = "../prototty", version = "0.29" }

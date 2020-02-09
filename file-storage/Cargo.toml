@@ -1,7 +1,7 @@
 [package]
 name = "prototty_file_storage"
 description = "Implementation of prototty_storage::Storage backed by files."
-version = "0.28.0"
+version = "0.29.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -17,4 +17,4 @@ toml = ["prototty_storage/toml"]
 bincode = ["prototty_storage/bincode"]
 
 [dependencies]
-prototty_storage = { path = "../storage", version = "0.28" }
+prototty_storage = { path = "../storage", version = "0.29" }

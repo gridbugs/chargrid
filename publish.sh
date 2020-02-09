@@ -26,7 +26,6 @@ publish() {
     publish_single graphical-common
     publish_single graphical-gfx
     publish_single graphical
-
 }
 
 read -r -p "Are you sure? " response
