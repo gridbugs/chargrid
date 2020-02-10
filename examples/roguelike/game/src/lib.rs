@@ -144,7 +144,7 @@ impl Game {
         if !self.is_gameplay_blocked() {
             match input {
                 Input::Walk(direction) => self.world.character_walk_in_direction(self.player, direction),
-                Input::Fire(coord) => self.world.character_fire_bullet(self.player, coord),
+                Input::Fire(coord) => self.world.character_fire_shotgun(self.player, coord, &mut self.rng),
                 Input::Wait => (),
             }
         }

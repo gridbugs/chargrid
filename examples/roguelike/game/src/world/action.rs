@@ -7,6 +7,7 @@ use crate::world::{
 use direction::{CardinalDirection, Direction};
 use ecs::{ComponentsTrait, Entity};
 use grid_2d::Coord;
+use rand::Rng;
 
 impl World {
     pub fn character_walk_in_direction(&mut self, character: Entity, direction: CardinalDirection) {
@@ -26,6 +27,22 @@ impl World {
             return;
         }
         self.spawn_bullet(character_coord, target);
+        self.spawn_flash(character_coord);
+    }
+
+    pub fn character_fire_shotgun<R: Rng>(&mut self, character: Entity, target: Coord, rng: &mut R) {
+        const NUM_BULLETS: usize = 12;
+        let &character_coord = self.spatial.coord(character).unwrap();
+        if character_coord == target {
+            return;
+        }
+        for _ in 0..NUM_BULLETS {
+            let offset = vector::Radial {
+                angle_radians: rng.gen_range(-::std::f64::consts::PI, ::std::f64::consts::PI),
+                length: rng.gen_range(0., 3.), // TODO make this depend on the distance
+            };
+            self.spawn_bullet(character_coord, target + offset.to_cartesian().to_coord_round_nearest());
+        }
         self.spawn_flash(character_coord);
     }
 
