@@ -58,7 +58,7 @@ pub struct VisibilityGrid {
 
 pub enum CellVisibility {
     NotVisible,
-    VisibleWithLightColour(Rgb24),
+    VisibleWithLightColour(Option<Rgb24>),
 }
 
 impl VisibilityGrid {
@@ -70,8 +70,13 @@ impl VisibilityGrid {
     }
     pub fn cell_visibility(&self, coord: Coord) -> CellVisibility {
         if let Some(cell) = self.grid.get(coord) {
-            if cell.last_seen == self.count && cell.last_lit == self.count {
-                CellVisibility::VisibleWithLightColour(cell.light_colour)
+            if cell.last_seen == self.count {
+                let light_colour = if cell.last_lit == self.count {
+                    Some(cell.light_colour)
+                } else {
+                    None
+                };
+                CellVisibility::VisibleWithLightColour(light_colour)
             } else {
                 CellVisibility::NotVisible
             }

@@ -85,6 +85,16 @@ impl Game {
                         world.spawn_floor(coord);
                         world.spawn_wall(coord);
                     }
+                    '=' => {
+                        world.spawn_floor(coord);
+                        world.spawn_window(coord);
+                    }
+                    '%' => {
+                        world.spawn_star(coord);
+                    }
+                    ' ' => {
+                        world.spawn_space(coord);
+                    }
                     '@' => {
                         world.spawn_floor(coord);
                         player = Some(world.spawn_player(coord));
@@ -144,7 +154,7 @@ impl Game {
         if !self.is_gameplay_blocked() {
             match input {
                 Input::Walk(direction) => self.world.character_walk_in_direction(self.player, direction),
-                Input::Fire(coord) => self.world.character_fire_shotgun(self.player, coord, &mut self.rng),
+                Input::Fire(coord) => self.world.character_fire_rocket(self.player, coord),
                 Input::Wait => (),
             }
         }

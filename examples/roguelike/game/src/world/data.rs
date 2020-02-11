@@ -24,6 +24,7 @@ ecs_components! {
         hit_points: HitPoints,
         blood: (),
         player: (),
+        ignore_lighting: (),
     }
 }
 pub use components::Components;
@@ -34,11 +35,14 @@ pub enum Tile {
     Wall,
     Floor,
     Carpet,
+    Window,
     Bullet,
     Smoke,
     ExplosionFlame,
     FormerHuman,
     Human,
+    Star,
+    Space,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

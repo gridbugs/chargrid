@@ -431,4 +431,47 @@ impl World {
             },
         );
     }
+
+    pub fn spawn_star(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.entity_allocator.alloc();
+        self.spatial.insert(entity, Location { coord, layer: None }).unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Star);
+        self.ecs.components.light.insert(
+            entity,
+            Light {
+                colour: Rgb24::new(255, 255, 255),
+                vision_distance: Circle::new_squared(1),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 25,
+                },
+            },
+        );
+
+        entity
+    }
+
+    pub fn spawn_space(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.entity_allocator.alloc();
+        self.spatial.insert(entity, Location { coord, layer: None }).unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Space);
+        self.ecs.components.ignore_lighting.insert(entity, ());
+        entity
+    }
+
+    pub fn spawn_window(&mut self, coord: Coord) -> Entity {
+        let entity = self.ecs.entity_allocator.alloc();
+        self.spatial
+            .insert(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Feature),
+                },
+            )
+            .unwrap();
+        self.ecs.components.tile.insert(entity, Tile::Window);
+        self.ecs.components.solid.insert(entity, ());
+        entity
+    }
 }
