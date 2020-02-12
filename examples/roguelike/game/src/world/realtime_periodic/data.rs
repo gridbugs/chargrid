@@ -3,6 +3,7 @@ use crate::{
         realtime_periodic::{
             animation::FRAME_DURATION,
             core::{RealtimePeriodicState, TimeConsumingEvent},
+            flicker::FlickerState,
             movement::MovementState,
             particle::ParticleEmitterState,
         },
@@ -26,6 +27,7 @@ crate::realtime_periodic! {
         particle_emitter: ParticleEmitterState,
         fade: FadeState,
         light_colour_fade: LightColourFadeState,
+        flicker: FlickerState,
     }
 }
 

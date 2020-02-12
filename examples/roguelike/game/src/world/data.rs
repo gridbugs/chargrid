@@ -24,7 +24,7 @@ ecs_components! {
         hit_points: HitPoints,
         blood: (),
         player: (),
-        background_ignore_lighting: (),
+        ignore_lighting: (),
     }
 }
 pub use components::Components;

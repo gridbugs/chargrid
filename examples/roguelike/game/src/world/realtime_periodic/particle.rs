@@ -19,6 +19,7 @@ use std::time::Duration;
 use vector::Radial;
 
 pub mod spec {
+    pub use crate::util::range::{DurationRange, Rgb24Range};
     pub use crate::{visibility::Light, world::Tile};
     pub use rational::Rational;
     pub use rgb24::Rgb24;
@@ -32,21 +33,9 @@ pub mod spec {
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
-    pub struct DurationRange {
-        pub min: Duration,
-        pub max: Duration,
-    }
-
-    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct AngleRange {
         pub min: f64,
         pub max: f64,
-    }
-
-    #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-    pub struct ColourRange {
-        pub from: Rgb24,
-        pub to: Rgb24,
     }
 
     #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -79,7 +68,7 @@ pub mod spec {
         pub fade_duration: Option<Duration>,
         pub tile: Option<Tile>,
         pub movement: Option<Movement>,
-        pub colour_hint: Option<ColourRange>,
+        pub colour_hint: Option<Rgb24Range>,
         pub light_colour_fade: Option<LightColourFade>,
         pub possible_light: Option<Possible<Light>>,
         pub possible_particle_emitter: Option<Possible<Box<ParticleEmitter>>>,
@@ -128,12 +117,6 @@ impl<T: Clone> spec::Possible<T> {
     }
 }
 
-impl spec::DurationRange {
-    fn choose<R: Rng>(&self, rng: &mut R) -> Duration {
-        rng.gen_range(self.min, self.max)
-    }
-}
-
 impl spec::AngleRange {
     pub fn all() -> Self {
         Self {
@@ -144,12 +127,6 @@ impl spec::AngleRange {
 
     fn choose<R: Rng>(&self, rng: &mut R) -> f64 {
         rng.gen_range(self.min, self.max)
-    }
-}
-
-impl spec::ColourRange {
-    fn choose<R: Rng>(self, rng: &mut R) -> Rgb24 {
-        self.from.linear_interpolate(self.to, rng.gen())
     }
 }
 

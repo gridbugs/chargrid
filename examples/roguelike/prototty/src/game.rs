@@ -234,21 +234,6 @@ impl ScreenCoordToGameCoord {
     }
 }
 
-#[derive(PartialEq, Eq)]
-struct LightColours {
-    foreground: Rgb24,
-    background: Rgb24,
-}
-
-impl LightColours {
-    const fn same(colour: Rgb24) -> Self {
-        Self {
-            foreground: colour,
-            background: colour,
-        }
-    }
-}
-
 fn render_entity<F: Frame, C: ColModify>(
     game_status: GameStatus,
     to_render_entity: &ToRenderEntity,
@@ -260,26 +245,20 @@ fn render_entity<F: Frame, C: ColModify>(
     frame: &mut F,
 ) {
     let entity_coord = GameCoord(to_render_entity.coord);
-    let light_colours = if let GameStatus::Over = game_status {
-        LightColours::same(Rgb24::new(255, 0, 0))
+    let light_colour = if let GameStatus::Over = game_status {
+        Rgb24::new(255, 0, 0)
     } else {
         match visibility_grid.cell_visibility(entity_coord.0) {
             CellVisibility::VisibleWithLightColour(Some(light_colour)) => {
-                if to_render_entity.background_ignore_lighting {
-                    LightColours {
-                        foreground: light_colour,
-                        background: Rgb24::new(255, 255, 255),
-                    }
+                if to_render_entity.ignore_lighting {
+                    Rgb24::new(255, 255, 255)
                 } else {
-                    LightColours::same(light_colour)
+                    light_colour
                 }
             }
             CellVisibility::VisibleWithLightColour(None) => {
-                if to_render_entity.background_ignore_lighting {
-                    LightColours {
-                        foreground: Rgb24::new(0, 0, 0),
-                        background: Rgb24::new(255, 255, 255),
-                    }
+                if to_render_entity.ignore_lighting {
+                    Rgb24::new(255, 255, 255)
                 } else {
                     return;
                 }
@@ -287,7 +266,7 @@ fn render_entity<F: Frame, C: ColModify>(
             CellVisibility::NotVisible => return,
         }
     };
-    if game_status == GameStatus::Playing && light_colours == LightColours::same(Rgb24::new(0, 0, 0)) {
+    if game_status == GameStatus::Playing && light_colour == Rgb24::new(0, 0, 0) {
         return;
     }
     let screen_coord = GameCoordToScreenCoord {
@@ -299,7 +278,6 @@ fn render_entity<F: Frame, C: ColModify>(
         return;
     }
     let depth = layer_depth(to_render_entity.layer);
-    const SPACE_COLOUR: Rgb24 = Rgb24::new(0, 0, 31);
     let mut view_cell = match to_render_entity.tile {
         Tile::Player => ViewCell::new().with_character('@'),
         Tile::FormerHuman => ViewCell::new()
@@ -314,11 +292,13 @@ fn render_entity<F: Frame, C: ColModify>(
         Tile::Carpet => ViewCell::new()
             .with_character('.')
             .with_background(Rgb24::new(127, 0, 0)),
-        Tile::Star => ViewCell::new()
-            .with_character('.')
-            .with_foreground(Rgb24::new(255, 255, 255))
-            .with_background(SPACE_COLOUR),
-        Tile::Space => ViewCell::new().with_background(SPACE_COLOUR),
+        Tile::Star => {
+            let foreground_colour = to_render_entity.colour_hint.unwrap_or_else(|| Rgb24::new_grey(255));
+            ViewCell::new().with_character('.').with_foreground(foreground_colour)
+        }
+        Tile::Space => ViewCell::new()
+            .with_background(Rgb24::new(0, 0, 31))
+            .without_foreground(),
         Tile::Window => ViewCell::new()
             .with_character('=')
             .with_foreground(Rgb24::new(255, 255, 255))
@@ -336,7 +316,7 @@ fn render_entity<F: Frame, C: ColModify>(
                 frame.blend_cell_background_relative(
                     screen_coord.0,
                     depth,
-                    Rgb24::new_grey(187).normalised_mul(light_colours.background),
+                    Rgb24::new_grey(187).normalised_mul(light_colour),
                     (255 - fade) / 10,
                     blend_mode::LinearInterpolate,
                     context,
@@ -351,7 +331,7 @@ fn render_entity<F: Frame, C: ColModify>(
                     let start_colour = colour_hint;
                     let end_colour = Rgb24::new(255, 0, 0);
                     let interpolated_colour = start_colour.linear_interpolate(end_colour, quad_fade);
-                    let lit_colour = interpolated_colour.normalised_mul(light_colours.background);
+                    let lit_colour = interpolated_colour.normalised_mul(light_colour);
                     frame.blend_cell_background_relative(
                         screen_coord.0,
                         depth,
@@ -366,10 +346,10 @@ fn render_entity<F: Frame, C: ColModify>(
         }
     };
     if let Some(foreground) = view_cell.style.foreground.as_mut() {
-        *foreground = foreground.normalised_mul(light_colours.foreground);
+        *foreground = foreground.normalised_mul(light_colour);
     }
     if let Some(background) = view_cell.style.background.as_mut() {
-        *background = background.normalised_mul(light_colours.background);
+        *background = background.normalised_mul(light_colour);
     }
     if to_render_entity.blood {
         view_cell.style.foreground = Some(Rgb24::new(255, 0, 0));

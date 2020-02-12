@@ -8,6 +8,7 @@ use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod behaviour;
+mod util;
 mod visibility;
 mod world;
 
@@ -91,6 +92,7 @@ impl Game {
                     }
                     '%' => {
                         world.spawn_star(coord);
+                        //world.spawn_space(coord);
                     }
                     ' ' => {
                         world.spawn_space(coord);

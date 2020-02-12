@@ -6,7 +6,7 @@ use crate::{
         realtime_periodic::{
             core::ScheduledRealtimePeriodicState,
             data::{period_per_frame, FadeState, LightColourFadeState},
-            movement, particle,
+            flicker, movement, particle,
         },
         World,
     },
@@ -374,9 +374,9 @@ impl World {
                                 },
                             }),
                             fade_duration: Some(spec.fade_duration),
-                            colour_hint: Some(ColourRange {
-                                from: Rgb24::new(255, 255, 63),
-                                to: Rgb24::new(255, 127, 0),
+                            colour_hint: Some(Rgb24Range {
+                                min: Rgb24::new(255, 255, 63),
+                                max: Rgb24::new(255, 127, 0),
                             }),
                             possible_particle_emitter: Some(Possible {
                                 chance: Rational {
@@ -436,18 +436,28 @@ impl World {
         let entity = self.ecs.entity_allocator.alloc();
         self.spatial.insert(entity, Location { coord, layer: None }).unwrap();
         self.ecs.components.tile.insert(entity, Tile::Star);
-        self.ecs.components.light.insert(
+        self.ecs.components.ignore_lighting.insert(entity, ());
+        self.ecs.components.realtime.insert(entity, ());
+        self.realtime_components.flicker.insert(
             entity,
-            Light {
-                colour: Rgb24::new_grey(100),
-                vision_distance: Circle::new_squared(1),
-                diminish: Rational {
-                    numerator: 1,
-                    denominator: 25,
-                },
+            ScheduledRealtimePeriodicState {
+                state: {
+                    use flicker::spec::*;
+                    Flicker {
+                        colour_hint: Rgb24Range {
+                            min: Rgb24::new_grey(127),
+                            max: Rgb24::new_grey(255),
+                        },
+                        until_next_event: DurationRange {
+                            min: Duration::from_millis(64),
+                            max: Duration::from_millis(512),
+                        },
+                    }
+                }
+                .build(),
+                until_next_event: Duration::from_millis(0),
             },
         );
-        self.ecs.components.background_ignore_lighting.insert(entity, ());
         entity
     }
 
@@ -455,7 +465,7 @@ impl World {
         let entity = self.ecs.entity_allocator.alloc();
         self.spatial.insert(entity, Location { coord, layer: None }).unwrap();
         self.ecs.components.tile.insert(entity, Tile::Space);
-        self.ecs.components.background_ignore_lighting.insert(entity, ());
+        self.ecs.components.ignore_lighting.insert(entity, ());
         entity
     }
 

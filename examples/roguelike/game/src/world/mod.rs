@@ -52,13 +52,13 @@ impl World {
         let realtime_fade_component = &self.realtime_components.fade;
         let colour_hint_component = &self.ecs.components.colour_hint;
         let blood_component = &self.ecs.components.blood;
-        let background_ignore_lighting_component = &self.ecs.components.background_ignore_lighting;
+        let ignore_lighting_component = &self.ecs.components.ignore_lighting;
         tile_component.iter().filter_map(move |(entity, &tile)| {
             if let Some(location) = spatial.location(entity) {
                 let fade = realtime_fade_component.get(entity).and_then(|f| f.state.fading());
                 let colour_hint = colour_hint_component.get(entity).cloned();
                 let blood = blood_component.contains(entity);
-                let background_ignore_lighting = background_ignore_lighting_component.contains(entity);
+                let ignore_lighting = ignore_lighting_component.contains(entity);
                 Some(ToRenderEntity {
                     coord: location.coord,
                     layer: location.layer,
@@ -66,7 +66,7 @@ impl World {
                     fade,
                     colour_hint,
                     blood,
-                    background_ignore_lighting,
+                    ignore_lighting,
                 })
             } else {
                 None
@@ -122,7 +122,7 @@ pub struct ToRenderEntity {
     pub fade: Option<u8>,
     pub colour_hint: Option<Rgb24>,
     pub blood: bool,
-    pub background_ignore_lighting: bool,
+    pub ignore_lighting: bool,
 }
 
 #[derive(Serialize, Deserialize)]
