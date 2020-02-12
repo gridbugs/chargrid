@@ -1,5 +1,6 @@
 use crate::audio::{Audio, AudioTable};
 use crate::controls::{AppInput, Controls};
+use crate::depth;
 use direction::{CardinalDirection, Direction};
 use game::{
     CellVisibility, CharacterInfo, ExternalEvent, Game, GameControlFlow, Layer, Tile, ToRenderEntity, VisibilityGrid,
@@ -20,7 +21,7 @@ use std::marker::PhantomData;
 use std::time::Duration;
 
 const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
-const AIM_UI_DEPTH: i8 = std::i8::MAX;
+const AIM_UI_DEPTH: i8 = depth::GAME_MAX;
 const PLAYER_OFFSET: Coord = Coord::new(20, 18);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
 const STORAGE_FORMAT: format::Json = format::Json;
@@ -192,7 +193,7 @@ fn layer_depth(layer: Option<Layer>) -> i8 {
             Layer::Character => 2,
         }
     } else {
-        std::i8::MAX - 1
+        depth::GAME_MAX - 1
     }
 }
 
@@ -264,7 +265,7 @@ fn render_entity<F: Frame, C: ColModify>(
     } else {
         match visibility_grid.cell_visibility(entity_coord.0) {
             CellVisibility::VisibleWithLightColour(Some(light_colour)) => {
-                if to_render_entity.ignore_lighting {
+                if to_render_entity.background_ignore_lighting {
                     LightColours {
                         foreground: light_colour,
                         background: Rgb24::new(255, 255, 255),
@@ -274,7 +275,7 @@ fn render_entity<F: Frame, C: ColModify>(
                 }
             }
             CellVisibility::VisibleWithLightColour(None) => {
-                if to_render_entity.ignore_lighting {
+                if to_render_entity.background_ignore_lighting {
                     LightColours {
                         foreground: Rgb24::new(0, 0, 0),
                         background: Rgb24::new(255, 255, 255),

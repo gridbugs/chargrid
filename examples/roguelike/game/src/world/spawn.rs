@@ -439,7 +439,7 @@ impl World {
         self.ecs.components.light.insert(
             entity,
             Light {
-                colour: Rgb24::new(255, 255, 255),
+                colour: Rgb24::new_grey(100),
                 vision_distance: Circle::new_squared(1),
                 diminish: Rational {
                     numerator: 1,
@@ -447,7 +447,7 @@ impl World {
                 },
             },
         );
-
+        self.ecs.components.background_ignore_lighting.insert(entity, ());
         entity
     }
 
@@ -455,7 +455,7 @@ impl World {
         let entity = self.ecs.entity_allocator.alloc();
         self.spatial.insert(entity, Location { coord, layer: None }).unwrap();
         self.ecs.components.tile.insert(entity, Tile::Space);
-        self.ecs.components.ignore_lighting.insert(entity, ());
+        self.ecs.components.background_ignore_lighting.insert(entity, ());
         entity
     }
 

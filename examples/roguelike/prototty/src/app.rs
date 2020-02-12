@@ -1,4 +1,5 @@
 use crate::controls::Controls;
+use crate::depth;
 use crate::game::{
     AimEventRoutine, GameData, GameEventRoutine, GameOverEventRoutine, GameReturn, GameView, InjectedInput, ScreenCoord,
 };
@@ -289,7 +290,7 @@ impl<S: Storage, A: AudioPlayer> Decorate for DecorateMainMenu<S, A> {
                     },
                 },
             }
-            .view(data, context.add_depth(10), frame);
+            .view(data, context.add_depth(depth::GAME_MAX + 1), frame);
             event_routine_view.view.game.view(
                 instance.to_render(),
                 context.compose_col_modify(
