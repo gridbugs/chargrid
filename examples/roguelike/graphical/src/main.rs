@@ -22,7 +22,7 @@ fn main() {
             normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
         },
-        title: "Template Roguelike".to_string(),
+        title: "RIP".to_string(),
         window_dimensions: WindowDimensions::Windowed(Dimensions {
             width: 720.,
             height: 640.,

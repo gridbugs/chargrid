@@ -257,8 +257,8 @@ where
     E: EventRoutine<View = AppView, Data = AppData<S, A>>,
 {
     fn view<F: Frame, C: ColModify>(&mut self, app_data: &'a AppData<S, A>, context: ViewContext<C>, frame: &mut F) {
-        text::StringViewSingleLine::new(Style::new().with_bold(true)).view(
-            "Template Roguelike",
+        text::StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(255)).with_bold(true)).view(
+            "RIP",
             context.add_offset(Coord::new(1, 1)),
             frame,
         );
