@@ -19,12 +19,13 @@ use std::time::Duration;
 use vector::Radial;
 
 pub mod spec {
-    pub use crate::util::range::{DurationRange, Rgb24Range};
     pub use crate::{visibility::Light, world::Tile};
+    pub use rand_range::{UniformInclusiveRange, UniformLeftInclusiveRange};
     pub use rational::Rational;
     pub use rgb24::Rgb24;
     use serde::{Deserialize, Serialize};
     pub use std::time::Duration;
+    pub use vector::Radians;
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Possible<T: Clone> {
@@ -32,28 +33,16 @@ pub mod spec {
         pub value: T,
     }
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
-    pub struct AngleRange {
-        pub min: f64,
-        pub max: f64,
-    }
-
-    #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-    pub struct DamageRange {
-        pub min: u32,
-        pub max: u32,
-    }
-
     #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
     pub struct Damage {
-        pub range: DamageRange,
+        pub range: UniformInclusiveRange<u32>,
         pub push_back: bool,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Movement {
-        pub angle_range: AngleRange,
-        pub cardinal_period_range: DurationRange,
+        pub angle_range: UniformLeftInclusiveRange<Radians>,
+        pub cardinal_period_range: UniformInclusiveRange<Duration>,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,7 +57,7 @@ pub mod spec {
         pub fade_duration: Option<Duration>,
         pub tile: Option<Tile>,
         pub movement: Option<Movement>,
-        pub colour_hint: Option<Rgb24Range>,
+        pub colour_hint: Option<UniformInclusiveRange<Rgb24>>,
         pub light_colour_fade: Option<LightColourFade>,
         pub possible_light: Option<Possible<Light>>,
         pub possible_particle_emitter: Option<Possible<Box<ParticleEmitter>>>,
@@ -117,31 +106,12 @@ impl<T: Clone> spec::Possible<T> {
     }
 }
 
-impl spec::AngleRange {
-    pub fn all() -> Self {
-        Self {
-            min: -::std::f64::consts::PI,
-            max: ::std::f64::consts::PI,
-        }
-    }
-
-    fn choose<R: Rng>(&self, rng: &mut R) -> f64 {
-        rng.gen_range(self.min, self.max)
-    }
-}
-
-impl spec::DamageRange {
-    fn choose<R: Rng>(&self, rng: &mut R) -> u32 {
-        rng.gen_range(self.min, self.max)
-    }
-}
-
 impl spec::Movement {
     fn choose<R: Rng>(&self, rng: &mut R) -> movement::MovementState {
         const VECTOR_LENGTH: f64 = 1000.;
-        let angle_radians = self.angle_range.choose(rng);
+        let angle = self.angle_range.choose(rng);
         let radial = Radial {
-            angle_radians,
+            angle,
             length: VECTOR_LENGTH,
         };
         movement::spec::Movement {

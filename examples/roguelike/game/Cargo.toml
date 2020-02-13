@@ -12,9 +12,10 @@ serde = { version = "1.0", features = ["serde_derive"] }
 rand = "0.7"
 rand_isaac = { version = "0.2", features = ["serde1"] }
 line_2d = { version = "0.4", features = ["serialize"] }
-rgb24 = { version = "0.2", features = ["serialize"] }
+rgb24 = { version = "0.2", features = ["serialize", "rand"] }
 ecs = { path = "../ecs" }
 vector = { path = "../vector" }
 rational = { path = "../rational" }
+rand_range = { path = "../rand-range" }
 shadowcast = { version = "0.7", features = ["serialize"] }
 grid_search_cardinal = { version = "0.1", features = ["serialize"] }

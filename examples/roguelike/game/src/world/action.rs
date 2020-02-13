@@ -38,7 +38,7 @@ impl World {
         }
         for _ in 0..NUM_BULLETS {
             let offset = vector::Radial {
-                angle_radians: rng.gen_range(-::std::f64::consts::PI, ::std::f64::consts::PI),
+                angle: vector::Radians::random(rng),
                 length: rng.gen_range(0., 3.), // TODO make this depend on the distance
             };
             self.spawn_bullet(character_coord, target + offset.to_cartesian().to_coord_round_nearest());

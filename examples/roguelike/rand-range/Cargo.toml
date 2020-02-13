@@ -1,11 +1,9 @@
 [package]
-name = "vector"
+name = "rand_range"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
 [dependencies]
-coord_2d = "0.2"
-rand_range = { path = "../rand-range" }
-rand = "0.7"
 serde = { version = "1.0", features = ["serde_derive"] }
+rand = "0.7"

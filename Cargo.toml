@@ -48,6 +48,7 @@ members = [
     "examples/roguelike/ecs",
     "examples/roguelike/vector",
     "examples/roguelike/rational",
+    "examples/roguelike/rand-range",
     "examples/roguelike/game",
     "examples/roguelike/prototty",
     "examples/roguelike/native",

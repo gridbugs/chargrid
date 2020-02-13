@@ -229,10 +229,10 @@ impl World {
                         particle: Particle {
                             tile: Some(Tile::Smoke),
                             movement: Some(Movement {
-                                angle_range: AngleRange::all(),
-                                cardinal_period_range: DurationRange {
-                                    min: Duration::from_millis(200),
-                                    max: Duration::from_millis(500),
+                                angle_range: Radians::uniform_range_all(),
+                                cardinal_period_range: UniformInclusiveRange {
+                                    low: Duration::from_millis(200),
+                                    high: Duration::from_millis(500),
                                 },
                             }),
                             fade_duration: Some(Duration::from_millis(1000)),
@@ -290,10 +290,10 @@ impl World {
                         particle: Particle {
                             tile: Some(Tile::Smoke),
                             movement: Some(Movement {
-                                angle_range: AngleRange::all(),
-                                cardinal_period_range: DurationRange {
-                                    min: Duration::from_millis(200),
-                                    max: Duration::from_millis(500),
+                                angle_range: Radians::uniform_range_all(),
+                                cardinal_period_range: UniformInclusiveRange {
+                                    low: Duration::from_millis(200),
+                                    high: Duration::from_millis(500),
                                 },
                             }),
                             fade_duration: Some(Duration::from_millis(1000)),
@@ -367,16 +367,16 @@ impl World {
                         particle: Particle {
                             tile: Some(Tile::ExplosionFlame),
                             movement: Some(Movement {
-                                angle_range: AngleRange::all(),
-                                cardinal_period_range: DurationRange {
-                                    min: spec.min_step,
-                                    max: spec.max_step,
+                                angle_range: Radians::uniform_range_all(),
+                                cardinal_period_range: UniformInclusiveRange {
+                                    low: spec.min_step,
+                                    high: spec.max_step,
                                 },
                             }),
                             fade_duration: Some(spec.fade_duration),
-                            colour_hint: Some(Rgb24Range {
-                                min: Rgb24::new(255, 255, 63),
-                                max: Rgb24::new(255, 127, 0),
+                            colour_hint: Some(UniformInclusiveRange {
+                                low: Rgb24::new(255, 127, 0),
+                                high: Rgb24::new(255, 255, 63),
                             }),
                             possible_particle_emitter: Some(Possible {
                                 chance: Rational {
@@ -389,10 +389,10 @@ impl World {
                                     particle: Particle {
                                         tile: Some(Tile::Smoke),
                                         movement: Some(Movement {
-                                            angle_range: AngleRange::all(),
-                                            cardinal_period_range: DurationRange {
-                                                min: Duration::from_millis(200),
-                                                max: Duration::from_millis(500),
+                                            angle_range: Radians::uniform_range_all(),
+                                            cardinal_period_range: UniformInclusiveRange {
+                                                low: Duration::from_millis(200),
+                                                high: Duration::from_millis(500),
                                             },
                                         }),
                                         fade_duration: Some(Duration::from_millis(1000)),
@@ -444,13 +444,13 @@ impl World {
                 state: {
                     use flicker::spec::*;
                     Flicker {
-                        colour_hint: Rgb24Range {
-                            min: Rgb24::new_grey(127),
-                            max: Rgb24::new_grey(255),
+                        colour_hint: UniformInclusiveRange {
+                            low: Rgb24::new_grey(127),
+                            high: Rgb24::new_grey(255),
                         },
-                        until_next_event: DurationRange {
-                            min: Duration::from_millis(64),
-                            max: Duration::from_millis(512),
+                        until_next_event: UniformInclusiveRange {
+                            low: Duration::from_millis(64),
+                            high: Duration::from_millis(512),
                         },
                     }
                 }

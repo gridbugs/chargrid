@@ -13,15 +13,15 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 pub mod spec {
-    pub use crate::util::range::{DurationRange, Rgb24Range};
+    pub use rand_range::UniformInclusiveRange;
     pub use rgb24::Rgb24;
     use serde::{Deserialize, Serialize};
     pub use std::time::Duration;
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Flicker {
-        pub colour_hint: Rgb24Range,
-        pub until_next_event: DurationRange,
+        pub colour_hint: UniformInclusiveRange<Rgb24>,
+        pub until_next_event: UniformInclusiveRange<Duration>,
     }
 }
 

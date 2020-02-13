@@ -8,7 +8,6 @@ use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod behaviour;
-mod util;
 mod visibility;
 mod world;
 

@@ -1,4 +1,10 @@
 pub use coord_2d::Coord;
+use rand::{
+    distributions::uniform::{SampleBorrow, SampleUniform, UniformFloat, UniformSampler},
+    Rng,
+};
+use rand_range::UniformLeftInclusiveRange;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Cartesian {
@@ -8,7 +14,7 @@ pub struct Cartesian {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Radial {
-    pub angle_radians: f64,
+    pub angle: Radians,
     pub length: f64,
 }
 
@@ -24,7 +30,7 @@ impl Cartesian {
     }
     pub fn to_radial(self) -> Radial {
         Radial {
-            angle_radians: self.y.atan2(self.x),
+            angle: Radians(self.y.atan2(self.x)),
             length: ((self.x * self.x) + (self.y * self.y)).sqrt(),
         }
     }
@@ -33,16 +39,62 @@ impl Cartesian {
 impl Radial {
     pub fn to_cartesian(self) -> Cartesian {
         Cartesian {
-            x: self.length * self.angle_radians.cos(),
-            y: self.length * self.angle_radians.sin(),
+            x: self.length * self.angle.0.cos(),
+            y: self.length * self.angle.0.sin(),
         }
     }
-    pub fn rotate_clockwise(self, angle_radians: f64) -> Self {
+    pub fn rotate_clockwise(self, angle: Radians) -> Self {
         Self {
-            angle_radians: self.angle_radians + angle_radians,
+            angle: Radians(self.angle.0 + angle.0),
             length: self.length,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Radians(pub f64);
+
+pub const PI: Radians = Radians(::std::f64::consts::PI);
+pub const NEG_PI: Radians = Radians(-::std::f64::consts::PI);
+
+impl Radians {
+    pub const fn uniform_range_all() -> UniformLeftInclusiveRange<Self> {
+        UniformLeftInclusiveRange { low: NEG_PI, high: PI }
+    }
+    pub fn random<R: Rng>(rng: &mut R) -> Self {
+        Self(rng.gen_range(-::std::f64::consts::PI, ::std::f64::consts::PI))
+    }
+}
+
+pub struct UniformRadians {
+    inner: UniformFloat<f64>,
+}
+
+impl UniformSampler for UniformRadians {
+    type X = Radians;
+    fn new<B1, B2>(low: B1, high: B2) -> Self
+    where
+        B1: SampleBorrow<Self::X> + Sized,
+        B2: SampleBorrow<Self::X> + Sized,
+    {
+        Self {
+            inner: UniformFloat::<f64>::new(low.borrow().0, high.borrow().0),
+        }
+    }
+    fn new_inclusive<B1, B2>(low: B1, high: B2) -> Self
+    where
+        B1: SampleBorrow<Self::X> + Sized,
+        B2: SampleBorrow<Self::X> + Sized,
+    {
+        UniformSampler::new(low, high)
+    }
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Self::X {
+        Radians(self.inner.sample(rng))
+    }
+}
+
+impl SampleUniform for Radians {
+    type Sampler = UniformRadians;
 }
 
 #[cfg(test)]
@@ -53,7 +105,7 @@ mod test {
     fn conversion() {
         let cartesian = Cartesian { x: 42., y: 3. };
         let radial = cartesian.to_radial();
-        let rotated_radial = radial.rotate_clockwise(::std::f64::consts::FRAC_PI_2);
+        let rotated_radial = radial.rotate_clockwise(Radians(::std::f64::consts::FRAC_PI_2));
         let rotated_cartesian = rotated_radial.to_cartesian();
         assert!((rotated_cartesian.x + cartesian.y) < 0.1);
         assert!((rotated_cartesian.y - cartesian.x) < 0.1);
