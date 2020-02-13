@@ -89,6 +89,10 @@ impl Game {
                         world.spawn_floor(coord);
                         world.spawn_window(coord);
                     }
+                    '+' => {
+                        world.spawn_floor(coord);
+                        world.spawn_door(coord);
+                    }
                     '%' => {
                         world.spawn_star(coord);
                         world.spawn_space(coord);

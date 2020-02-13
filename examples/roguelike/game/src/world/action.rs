@@ -1,5 +1,5 @@
 use crate::world::{
-    data::{OnCollision, ProjectileDamage},
+    data::{DoorState, OnCollision, ProjectileDamage, Tile},
     explosion,
     spatial::OccupiedBy,
     ExternalEvent, World,
@@ -13,12 +13,23 @@ impl World {
     pub fn character_walk_in_direction(&mut self, character: Entity, direction: CardinalDirection) {
         let &current_coord = self.spatial.coord(character).unwrap();
         let target_coord = current_coord + direction.coord();
-        if self.is_solid_feature_at_coord(target_coord) {
-            return;
+        if let Some(feature_entity) = self.spatial.get_cell(target_coord).and_then(|cell| cell.feature) {
+            if self.ecs.components.solid.contains(feature_entity) {
+                if let Some(DoorState::Closed) = self.ecs.components.door_state.get(feature_entity).cloned() {
+                    self.open_door(feature_entity);
+                }
+                return;
+            }
         }
         if let Err(OccupiedBy(_occupant)) = self.spatial.update_coord(character, target_coord) {
             // TODO melee
         }
+    }
+
+    pub fn open_door(&mut self, door: Entity) {
+        self.ecs.components.solid.remove(door);
+        self.ecs.components.opacity.remove(door);
+        self.ecs.components.tile.insert(door, Tile::DoorOpen);
     }
 
     pub fn character_fire_bullet(&mut self, character: Entity, target: Coord) {

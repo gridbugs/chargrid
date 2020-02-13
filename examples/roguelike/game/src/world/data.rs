@@ -25,6 +25,7 @@ ecs_components! {
         blood: (),
         player: (),
         ignore_lighting: (),
+        door_state: DoorState,
     }
 }
 pub use components::Components;
@@ -43,6 +44,8 @@ pub enum Tile {
     Human,
     Star,
     Space,
+    DoorClosed,
+    DoorOpen,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -93,4 +96,10 @@ impl HitPoints {
     pub fn new_full(max: u32) -> Self {
         Self { current: max, max }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DoorState {
+    Open,
+    Closed,
 }
