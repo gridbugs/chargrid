@@ -1,1 +1,1 @@
-import('./pkg/roguelike_web').catch(console.error)
+import('./pkg/rip_web').catch(console.error)

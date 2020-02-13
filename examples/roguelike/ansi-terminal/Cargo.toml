@@ -1,5 +1,5 @@
 [package]
-name = "roguelike_ansi_terminal"
+name = "rip_ansi_terminal"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 env_logger = "0.7"
 prototty_ansi_terminal = { path = "../../../ansi-terminal" }
-roguelike_native = { path = "../native" }
-roguelike_prototty = { path = "../prototty" }
+rip_native = { path = "../native" }
+rip_prototty = { path = "../prototty" }

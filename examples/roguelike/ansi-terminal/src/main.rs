@@ -1,6 +1,6 @@
 use prototty_ansi_terminal::{col_encode, Context};
-use roguelike_native::{simon::*, NativeCommon};
-use roguelike_prototty::{app, Frontend};
+use rip_native::{simon::*, NativeCommon};
+use rip_prototty::{app, Frontend};
 
 #[derive(Clone)]
 enum ColEncodeChoice {

@@ -1,5 +1,5 @@
 [package]
-name = "roguelike_graphical"
+name = "rip_graphical"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
@@ -12,5 +12,5 @@ force_vulkan = ["prototty_graphical/force_vulkan"]
 env_logger = "0.7"
 prototty_graphical = { path = "../../../graphical", optional = true }
 prototty_graphical_gfx = { path = "../../../graphical-gfx", optional = true }
-roguelike_prototty = { path = "../prototty" }
-roguelike_native = { path = "../native" }
+rip_prototty = { path = "../prototty" }
+rip_native = { path = "../native" }
