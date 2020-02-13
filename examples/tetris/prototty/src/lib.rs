@@ -129,7 +129,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             MainMenuChoice::Play => "  Play",
             MainMenuChoice::Quit => "  Quit",
         };
-        StringViewSingleLine::new(Style::new())
+        StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(127)))
             .view_size(string, context, frame)
             .width()
     }
@@ -149,7 +149,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
                 ("y", base_style.with_foreground(Rgb24::new(0, 0, 187))),
                 ("!", base_style.with_foreground(Rgb24::new(187, 0, 187))),
             ],
-            MainMenuChoice::Quit => vec![("> Quit", base_style)],
+            MainMenuChoice::Quit => vec![("> Quit", base_style.with_foreground(Rgb24::new_grey(255)))],
         };
         RichTextViewSingleLine::new()
             .view_size(

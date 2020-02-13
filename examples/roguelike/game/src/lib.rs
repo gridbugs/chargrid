@@ -92,7 +92,7 @@ impl Game {
                     }
                     '%' => {
                         world.spawn_star(coord);
-                        //world.spawn_space(coord);
+                        world.spawn_space(coord);
                     }
                     ' ' => {
                         world.spawn_space(coord);

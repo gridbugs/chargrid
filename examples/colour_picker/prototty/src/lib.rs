@@ -170,7 +170,12 @@ impl Default for AppData {
         let main_menu = menu::MenuInstance::new(MainMenuChoice::all())
             .unwrap()
             .into_choose_or_cancel();
-        let main_menu_style = menu::MenuEntryStylePair::new(render::Style::new(), render::Style::new().with_bold(true));
+        let main_menu_style = menu::MenuEntryStylePair::new(
+            render::Style::new().with_foreground(render::Rgb24::new_grey(127)),
+            render::Style::new()
+                .with_foreground(render::Rgb24::new_grey(255))
+                .with_bold(true),
+        );
         let colour_menu = menu::MenuInstance::new(ColourMenuChoice::all())
             .unwrap()
             .into_choose_or_cancel();
@@ -191,8 +196,10 @@ impl Default for AppView {
     fn default() -> Self {
         let main_menu = menu::MenuInstanceView::new(ChooseMenuEntryStyle::new());
         let colour_menu = menu::MenuInstanceView::new(menu::MenuEntryStylePair::new(
-            render::Style::new(),
-            render::Style::new().with_bold(true),
+            render::Style::new().with_foreground(render::Rgb24::new_grey(127)),
+            render::Style::new()
+                .with_foreground(render::Rgb24::new_grey(255))
+                .with_bold(true),
         ));
         Self { main_menu, colour_menu }
     }

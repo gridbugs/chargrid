@@ -279,7 +279,10 @@ fn render_entity<F: Frame, C: ColModify>(
     }
     let depth = layer_depth(to_render_entity.layer);
     let mut view_cell = match to_render_entity.tile {
-        Tile::Player => ViewCell::new().with_character('@'),
+        Tile::Player => ViewCell::new()
+            .with_character('@')
+            .with_bold(true)
+            .with_foreground(Rgb24::new(255, 255, 255)),
         Tile::FormerHuman => ViewCell::new()
             .with_character('f')
             .with_foreground(Rgb24::new(255, 0, 0)),
@@ -288,17 +291,20 @@ fn render_entity<F: Frame, C: ColModify>(
             .with_foreground(Rgb24::new(0, 255, 255)),
         Tile::Floor => ViewCell::new()
             .with_character('.')
-            .with_background(Rgb24::new(63, 63, 63)),
+            .with_background(Rgb24::new(63, 63, 63))
+            .with_foreground(Rgb24::new(127, 127, 127)),
         Tile::Carpet => ViewCell::new()
             .with_character('.')
-            .with_background(Rgb24::new(127, 0, 0)),
+            .with_background(Rgb24::new(127, 0, 0))
+            .with_foreground(Rgb24::new(127, 127, 127)),
         Tile::Star => {
             let foreground_colour = to_render_entity.colour_hint.unwrap_or_else(|| Rgb24::new_grey(255));
-            ViewCell::new().with_character('.').with_foreground(foreground_colour)
+            ViewCell::new()
+                .with_character('.')
+                .with_bold(true)
+                .with_foreground(foreground_colour)
         }
-        Tile::Space => ViewCell::new()
-            .with_background(Rgb24::new(0, 0, 31))
-            .without_foreground(),
+        Tile::Space => ViewCell::new().with_background(Rgb24::new(0, 0, 31)),
         Tile::Window => ViewCell::new()
             .with_character('=')
             .with_foreground(Rgb24::new(255, 255, 255))

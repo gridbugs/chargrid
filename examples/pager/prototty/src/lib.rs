@@ -97,7 +97,10 @@ impl AppData {
 impl<'a> View<&'a AppData> for AppView {
     fn view<F: Frame, C: ColModify>(&mut self, app_state: &'a AppData, context: ViewContext<C>, frame: &mut F) {
         let rich_text = &[
-            ("Hello, World!\nblah\nblah blah ", Style::new()),
+            (
+                "Hello, World!\nblah\nblah blah ",
+                Style::new().with_foreground(Rgb24::new_grey(255)),
+            ),
             (
                 "blue\n",
                 Style {
@@ -106,13 +109,13 @@ impl<'a> View<&'a AppData> for AppView {
                     ..Style::new()
                 },
             ),
-            ("User string:\n", Style::new()),
+            ("User string:\n", Style::new().with_foreground(Rgb24::new_grey(255))),
             (
                 app_state.text.as_ref(),
                 Style {
                     background: Some(Rgb24::new(187, 0, 0)),
                     underline: Some(true),
-                    ..Style::new()
+                    ..Style::new().with_foreground(Rgb24::new_grey(255))
                 },
             ),
         ];

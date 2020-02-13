@@ -66,7 +66,7 @@ impl Default for AppView {
     fn default() -> Self {
         Self {
             menu: menu::MenuInstanceView::new(menu::MenuEntryStylePair::new(
-                Style::new(),
+                Style::new().with_foreground(Rgb24::new_grey(127)),
                 Style::new()
                     .with_bold(true)
                     .with_background(Rgb24::new(255, 255, 255))

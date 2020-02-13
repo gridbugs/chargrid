@@ -11,12 +11,18 @@ pub struct Style {
     pub background: Option<Rgb24>,
 }
 
+impl Default for Style {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Style {
     pub const fn new() -> Self {
         Self {
             bold: None,
             underline: None,
-            foreground: Some(Rgb24::new_grey(255)),
+            foreground: None,
             background: None,
         }
     }
