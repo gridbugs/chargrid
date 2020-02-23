@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 #[cfg(feature = "prototty_graphical")]
 use prototty_graphical::*;
 #[cfg(feature = "prototty_graphical_gfx")]
