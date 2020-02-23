@@ -34,11 +34,11 @@ impl World {
         self.ecs.components.light.insert(
             entity,
             Light {
-                colour: Rgb24::new(255, 187, 127),
-                vision_distance: Circle::new_squared(90),
+                colour: Rgb24::new(187, 187, 187),
+                vision_distance: Circle::new_squared(70),
                 diminish: Rational {
                     numerator: 1,
-                    denominator: 10,
+                    denominator: 1,
                 },
             },
         );
@@ -156,11 +156,58 @@ impl World {
             entity,
             Light {
                 colour,
-                vision_distance: Circle::new_squared(420),
+                vision_distance: Circle::new_squared(200),
                 diminish: Rational {
                     numerator: 1,
-                    denominator: 25,
+                    denominator: 10,
                 },
+            },
+        );
+        entity
+    }
+
+    pub fn spawn_flickering_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
+        let entity = self.ecs.create();
+        self.spatial
+            .insert(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Feature),
+                },
+            )
+            .unwrap();
+        self.ecs.components.light.insert(
+            entity,
+            Light {
+                colour,
+                vision_distance: Circle::new_squared(200),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 10,
+                },
+            },
+        );
+        self.ecs.components.realtime.insert(entity, ());
+        self.realtime_components.flicker.insert(
+            entity,
+            ScheduledRealtimePeriodicState {
+                state: {
+                    use flicker::spec::*;
+                    Flicker {
+                        colour_hint: None,
+                        light_colour: Some(UniformInclusiveRange {
+                            low: Rgb24::new(0, 0, 0),
+                            high: colour,
+                        }),
+                        until_next_event: UniformInclusiveRange {
+                            low: Duration::from_millis(127),
+                            high: Duration::from_millis(512),
+                        },
+                    }
+                }
+                .build(),
+                until_next_event: Duration::from_millis(0),
             },
         );
         entity
@@ -444,10 +491,11 @@ impl World {
                 state: {
                     use flicker::spec::*;
                     Flicker {
-                        colour_hint: UniformInclusiveRange {
+                        colour_hint: Some(UniformInclusiveRange {
                             low: Rgb24::new_grey(127),
                             high: Rgb24::new_grey(255),
-                        },
+                        }),
+                        light_colour: None,
                         until_next_event: UniformInclusiveRange {
                             low: Duration::from_millis(64),
                             high: Duration::from_millis(512),

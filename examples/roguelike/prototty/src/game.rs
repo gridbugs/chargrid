@@ -20,9 +20,8 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use std::time::Duration;
 
-const AUTO_SAVE_PERIOD: Duration = Duration::from_secs(2);
 const AIM_UI_DEPTH: i8 = depth::GAME_MAX;
-const PLAYER_OFFSET: Coord = Coord::new(20, 18);
+const PLAYER_OFFSET: Coord = Coord::new(22, 18);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
 const STORAGE_FORMAT: format::Json = format::Json;
 
@@ -359,14 +358,14 @@ fn render_entity<F: Frame, C: ColModify>(
             return;
         }
     };
+    if to_render_entity.blood {
+        view_cell.style.foreground = Some(Rgb24::new(255, 0, 0));
+    }
     if let Some(foreground) = view_cell.style.foreground.as_mut() {
         *foreground = foreground.normalised_mul(light_colour);
     }
     if let Some(background) = view_cell.style.background.as_mut() {
         *background = background.normalised_mul(light_colour);
-    }
-    if to_render_entity.blood {
-        view_cell.style.foreground = Some(Rgb24::new(255, 0, 0));
     }
     frame.set_cell_relative(screen_coord.0, depth, view_cell, context);
 }
@@ -434,7 +433,6 @@ pub struct GameData<S: Storage, A: AudioPlayer> {
 struct StorageWrapper<S: Storage> {
     storage: S,
     save_key: String,
-    until_auto_save: Duration,
 }
 
 impl<S: Storage> StorageWrapper<S> {
@@ -445,14 +443,6 @@ impl<S: Storage> StorageWrapper<S> {
     }
     pub fn clear_instance(&mut self) {
         let _ = self.storage.remove(&self.save_key);
-    }
-    pub fn autosave_tick(&mut self, instance: &GameInstance, since_previous: Duration) {
-        if let Some(remaining) = self.until_auto_save.checked_sub(since_previous) {
-            self.until_auto_save = remaining;
-        } else {
-            self.save_instance(instance);
-            self.until_auto_save = AUTO_SAVE_PERIOD;
-        }
     }
 }
 
@@ -473,11 +463,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
             RngSeed::Entropy => Isaac64Rng::from_entropy(),
             RngSeed::U64(u64) => Isaac64Rng::seed_from_u64(u64),
         };
-        let storage_wrapper = StorageWrapper {
-            storage,
-            save_key,
-            until_auto_save: AUTO_SAVE_PERIOD,
-        };
+        let storage_wrapper = StorageWrapper { storage, save_key };
         Self {
             instance,
             controls,
@@ -816,8 +802,6 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                 }
                 CommonEvent::Frame(period) => {
                     let maybe_control_flow = instance.game.handle_tick(period, game_config);
-
-                    storage_wrapper.autosave_tick(instance, period);
                     let mut event_context = EffectContext {
                         rng: &mut instance.rng,
                         screen_shake: &mut instance.screen_shake,

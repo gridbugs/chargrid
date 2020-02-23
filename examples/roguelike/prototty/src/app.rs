@@ -551,7 +551,10 @@ fn event_routine<S: Storage, A: AudioPlayer>(
                     Handled::Continue(main_menu_cycle())
                 }
             })
-            .return_on_exit(|_| ()),
+            .return_on_exit(|data| {
+                data.game.save_instance();
+                ()
+            }),
     )
 }
 

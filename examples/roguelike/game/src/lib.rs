@@ -2,18 +2,20 @@ pub use direction::CardinalDirection;
 pub use grid_2d::{Coord, Grid, Size};
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
-use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
 use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod behaviour;
+mod terrain;
 mod visibility;
 mod world;
 
 use behaviour::{Agent, BehaviourContext};
 use ecs::ComponentTable;
 pub use ecs::Entity;
+use procgen::SpaceshipSpec;
+use terrain::Terrain;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
 use world::{AnimationContext, World};
 pub use world::{CharacterInfo, HitPoints, Layer, Tile, ToRenderEntity};
@@ -58,81 +60,29 @@ pub struct Game {
 
 impl Game {
     pub fn new<R: Rng>(config: &Config, rng: &mut R) -> Self {
-        let s = include_str!("terrain.txt");
-        let rows = s.split('\n').filter(|s| !s.is_empty()).collect::<Vec<_>>();
-        let size = Size::new_u16(rows[0].len() as u16, rows.len() as u16);
-        let mut world = World::new(size);
-        let mut agents = ComponentTable::default();
-        let mut player = None;
-        for (y, row) in rows.iter().enumerate() {
-            for (x, ch) in row.chars().enumerate() {
-                if ch.is_control() {
-                    continue;
-                }
-                let coord = Coord::new(x as i32, y as i32);
-                match ch {
-                    '.' => {
-                        world.spawn_floor(coord);
-                    }
-                    '*' => {
-                        world.spawn_floor(coord);
-                        world.spawn_light(coord, Rgb24::new(187, 187, 187));
-                    }
-                    ',' => {
-                        world.spawn_carpet(coord);
-                    }
-                    '#' => {
-                        world.spawn_floor(coord);
-                        world.spawn_wall(coord);
-                    }
-                    '=' => {
-                        world.spawn_floor(coord);
-                        world.spawn_window(coord);
-                    }
-                    '+' => {
-                        world.spawn_floor(coord);
-                        world.spawn_door(coord);
-                    }
-                    '%' => {
-                        world.spawn_star(coord);
-                        world.spawn_space(coord);
-                    }
-                    ' ' => {
-                        world.spawn_space(coord);
-                    }
-                    '@' => {
-                        world.spawn_floor(coord);
-                        player = Some(world.spawn_player(coord));
-                    }
-                    'f' => {
-                        world.spawn_floor(coord);
-                        let entity = world.spawn_former_human(coord);
-                        agents.insert(entity, Agent::new(size));
-                    }
-                    'h' => {
-                        world.spawn_floor(coord);
-                        let entity = world.spawn_human(coord);
-                        agents.insert(entity, Agent::new(size));
-                    }
-                    _ => log::warn!("unexpected char in terrain: {} ({})", ch.escape_unicode(), ch),
-                }
-            }
-        }
-        let player = player.expect("didn't create player");
+        let mut rng = Isaac64Rng::seed_from_u64(rng.gen());
+        //let Terrain { world, agents, player } = terrain::from_str(include_str!("terrain.txt"));
+        let Terrain { world, agents, player } = terrain::spaceship(
+            SpaceshipSpec {
+                size: Size::new(80, 64),
+                surrounding_space_min_width: 16,
+            },
+            &mut rng,
+        );
         let last_player_info = world.character_info(player).expect("couldn't get info for player");
         let mut game = Self {
-            world,
-            visibility_grid: VisibilityGrid::new(size),
+            visibility_grid: VisibilityGrid::new(world.size()),
             player,
             last_player_info,
-            rng: Isaac64Rng::seed_from_u64(rng.gen()),
+            rng,
             frame_count: 0,
             events: Vec::new(),
             shadowcast_context: ShadowcastContext::default(),
-            behaviour_context: BehaviourContext::new(size),
+            behaviour_context: BehaviourContext::new(world.size()),
             animation_context: AnimationContext::default(),
             agents,
             agents_to_remove: Vec::new(),
+            world,
         };
         game.update_behaviour();
         game.update_visibility(config);

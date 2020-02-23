@@ -46,6 +46,7 @@ members = [
     "examples/colour_picker/web",
 
     "examples/roguelike/ecs",
+    "examples/roguelike/procgen",
     "examples/roguelike/vector",
     "examples/roguelike/rational",
     "examples/roguelike/rand-range",

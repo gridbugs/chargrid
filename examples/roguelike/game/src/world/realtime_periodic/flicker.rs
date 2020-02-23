@@ -20,7 +20,8 @@ pub mod spec {
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Flicker {
-        pub colour_hint: UniformInclusiveRange<Rgb24>,
+        pub colour_hint: Option<UniformInclusiveRange<Rgb24>>,
+        pub light_colour: Option<UniformInclusiveRange<Rgb24>>,
         pub until_next_event: UniformInclusiveRange<Duration>,
     }
 }
@@ -37,22 +38,34 @@ use rgb24::Rgb24;
 pub struct FlickerState(spec::Flicker);
 
 pub struct FlickerEvent {
-    colour_hint: Rgb24,
+    colour_hint: Option<Rgb24>,
+    light_colour: Option<Rgb24>,
 }
 
 impl RealtimePeriodicState for FlickerState {
     type Event = FlickerEvent;
     type Components = RealtimeComponents;
     fn tick<R: Rng>(&mut self, rng: &mut R) -> TimeConsumingEvent<Self::Event> {
-        let colour_hint = self.0.colour_hint.choose(rng);
+        let colour_hint = self.0.colour_hint.map(|r| r.choose(rng));
+        let light_colour = self.0.light_colour.map(|r| r.choose(rng));
         let until_next_event = self.0.until_next_event.choose(rng);
-        let event = FlickerEvent { colour_hint };
+        let event = FlickerEvent {
+            colour_hint,
+            light_colour,
+        };
         TimeConsumingEvent {
             event,
             until_next_event,
         }
     }
     fn animate_event(event: Self::Event, entity: Entity, world: &mut World, _external_events: &mut Vec<ExternalEvent>) {
-        world.ecs.components.colour_hint.insert(entity, event.colour_hint);
+        if let Some(colour_hint) = event.colour_hint {
+            world.ecs.components.colour_hint.insert(entity, colour_hint);
+        }
+        if let Some(light_colour) = event.light_colour {
+            if let Some(light) = world.ecs.components.light.get_mut(entity) {
+                light.colour = light_colour;
+            }
+        }
     }
 }

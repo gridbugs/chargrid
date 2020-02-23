@@ -102,8 +102,6 @@ impl VisibilityGrid {
                     let cell = grid.get_checked_mut(coord);
                     cell.last_seen = count;
                     cell.visible_directions = DirectionBitmap::all();
-                    cell.last_lit = count;
-                    cell.light_colour = Rgb24::new(255, 255, 255);
                 }
             }
         } else {
