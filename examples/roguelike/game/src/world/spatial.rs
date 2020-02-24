@@ -1,4 +1,4 @@
-use ecs::{ComponentTable, Entity};
+use ecs::{ComponentTable, ComponentTableEntries, Entity};
 use grid_2d::{Coord, Grid, Size};
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +32,7 @@ impl Default for SpatialCell {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Spatial {
     location_component: ComponentTable<Location>,
     spatial_grid: Grid<SpatialCell>,
@@ -107,6 +107,32 @@ impl Spatial {
             }
         }
     }
+    fn to_serialize(&self) -> SpatialSerialize {
+        SpatialSerialize {
+            entries: self.location_component.entries().clone(),
+            size: self.spatial_grid.size(),
+        }
+    }
+    fn from_serialize(SpatialSerialize { entries, size }: SpatialSerialize) -> Self {
+        let location_component = entries.into_component_table();
+        let mut spatial_grid: Grid<SpatialCell> = Grid::new_default(size);
+        for (entity, location) in location_component.iter() {
+            if let Some(layer) = location.layer {
+                let cell = spatial_grid.get_checked_mut(location.coord);
+                let slot = match layer {
+                    Layer::Floor => &mut cell.floor,
+                    Layer::Feature => &mut cell.feature,
+                    Layer::Character => &mut cell.character,
+                };
+                assert!(slot.is_none());
+                *slot = Some(entity);
+            }
+        }
+        Self {
+            location_component,
+            spatial_grid,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -131,5 +157,23 @@ impl SpatialCell {
     }
     fn clear(&mut self, layer: Layer) -> Option<Entity> {
         self.select_field_mut(layer).take()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct SpatialSerialize {
+    entries: ComponentTableEntries<Location>,
+    size: Size,
+}
+
+impl Serialize for Spatial {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        self.to_serialize().serialize(s)
+    }
+}
+
+impl<'a> Deserialize<'a> for Spatial {
+    fn deserialize<D: serde::Deserializer<'a>>(d: D) -> Result<Self, D::Error> {
+        Deserialize::deserialize(d).map(Self::from_serialize)
     }
 }

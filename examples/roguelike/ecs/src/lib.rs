@@ -134,7 +134,7 @@ impl<T> ComponentTableEntries<T> {
             Vec::new()
         }
     }
-    fn into_component_table(self) -> ComponentTable<T> {
+    pub fn into_component_table(self) -> ComponentTable<T> {
         let entity_index_to_entry_index = self.entity_index_to_entry_index();
         ComponentTable {
             entries: self,
@@ -173,6 +173,9 @@ impl<T> ComponentTable<T> {
     }
     pub fn len(&self) -> usize {
         self.entries.vec.len()
+    }
+    pub fn entries(&self) -> &ComponentTableEntries<T> {
+        &self.entries
     }
     pub fn insert(&mut self, entity: Entity, data: T) -> Option<T> {
         if let Some(maybe_entry_index) = self.entity_index_to_entry_index.get_mut(entity.index as usize) {
