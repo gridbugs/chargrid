@@ -23,7 +23,7 @@ use std::time::Duration;
 const AIM_UI_DEPTH: i8 = depth::GAME_MAX;
 const PLAYER_OFFSET: Coord = Coord::new(22, 18);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
-const STORAGE_FORMAT: format::Json = format::Json;
+const STORAGE_FORMAT: format::Bincode = format::Bincode;
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 struct ScreenShake {
