@@ -3,14 +3,18 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
-module.exports = (env, argv) => {
+module.exports = async (env, argv) => {
+  let revision_output = await exec("git rev-parse HEAD");
+  let revision = revision_output.stdout.trim();
   return {
     entry: './index.js',
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: 'index.js',
-      webassemblyModuleFilename: "app.wasm",
+      filename: `index.${revision}.js`,
+      webassemblyModuleFilename: `app.${revision}.wasm`,
     },
     plugins: [
       new HtmlWebpackPlugin({
