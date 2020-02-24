@@ -78,7 +78,6 @@ impl Context {
             }
             self.terminal.draw_frame::<E>(&mut self.buffer).unwrap();
             let since_frame_start = frame_start.elapsed();
-            eprintln!("{:?}", since_frame_start);
             if let Some(until_next_frame) = FRAME_DURATION.checked_sub(since_frame_start) {
                 thread::sleep(until_next_frame);
             }
