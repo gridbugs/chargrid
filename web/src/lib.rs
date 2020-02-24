@@ -450,7 +450,6 @@ impl Storage for LocalStorage {
         self.local_storage
             .set_item(key.as_ref(), &string)
             .map_err(|e| StoreRawError::IoError(Box::new(JsError(e))))?;
-        let _ = self.local_storage.get_item(key.as_ref());
         Ok(())
     }
 }
