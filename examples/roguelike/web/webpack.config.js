@@ -26,5 +26,8 @@ module.exports = (env, argv) => {
       }),
       new CopyWebpackPlugin([{ from: "static_web" }]),
     ],
+    devServer: {
+      disableHostCheck: true,
+    }
   }
 };
