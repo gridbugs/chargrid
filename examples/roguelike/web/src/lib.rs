@@ -15,12 +15,12 @@ pub fn run() -> Result<(), JsValue> {
     let context = Context::new(Size::new(40, 40), "content");
     let app = app(
         GameConfig { omniscient: None },
-        Frontend::Wasm,
+        Frontend::Web,
         Controls::default(),
         storage,
         SAVE_KEY.to_string(),
         audio_player,
-        RngSeed::Entropy,
+        RngSeed::Random,
     );
     context.run_app(app);
     Ok(())

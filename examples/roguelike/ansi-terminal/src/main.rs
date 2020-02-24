@@ -1,6 +1,7 @@
 use prototty_ansi_terminal::{col_encode, Context};
+use rand::Rng;
 use rip_native::{simon::*, NativeCommon};
-use rip_prototty::{app, Frontend};
+use rip_prototty::{app, Frontend, RngSeed};
 
 #[derive(Clone)]
 enum ColEncodeChoice {
@@ -19,7 +20,7 @@ impl ColEncodeChoice {
             flag("", "greyscale", "").some_if(Greyscale),
             flag("", "ansi", "").some_if(Ansi),
         })
-        .with_default(Rgb)
+        .with_default(TrueColour)
     }
 }
 
@@ -55,15 +56,25 @@ fn main() {
             },
         col_encode_choice,
     } = Args::arg().with_help_default().parse_env_or_exit();
+    // We won't be able to print once the context is created. Choose the initial rng
+    // seed before starting the game so it can be logged in case of error.
+    let rng_seed_u64 = match rng_seed {
+        RngSeed::U64(seed) => seed,
+        RngSeed::Random => rand::thread_rng().gen(),
+    };
+    if let ColEncodeChoice::TrueColour = col_encode_choice {
+        println!("Running in true-colour mode.\nIf colours look wrong, run with `--rgb` or try a different terminal emulator.");
+    }
+    println!("Initial RNG Seed: {}", rng_seed_u64);
     let context = Context::new().unwrap();
     let app = app(
         game_config,
-        Frontend::Native,
+        Frontend::AnsiTerminal,
         controls,
         file_storage,
         save_file,
         audio_player,
-        rng_seed,
+        RngSeed::U64(rng_seed_u64),
     );
     use ColEncodeChoice as C;
     match col_encode_choice {

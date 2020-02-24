@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 env_logger = "0.7"
+rand = "0.7"
 prototty_ansi_terminal = { path = "../../../ansi-terminal" }
 rip_native = { path = "../native" }
 rip_prototty = { path = "../prototty" }

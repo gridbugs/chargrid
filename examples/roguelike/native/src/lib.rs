@@ -4,10 +4,8 @@ use prototty_native_audio::{Error as NativeAudioError, NativeAudioPlayer};
 use rip_prototty::{Controls, GameConfig, Omniscient, RngSeed};
 pub use simon;
 use simon::*;
-use std::collections::hash_map::DefaultHasher;
 use std::env;
 use std::fs::File;
-use std::hash::{Hash, Hasher};
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -24,12 +22,6 @@ pub struct NativeCommon {
     pub game_config: GameConfig,
 }
 
-fn hash_string(s: &str) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    s.hash(&mut hasher);
-    hasher.finish()
-}
-
 fn read_controls_file(path: &PathBuf) -> Option<Controls> {
     let mut buf = Vec::new();
     let mut f = File::open(path).ok()?;
@@ -41,9 +33,9 @@ impl NativeCommon {
     pub fn arg() -> impl Arg<Item = Self> {
         args_map! {
             let {
-                rng_seed = opt::<String>("r", "rng-seed", "rng seed", "TEXT")
-                    .option_map(|s: String| RngSeed::U64(hash_string(s.as_str())))
-                    .with_default(RngSeed::Entropy);
+                rng_seed = opt::<u64>("r", "rng-seed", "rng seed to use for first new game", "INT")
+                    .option_map(|seed| RngSeed::U64(seed))
+                    .with_default(RngSeed::Random);
                 save_file = opt("s", "save-file", "save file", "PATH")
                     .with_default(DEFAULT_SAVE_FILE.to_string());
                 save_dir = opt("d", "save-dir", "save dir", "PATH")
@@ -66,7 +58,7 @@ impl NativeCommon {
                 if delete_save {
                     let result = file_storage.remove(&save_file);
                     if result.is_err() {
-                        log::error!("couldn't find save file to delete");
+                        log::warn!("couldn't find save file to delete");
                     }
                 }
                 let audio_player = match NativeAudioPlayer::try_new_default_device() {

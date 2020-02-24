@@ -46,7 +46,7 @@ fn main() {
     .unwrap();
     let app = app(
         game_config,
-        Frontend::Native,
+        Frontend::Graphical,
         controls,
         file_storage,
         save_file,

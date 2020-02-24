@@ -143,15 +143,7 @@ impl World {
 
     pub fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
         let entity = self.ecs.create();
-        self.spatial
-            .insert(
-                entity,
-                Location {
-                    coord,
-                    layer: Some(Layer::Feature),
-                },
-            )
-            .unwrap();
+        self.spatial.insert(entity, Location { coord, layer: None }).unwrap();
         self.ecs.components.light.insert(
             entity,
             Light {
@@ -168,15 +160,7 @@ impl World {
 
     pub fn spawn_flickering_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
         let entity = self.ecs.create();
-        self.spatial
-            .insert(
-                entity,
-                Location {
-                    coord,
-                    layer: Some(Layer::Feature),
-                },
-            )
-            .unwrap();
+        self.spatial.insert(entity, Location { coord, layer: None }).unwrap();
         self.ecs.components.light.insert(
             entity,
             Light {

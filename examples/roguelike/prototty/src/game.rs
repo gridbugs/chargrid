@@ -1,6 +1,7 @@
 use crate::audio::{Audio, AudioTable};
 use crate::controls::{AppInput, Controls};
 use crate::depth;
+use crate::frontend::Frontend;
 use direction::{CardinalDirection, Direction};
 use game::{
     CellVisibility, CharacterInfo, ExternalEvent, Game, GameControlFlow, Layer, Tile, ToRenderEntity, VisibilityGrid,
@@ -389,9 +390,9 @@ pub struct GameToRender<'a> {
     status: GameStatus,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum RngSeed {
-    Entropy,
+    Random,
     U64(u64),
 }
 
@@ -422,12 +423,13 @@ impl GameInstance {
 pub struct GameData<S: Storage, A: AudioPlayer> {
     instance: Option<GameInstance>,
     controls: Controls,
-    rng_source: Isaac64Rng,
+    rng_seed_source: RngSeedSource,
     last_aim_with_mouse: bool,
     storage_wrapper: StorageWrapper<S>,
     audio_player: A,
     audio_table: AudioTable<A>,
     game_config: GameConfig,
+    frontend: Frontend,
 }
 
 struct StorageWrapper<S: Storage> {
@@ -446,6 +448,27 @@ impl<S: Storage> StorageWrapper<S> {
     }
 }
 
+struct RngSeedSource {
+    rng: Isaac64Rng,
+    next: u64,
+}
+
+impl RngSeedSource {
+    fn new(rng_seed: RngSeed) -> Self {
+        let mut rng = Isaac64Rng::from_entropy();
+        let next = match rng_seed {
+            RngSeed::Random => rng.gen(),
+            RngSeed::U64(seed) => seed,
+        };
+        Self { rng, next }
+    }
+    fn next_seed(&mut self) -> u64 {
+        let seed = self.next;
+        self.next = self.rng.gen();
+        seed
+    }
+}
+
 impl<S: Storage, A: AudioPlayer> GameData<S, A> {
     pub fn new(
         game_config: GameConfig,
@@ -454,6 +477,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         save_key: String,
         audio_player: A,
         rng_seed: RngSeed,
+        frontend: Frontend,
     ) -> Self {
         let mut instance: Option<GameInstance> = match storage.load(&save_key, STORAGE_FORMAT) {
             Ok(instance) => Some(instance),
@@ -465,27 +489,27 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         if let Some(instance) = instance.as_mut() {
             instance.game.update_visibility(&game_config);
         }
-        let rng_source = match rng_seed {
-            RngSeed::Entropy => Isaac64Rng::from_entropy(),
-            RngSeed::U64(u64) => Isaac64Rng::seed_from_u64(u64),
-        };
+        let rng_seed_source = RngSeedSource::new(rng_seed);
         let storage_wrapper = StorageWrapper { storage, save_key };
         Self {
             instance,
             controls,
-            rng_source,
+            rng_seed_source,
             last_aim_with_mouse: false,
             storage_wrapper,
             audio_table: AudioTable::new(&audio_player),
             audio_player,
             game_config,
+            frontend,
         }
     }
     pub fn has_instance(&self) -> bool {
         self.instance.is_some()
     }
     pub fn instantiate(&mut self) {
-        let rng = Isaac64Rng::from_seed(self.rng_source.gen());
+        let seed = self.rng_seed_source.next_seed();
+        self.frontend.log_rng_seed(seed);
+        let rng = Isaac64Rng::seed_from_u64(seed);
         self.instance = Some(GameInstance::new(&self.game_config, rng));
     }
     pub fn save_instance(&mut self) {
