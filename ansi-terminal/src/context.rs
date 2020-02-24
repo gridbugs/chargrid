@@ -4,7 +4,7 @@ use prototty_app::{App, ControlFlow};
 use prototty_input::*;
 use prototty_render::*;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 
@@ -64,6 +64,7 @@ impl Context {
     {
         let _ = col_encode;
         loop {
+            let frame_start = Instant::now();
             for input in self.drain_input().unwrap() {
                 if let Some(ControlFlow::Exit) = app.on_input(input) {
                     return;
@@ -76,7 +77,11 @@ impl Context {
                 return;
             }
             self.terminal.draw_frame::<E>(&mut self.buffer).unwrap();
-            thread::sleep(FRAME_DURATION);
+            let since_frame_start = frame_start.elapsed();
+            eprintln!("{:?}", since_frame_start);
+            if let Some(until_next_frame) = FRAME_DURATION.checked_sub(since_frame_start) {
+                thread::sleep(until_next_frame);
+            }
         }
     }
 
