@@ -519,7 +519,11 @@ fn main_menu_cycle<S: Storage, A: AudioPlayer>(
         })),
         Ok(MainMenuEntry::Save) => Ei::E(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
             data.game.save_instance();
-            Value::new(None)
+            if data.game.has_instance() {
+                Either::Left(game_loop().map(|_| None))
+            } else {
+                Either::Right(Value::new(None))
+            }
         })),
         Ok(MainMenuEntry::Clear) => Ei::F(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
             data.game.clear_instance();
