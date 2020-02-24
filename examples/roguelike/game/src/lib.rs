@@ -17,7 +17,7 @@ pub use ecs::Entity;
 use procgen::SpaceshipSpec;
 use terrain::Terrain;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
-use world::{AnimationContext, World};
+use world::{AnimationContext, World, ANIMATION_FRAME_DURATION};
 pub use world::{CharacterInfo, HitPoints, Layer, Tile, ToRenderEntity};
 
 pub struct Config {
@@ -56,6 +56,7 @@ pub struct Game {
     animation_context: AnimationContext,
     agents: ComponentTable<Agent>,
     agents_to_remove: Vec<Entity>,
+    since_last_frame: Duration,
 }
 
 impl Game {
@@ -83,6 +84,7 @@ impl Game {
             agents,
             agents_to_remove: Vec::new(),
             world,
+            since_last_frame: Duration::from_millis(0),
         };
         game.update_behaviour();
         game.update_visibility(config);
@@ -154,8 +156,18 @@ impl Game {
         }
     }
     #[must_use]
-    pub fn handle_tick(&mut self, _since_last_tick: Duration, config: &Config) -> Option<GameControlFlow> {
+    pub fn handle_tick(&mut self, since_last_tick: Duration, config: &Config) -> Option<GameControlFlow> {
         self.events.clear();
+        self.since_last_frame += since_last_tick;
+        while let Some(remaining_since_last_frame) = self.since_last_frame.checked_sub(ANIMATION_FRAME_DURATION) {
+            self.since_last_frame = remaining_since_last_frame;
+            if let Some(game_control_flow) = self.handle_tick_inner(config) {
+                return Some(game_control_flow);
+            }
+        }
+        None
+    }
+    fn handle_tick_inner(&mut self, config: &Config) -> Option<GameControlFlow> {
         self.update_visibility(config);
         self.world
             .animation_tick(&mut self.animation_context, &mut self.events, &mut self.rng);

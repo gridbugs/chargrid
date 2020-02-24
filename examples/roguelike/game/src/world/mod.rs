@@ -13,7 +13,7 @@ use data::{Components, Npc};
 pub use data::{Disposition, HitPoints, Layer, Tile};
 
 mod realtime_periodic;
-pub use realtime_periodic::animation::Context as AnimationContext;
+pub use realtime_periodic::animation::{Context as AnimationContext, FRAME_DURATION as ANIMATION_FRAME_DURATION};
 use realtime_periodic::data::RealtimeComponents;
 
 mod query;
