@@ -455,7 +455,13 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         audio_player: A,
         rng_seed: RngSeed,
     ) -> Self {
-        let mut instance: Option<GameInstance> = storage.load(&save_key, STORAGE_FORMAT).ok();
+        let mut instance: Option<GameInstance> = match storage.load(&save_key, STORAGE_FORMAT) {
+            Ok(instance) => Some(instance),
+            Err(e) => {
+                log::info!("no instance found: {:?}", e);
+                None
+            }
+        };
         if let Some(instance) = instance.as_mut() {
             instance.game.update_visibility(&game_config);
         }
@@ -483,6 +489,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         self.instance = Some(GameInstance::new(&self.game_config, rng));
     }
     pub fn save_instance(&mut self) {
+        log::info!("saving game...");
         if let Some(instance) = self.instance.as_ref() {
             self.storage_wrapper.save_instance(instance);
         } else {
