@@ -13,9 +13,11 @@ edition = "2018"
 [features]
 yaml = ["serde_yaml"]
 json = ["serde_json"]
+compress = ["flate2"]
 
 [dependencies]
 serde = "1.0"
+flate2 = { version = "1.0", optional = true }
 serde_yaml = { version = "0.8", optional = true }
 serde_json = { version = "1.0", optional = true }
 bincode = { version = "1.1", optional = true }

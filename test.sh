@@ -9,7 +9,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cargo clean
 
 cargo test --workspace
-cargo test --manifest-path=file-storage/Cargo.toml --features=bincode,json,toml,yaml
+cargo test --manifest-path=file-storage/Cargo.toml --features=bincode,json,toml,yaml,compress
 cargo test --manifest-path=prototty/Cargo.toml --features=serialize
 cargo test --manifest-path=native-audio/Cargo.toml --features=force_dedicated_audio_thread
 cargo test --manifest-path=examples/roguelike/graphical/Cargo.toml --no-default-features --features=prototty_graphical_gfx
