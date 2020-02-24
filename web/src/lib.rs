@@ -392,6 +392,20 @@ impl Default for LocalStorage {
     }
 }
 
+#[derive(Debug)]
+struct JsError(pub JsValue);
+
+impl std::fmt::Display for JsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match js_sys::JSON::stringify(&self.0) {
+            Ok(s) => write!(f, "{:?}", s),
+            Err(e) => write!(f, "Failed to parse error: {:?}", e),
+        }
+    }
+}
+
+impl std::error::Error for JsError {}
+
 impl Storage for LocalStorage {
     fn exists<K>(&self, key: K) -> bool
     where
@@ -417,6 +431,7 @@ impl Storage for LocalStorage {
     where
         K: AsRef<str>,
     {
+        log::info!("loading from localstorage with key '{}'", key.as_ref());
         let maybe_string = self
             .local_storage
             .get_item(key.as_ref())
@@ -430,10 +445,13 @@ impl Storage for LocalStorage {
         K: AsRef<str>,
         V: AsRef<[u8]>,
     {
-        let string = serde_json::to_string(value.as_ref()).map_err(|_| StoreRawError::IoError)?;
+        let string = serde_json::to_string(value.as_ref()).map_err(|e| StoreRawError::IoError(Box::new(e)))?;
+        log::info!("storing to localstorage with key '{}'", key.as_ref());
         self.local_storage
             .set_item(key.as_ref(), &string)
-            .map_err(|_| StoreRawError::IoError)
+            .map_err(|e| StoreRawError::IoError(Box::new(JsError(e))))?;
+        let _ = self.local_storage.get_item(key.as_ref());
+        Ok(())
     }
 }
 

@@ -87,8 +87,9 @@ impl Storage for FileStorage {
         K: AsRef<str>,
         V: AsRef<[u8]>,
     {
-        let mut file = File::create(self.full_path(key)).map_err(|_| StoreRawError::IoError)?;
-        file.write_all(value.as_ref()).map_err(|_| StoreRawError::IoError)?;
+        let mut file = File::create(self.full_path(key)).map_err(|e| StoreRawError::IoError(Box::new(e)))?;
+        file.write_all(value.as_ref())
+            .map_err(|e| StoreRawError::IoError(Box::new(e)))?;
         Ok(())
     }
 }

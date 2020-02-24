@@ -21,12 +21,12 @@ pub enum LoadError<E> {
     FormatError(E),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum StoreRawError {
-    IoError,
+    IoError(Box<dyn std::error::Error>),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum StoreError<E> {
     Raw(StoreRawError),
     FormatError(E),
