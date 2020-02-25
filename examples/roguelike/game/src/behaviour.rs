@@ -10,9 +10,10 @@ use grid_search_cardinal::{
         Distance, DistanceMap, PopulateContext as DistanceMapPopulateContext, SearchContext as DistanceMapSearchContext,
     },
     point_to_point::{expand, Context as PointToPointSearchContext, NoPath},
-    CanEnter,
+    CanEnter, Path,
 };
 use line_2d::LineSegment;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use shadowcast::{vision_distance, Context as ShadowcastContext, VisionDistance};
 
@@ -98,6 +99,7 @@ pub struct BehaviourContext {
     distance_map_search_context: DistanceMapSearchContext,
     player_approach: DistanceMap,
     player_flee: DistanceMap,
+    wander_path: Path,
 }
 
 impl BehaviourContext {
@@ -109,6 +111,7 @@ impl BehaviourContext {
             distance_map_search_context: DistanceMapSearchContext::new(size),
             player_approach: DistanceMap::new(size),
             player_flee: DistanceMap::new(size),
+            wander_path: Path::default(),
         }
     }
     pub fn update(&mut self, player: Entity, world: &World) {
@@ -146,16 +149,17 @@ enum Behaviour {
     Flee,
 }
 
-struct Wander<'a> {
+struct Wander<'a, R> {
     world: &'a World,
     last_seen_grid: &'a LastSeenGrid,
     min_last_seen_coord: Option<Coord>,
     min_last_seen_count: u64,
     entity: Entity,
     avoid: bool,
+    rng: &'a mut R,
 }
 
-impl<'a> BestSearch for Wander<'a> {
+impl<'a, R: Rng> BestSearch for Wander<'a, R> {
     fn is_at_max_depth(&self, _depth: Depth) -> bool {
         false
     }
@@ -163,7 +167,14 @@ impl<'a> BestSearch for Wander<'a> {
         if self.world.can_npc_traverse_feature_at_coord(coord) {
             if let Some(entity) = self.world.get_character_at_coord(coord) {
                 if entity != self.entity {
-                    return false;
+                    let my_coord = self.world.entity_coord(self.entity).unwrap();
+                    if my_coord.manhattan_distance(coord) < 4 {
+                        let can_see_character =
+                            has_line_of_sight(my_coord, coord, self.world, vision_distance::Circle::new_squared(40));
+                        if can_see_character && self.rng.gen_range(0, 4) > 0 {
+                            return false;
+                        }
+                    }
                 }
             }
             let last_seen_cell = self.last_seen_grid.last_seen.get_checked(coord);
@@ -213,13 +224,14 @@ impl Agent {
             behaviour: Behaviour::Wander { avoid: true },
         }
     }
-    pub fn act(
+    pub fn act<R: Rng>(
         &mut self,
         entity: Entity,
         world: &World,
         player: Entity,
         behaviour_context: &mut BehaviourContext,
         shadowcast_context: &mut ShadowcastContext<u8>,
+        rng: &mut R,
     ) -> Option<Input> {
         let coord = world.entity_coord(entity)?;
         let npc = world.entity_npc(entity);
@@ -286,18 +298,31 @@ impl Agent {
         };
         match self.behaviour {
             Behaviour::Wander { avoid } => {
-                if let Some(cardinal_direction) = behaviour_context.best_search_context.best_search_first(
-                    Wander {
-                        world,
-                        last_seen_grid: &self.last_seen_grid,
-                        min_last_seen_coord: None,
-                        min_last_seen_count: self.last_seen_grid.last_seen.get_checked(coord).count,
-                        entity,
-                        avoid,
-                    },
-                    coord,
-                ) {
-                    Some(Input::Walk(cardinal_direction))
+                let mut path_node = behaviour_context.wander_path.pop();
+                let need_new_path = if let Some(path_node) = path_node {
+                    let implied_current_coord = path_node.to_coord - path_node.in_direction.coord();
+                    implied_current_coord != coord
+                } else {
+                    true
+                };
+                if need_new_path {
+                    behaviour_context.best_search_context.best_search_path(
+                        Wander {
+                            world,
+                            last_seen_grid: &self.last_seen_grid,
+                            min_last_seen_coord: None,
+                            min_last_seen_count: self.last_seen_grid.last_seen.get_checked(coord).count,
+                            entity,
+                            avoid,
+                            rng,
+                        },
+                        coord,
+                        &mut behaviour_context.wander_path,
+                    );
+                    path_node = behaviour_context.wander_path.pop();
+                }
+                if let Some(path_node) = path_node {
+                    Some(Input::Walk(path_node.in_direction))
                 } else {
                     None
                 }

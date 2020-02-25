@@ -125,7 +125,7 @@ pub fn spaceship<R: Rng>(spec: SpaceshipSpec, rng: &mut R) -> Terrain {
     for coord in npc_candidates
         .into_iter()
         .filter(|&coord| !world.is_character_at_coord(coord))
-        .choose_multiple(rng, 10)
+        .choose_multiple(rng, 20)
     {
         let entity = world.spawn_former_human(coord);
         agents.insert(entity, Agent::new(spec.size));

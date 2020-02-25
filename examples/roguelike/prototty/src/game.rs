@@ -967,7 +967,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameOverEventRoutine<S, A> {
                 },
                 CommonEvent::Frame(period) => {
                     s.duration += period;
-                    const NPC_TURN_PERIOD: Duration = Duration::from_millis(250);
+                    const NPC_TURN_PERIOD: Duration = Duration::from_millis(100);
                     if s.duration > NPC_TURN_PERIOD {
                         s.duration -= NPC_TURN_PERIOD;
                         instance.game.handle_npc_turn();

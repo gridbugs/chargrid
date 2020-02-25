@@ -26,8 +26,10 @@ impl World {
         }
     }
 
-    pub fn melee_attack(&mut self, _attacker: Entity, victim: Entity) {
-        self.damage_character(victim, 10);
+    pub fn melee_attack(&mut self, attacker: Entity, victim: Entity) {
+        if self.ecs.components.tile.get(attacker) != self.ecs.components.tile.get(victim) {
+            self.damage_character(victim, 10);
+        }
     }
 
     pub fn open_door(&mut self, door: Entity) {
