@@ -25,6 +25,13 @@ const AIM_UI_DEPTH: i8 = depth::GAME_MAX;
 const PLAYER_OFFSET: Coord = Coord::new(22, 18);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
 const STORAGE_FORMAT: format::Bincode = format::Bincode;
+const CAMERA_MODE: CameraMode = CameraMode::FollowPlayer;
+
+#[derive(Clone, Copy)]
+enum CameraMode {
+    Fixed,
+    FollowPlayer,
+}
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 struct ScreenShake {
@@ -166,6 +173,7 @@ impl GameView {
         for to_render_entity in game.to_render_entities() {
             render_entity(
                 game_to_render.status,
+                game_to_render.camera_mode,
                 &to_render_entity,
                 game,
                 visibility_grid,
@@ -236,6 +244,7 @@ impl ScreenCoordToGameCoord {
 
 fn render_entity<F: Frame, C: ColModify>(
     game_status: GameStatus,
+    camera_mode: CameraMode,
     to_render_entity: &ToRenderEntity,
     game: &Game,
     visibility_grid: &VisibilityGrid,
@@ -269,11 +278,14 @@ fn render_entity<F: Frame, C: ColModify>(
     if game_status == GameStatus::Playing && light_colour == Rgb24::new(0, 0, 0) {
         return;
     }
-    let screen_coord = GameCoordToScreenCoord {
-        game_coord: entity_coord,
-        player_coord: GameCoord(player_coord.0 + offset),
-    }
-    .compute();
+    let screen_coord = match camera_mode {
+        CameraMode::Fixed => ScreenCoord(to_render_entity.coord),
+        CameraMode::FollowPlayer => GameCoordToScreenCoord {
+            game_coord: entity_coord,
+            player_coord: GameCoord(player_coord.0 + offset),
+        }
+        .compute(),
+    };
     if !screen_coord.0.is_valid(GAME_WINDOW_SIZE) {
         return;
     }
@@ -388,6 +400,7 @@ pub struct GameToRender<'a> {
     game: &'a Game,
     screen_shake: Option<ScreenShake>,
     status: GameStatus,
+    camera_mode: CameraMode,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -409,6 +422,7 @@ impl GameInstance {
             game: &self.game,
             screen_shake: self.screen_shake,
             status: GameStatus::Playing,
+            camera_mode: CAMERA_MODE,
         }
     }
     fn to_render_game_over(&self) -> GameToRender {
@@ -416,6 +430,7 @@ impl GameInstance {
             game: &self.game,
             screen_shake: self.screen_shake,
             status: GameStatus::Over,
+            camera_mode: CAMERA_MODE,
         }
     }
 }
