@@ -418,7 +418,7 @@ fn main_menu<S: Storage, A: AudioPlayer>(
 ) -> impl EventRoutine<Return = Result<MainMenuEntry, menu::Escape>, Data = AppData<S, A>, View = AppView, Event = CommonEvent>
 {
     make_either!(Ei = A | B);
-    SideEffectThen::new(move |data: &mut AppData<S, A>, _| {
+    side_effect_then(move |data: &mut AppData<S, A>| {
         if auto_play.is_some() {
             if data.game.has_instance() {
                 Ei::A(Value::new(Ok(MainMenuEntry::Resume)))
@@ -477,7 +477,7 @@ fn game_over<S: Storage, A: AudioPlayer>(
 fn aim<S: Storage, A: AudioPlayer>(
 ) -> impl EventRoutine<Return = Option<ScreenCoord>, Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B);
-    SideEffectThen::new(|data: &mut AppData<S, A>, view: &AppView| {
+    side_effect_then_with_view(|data: &mut AppData<S, A>, view: &AppView| {
         let game_relative_mouse_coord = view
             .game
             .absolute_coord_to_game_relative_screen_coord(data.last_mouse_coord);
@@ -493,6 +493,11 @@ fn aim<S: Storage, A: AudioPlayer>(
     })
 }
 
+fn map<S: Storage, A: AudioPlayer>(
+) -> impl EventRoutine<Return = (), Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
+    Value::new(())
+}
+
 enum GameLoopBreak {
     GameOver,
     Pause,
@@ -500,11 +505,12 @@ enum GameLoopBreak {
 
 fn game_loop<S: Storage, A: AudioPlayer>(
 ) -> impl EventRoutine<Return = (), Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
-    make_either!(Ei = A | B);
+    make_either!(Ei = A | B | C);
     Ei::A(game())
         .repeat(|game_return| match game_return {
             GameReturn::Pause => Handled::Return(GameLoopBreak::Pause),
             GameReturn::GameOver => Handled::Return(GameLoopBreak::GameOver),
+            GameReturn::Map => Handled::Continue(Ei::C(map().then(|| game()))),
             GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_screen_coord| {
                 make_either!(Ei = A | B);
                 if let Some(screen_coord) = maybe_screen_coord {
@@ -519,9 +525,8 @@ fn game_loop<S: Storage, A: AudioPlayer>(
             match game_loop_break {
                 GameLoopBreak::Pause => Ei::A(Value::new(())),
                 GameLoopBreak::GameOver => Ei::B(game_over().and_then(|()| {
-                    SideEffectThen::new(|data: &mut AppData<S, A>, _| {
+                    side_effect(|data: &mut AppData<S, A>| {
                         data.game.clear_instance();
-                        Value::new(())
                     })
                 })),
             }
@@ -534,33 +539,35 @@ fn main_menu_cycle<S: Storage, A: AudioPlayer>(
     make_either!(Ei = A | B | C | D | E | F);
     main_menu(auto_play).and_then(|entry| match entry {
         Ok(MainMenuEntry::Quit) => Ei::A(Value::new(Some(Quit))),
-        Ok(MainMenuEntry::SaveQuit) => Ei::D(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
+        Ok(MainMenuEntry::SaveQuit) => Ei::D(side_effect(|data: &mut AppData<S, A>| {
             data.game.save_instance();
-            Value::new(Some(Quit))
+            Some(Quit)
         })),
-        Ok(MainMenuEntry::Save) => Ei::E(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
+        Ok(MainMenuEntry::Save) => Ei::E(side_effect_then(|data: &mut AppData<S, A>| {
+            make_either!(Ei = A | B);
             data.game.save_instance();
             if data.game.has_instance() {
-                Either::Left(game_loop().map(|_| None))
+                Ei::A(game_loop().map(|_| None))
             } else {
-                Either::Right(Value::new(None))
+                Ei::B(Value::new(None))
             }
         })),
-        Ok(MainMenuEntry::Clear) => Ei::F(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
+        Ok(MainMenuEntry::Clear) => Ei::F(side_effect(|data: &mut AppData<S, A>| {
             data.game.clear_instance();
-            Value::new(None)
+            None
         })),
-        Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
+        Ok(MainMenuEntry::Resume) | Err(menu::Escape) => Ei::B(side_effect_then(|data: &mut AppData<S, A>| {
+            make_either!(Ei = A | B);
             if data.game.has_instance() {
-                Either::Left(game_loop().map(|_| None))
+                Ei::A(game_loop().map(|()| None))
             } else {
-                Either::Right(Value::new(None))
+                Ei::B(Value::new(None))
             }
         })),
-        Ok(MainMenuEntry::NewGame) => Ei::C(SideEffectThen::new(|data: &mut AppData<S, A>, _| {
+        Ok(MainMenuEntry::NewGame) => Ei::C(side_effect_then(|data: &mut AppData<S, A>| {
             data.game.instantiate();
             data.main_menu.menu_instance_mut().set_index(0);
-            game_loop().map(|_| None)
+            game_loop().map(|()| None)
         })),
     })
 }

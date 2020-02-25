@@ -4,6 +4,8 @@ use prototty::input::Input;
 use prototty::*;
 use std::marker::PhantomData;
 
+make_either!(Either = Left | Right);
+
 #[derive(Clone, Copy)]
 enum MainMenuChoice {
     ChooseColour,
@@ -60,7 +62,7 @@ fn inner() -> impl EventRoutine<Return = Option<()>, Data = AppData, View = AppV
             MainMenuChoice::ChooseColour => Either::Right(colour_menu.and_then(|menu_output| match menu_output {
                 Err(menu::Cancel::Quit) => Either::Left(Value::new(Some(()))),
                 Err(menu::Cancel::Escape) => Either::Left(Value::new(None)),
-                Ok(choice) => Either::Right(SideEffect::new(move |data: &mut AppData, _: &AppView| {
+                Ok(choice) => Either::Right(side_effect(move |data: &mut AppData| {
                     use ColourMenuChoice::*;
                     let colour = match choice {
                         Red => render::Rgb24::new(255, 0, 0),

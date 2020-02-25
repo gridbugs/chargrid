@@ -27,6 +27,7 @@ const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (
 const STORAGE_FORMAT: format::Bincode = format::Bincode;
 const CAMERA_MODE: CameraMode = CameraMode::FollowPlayer;
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 enum CameraMode {
     Fixed,
@@ -646,7 +647,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
                                 match app_input {
                                     AppInput::Aim => Aim::KeyboardFinalise,
                                     AppInput::Move(direction) => Aim::KeyboardDirection(direction),
-                                    AppInput::Wait => Aim::Ignore,
+                                    AppInput::Wait | AppInput::Map => Aim::Ignore,
                                 }
                             } else {
                                 match keyboard_input {
@@ -779,6 +780,7 @@ impl<S: Storage, A: AudioPlayer> GameEventRoutine<S, A> {
 pub enum GameReturn {
     Pause,
     Aim,
+    Map,
     GameOver,
 }
 
@@ -833,6 +835,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
 
                                         AppInput::Aim => return Handled::Return(GameReturn::Aim),
                                         AppInput::Wait => instance.game.handle_input(GameInput::Wait, game_config),
+                                        AppInput::Map => return Handled::Return(GameReturn::Map),
                                     };
                                     if let Some(game_control_flow) = game_control_flow {
                                         match game_control_flow {

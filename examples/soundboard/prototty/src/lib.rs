@@ -134,9 +134,9 @@ fn single<P: AudioPlayer>() -> impl EventRoutine<Return = Option<()>, Data = App
         .select(SelectMenu::new())
         .decorated(MenuDecorator::new())
         .and_then(|maybe_entry| match maybe_entry {
-            Ok(entry) => Ei::A(SideEffectThen::new(move |data: &mut AppData<P>, _| {
+            Ok(entry) => Ei::A(side_effect(move |data: &mut AppData<P>| {
                 entry.play(&data.player);
-                Value::new(None)
+                None
             })),
             Err(menu::Escape) => Ei::B(Value::new(Some(()))),
         })
