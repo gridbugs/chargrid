@@ -10,7 +10,7 @@ pub fn run() -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
     let audio_player = WebAudioPlayer::new_with_mime("video/ogg");
     let storage = LocalStorage::new();
-    let context = Context::new(Size::new(40, 40), "content");
+    let context = Context::new(Size::new(60, 40), "content");
     let app = app(
         GameConfig { omniscient: None },
         Frontend::Web,

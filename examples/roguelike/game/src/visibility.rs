@@ -34,6 +34,7 @@ pub struct Omniscient;
 #[derive(Serialize, Deserialize)]
 struct VisibilityCell {
     last_seen: u64,
+    last_seen_next: u64,
     last_lit: u64,
     visible_directions: DirectionBitmap,
     light_colour: Rgb24,
@@ -43,6 +44,7 @@ impl Default for VisibilityCell {
     fn default() -> Self {
         Self {
             last_seen: 0,
+            last_seen_next: 0,
             last_lit: 0,
             visible_directions: DirectionBitmap::empty(),
             light_colour: Rgb24::new(0, 0, 0),
@@ -57,15 +59,16 @@ pub struct VisibilityGrid {
 }
 
 pub enum CellVisibility {
-    NotVisible,
-    VisibleWithLightColour(Option<Rgb24>),
+    NeverVisible,
+    PreviouslyVisible,
+    CurrentlyVisibleWithLightColour(Option<Rgb24>),
 }
 
 impl VisibilityGrid {
     pub fn new(size: Size) -> Self {
         Self {
             grid: Grid::new_default(size),
-            count: 0,
+            count: 1,
         }
     }
     pub fn cell_visibility(&self, coord: Coord) -> CellVisibility {
@@ -76,12 +79,14 @@ impl VisibilityGrid {
                 } else {
                     None
                 };
-                CellVisibility::VisibleWithLightColour(light_colour)
+                CellVisibility::CurrentlyVisibleWithLightColour(light_colour)
+            } else if cell.last_seen == 0 {
+                CellVisibility::NeverVisible
             } else {
-                CellVisibility::NotVisible
+                CellVisibility::PreviouslyVisible
             }
         } else {
-            CellVisibility::NotVisible
+            CellVisibility::NeverVisible
         }
     }
     pub fn update(
@@ -100,6 +105,7 @@ impl VisibilityGrid {
                 for j in 0..size.x() {
                     let coord = Coord::new(j as i32, i as i32);
                     let cell = grid.get_checked_mut(coord);
+                    cell.last_seen_next = count;
                     cell.last_seen = count;
                     cell.visible_directions = DirectionBitmap::all();
                 }
@@ -113,7 +119,7 @@ impl VisibilityGrid {
                 255,
                 |coord, visible_directions, _visibility| {
                     let cell = grid.get_checked_mut(coord);
-                    cell.last_seen = count;
+                    cell.last_seen_next = count;
                     cell.visible_directions = visible_directions;
                 },
             );
@@ -127,7 +133,7 @@ impl VisibilityGrid {
                 255,
                 |cell_coord, visible_directions, visibility| {
                     let cell = grid.get_checked_mut(cell_coord);
-                    if cell.last_seen == count && !(visible_directions & cell.visible_directions).is_empty() {
+                    if cell.last_seen_next == count && !(visible_directions & cell.visible_directions).is_empty() {
                         if cell.last_lit != count {
                             cell.last_lit = count;
                             cell.light_colour = Rgb24::new(0, 0, 0);
@@ -139,6 +145,9 @@ impl VisibilityGrid {
                         cell.light_colour = cell
                             .light_colour
                             .saturating_add(light_colour.normalised_scalar_mul(visibility));
+                        if cell.light_colour.saturating_channel_total() > 7 {
+                            cell.last_seen = count;
+                        }
                     }
                 },
             );

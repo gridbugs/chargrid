@@ -2,7 +2,8 @@ use crate::controls::Controls;
 use crate::depth;
 use crate::frontend::Frontend;
 use crate::game::{
-    AimEventRoutine, GameData, GameEventRoutine, GameOverEventRoutine, GameReturn, GameView, InjectedInput, ScreenCoord,
+    AimEventRoutine, GameData, GameEventRoutine, GameOverEventRoutine, GameReturn, GameView, InjectedInput,
+    MapEventRoutine, ScreenCoord,
 };
 pub use crate::game::{GameConfig, Omniscient, RngSeed};
 use common_event::*;
@@ -495,7 +496,18 @@ fn aim<S: Storage, A: AudioPlayer>(
 
 fn map<S: Storage, A: AudioPlayer>(
 ) -> impl EventRoutine<Return = (), Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
-    Value::new(())
+    make_either!(Ei = A | B);
+    side_effect_then(|data: &mut AppData<S, A>| {
+        if let Some(instance) = data.game.instance() {
+            Ei::A(
+                MapEventRoutine::new_centred_on_player(instance)
+                    .select(SelectGame::new())
+                    .decorated(DecorateGame::new()),
+            )
+        } else {
+            Ei::B(Value::new(()))
+        }
+    })
 }
 
 enum GameLoopBreak {

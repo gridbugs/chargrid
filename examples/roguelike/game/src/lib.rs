@@ -90,6 +90,9 @@ impl Game {
         game.update_visibility(config);
         game
     }
+    pub fn size(&self) -> Size {
+        self.world.size()
+    }
     pub fn is_gameplay_blocked(&self) -> bool {
         self.world.is_gameplay_blocked()
     }

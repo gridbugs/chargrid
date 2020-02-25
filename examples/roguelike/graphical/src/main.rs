@@ -25,7 +25,7 @@ fn main() {
         },
         title: "RIP".to_string(),
         window_dimensions: WindowDimensions::Windowed(Dimensions {
-            width: 720.,
+            width: 960.,
             height: 640.,
         }),
         cell_dimensions: Dimensions {
