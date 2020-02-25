@@ -34,6 +34,18 @@ impl World {
         }
     }
 
+    pub fn can_npc_traverse_feature_at_coord(&self, coord: Coord) -> bool {
+        if let Some(spatial_cell) = self.spatial.get_cell(coord) {
+            if let Some(feature) = spatial_cell.feature {
+                self.ecs.components.door_state.contains(feature) || !self.ecs.components.solid.contains(feature)
+            } else {
+                true
+            }
+        } else {
+            true
+        }
+    }
+
     pub fn is_npc_at_coord(&self, coord: Coord) -> bool {
         if let Some(spatial_cell) = self.spatial.get_cell(coord) {
             if let Some(entity) = spatial_cell.character {
@@ -41,6 +53,14 @@ impl World {
             } else {
                 false
             }
+        } else {
+            false
+        }
+    }
+
+    pub fn is_character_at_coord(&self, coord: Coord) -> bool {
+        if let Some(spatial_cell) = self.spatial.get_cell(coord) {
+            spatial_cell.character.is_some()
         } else {
             false
         }

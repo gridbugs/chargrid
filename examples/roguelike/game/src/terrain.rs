@@ -3,7 +3,7 @@ use crate::World;
 use ecs::{ComponentTable, Entity};
 use grid_2d::{Coord, Size};
 use procgen::{LightType, Spaceship, SpaceshipCell, SpaceshipSpec};
-use rand::Rng;
+use rand::{seq::IteratorRandom, Rng};
 use rgb24::Rgb24;
 
 pub struct Terrain {
@@ -79,8 +79,9 @@ pub fn from_str(s: &str) -> Terrain {
 
 pub fn spaceship<R: Rng>(spec: SpaceshipSpec, rng: &mut R) -> Terrain {
     let mut world = World::new(spec.size);
-    let agents = ComponentTable::default();
+    let mut agents = ComponentTable::default();
     let spaceship = Spaceship::generate(spec, rng);
+    let mut npc_candidates = Vec::new();
     for (coord, cell) in spaceship.map.enumerate() {
         match cell {
             SpaceshipCell::Wall => {
@@ -88,6 +89,7 @@ pub fn spaceship<R: Rng>(spec: SpaceshipSpec, rng: &mut R) -> Terrain {
             }
             SpaceshipCell::Floor => {
                 world.spawn_floor(coord);
+                npc_candidates.push(coord);
             }
             SpaceshipCell::Space => {
                 world.spawn_space(coord);
@@ -120,5 +122,13 @@ pub fn spaceship<R: Rng>(spec: SpaceshipSpec, rng: &mut R) -> Terrain {
         }
     }
     let player = world.spawn_player(spaceship.player_spawn);
+    for coord in npc_candidates
+        .into_iter()
+        .filter(|&coord| !world.is_character_at_coord(coord))
+        .choose_multiple(rng, 10)
+    {
+        let entity = world.spawn_former_human(coord);
+        agents.insert(entity, Agent::new(spec.size));
+    }
     Terrain { world, player, agents }
 }

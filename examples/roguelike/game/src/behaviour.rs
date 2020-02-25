@@ -24,7 +24,7 @@ fn has_line_of_sight(eye: Coord, dest: Coord, world: &World, vision_distance: vi
         if !vision_distance.in_range(eye_to_coord) {
             return false;
         }
-        if world.is_wall_at_coord(coord) {
+        if !world.can_npc_traverse_feature_at_coord(coord) {
             return false;
         }
     }
@@ -160,7 +160,7 @@ impl<'a> BestSearch for Wander<'a> {
         false
     }
     fn can_enter_updating_best(&mut self, coord: Coord) -> bool {
-        if !self.world.is_wall_at_coord(coord) {
+        if self.world.can_npc_traverse_feature_at_coord(coord) {
             if let Some(entity) = self.world.get_character_at_coord(coord) {
                 if entity != self.entity {
                     return false;
@@ -191,7 +191,7 @@ struct WorldCanEnterIgnoreCharacters<'a> {
 
 impl<'a> CanEnter for WorldCanEnterIgnoreCharacters<'a> {
     fn can_enter(&self, coord: Coord) -> bool {
-        !self.world.is_wall_at_coord(coord)
+        self.world.can_npc_traverse_feature_at_coord(coord)
     }
 }
 
@@ -201,7 +201,7 @@ struct WorldCanEnterAvoidNpcs<'a> {
 
 impl<'a> CanEnter for WorldCanEnterAvoidNpcs<'a> {
     fn can_enter(&self, coord: Coord) -> bool {
-        !self.world.is_wall_at_coord(coord) && !self.world.is_npc_at_coord(coord)
+        self.world.can_npc_traverse_feature_at_coord(coord) && !self.world.is_npc_at_coord(coord)
     }
 }
 
