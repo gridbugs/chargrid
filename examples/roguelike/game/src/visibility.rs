@@ -1,5 +1,5 @@
 use crate::world::World;
-use grid_2d::{Coord, Grid, Size};
+use grid_2d::{Coord, CoordIter, Grid, Size};
 use rational::Rational;
 use rgb24::Rgb24;
 use serde::{Deserialize, Serialize};
@@ -100,15 +100,11 @@ impl VisibilityGrid {
         let count = self.count;
         let grid = &mut self.grid;
         if let Some(Omniscient) = omniscient {
-            let size = world.size();
-            for i in 0..size.y() {
-                for j in 0..size.x() {
-                    let coord = Coord::new(j as i32, i as i32);
-                    let cell = grid.get_checked_mut(coord);
-                    cell.last_seen_next = count;
-                    cell.last_seen = count;
-                    cell.visible_directions = DirectionBitmap::all();
-                }
+            for coord in CoordIter::new(world.size()) {
+                let cell = grid.get_checked_mut(coord);
+                cell.last_seen_next = count;
+                cell.last_seen = count;
+                cell.visible_directions = DirectionBitmap::all();
             }
         } else {
             shadowcast_context.for_each_visible(
@@ -145,7 +141,7 @@ impl VisibilityGrid {
                         cell.light_colour = cell
                             .light_colour
                             .saturating_add(light_colour.normalised_scalar_mul(visibility));
-                        if cell.light_colour.saturating_channel_total() > 7 {
+                        if cell.light_colour.saturating_channel_total() > 31 {
                             cell.last_seen = count;
                         }
                     }
