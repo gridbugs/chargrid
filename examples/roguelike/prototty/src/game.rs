@@ -25,7 +25,7 @@ use std::time::Duration;
 const CONFIG_KEY: &str = "config.json";
 
 const GAME_MUSIC_VOLUME: f32 = 0.05;
-const MENU_MUSIC_VOLUME: f32 = 0.01;
+const MENU_MUSIC_VOLUME: f32 = 0.02;
 
 const AIM_UI_DEPTH: i8 = depth::GAME_MAX;
 const PLAYER_OFFSET: Coord = Coord::new(30, 18);
@@ -108,17 +108,20 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
                 }
             }
             ExternalEvent::LoopMusic(music) => {
-                if self.audio_config.music {
-                    *self.current_music = Some(music);
-                    let handle = loop_music(self.audio_player, self.audio_table, music);
-                    *self.current_music_handle = Some(handle);
-                }
+                *self.current_music = Some(music);
+                let handle = loop_music(self.audio_player, self.audio_table, self.audio_config, music);
+                *self.current_music_handle = Some(handle);
             }
         }
     }
 }
 
-fn loop_music<A: AudioPlayer>(audio_player: &A, audio_table: &AudioTable<A>, music: Music) -> A::Handle {
+fn loop_music<A: AudioPlayer>(
+    audio_player: &A,
+    audio_table: &AudioTable<A>,
+    audio_config: &AudioConfig,
+    music: Music,
+) -> A::Handle {
     let audio = match music {
         Music::Fiberitron => Audio::Fiberitron,
     };
@@ -127,6 +130,9 @@ fn loop_music<A: AudioPlayer>(audio_player: &A, audio_table: &AudioTable<A>, mus
     let sound = audio_table.get(audio);
     let handle = audio_player.play_loop(&sound);
     handle.set_volume(volume);
+    if !audio_config.music {
+        handle.pause();
+    }
     handle
 }
 
@@ -601,7 +607,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         let audio_table = AudioTable::new(&audio_player);
         let music_handle = if let Some(instance) = instance.as_ref() {
             if let Some(music) = instance.current_music {
-                let handle = loop_music(&audio_player, &audio_table, music);
+                let handle = loop_music(&audio_player, &audio_table, &audio_config, music);
                 Some(handle)
             } else {
                 None
@@ -628,6 +634,13 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
     }
     pub fn set_audio_config(&mut self, audio_config: AudioConfig) {
         self.audio_config = audio_config;
+        if let Some(music_handle) = self.music_handle.as_ref() {
+            if audio_config.music {
+                music_handle.play();
+            } else {
+                music_handle.pause();
+            }
+        }
         let _ = self
             .storage_wrapper
             .storage

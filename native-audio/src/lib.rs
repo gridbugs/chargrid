@@ -65,6 +65,15 @@ impl AudioHandle for NativeHandle {
     fn set_volume(&self, volume: f32) {
         self.sink.set_volume(volume);
     }
+    fn volume(&self) -> f32 {
+        self.sink.volume()
+    }
+    fn pause(&self) {
+        self.sink.pause();
+    }
+    fn play(&self) {
+        self.sink.play();
+    }
     fn background(self) {
         self.sink.detach()
     }

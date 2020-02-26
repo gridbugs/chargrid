@@ -10,6 +10,9 @@ pub trait AudioPlayer {
 
 pub trait AudioHandle {
     fn set_volume(&self, volume: f32);
+    fn volume(&self) -> f32;
+    fn pause(&self);
+    fn play(&self);
     fn background(self);
 }
 
@@ -31,6 +34,23 @@ impl<H: AudioHandle> AudioHandle for Option<H> {
     fn set_volume(&self, volume: f32) {
         if let Some(handle) = self.as_ref() {
             handle.set_volume(volume);
+        }
+    }
+    fn volume(&self) -> f32 {
+        if let Some(handle) = self.as_ref() {
+            handle.volume()
+        } else {
+            0.0
+        }
+    }
+    fn pause(&self) {
+        if let Some(handle) = self.as_ref() {
+            handle.pause();
+        }
+    }
+    fn play(&self) {
+        if let Some(handle) = self.as_ref() {
+            handle.play();
         }
     }
     fn background(self) {

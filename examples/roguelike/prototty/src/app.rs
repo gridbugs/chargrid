@@ -430,10 +430,10 @@ impl<'a> From<&'a OrBack<OptionsMenuEntry>> for &'a str {
         use OptionsMenuEntry::*;
         use OrBack::*;
         match options_menu_entry {
-            Selection(ToggleMusic { current: true }) => "Music enabled: [*]",
-            Selection(ToggleMusic { current: false }) => "Music enabled: [ ]",
-            Selection(ToggleSfx { current: true }) => "SFX enabled: [*]",
-            Selection(ToggleSfx { current: false }) => "SFX enabled: [ ]",
+            Selection(ToggleMusic { current: true }) => "(m) Music enabled: [*]",
+            Selection(ToggleMusic { current: false }) => "(m) Music enabled: [ ]",
+            Selection(ToggleSfx { current: true }) => "(s) SFX enabled: [*]",
+            Selection(ToggleSfx { current: false }) => "(s) SFX enabled: [ ]",
             Back => "Back",
         }
     }
@@ -460,7 +460,10 @@ impl OptionsMenuEntry {
                 Back,
             ],
             selected_index: 0,
-            hotkeys: None,
+            hotkeys: Some(hashmap![
+                'm' => Selection(ToggleMusic { current: audio_config.music }),
+                's' => Selection(ToggleSfx { current: audio_config.music }),
+            ]),
         }
         .build()
         .unwrap()

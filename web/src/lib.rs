@@ -488,6 +488,15 @@ impl AudioHandle for WebHandle {
     fn set_volume(&self, volume: f32) {
         self.element.set_volume(volume as f64);
     }
+    fn volume(&self) -> f32 {
+        self.element.volume() as f32
+    }
+    fn pause(&self) {
+        let _ = self.element.pause();
+    }
+    fn play(&self) {
+        let _ = self.element.play();
+    }
     fn background(mut self) {
         self.background = true;
     }
