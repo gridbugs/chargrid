@@ -43,14 +43,14 @@ where
         self.last_offset = context.offset;
         let mut max_width = 0;
         for (i, entry) in menu_instance.items.iter().enumerate() {
-            let width = if i == menu_instance.selected_index {
+            let info = if i == menu_instance.selected_index {
                 self.entry_view
                     .selected(entry, context.add_offset(Coord::new(0, i as i32)), frame)
             } else {
                 self.entry_view
                     .normal(entry, context.add_offset(Coord::new(0, i as i32)), frame)
             };
-            max_width = max_width.max(width);
+            max_width = max_width.max(info.width);
         }
         self.last_size = Size::new(max_width, menu_instance.items.len() as u32);
     }
@@ -70,20 +70,22 @@ where
         self.last_offset = context.offset;
         let mut max_width = 0;
         for (i, entry) in menu_instance.items.iter().enumerate() {
-            let width = if i == menu_instance.selected_index {
+            let info = if i == menu_instance.selected_index {
                 self.entry_view
                     .selected(entry, extra, context.add_offset(Coord::new(0, i as i32)), frame)
             } else {
                 self.entry_view
                     .normal(entry, extra, context.add_offset(Coord::new(0, i as i32)), frame)
             };
-            max_width = max_width.max(width);
+            max_width = max_width.max(info.width);
         }
         self.last_size = Size::new(max_width, menu_instance.items.len() as u32);
     }
 }
 
-pub type MenuEntryViewInfo = u32;
+pub struct MenuEntryViewInfo {
+    pub width: u32,
+}
 
 pub trait MenuEntryView<T> {
     fn normal<F: Frame, C: ColModify>(
@@ -132,7 +134,9 @@ pub fn menu_entry_view<T, V: View<T>, F: Frame, C: ColModify>(
     context: ViewContext<C>,
     frame: &mut F,
 ) -> MenuEntryViewInfo {
-    view.view_size(data, context, frame).width()
+    MenuEntryViewInfo {
+        width: view.view_size(data, context, frame).width(),
+    }
 }
 
 /// An implementation of `MenuEntryView` for menus whose entries

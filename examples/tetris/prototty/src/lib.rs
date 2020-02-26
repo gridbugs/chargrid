@@ -124,21 +124,22 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
         choice: &MainMenuChoice,
         context: ViewContext<C>,
         frame: &mut F,
-    ) -> u32 {
+    ) -> MenuEntryViewInfo {
         let string = match choice {
             MainMenuChoice::Play => "  Play",
             MainMenuChoice::Quit => "  Quit",
         };
-        StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(127)))
+        let width = StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(127)))
             .view_size(string, context, frame)
-            .width()
+            .width();
+        MenuEntryViewInfo { width }
     }
     fn selected<F: Frame, C: ColModify>(
         &mut self,
         choice: &MainMenuChoice,
         context: ViewContext<C>,
         frame: &mut F,
-    ) -> u32 {
+    ) -> MenuEntryViewInfo {
         let base_style = Style::new().with_bold(true).with_underline(true);
         let rich_text = match choice {
             MainMenuChoice::Play => vec![
@@ -151,7 +152,7 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
             ],
             MainMenuChoice::Quit => vec![("> Quit", base_style.with_foreground(Rgb24::new_grey(255)))],
         };
-        RichTextViewSingleLine::new()
+        let width = RichTextViewSingleLine::new()
             .view_size(
                 rich_text
                     .iter()
@@ -159,7 +160,8 @@ impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
                 context,
                 frame,
             )
-            .width()
+            .width();
+        MenuEntryViewInfo { width }
     }
 }
 
