@@ -9,7 +9,7 @@ pub use crate::game::{GameConfig, Omniscient, RngSeed};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
-use maplit::*;
+use maplit::hashmap;
 use menu::{fade_spec, FadeMenuEntryView, MenuInstanceChoose};
 use prototty::input::*;
 use prototty::*;
