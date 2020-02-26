@@ -79,11 +79,13 @@ pub mod fade_spec {
     pub use prototty_render::Rgb24;
     pub use std::time::Duration;
 
+    #[derive(Debug, Clone)]
     pub enum FromCol {
         Current,
         Rgb24(Rgb24),
     }
 
+    #[derive(Debug, Clone)]
     pub struct From {
         pub foreground: FromCol,
         pub background: FromCol,
@@ -97,6 +99,7 @@ pub mod fade_spec {
         }
     }
 
+    #[derive(Debug, Clone)]
     pub struct To {
         pub foreground: Rgb24,
         pub background: Rgb24,
@@ -104,17 +107,20 @@ pub mod fade_spec {
         pub underline: bool,
     }
 
+    #[derive(Debug, Clone)]
     pub struct Durations {
         pub foreground: Duration,
         pub background: Duration,
     }
 
+    #[derive(Debug, Clone)]
     pub struct Style {
         pub to: To,
         pub from: From,
         pub durations: Durations,
     }
 
+    #[derive(Debug, Clone)]
     pub struct Spec {
         pub selected: Style,
         pub normal: Style,

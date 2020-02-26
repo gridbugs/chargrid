@@ -22,6 +22,8 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use std::time::Duration;
 
+const CONFIG_KEY: &str = "config.json";
+
 const GAME_MUSIC_VOLUME: f32 = 0.05;
 const MENU_MUSIC_VOLUME: f32 = 0.01;
 
@@ -30,6 +32,18 @@ const PLAYER_OFFSET: Coord = Coord::new(30, 18);
 const GAME_WINDOW_SIZE: Size = Size::new_u16((PLAYER_OFFSET.x as u16 * 2) + 1, (PLAYER_OFFSET.y as u16 * 2) + 1);
 const STORAGE_FORMAT: format::Bincode = format::Bincode;
 const CAMERA_MODE: CameraMode = CameraMode::FollowPlayer;
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct AudioConfig {
+    pub music: bool,
+    pub sfx: bool,
+}
+
+impl Default for AudioConfig {
+    fn default() -> Self {
+        Self { music: true, sfx: true }
+    }
+}
 
 #[allow(dead_code)]
 #[derive(Clone, Copy)]
@@ -64,6 +78,7 @@ struct EffectContext<'a, A: AudioPlayer> {
     audio_player: &'a A,
     audio_table: &'a AudioTable<A>,
     player_coord: GameCoord,
+    audio_config: &'a AudioConfig,
 }
 
 impl<'a, A: AudioPlayer> EffectContext<'a, A> {
@@ -85,15 +100,19 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
                     remaining_frames: 2,
                     direction,
                 });
-                const BASE_VOLUME: f32 = 50.;
-                let distance_squared = (self.player_coord.0 - coord).magnitude2();
-                let volume = (BASE_VOLUME / (distance_squared as f32).max(1.)).min(1.);
-                self.play_audio(Audio::Explosion, volume);
+                if self.audio_config.sfx {
+                    const BASE_VOLUME: f32 = 50.;
+                    let distance_squared = (self.player_coord.0 - coord).magnitude2();
+                    let volume = (BASE_VOLUME / (distance_squared as f32).max(1.)).min(1.);
+                    self.play_audio(Audio::Explosion, volume);
+                }
             }
             ExternalEvent::LoopMusic(music) => {
-                *self.current_music = Some(music);
-                let handle = loop_music(self.audio_player, self.audio_table, music);
-                *self.current_music_handle = Some(handle);
+                if self.audio_config.music {
+                    *self.current_music = Some(music);
+                    let handle = loop_music(self.audio_player, self.audio_table, music);
+                    *self.current_music_handle = Some(handle);
+                }
             }
         }
     }
@@ -516,6 +535,7 @@ pub struct GameData<S: Storage, A: AudioPlayer> {
     game_config: GameConfig,
     frontend: Frontend,
     music_handle: Option<A::Handle>,
+    audio_config: AudioConfig,
 }
 
 struct StorageWrapper<S: Storage> {
@@ -565,6 +585,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         rng_seed: RngSeed,
         frontend: Frontend,
     ) -> Self {
+        let audio_config = storage.load(CONFIG_KEY, format::Json).unwrap_or_default();
         let mut instance: Option<GameInstance> = match storage.load(&save_key, STORAGE_FORMAT) {
             Ok(instance) => Some(instance),
             Err(e) => {
@@ -599,7 +620,18 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
             game_config,
             frontend,
             music_handle,
+            audio_config,
         }
+    }
+    pub fn audio_config(&self) -> AudioConfig {
+        self.audio_config
+    }
+    pub fn set_audio_config(&mut self, audio_config: AudioConfig) {
+        self.audio_config = audio_config;
+        let _ = self
+            .storage_wrapper
+            .storage
+            .store(CONFIG_KEY, &audio_config, format::Json);
     }
     pub fn pre_game_loop(&mut self) {
         if let Some(music_handle) = self.music_handle.as_ref() {
@@ -731,6 +763,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
         let audio_table = &data.audio_table;
         let game_config = &data.game_config;
         let current_music_handle = &mut data.music_handle;
+        let audio_config = &data.audio_config;
         if let Some(instance) = data.instance.as_mut() {
             event_or_peek_with_handled(event_or_peek, self, |mut s, event| {
                 *last_aim_with_mouse = false;
@@ -787,6 +820,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
                             audio_player,
                             audio_table,
                             player_coord: GameCoord::of_player(instance.game.player_info()),
+                            audio_config,
                         };
                         event_context.next_frame();
                         for event in instance.game.events() {
@@ -895,6 +929,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
         let audio_table = &data.audio_table;
         let game_config = &data.game_config;
         let current_music_handle = &mut data.music_handle;
+        let audio_config = &data.audio_config;
         if let Some(instance) = data.instance.as_mut() {
             let player_coord = GameCoord::of_player(instance.game.player_info());
             for injected_input in self.injected_inputs.drain(..) {
@@ -956,6 +991,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                         audio_player,
                         audio_table,
                         player_coord,
+                        audio_config,
                     };
                     event_context.next_frame();
                     for event in instance.game.events() {
@@ -1016,6 +1052,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameOverEventRoutine<S, A> {
         let audio_player = &data.audio_player;
         let audio_table = &data.audio_table;
         let current_music_handle = &mut data.music_handle;
+        let audio_config = &data.audio_config;
         if let Some(instance) = data.instance.as_mut() {
             event_or_peek_with_handled(event_or_peek, self, |mut s, event| match event {
                 CommonEvent::Input(input) => match input {
@@ -1038,6 +1075,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameOverEventRoutine<S, A> {
                         audio_player,
                         audio_table,
                         player_coord: GameCoord::of_player(instance.game.player_info()),
+                        audio_config,
                     };
                     event_context.next_frame();
                     for event in instance.game.events() {

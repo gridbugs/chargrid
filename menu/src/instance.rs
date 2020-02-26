@@ -101,6 +101,10 @@ impl<T: Clone> MenuInstance<T> {
         }
     }
 
+    pub fn index(&self) -> usize {
+        self.selected_index
+    }
+
     pub fn selected(&self) -> T {
         self.items[self.selected_index].clone()
     }
