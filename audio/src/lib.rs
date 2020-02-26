@@ -22,14 +22,14 @@ pub trait AudioPlayer {
 }
 
 impl<A: AudioPlayer> AudioPlayer for Option<A> {
-    type Sound = &'static [u8];
+    type Sound = Option<A::Sound>;
     fn play(&self, sound: &Self::Sound, properties: AudioProperties) {
-        if let Some(player) = self.as_ref() {
-            let sound = player.load_sound(sound);
-            player.play(&sound, properties);
+        match (self.as_ref(), sound.as_ref()) {
+            (Some(a), Some(s)) => a.play(s, properties),
+            _ => (),
         }
     }
     fn load_sound(&self, bytes: &'static [u8]) -> Self::Sound {
-        bytes
+        self.as_ref().map(|a| a.load_sound(bytes))
     }
 }
