@@ -1,7 +1,7 @@
 use common_event::*;
 use event_routine::*;
 use prototty::*;
-use prototty_audio::{AudioPlayer, AudioProperties};
+use prototty_audio::{AudioHandle, AudioPlayer};
 use render::*;
 use std::marker::PhantomData;
 
@@ -32,7 +32,7 @@ impl MenuEntry {
     }
     fn play<P: AudioPlayer>(self, player: &P) {
         let sound = player.load_sound(self.sound_bytes());
-        player.play(&sound, AudioProperties::default());
+        player.play(&sound).background();
     }
 }
 

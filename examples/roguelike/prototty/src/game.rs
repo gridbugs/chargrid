@@ -4,7 +4,8 @@ use crate::depth;
 use crate::frontend::Frontend;
 use direction::{CardinalDirection, Direction};
 use game::{
-    CellVisibility, CharacterInfo, ExternalEvent, Game, GameControlFlow, Layer, Tile, ToRenderEntity, VisibilityGrid,
+    CellVisibility, CharacterInfo, ExternalEvent, Game, GameControlFlow, Layer, Music, Tile, ToRenderEntity,
+    VisibilityGrid,
 };
 pub use game::{Config as GameConfig, Input as GameInput, Omniscient};
 use line_2d::{Config as LineConfig, LineSegment};
@@ -13,13 +14,16 @@ use prototty::event_routine::*;
 use prototty::input::*;
 use prototty::render::*;
 use prototty::text::*;
-use prototty_audio::{AudioPlayer, AudioProperties};
+use prototty_audio::{AudioHandle, AudioPlayer};
 use prototty_storage::{format, Storage};
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use std::time::Duration;
+
+const GAME_MUSIC_VOLUME: f32 = 0.05;
+const MENU_MUSIC_VOLUME: f32 = 0.01;
 
 const AIM_UI_DEPTH: i8 = depth::GAME_MAX;
 const PLAYER_OFFSET: Coord = Coord::new(30, 18);
@@ -55,6 +59,8 @@ impl ScreenShake {
 struct EffectContext<'a, A: AudioPlayer> {
     rng: &'a mut Isaac64Rng,
     screen_shake: &'a mut Option<ScreenShake>,
+    current_music: &'a mut Option<Music>,
+    current_music_handle: &'a mut Option<A::Handle>,
     audio_player: &'a A,
     audio_table: &'a AudioTable<A>,
     player_coord: GameCoord,
@@ -64,10 +70,12 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
     fn next_frame(&mut self) {
         *self.screen_shake = self.screen_shake.and_then(|screen_shake| screen_shake.next());
     }
-    fn play_audio(&self, audio: Audio, properties: AudioProperties) {
-        log::info!("Playing sound: {:?} {:?}", audio, properties);
+    fn play_audio(&self, audio: Audio, volume: f32) {
+        log::info!("Playing audio {:?} at volume {:?}", audio, volume);
         let sound = self.audio_table.get(audio);
-        self.audio_player.play(&sound, properties);
+        let handle = self.audio_player.play(&sound);
+        handle.set_volume(volume);
+        handle.background();
     }
     fn handle_event(&mut self, event: ExternalEvent) {
         match event {
@@ -80,11 +88,27 @@ impl<'a, A: AudioPlayer> EffectContext<'a, A> {
                 const BASE_VOLUME: f32 = 50.;
                 let distance_squared = (self.player_coord.0 - coord).magnitude2();
                 let volume = (BASE_VOLUME / (distance_squared as f32).max(1.)).min(1.);
-                let properties = AudioProperties::default().with_volume(volume);
-                self.play_audio(Audio::Explosion, properties);
+                self.play_audio(Audio::Explosion, volume);
+            }
+            ExternalEvent::LoopMusic(music) => {
+                *self.current_music = Some(music);
+                let handle = loop_music(self.audio_player, self.audio_table, music);
+                *self.current_music_handle = Some(handle);
             }
         }
     }
+}
+
+fn loop_music<A: AudioPlayer>(audio_player: &A, audio_table: &AudioTable<A>, music: Music) -> A::Handle {
+    let audio = match music {
+        Music::Fiberitron => Audio::Fiberitron,
+    };
+    let volume = GAME_MUSIC_VOLUME;
+    log::info!("Looping audio {:?} at volume {:?}", audio, volume);
+    let sound = audio_table.get(audio);
+    let handle = audio_player.play_loop(&sound);
+    handle.set_volume(volume);
+    handle
 }
 
 pub enum InjectedInput {
@@ -427,6 +451,7 @@ pub struct GameInstance {
     rng: Isaac64Rng,
     game: Game,
     screen_shake: Option<ScreenShake>,
+    current_music: Option<Music>,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -459,6 +484,7 @@ impl GameInstance {
             game: Game::new(game_config, &mut rng),
             rng,
             screen_shake: None,
+            current_music: None,
         }
     }
     pub fn to_render(&self) -> GameToRender {
@@ -489,6 +515,7 @@ pub struct GameData<S: Storage, A: AudioPlayer> {
     audio_table: AudioTable<A>,
     game_config: GameConfig,
     frontend: Frontend,
+    music_handle: Option<A::Handle>,
 }
 
 struct StorageWrapper<S: Storage> {
@@ -550,16 +577,38 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
         }
         let rng_seed_source = RngSeedSource::new(rng_seed);
         let storage_wrapper = StorageWrapper { storage, save_key };
+        let audio_table = AudioTable::new(&audio_player);
+        let music_handle = if let Some(instance) = instance.as_ref() {
+            if let Some(music) = instance.current_music {
+                let handle = loop_music(&audio_player, &audio_table, music);
+                Some(handle)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         Self {
             instance,
             controls,
             rng_seed_source,
             last_aim_with_mouse: false,
             storage_wrapper,
-            audio_table: AudioTable::new(&audio_player),
+            audio_table,
             audio_player,
             game_config,
             frontend,
+            music_handle,
+        }
+    }
+    pub fn pre_game_loop(&mut self) {
+        if let Some(music_handle) = self.music_handle.as_ref() {
+            music_handle.set_volume(GAME_MUSIC_VOLUME);
+        }
+    }
+    pub fn post_game_loop(&mut self) {
+        if let Some(music_handle) = self.music_handle.as_ref() {
+            music_handle.set_volume(MENU_MUSIC_VOLUME);
         }
     }
     pub fn has_instance(&self) -> bool {
@@ -582,6 +631,7 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
     pub fn clear_instance(&mut self) {
         self.instance = None;
         self.storage_wrapper.clear_instance();
+        self.music_handle = None;
     }
     pub fn instance(&self) -> Option<&GameInstance> {
         self.instance.as_ref()
@@ -680,6 +730,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
         let audio_player = &data.audio_player;
         let audio_table = &data.audio_table;
         let game_config = &data.game_config;
+        let current_music_handle = &mut data.music_handle;
         if let Some(instance) = data.instance.as_mut() {
             event_or_peek_with_handled(event_or_peek, self, |mut s, event| {
                 *last_aim_with_mouse = false;
@@ -731,6 +782,8 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for AimEventRoutine<S, A> {
                         let mut event_context = EffectContext {
                             rng: &mut instance.rng,
                             screen_shake: &mut instance.screen_shake,
+                            current_music: &mut instance.current_music,
+                            current_music_handle,
                             audio_player,
                             audio_table,
                             player_coord: GameCoord::of_player(instance.game.player_info()),
@@ -841,6 +894,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
         let audio_player = &data.audio_player;
         let audio_table = &data.audio_table;
         let game_config = &data.game_config;
+        let current_music_handle = &mut data.music_handle;
         if let Some(instance) = data.instance.as_mut() {
             let player_coord = GameCoord::of_player(instance.game.player_info());
             for injected_input in self.injected_inputs.drain(..) {
@@ -897,6 +951,8 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameEventRoutine<S, A> {
                     let mut event_context = EffectContext {
                         rng: &mut instance.rng,
                         screen_shake: &mut instance.screen_shake,
+                        current_music: &mut instance.current_music,
+                        current_music_handle,
                         audio_player,
                         audio_table,
                         player_coord,
@@ -959,6 +1015,7 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameOverEventRoutine<S, A> {
         let game_config = &data.game_config;
         let audio_player = &data.audio_player;
         let audio_table = &data.audio_table;
+        let current_music_handle = &mut data.music_handle;
         if let Some(instance) = data.instance.as_mut() {
             event_or_peek_with_handled(event_or_peek, self, |mut s, event| match event {
                 CommonEvent::Input(input) => match input {
@@ -976,6 +1033,8 @@ impl<S: Storage, A: AudioPlayer> EventRoutine for GameOverEventRoutine<S, A> {
                     let mut event_context = EffectContext {
                         rng: &mut instance.rng,
                         screen_shake: &mut instance.screen_shake,
+                        current_music: &mut instance.current_music,
+                        current_music_handle,
                         audio_player,
                         audio_table,
                         player_coord: GameCoord::of_player(instance.game.player_info()),

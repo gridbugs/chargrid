@@ -24,11 +24,17 @@ pub struct Config {
     pub omniscient: Option<Omniscient>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub enum Music {
+    Fiberitron,
+}
+
 /// Events which the game can report back to the io layer so it can
 /// respond with a sound/visual effect.
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum ExternalEvent {
     Explosion(Coord),
+    LoopMusic(Music),
 }
 
 pub enum GameControlFlow {
@@ -71,13 +77,14 @@ impl Game {
             &mut rng,
         );
         let last_player_info = world.character_info(player).expect("couldn't get info for player");
+        let events = vec![ExternalEvent::LoopMusic(Music::Fiberitron)];
         let mut game = Self {
             visibility_grid: VisibilityGrid::new(world.size()),
             player,
             last_player_info,
             rng,
             frame_count: 0,
-            events: Vec::new(),
+            events,
             shadowcast_context: ShadowcastContext::default(),
             behaviour_context: BehaviourContext::new(world.size()),
             animation_context: AnimationContext::default(),
@@ -161,7 +168,6 @@ impl Game {
     }
     #[must_use]
     pub fn handle_tick(&mut self, since_last_tick: Duration, config: &Config) -> Option<GameControlFlow> {
-        self.events.clear();
         self.since_last_frame += since_last_tick;
         while let Some(remaining_since_last_frame) = self.since_last_frame.checked_sub(ANIMATION_FRAME_DURATION) {
             self.since_last_frame = remaining_since_last_frame;
@@ -183,8 +189,8 @@ impl Game {
             None
         }
     }
-    pub fn events(&self) -> impl '_ + Iterator<Item = ExternalEvent> {
-        self.events.iter().cloned()
+    pub fn events(&mut self) -> impl '_ + Iterator<Item = ExternalEvent> {
+        self.events.drain(..)
     }
     pub fn player_info(&self) -> &CharacterInfo {
         &self.last_player_info

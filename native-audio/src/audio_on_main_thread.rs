@@ -1,6 +1,5 @@
-use crate::{output_device, play_bytes_background, Error};
-use prototty_audio::AudioProperties;
-use rodio::Device;
+use crate::{output_device, play_bytes, play_bytes_loop, Error};
+use rodio::{Device, Sink};
 
 pub struct NativeAudioPlayer {
     device: Device,
@@ -16,7 +15,11 @@ impl NativeAudioPlayer {
         Self::try_new_default_device().unwrap()
     }
 
-    pub fn play_bytes(&self, bytes: &'static [u8], properties: AudioProperties) {
-        play_bytes_background(&self.device, bytes, properties);
+    pub fn play_bytes(&self, bytes: &'static [u8]) -> Sink {
+        play_bytes(&self.device, bytes)
+    }
+
+    pub fn play_bytes_loop(&self, bytes: &'static [u8]) -> Sink {
+        play_bytes_loop(&self.device, bytes)
     }
 }

@@ -233,10 +233,10 @@ impl<T, D, V, E> EventRoutine for Value<T, D, V, E> {
     }
 }
 
-struct SideEffect<F, D, V, E>(OneShot<F, D, V, E>);
+pub struct SideEffect<F, D, V, E>(OneShot<F, D, V, E>);
 
 impl<F, D, V, E> SideEffect<F, D, V, E> {
-    fn new_with_view(f: F) -> Self {
+    pub fn new_with_view(f: F) -> Self {
         Self(OneShot::new(f))
     }
 }
@@ -283,14 +283,14 @@ enum SideEffectThenPrivate<F, D, V, E, U> {
     First(OneShot<F, D, V, E>),
     Second(U),
 }
-struct SideEffectThen<F, D, V, E, U>(SideEffectThenPrivate<F, D, V, E, U>);
+pub struct SideEffectThen<F, D, V, E, U>(SideEffectThenPrivate<F, D, V, E, U>);
 
 impl<F, D, V, E, U> SideEffectThen<F, D, V, E, U>
 where
     U: EventRoutine<Data = D, View = V, Event = E>,
     F: FnOnce(&mut D, &V) -> U,
 {
-    fn new_with_view(f: F) -> Self {
+    pub fn new_with_view(f: F) -> Self {
         Self(SideEffectThenPrivate::First(OneShot::new(f)))
     }
 }

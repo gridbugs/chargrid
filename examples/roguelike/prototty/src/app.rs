@@ -518,31 +518,35 @@ enum GameLoopBreak {
 fn game_loop<S: Storage, A: AudioPlayer>(
 ) -> impl EventRoutine<Return = (), Data = AppData<S, A>, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B | C);
-    Ei::A(game())
-        .repeat(|game_return| match game_return {
-            GameReturn::Pause => Handled::Return(GameLoopBreak::Pause),
-            GameReturn::GameOver => Handled::Return(GameLoopBreak::GameOver),
-            GameReturn::Map => Handled::Continue(Ei::C(map().then(|| game()))),
-            GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_screen_coord| {
-                make_either!(Ei = A | B);
-                if let Some(screen_coord) = maybe_screen_coord {
-                    Ei::A(game_injecting_inputs(vec![InjectedInput::Fire(screen_coord)]))
-                } else {
-                    Ei::B(game())
-                }
-            }))),
+    SideEffect::new_with_view(|data: &mut AppData<S, A>, _: &_| data.game.pre_game_loop())
+        .then(|| {
+            Ei::A(game())
+                .repeat(|game_return| match game_return {
+                    GameReturn::Pause => Handled::Return(GameLoopBreak::Pause),
+                    GameReturn::GameOver => Handled::Return(GameLoopBreak::GameOver),
+                    GameReturn::Map => Handled::Continue(Ei::C(map().then(|| game()))),
+                    GameReturn::Aim => Handled::Continue(Ei::B(aim().and_then(|maybe_screen_coord| {
+                        make_either!(Ei = A | B);
+                        if let Some(screen_coord) = maybe_screen_coord {
+                            Ei::A(game_injecting_inputs(vec![InjectedInput::Fire(screen_coord)]))
+                        } else {
+                            Ei::B(game())
+                        }
+                    }))),
+                })
+                .and_then(|game_loop_break| {
+                    make_either!(Ei = A | B);
+                    match game_loop_break {
+                        GameLoopBreak::Pause => Ei::A(Value::new(())),
+                        GameLoopBreak::GameOver => Ei::B(game_over().and_then(|()| {
+                            side_effect(|data: &mut AppData<S, A>| {
+                                data.game.clear_instance();
+                            })
+                        })),
+                    }
+                })
         })
-        .and_then(|game_loop_break| {
-            make_either!(Ei = A | B);
-            match game_loop_break {
-                GameLoopBreak::Pause => Ei::A(Value::new(())),
-                GameLoopBreak::GameOver => Ei::B(game_over().and_then(|()| {
-                    side_effect(|data: &mut AppData<S, A>| {
-                        data.game.clear_instance();
-                    })
-                })),
-            }
-        })
+        .then(|| SideEffect::new_with_view(|data: &mut AppData<S, A>, _: &_| data.game.post_game_loop()))
 }
 
 fn main_menu_cycle<S: Storage, A: AudioPlayer>(

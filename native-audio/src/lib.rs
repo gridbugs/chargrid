@@ -1,4 +1,4 @@
-use prototty_audio::{AudioPlayer, AudioProperties};
+use prototty_audio::{AudioHandle, AudioPlayer};
 use rodio::{Decoder, Device, DeviceTrait, Sink, Source};
 use std::io::Cursor;
 
@@ -15,11 +15,18 @@ pub(crate) fn output_device() -> Option<Device> {
     maybe_device
 }
 
-pub(crate) fn play_bytes_background(device: &Device, bytes: &'static [u8], properties: AudioProperties) {
+pub(crate) fn play_bytes(device: &Device, bytes: &'static [u8]) -> Sink {
     let sink = Sink::new(device);
-    let source = Decoder::new(Cursor::new(bytes)).unwrap().amplify(properties.volume);
+    let source = Decoder::new(Cursor::new(bytes)).unwrap();
     sink.append(source);
-    sink.detach();
+    sink
+}
+
+pub(crate) fn play_bytes_loop(device: &Device, bytes: &'static [u8]) -> Sink {
+    let sink = Sink::new(device);
+    let source = Decoder::new(Cursor::new(bytes)).unwrap().repeat_infinite();
+    sink.append(source);
+    sink
 }
 
 #[derive(Debug)]
@@ -50,10 +57,29 @@ impl NativeSound {
     }
 }
 
+pub struct NativeHandle {
+    sink: Sink,
+}
+
+impl AudioHandle for NativeHandle {
+    fn set_volume(&self, volume: f32) {
+        self.sink.set_volume(volume);
+    }
+    fn background(self) {
+        self.sink.detach()
+    }
+}
+
 impl AudioPlayer for NativeAudioPlayer {
     type Sound = NativeSound;
-    fn play(&self, sound: &Self::Sound, properties: AudioProperties) {
-        NativeAudioPlayer::play_bytes(self, sound.bytes, properties)
+    type Handle = NativeHandle;
+    fn play(&self, sound: &Self::Sound) -> Self::Handle {
+        let sink = NativeAudioPlayer::play_bytes(self, sound.bytes);
+        NativeHandle { sink }
+    }
+    fn play_loop(&self, sound: &Self::Sound) -> Self::Handle {
+        let sink = NativeAudioPlayer::play_bytes_loop(self, sound.bytes);
+        NativeHandle { sink }
     }
     fn load_sound(&self, bytes: &'static [u8]) -> Self::Sound {
         NativeSound::new(bytes)
