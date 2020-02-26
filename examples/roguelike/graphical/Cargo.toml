@@ -7,6 +7,7 @@ edition = "2018"
 [features]
 default = ["prototty_graphical"]
 force_vulkan = ["prototty_graphical/force_vulkan"]
+force_dedicated_audio_thread = ["rip_native/force_dedicated_audio_thread"]
 
 [dependencies]
 env_logger = "0.7"
