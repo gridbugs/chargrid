@@ -63,7 +63,7 @@ pub struct Game {
     agents: ComponentTable<Agent>,
     agents_to_remove: Vec<Entity>,
     since_last_frame: Duration,
-    generate_frame_countdown: Option<u32>,
+    generate_frame_countdown: Option<Duration>,
 }
 
 impl Game {
@@ -194,18 +194,29 @@ impl Game {
     fn after_turn(&mut self) {
         if let Some(player_coord) = self.world.entity_coord(self.player) {
             if let Some(_stairs_entity) = self.world.get_stairs_at_coord(player_coord) {
-                self.generate_frame_countdown = Some(10);
+                self.generate_frame_countdown = Some(Duration::from_millis(200));
             }
+        }
+    }
+    pub fn is_generating(&self) -> bool {
+        if let Some(countdown) = self.generate_frame_countdown {
+            countdown.as_millis() == 0
+        } else {
+            false
         }
     }
     #[must_use]
     pub fn handle_tick(&mut self, since_last_tick: Duration, config: &Config) -> Option<GameControlFlow> {
         if let Some(countdown) = self.generate_frame_countdown.as_mut() {
-            if *countdown == 0 {
+            if countdown.as_millis() == 0 {
                 self.generate_level(config);
                 self.generate_frame_countdown = None;
             } else {
-                *countdown -= 1;
+                *countdown = if let Some(remaining) = countdown.checked_sub(since_last_tick) {
+                    remaining
+                } else {
+                    Duration::from_millis(0)
+                };
             }
             return None;
         }

@@ -48,7 +48,7 @@ impl Spaceship {
             lights,
             map: output_grid,
             player_spawn: points_of_interest[0],
-            exit: points_of_interest[0],
+            exit: points_of_interest[1],
         }
     }
 }

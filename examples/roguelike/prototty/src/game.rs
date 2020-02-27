@@ -212,6 +212,14 @@ impl GameView {
         frame: &mut F,
     ) {
         let game = &game_to_render.game;
+        if game.is_generating() {
+            StringViewSingleLine::new(Style::default().with_foreground(Rgb24::new_grey(255))).view(
+                "Generating level...",
+                context,
+                frame,
+            );
+            return;
+        }
         let player_info = game.player_info();
         let player_coord = GameCoord::of_player(player_info);
         let visibility_grid = game.visibility_grid();
