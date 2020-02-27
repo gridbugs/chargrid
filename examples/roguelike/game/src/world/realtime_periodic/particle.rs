@@ -212,7 +212,7 @@ impl RealtimePeriodicState for ParticleEmitterState {
         } else {
             return;
         };
-        let particle_entity = world.ecs.entity_allocator.alloc();
+        let particle_entity = world.entity_allocator.alloc();
         if let Some(movement) = spawn_particle.movement_state.take() {
             world.realtime_components.movement.insert(
                 particle_entity,
@@ -224,7 +224,7 @@ impl RealtimePeriodicState for ParticleEmitterState {
         }
         world.spatial.update_coord(particle_entity, coord).unwrap();
         if let Some(tile) = spawn_particle.tile {
-            world.ecs.components.tile.insert(particle_entity, tile);
+            world.components.tile.insert(particle_entity, tile);
         }
         if let Some(fade_state) = spawn_particle.fade_state {
             world.realtime_components.fade.insert(
@@ -235,12 +235,12 @@ impl RealtimePeriodicState for ParticleEmitterState {
                 },
             );
         }
-        world.ecs.components.realtime.insert(particle_entity, ());
+        world.components.realtime.insert(particle_entity, ());
         if let Some(colour_hint) = spawn_particle.colour_hint {
-            world.ecs.components.colour_hint.insert(particle_entity, colour_hint);
+            world.components.colour_hint.insert(particle_entity, colour_hint);
         }
         if let Some(light) = spawn_particle.light.take() {
-            world.ecs.components.light.insert(particle_entity, light);
+            world.components.light.insert(particle_entity, light);
         }
         if let Some(light_colour_fade) = spawn_particle.light_colour_fade_state.take() {
             world.realtime_components.light_colour_fade.insert(
@@ -262,7 +262,6 @@ impl RealtimePeriodicState for ParticleEmitterState {
         }
         if let Some(projectile_damage) = spawn_particle.damage.take() {
             world
-                .ecs
                 .components
                 .projectile_damage
                 .insert(particle_entity, projectile_damage);

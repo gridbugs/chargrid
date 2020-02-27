@@ -292,48 +292,6 @@ impl<'a, T> Iterator for ComponentTableIterMut<'a, T> {
     }
 }
 
-pub trait ComponentsTrait: Default {
-    type EntityData;
-    fn remove_entity(&mut self, entity: Entity);
-    fn clone_entity_data(&self, entity: Entity) -> Self::EntityData;
-    fn remove_entity_data(&mut self, entity: Entity) -> Self::EntityData;
-    fn insert_entity_data(&mut self, entity: Entity, entity_data: Self::EntityData);
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Ecs<C: ComponentsTrait> {
-    pub entity_allocator: EntityAllocator,
-    pub components: C,
-}
-
-impl<C: ComponentsTrait> Ecs<C> {
-    pub fn new() -> Self {
-        Self {
-            entity_allocator: EntityAllocator::new(),
-            components: Default::default(),
-        }
-    }
-    pub fn create(&mut self) -> Entity {
-        self.entity_allocator.alloc()
-    }
-    pub fn exists(&self, entity: Entity) -> bool {
-        self.entity_allocator.exists(entity)
-    }
-    pub fn remove(&mut self, entity: Entity) {
-        self.entity_allocator.free(entity);
-        self.components.remove_entity(entity);
-    }
-    pub fn remove_entity_data(&mut self, entity: Entity) -> C::EntityData {
-        self.entity_allocator.free(entity);
-        self.components.remove_entity_data(entity)
-    }
-    pub fn create_with_entity_data(&mut self, entity_data: C::EntityData) -> Entity {
-        let entity = self.entity_allocator.alloc();
-        self.components.insert_entity_data(entity, entity_data);
-        entity
-    }
-}
-
 #[macro_export]
 macro_rules! ecs_components {
     { $module_name:ident { $($component_name:ident: $component_type:ty,)* } } => {
@@ -367,22 +325,21 @@ macro_rules! ecs_components {
                 }
             }
 
-            impl $crate::ComponentsTrait for Components {
-                type EntityData = EntityData;
-                fn remove_entity(&mut self, entity: $crate::Entity) {
+            impl Components {
+                pub fn remove_entity(&mut self, entity: $crate::Entity) {
                     $(self.$component_name.remove(entity);)*
                 }
-                fn clone_entity_data(&self, entity: $crate::Entity) -> EntityData {
+                pub fn clone_entity_data(&self, entity: $crate::Entity) -> EntityData {
                     EntityData {
                         $($component_name: self.$component_name.get(entity).cloned(),)*
                     }
                 }
-                fn remove_entity_data(&mut self, entity: $crate::Entity) -> EntityData {
+                pub fn remove_entity_data(&mut self, entity: $crate::Entity) -> EntityData {
                     EntityData {
                         $($component_name: self.$component_name.remove(entity),)*
                     }
                 }
-                fn insert_entity_data(&mut self, entity: $crate::Entity, entity_data: EntityData) {
+                pub fn insert_entity_data(&mut self, entity: $crate::Entity, entity_data: EntityData) {
                     $(if let Some(field) = entity_data.$component_name {
                         self.$component_name.insert(entity, field);
                     })*

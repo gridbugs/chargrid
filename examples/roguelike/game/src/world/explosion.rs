@@ -55,7 +55,7 @@ fn apply_indirect_hit(
     explosion_to_character: LineSegment,
 ) {
     let CharacterEffect { push_back, damage } = character_effect_indirect_hit(mechanics, explosion_to_character);
-    world.ecs.components.realtime.insert(character_entity, ());
+    world.components.realtime.insert(character_entity, ());
     world.realtime_components.movement.insert(
         character_entity,
         ScheduledRealtimePeriodicState {
@@ -94,7 +94,7 @@ fn apply_direct_hit(world: &mut World, explosion_coord: Coord, mechanics: &spec:
         log::warn!("Direct hit with no solid neighbours shouldn't be possible.");
     } else {
         let travel_vector = -solid_neighbour_vector;
-        world.ecs.components.realtime.insert(character_entity, ());
+        world.components.realtime.insert(character_entity, ());
         world.realtime_components.movement.insert(
             character_entity,
             ScheduledRealtimePeriodicState {
@@ -116,7 +116,7 @@ fn is_in_explosion_range(explosion_coord: Coord, mechanics: &spec::Mechanics, co
 }
 
 fn apply_mechanics(world: &mut World, explosion_coord: Coord, mechanics: &spec::Mechanics) {
-    for character_entity in world.ecs.components.character.entities().collect::<Vec<_>>() {
+    for character_entity in world.components.character.entities().collect::<Vec<_>>() {
         if let Some(&character_coord) = world.spatial.coord(character_entity) {
             if character_coord == explosion_coord {
                 apply_direct_hit(world, explosion_coord, mechanics, character_entity);

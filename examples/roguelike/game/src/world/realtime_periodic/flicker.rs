@@ -60,10 +60,10 @@ impl RealtimePeriodicState for FlickerState {
     }
     fn animate_event(event: Self::Event, entity: Entity, world: &mut World, _external_events: &mut Vec<ExternalEvent>) {
         if let Some(colour_hint) = event.colour_hint {
-            world.ecs.components.colour_hint.insert(entity, colour_hint);
+            world.components.colour_hint.insert(entity, colour_hint);
         }
         if let Some(light_colour) = event.light_colour {
-            if let Some(light) = world.ecs.components.light.get_mut(entity) {
+            if let Some(light) = world.components.light.get_mut(entity) {
                 light.colour = light_colour;
             }
         }

@@ -5,7 +5,7 @@ use crate::world::{
     ExternalEvent, World,
 };
 use direction::{CardinalDirection, Direction};
-use ecs::{ComponentsTrait, Entity};
+use ecs::Entity;
 use grid_2d::Coord;
 use rand::Rng;
 
@@ -14,8 +14,8 @@ impl World {
         let &current_coord = self.spatial.coord(character).unwrap();
         let target_coord = current_coord + direction.coord();
         if let Some(feature_entity) = self.spatial.get_cell(target_coord).and_then(|cell| cell.feature) {
-            if self.ecs.components.solid.contains(feature_entity) {
-                if let Some(DoorState::Closed) = self.ecs.components.door_state.get(feature_entity).cloned() {
+            if self.components.solid.contains(feature_entity) {
+                if let Some(DoorState::Closed) = self.components.door_state.get(feature_entity).cloned() {
                     self.open_door(feature_entity);
                 }
                 return;
@@ -27,15 +27,15 @@ impl World {
     }
 
     pub fn melee_attack(&mut self, attacker: Entity, victim: Entity) {
-        if self.ecs.components.tile.get(attacker) != self.ecs.components.tile.get(victim) {
+        if self.components.tile.get(attacker) != self.components.tile.get(victim) {
             self.damage_character(victim, 10);
         }
     }
 
     pub fn open_door(&mut self, door: Entity) {
-        self.ecs.components.solid.remove(door);
-        self.ecs.components.opacity.remove(door);
-        self.ecs.components.tile.insert(door, Tile::DoorOpen);
+        self.components.solid.remove(door);
+        self.components.opacity.remove(door);
+        self.components.tile.insert(door, Tile::DoorOpen);
     }
 
     pub fn character_fire_bullet(&mut self, character: Entity, target: Coord) {
@@ -73,17 +73,19 @@ impl World {
 
     pub fn projectile_stop(&mut self, projectile_entity: Entity, external_events: &mut Vec<ExternalEvent>) {
         if let Some(&current_coord) = self.spatial.coord(projectile_entity) {
-            if let Some(on_collision) = self.ecs.components.on_collision.get(projectile_entity).cloned() {
+            if let Some(on_collision) = self.components.on_collision.get(projectile_entity).cloned() {
                 match on_collision {
                     OnCollision::Explode(explosion_spec) => {
                         explosion::explode(self, current_coord, explosion_spec, external_events);
                         self.spatial.remove(projectile_entity);
-                        self.ecs.remove(projectile_entity);
+                        self.components.remove_entity(projectile_entity);
+                        self.entity_allocator.free(projectile_entity);
                         self.realtime_components.remove_entity(projectile_entity);
                     }
                     OnCollision::Remove => {
                         self.spatial.remove(projectile_entity);
-                        self.ecs.remove(projectile_entity);
+                        self.components.remove_entity(projectile_entity);
+                        self.entity_allocator.free(projectile_entity);
                         self.realtime_components.remove_entity(projectile_entity);
                     }
                 }
@@ -101,7 +103,6 @@ impl World {
         if let Some(&current_coord) = self.spatial.coord(projectile_entity) {
             let next_coord = current_coord + movement_direction.coord();
             let collides_with = self
-                .ecs
                 .components
                 .collides_with
                 .get(projectile_entity)
@@ -109,7 +110,7 @@ impl World {
                 .unwrap_or_default();
             let &spatial_cell = self.spatial.get_cell_checked(next_coord);
             if let Some(character_entity) = spatial_cell.character {
-                if let Some(&projectile_damage) = self.ecs.components.projectile_damage.get(projectile_entity) {
+                if let Some(&projectile_damage) = self.components.projectile_damage.get(projectile_entity) {
                     self.apply_projectile_damage(
                         projectile_entity,
                         projectile_damage,
@@ -119,8 +120,8 @@ impl World {
                 }
             }
             if let Some(entity_in_cell) = spatial_cell.feature.or(spatial_cell.character) {
-                if (collides_with.solid && self.ecs.components.solid.contains(entity_in_cell))
-                    || (collides_with.character && self.ecs.components.character.contains(entity_in_cell))
+                if (collides_with.solid && self.components.solid.contains(entity_in_cell))
+                    || (collides_with.character && self.components.character.contains(entity_in_cell))
                 {
                     self.projectile_stop(projectile_entity, external_events);
                     return;
@@ -128,14 +129,14 @@ impl World {
             }
             let _ignore_if_occupied = self.spatial.update_coord(projectile_entity, next_coord);
         } else {
-            self.ecs.remove(projectile_entity);
+            self.components.remove_entity(projectile_entity);
             self.realtime_components.remove_entity(projectile_entity);
             self.spatial.remove(projectile_entity);
         }
     }
 
     pub fn damage_character(&mut self, character: Entity, hit_points_to_lose: u32) {
-        if let Some(hit_points) = self.ecs.components.hit_points.get_mut(character) {
+        if let Some(hit_points) = self.components.hit_points.get_mut(character) {
             let &coord = self.spatial.coord(character).unwrap();
             match hit_points.current.checked_sub(hit_points_to_lose) {
                 None | Some(0) => {
@@ -168,7 +169,7 @@ impl World {
 
     fn add_blood_stain_to_floor(&mut self, coord: Coord) {
         if let Some(floor_entity) = self.spatial.get_cell_checked(coord).floor {
-            self.ecs.components.blood.insert(floor_entity, ());
+            self.components.blood.insert(floor_entity, ());
         }
     }
 
@@ -183,6 +184,6 @@ impl World {
         if projectile_damage.push_back {
             self.character_push_in_direction(entity_to_damage, projectile_movement_direction);
         }
-        self.ecs.remove(projectile_entity);
+        self.components.remove_entity(projectile_entity);
     }
 }

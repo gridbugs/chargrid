@@ -97,7 +97,8 @@ impl RealtimePeriodicState for FadeState {
     }
     fn animate_event(progress: Self::Event, entity: Entity, world: &mut World, _: &mut Vec<ExternalEvent>) {
         if progress.is_complete() {
-            world.ecs.remove(entity);
+            world.entity_allocator.free(entity);
+            world.components.remove_entity(entity);
         }
     }
 }
@@ -141,12 +142,12 @@ impl RealtimePeriodicState for LightColourFadeState {
     ) {
         match progress {
             LightColourFadeProgress::Colour(colour) => {
-                if let Some(light) = world.ecs.components.light.get_mut(entity) {
+                if let Some(light) = world.components.light.get_mut(entity) {
                     light.colour = colour;
                 }
             }
             LightColourFadeProgress::Complete => {
-                world.ecs.components.light.remove(entity);
+                world.components.light.remove(entity);
             }
         }
     }
