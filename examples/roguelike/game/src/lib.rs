@@ -190,6 +190,7 @@ impl Game {
         self.update_last_player_info();
         self.update_behaviour();
         self.update_visibility(config);
+        self.events.push(ExternalEvent::LoopMusic(Music::Fiberitron));
     }
     fn after_turn(&mut self) {
         if let Some(player_coord) = self.world.entity_coord(self.player) {
