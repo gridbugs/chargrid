@@ -36,7 +36,7 @@ pub struct World {
 
 impl World {
     pub fn new(size: Size) -> Self {
-        let entity_allocator = EntityAllocator::new();
+        let entity_allocator = EntityAllocator::default();
         let components = Components::default();
         let realtime_components = RealtimeComponents::default();
         let spatial = Spatial::new(size);
