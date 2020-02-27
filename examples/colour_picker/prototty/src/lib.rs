@@ -1,100 +1,74 @@
 use common_event::*;
 use event_routine::*;
-use prototty::input::Input;
 use prototty::*;
-use std::marker::PhantomData;
 
-make_either!(Either = Left | Right);
-
-#[derive(Clone, Copy)]
-enum MainMenuChoice {
+#[derive(Clone)]
+enum MainMenuEntry {
     ChooseColour,
     Quit,
 }
 
-impl MainMenuChoice {
-    fn all() -> Vec<Self> {
-        use MainMenuChoice::*;
-        vec![ChooseColour, Quit]
-    }
-}
-
-impl<'a> From<&'a MainMenuChoice> for &'a str {
-    fn from(menu_choice: &'a MainMenuChoice) -> Self {
-        match menu_choice {
-            MainMenuChoice::ChooseColour => "Choose Colour",
-            MainMenuChoice::Quit => "Quit",
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
-enum ColourMenuChoice {
+enum ColourMenuEntry {
     Red,
     Green,
     Blue,
 }
 
-impl ColourMenuChoice {
-    fn all() -> Vec<Self> {
-        use ColourMenuChoice::*;
-        vec![Red, Green, Blue]
-    }
-}
-
-impl<'a> From<&'a ColourMenuChoice> for &'a str {
-    fn from(menu_choice: &'a ColourMenuChoice) -> Self {
-        match menu_choice {
-            ColourMenuChoice::Red => "Red",
-            ColourMenuChoice::Green => "Green",
-            ColourMenuChoice::Blue => "Blue",
+impl ColourMenuEntry {
+    fn to_rgb24(self) -> render::Rgb24 {
+        match self {
+            ColourMenuEntry::Red => render::Rgb24::new(255, 0, 0),
+            ColourMenuEntry::Green => render::Rgb24::new(0, 255, 0),
+            ColourMenuEntry::Blue => render::Rgb24::new(0, 0, 255),
         }
     }
 }
 
-fn inner() -> impl EventRoutine<Return = Option<()>, Data = AppData, View = AppView, Event = Input> {
-    let main_menu = menu::MenuInstanceExtraRoutine::new(SelectMainMenuExtra);
-    let colour_menu = menu::MenuInstanceRoutine::new().select(SelectColourMenu);
-    main_menu.and_then(|menu_output| match menu_output {
-        Err(menu::Cancel::Quit) => Either::Left(Value::new(Some(()))),
-        Err(menu::Cancel::Escape) => Either::Left(Value::new(None)),
-        Ok(choice) => match choice {
-            MainMenuChoice::ChooseColour => Either::Right(colour_menu.and_then(|menu_output| match menu_output {
-                Err(menu::Cancel::Quit) => Either::Left(Value::new(Some(()))),
-                Err(menu::Cancel::Escape) => Either::Left(Value::new(None)),
-                Ok(choice) => Either::Right(side_effect(move |data: &mut AppData| {
-                    use ColourMenuChoice::*;
-                    let colour = match choice {
-                        Red => render::Rgb24::new(255, 0, 0),
-                        Green => render::Rgb24::new(0, 127, 0),
-                        Blue => render::Rgb24::new(0, 63, 255),
-                    };
-                    data.main_menu_style = menu::MenuEntryStylePair::new(
-                        render::Style::new().with_foreground(colour.scalar_div(2)),
-                        render::Style::new().with_foreground(colour).with_bold(true),
-                    );
-                    None
-                })),
-            })),
-            MainMenuChoice::Quit => Either::Left(Value::new(Some(()))),
-        },
-    })
+struct AppData {
+    current: Option<render::Rgb24>,
+    main_menu: menu::MenuInstanceChooseOrCancel<MainMenuEntry>,
+    colour_menu: menu::MenuInstanceChooseOrCancel<ColourMenuEntry>,
 }
 
-pub fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
-    inner()
-        .repeat(|event| match event {
-            Some(()) => Handled::Return(()),
-            None => Handled::Continue(inner()),
-        })
-        .convert_input_to_common_event()
+impl Default for AppData {
+    fn default() -> Self {
+        Self {
+            current: None,
+            main_menu: menu::MenuInstance::new(vec![MainMenuEntry::ChooseColour, MainMenuEntry::Quit])
+                .unwrap()
+                .into_choose_or_cancel(),
+            colour_menu: menu::MenuInstance::new(vec![
+                ColourMenuEntry::Red,
+                ColourMenuEntry::Green,
+                ColourMenuEntry::Blue,
+            ])
+            .unwrap()
+            .into_choose_or_cancel(),
+        }
+    }
+}
+
+#[derive(Default)]
+struct AppView {
+    main_menu: menu::DynamicStyleMenuInstanceView,
+    colour_menu: menu::DynamicStyleMenuInstanceView,
 }
 
 struct SelectColourMenu;
-
+impl ViewSelector for SelectColourMenu {
+    type ViewInput = AppView;
+    type ViewOutput = menu::DynamicStyleMenuInstanceView;
+    fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
+        &input.colour_menu
+    }
+    fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
+        &mut input.colour_menu
+    }
+}
 impl DataSelector for SelectColourMenu {
     type DataInput = AppData;
-    type DataOutput = menu::MenuInstanceChooseOrCancel<ColourMenuChoice>;
+    type DataOutput = menu::MenuInstanceChooseOrCancel<ColourMenuEntry>;
     fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
         &input.colour_menu
     }
@@ -102,23 +76,12 @@ impl DataSelector for SelectColourMenu {
         &mut input.colour_menu
     }
 }
-impl ViewSelector for SelectColourMenu {
-    type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<menu::MenuEntryStylePair>;
-    fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
-        &input.colour_menu
-    }
-    fn view_mut<'a>(&self, input: &'a mut Self::ViewInput) -> &'a mut Self::ViewOutput {
-        &mut input.colour_menu
-    }
-}
 impl Selector for SelectColourMenu {}
 
-struct SelectMainMenuExtra;
-impl ViewSelector for SelectMainMenuExtra {
+struct SelectMainMenu;
+impl ViewSelector for SelectMainMenu {
     type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<ChooseMenuEntryStyle<MainMenuChoice>>;
-
+    type ViewOutput = menu::DynamicStyleMenuInstanceView;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
         &input.main_menu
     }
@@ -126,85 +89,105 @@ impl ViewSelector for SelectMainMenuExtra {
         &mut input.main_menu
     }
 }
-impl menu::MenuInstanceExtraSelect for SelectMainMenuExtra {
+impl DataSelector for SelectMainMenu {
     type DataInput = AppData;
-    type Choose = menu::MenuInstanceChooseOrCancel<MainMenuChoice>;
-    type Extra = menu::MenuEntryStylePair;
-
-    fn choose<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Choose {
+    type DataOutput = menu::MenuInstanceChooseOrCancel<MainMenuEntry>;
+    fn data<'a>(&self, input: &'a Self::DataInput) -> &'a Self::DataOutput {
         &input.main_menu
     }
-    fn choose_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::Choose {
+    fn data_mut<'a>(&self, input: &'a mut Self::DataInput) -> &'a mut Self::DataOutput {
         &mut input.main_menu
     }
-    fn extra<'a>(&self, input: &'a Self::DataInput) -> &'a Self::Extra {
-        &input.main_menu_style
+}
+impl Selector for SelectMainMenu {}
+
+fn selected_background(current: Option<render::Rgb24>) -> render::Rgb24 {
+    if let Some(current) = current {
+        current.scalar_div(2)
+    } else {
+        render::Rgb24::new_grey(127)
     }
 }
 
-struct ChooseMenuEntryStyle<C> {
-    choice: PhantomData<C>,
-}
-impl<C> ChooseMenuEntryStyle<C> {
-    fn new() -> Self {
-        Self { choice: PhantomData }
-    }
-}
-impl<C> menu::ChooseStyleFromEntryExtra for ChooseMenuEntryStyle<C> {
-    type Extra = menu::MenuEntryStylePair;
-    type Entry = C;
-    fn choose_style_normal(&mut self, _entry: &Self::Entry, extra: &Self::Extra) -> render::Style {
-        extra.normal
-    }
-    fn choose_style_selected(&mut self, _entry: &Self::Entry, extra: &Self::Extra) -> render::Style {
-        extra.selected
-    }
-}
-
-pub struct AppData {
-    main_menu: menu::MenuInstanceChooseOrCancel<MainMenuChoice>,
-    main_menu_style: menu::MenuEntryStylePair,
-    colour_menu: menu::MenuInstanceChooseOrCancel<ColourMenuChoice>,
-}
-
-impl Default for AppData {
-    fn default() -> Self {
-        let main_menu = menu::MenuInstance::new(MainMenuChoice::all())
-            .unwrap()
-            .into_choose_or_cancel();
-        let main_menu_style = menu::MenuEntryStylePair::new(
-            render::Style::new().with_foreground(render::Rgb24::new_grey(127)),
-            render::Style::new()
-                .with_foreground(render::Rgb24::new_grey(255))
-                .with_bold(true),
-        );
-        let colour_menu = menu::MenuInstance::new(ColourMenuChoice::all())
-            .unwrap()
-            .into_choose_or_cancel();
-        Self {
-            main_menu,
-            main_menu_style,
-            colour_menu,
-        }
-    }
+fn colour_menu(
+) -> impl EventRoutine<Return = Result<ColourMenuEntry, menu::Cancel>, Data = AppData, View = AppView, Event = CommonEvent>
+{
+    SideEffectThen::new_with_view(|data: &mut AppData, _: &_| {
+        let current = data.current;
+        menu::DynamicStyleMenuInstanceRoutine::new(menu::MenuEntryRichStringFn::new(
+            move |entry: &ColourMenuEntry, maybe_selected: Option<menu::Selected>, buf: &mut String| {
+                use std::fmt::Write;
+                let cursor = if maybe_selected.is_some() { " >" } else { "  " };
+                match entry {
+                    ColourMenuEntry::Red => {
+                        write!(buf, "{} Red", cursor).unwrap();
+                    }
+                    ColourMenuEntry::Green => {
+                        write!(buf, "{} Green", cursor).unwrap();
+                    }
+                    ColourMenuEntry::Blue => {
+                        write!(buf, "{} Blue", cursor).unwrap();
+                    }
+                };
+                let foreground = entry.to_rgb24();
+                let (background, bold) = if maybe_selected.is_some() {
+                    (selected_background(current), true)
+                } else {
+                    (render::Rgb24::new_grey(0), false)
+                };
+                render::Style::default()
+                    .with_foreground(foreground)
+                    .with_background(background)
+                    .with_bold(bold)
+            },
+        ))
+        .select(SelectColourMenu)
+        .convert_input_to_common_event()
+    })
 }
 
-pub struct AppView {
-    main_menu: menu::MenuInstanceView<ChooseMenuEntryStyle<MainMenuChoice>>,
-    colour_menu: menu::MenuInstanceView<menu::MenuEntryStylePair>,
+fn main_menu(
+) -> impl EventRoutine<Return = Result<MainMenuEntry, menu::Cancel>, Data = AppData, View = AppView, Event = CommonEvent>
+{
+    SideEffectThen::new_with_view(|data: &mut AppData, _: &_| {
+        let current = data.current;
+        menu::DynamicStyleMenuInstanceRoutine::new(menu::MenuEntryRichStringFn::new(
+            move |entry: &MainMenuEntry, maybe_selected: Option<menu::Selected>, buf: &mut String| {
+                use std::fmt::Write;
+                let cursor = if maybe_selected.is_some() { " >" } else { "  " };
+                match entry {
+                    MainMenuEntry::ChooseColour => write!(buf, "{} Choose Colour", cursor).unwrap(),
+                    MainMenuEntry::Quit => write!(buf, "{} Quit", cursor).unwrap(),
+                }
+                let background = if maybe_selected.is_some() {
+                    selected_background(current)
+                } else {
+                    render::Rgb24::new_grey(0)
+                };
+                let foreground = render::Rgb24::new_grey(255);
+                render::Style::default()
+                    .with_foreground(foreground)
+                    .with_background(background)
+            },
+        ))
+        .select(SelectMainMenu)
+        .convert_input_to_common_event()
+    })
 }
 
-impl Default for AppView {
-    fn default() -> Self {
-        let main_menu = menu::MenuInstanceView::new(ChooseMenuEntryStyle::new());
-        let colour_menu = menu::MenuInstanceView::new(menu::MenuEntryStylePair::new(
-            render::Style::new().with_foreground(render::Rgb24::new_grey(127)),
-            render::Style::new()
-                .with_foreground(render::Rgb24::new_grey(255))
-                .with_bold(true),
-        ));
-        Self { main_menu, colour_menu }
-    }
+fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
+    make_either!(Ei = A | B);
+    Ei::A(main_menu()).repeat(|choice| match choice {
+        Err(_) | Ok(MainMenuEntry::Quit) => Handled::Return(()),
+        Ok(MainMenuEntry::ChooseColour) => Handled::Continue(Ei::B(colour_menu().and_then(|choice| {
+            SideEffectThen::new_with_view(move |data: &mut AppData, _: &_| {
+                if let Ok(colour_choice) = choice {
+                    data.current = Some(colour_choice.to_rgb24());
+                }
+                main_menu()
+            })
+        }))),
+    })
 }
 
 pub fn app() -> impl app::App {

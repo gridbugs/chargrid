@@ -29,15 +29,11 @@ where
     V: MenuIndexFromScreenCoord,
 {
     fn clone(&self) -> Self {
-        Self::new()
+        Self {
+            view: PhantomData,
+            choose: PhantomData,
+        }
     }
-}
-impl<V, C> Copy for MenuInstanceRoutine<V, C>
-where
-    C: MenuInstanceChoose,
-    for<'a> V: View<&'a MenuInstance<C::Entry>>,
-    V: MenuIndexFromScreenCoord,
-{
 }
 
 impl<V, C> EventRoutine for MenuInstanceRoutine<V, C>

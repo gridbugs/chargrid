@@ -116,55 +116,6 @@ enum MainMenuChoice {
     Quit,
 }
 
-struct MainMenuEntryView;
-
-impl MenuEntryView<MainMenuChoice> for MainMenuEntryView {
-    fn normal<F: Frame, C: ColModify>(
-        &mut self,
-        choice: &MainMenuChoice,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) -> MenuEntryViewInfo {
-        let string = match choice {
-            MainMenuChoice::Play => "  Play",
-            MainMenuChoice::Quit => "  Quit",
-        };
-        let width = StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(127)))
-            .view_size(string, context, frame)
-            .width();
-        MenuEntryViewInfo { width }
-    }
-    fn selected<F: Frame, C: ColModify>(
-        &mut self,
-        choice: &MainMenuChoice,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) -> MenuEntryViewInfo {
-        let base_style = Style::new().with_bold(true).with_underline(true);
-        let rich_text = match choice {
-            MainMenuChoice::Play => vec![
-                ("> ", base_style.with_foreground(Rgb24::new(187, 0, 0))),
-                ("P", base_style.with_foreground(Rgb24::new(187, 187, 0))),
-                ("l", base_style.with_foreground(Rgb24::new(0, 187, 0))),
-                ("a", base_style.with_foreground(Rgb24::new(0, 187, 187))),
-                ("y", base_style.with_foreground(Rgb24::new(0, 0, 187))),
-                ("!", base_style.with_foreground(Rgb24::new(187, 0, 187))),
-            ],
-            MainMenuChoice::Quit => vec![("> Quit", base_style.with_foreground(Rgb24::new_grey(255)))],
-        };
-        let width = RichTextViewSingleLine::new()
-            .view_size(
-                rich_text
-                    .iter()
-                    .map(|(string, style)| RichTextPart::new(string, *style)),
-                context,
-                frame,
-            )
-            .width();
-        MenuEntryViewInfo { width }
-    }
-}
-
 enum AppState {
     Menu,
     Game,
@@ -285,7 +236,7 @@ impl AppData {
 }
 
 struct AppView {
-    menu_instance_view: MenuInstanceView<MainMenuEntryView>,
+    menu_instance_view: MenuInstanceView,
     board: TetrisBoardView,
     next_piece: TetrisNextPieceView,
 }
@@ -293,9 +244,66 @@ struct AppView {
 impl Default for AppView {
     fn default() -> Self {
         Self {
-            menu_instance_view: MenuInstanceView::new(MainMenuEntryView),
+            menu_instance_view: MenuInstanceView {
+                mouse_tracker: Default::default(),
+            },
             board: TetrisBoardView,
             next_piece: TetrisNextPieceView,
+        }
+    }
+}
+
+struct MenuInstanceView {
+    mouse_tracker: MenuInstanceMouseTracker,
+}
+
+impl MenuIndexFromScreenCoord for MenuInstanceView {
+    fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize> {
+        self.mouse_tracker.menu_index_from_screen_coord(len, coord)
+    }
+}
+
+impl<'a> View<&'a MenuInstance<MainMenuChoice>> for MenuInstanceView {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        menu_instance: &'a MenuInstance<MainMenuChoice>,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
+        self.mouse_tracker.new_frame(context.offset);
+        for (i, entry, maybe_selected) in menu_instance.enumerate() {
+            let size = if let Some(Selected) = maybe_selected {
+                let base_style = Style::new().with_bold(true).with_underline(true);
+                let rich_text = match entry {
+                    MainMenuChoice::Play => vec![
+                        ("> ", base_style.with_foreground(Rgb24::new(187, 0, 0))),
+                        ("P", base_style.with_foreground(Rgb24::new(187, 187, 0))),
+                        ("l", base_style.with_foreground(Rgb24::new(0, 187, 0))),
+                        ("a", base_style.with_foreground(Rgb24::new(0, 187, 187))),
+                        ("y", base_style.with_foreground(Rgb24::new(0, 0, 187))),
+                        ("!", base_style.with_foreground(Rgb24::new(187, 0, 187))),
+                    ],
+                    MainMenuChoice::Quit => vec![("> Quit", base_style.with_foreground(Rgb24::new_grey(255)))],
+                };
+                RichTextViewSingleLine::new().view_size(
+                    rich_text
+                        .iter()
+                        .map(|(string, style)| RichTextPart::new(string, *style)),
+                    context.add_offset(Coord::new(0, i as i32)),
+                    frame,
+                )
+            } else {
+                let string = match entry {
+                    MainMenuChoice::Play => "  Play",
+                    MainMenuChoice::Quit => "  Quit",
+                };
+                StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(127))).view_size(
+                    string,
+                    context.add_offset(Coord::new(0, i as i32)),
+                    frame,
+                )
+            };
+            self.mouse_tracker.on_entry_view_size(size);
         }
     }
 }

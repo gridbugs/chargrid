@@ -59,19 +59,19 @@ impl<P: AudioPlayer> AppData<P> {
 }
 
 struct AppView {
-    menu: menu::MenuInstanceView<menu::MenuEntryStylePair>,
+    menu: menu::StaticStyleMenuInstanceView,
 }
 
 impl Default for AppView {
     fn default() -> Self {
         Self {
-            menu: menu::MenuInstanceView::new(menu::MenuEntryStylePair::new(
+            menu: menu::StaticStyleMenuInstanceView::new(
                 Style::new().with_foreground(Rgb24::new_grey(127)),
                 Style::new()
                     .with_bold(true)
                     .with_background(Rgb24::new(255, 255, 255))
                     .with_foreground(Rgb24::new(0, 0, 0)),
-            )),
+            ),
         }
     }
 }
@@ -94,7 +94,7 @@ impl<P: AudioPlayer> DataSelector for SelectMenu<P> {
 }
 impl<P: AudioPlayer> ViewSelector for SelectMenu<P> {
     type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<menu::MenuEntryStylePair>;
+    type ViewOutput = menu::StaticStyleMenuInstanceView;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
         &input.menu
     }
@@ -130,7 +130,7 @@ impl<P: AudioPlayer> Decorate for MenuDecorator<P> {
 fn single<P: AudioPlayer>() -> impl EventRoutine<Return = Option<()>, Data = AppData<P>, View = AppView, Event = Input>
 {
     make_either!(Ei = A | B);
-    menu::MenuInstanceRoutine::new()
+    menu::StaticStyleMenuInstanceRoutine::new(menu::MenuEntryStringIntoStr::new())
         .select(SelectMenu::new())
         .decorated(MenuDecorator::new())
         .and_then(|maybe_entry| match maybe_entry {

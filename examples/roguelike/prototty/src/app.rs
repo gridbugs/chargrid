@@ -10,7 +10,7 @@ use common_event::*;
 use decorator::*;
 use event_routine::*;
 use maplit::hashmap;
-use menu::{fade_spec, FadeMenuEntryView, MenuInstanceChoose};
+use menu::{fade_spec, FadeMenuInstanceView, MenuEntryStringIntoStr, MenuInstanceChoose};
 use prototty::input::*;
 use prototty::*;
 use prototty_audio::AudioPlayer;
@@ -100,8 +100,8 @@ struct AppData<S: Storage, A: AudioPlayer> {
 
 struct AppView {
     game: GameView,
-    main_menu: menu::MenuInstanceView<FadeMenuEntryView<MainMenuEntry>>,
-    options_menu: menu::MenuInstanceView<FadeMenuEntryView<OrBack<OptionsMenuEntry>>>,
+    main_menu: FadeMenuInstanceView,
+    options_menu: FadeMenuInstanceView,
 }
 
 impl<S: Storage, A: AudioPlayer> AppData<S, A> {
@@ -170,8 +170,8 @@ impl AppView {
         };
         Self {
             game: GameView::new(),
-            main_menu: menu::MenuInstanceView::new(FadeMenuEntryView::new(spec.clone())),
-            options_menu: menu::MenuInstanceView::new(FadeMenuEntryView::new(spec.clone())),
+            main_menu: FadeMenuInstanceView::new(spec.clone()),
+            options_menu: FadeMenuInstanceView::new(spec.clone()),
         }
     }
 }
@@ -230,7 +230,7 @@ impl<S: Storage, A: AudioPlayer> SelectMainMenu<S, A> {
 }
 impl<S: Storage, A: AudioPlayer> ViewSelector for SelectMainMenu<S, A> {
     type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<FadeMenuEntryView<MainMenuEntry>>;
+    type ViewOutput = FadeMenuInstanceView;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
         &input.main_menu
     }
@@ -485,7 +485,7 @@ impl<S: Storage, A: AudioPlayer> SelectOptionsMenu<S, A> {
 }
 impl<S: Storage, A: AudioPlayer> ViewSelector for SelectOptionsMenu<S, A> {
     type ViewInput = AppView;
-    type ViewOutput = menu::MenuInstanceView<FadeMenuEntryView<OrBack<OptionsMenuEntry>>>;
+    type ViewOutput = FadeMenuInstanceView;
     fn view<'a>(&self, input: &'a Self::ViewInput) -> &'a Self::ViewOutput {
         &input.options_menu
     }
@@ -566,7 +566,7 @@ fn options_menu<S: Storage, A: AudioPlayer>() -> impl EventRoutine<
     View = AppView,
     Event = CommonEvent,
 > {
-    menu::FadeMenuInstanceRoutine::new()
+    menu::FadeMenuInstanceRoutine::new(MenuEntryStringIntoStr::new())
         .select(SelectOptionsMenu::new())
         .decorated(DecorateOptionsMenu::new())
 }
@@ -629,7 +629,7 @@ fn main_menu<S: Storage, A: AudioPlayer>(
                 }
             }
             Ei::B(
-                menu::FadeMenuInstanceRoutine::new()
+                menu::FadeMenuInstanceRoutine::new(MenuEntryStringIntoStr::new())
                     .select(SelectMainMenu::new())
                     .decorated(DecorateMainMenu::new()),
             )

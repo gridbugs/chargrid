@@ -1,5 +1,6 @@
 use prototty_input::{keys, Input, KeyboardInput, MouseInput, ScrollDirection};
 use prototty_render::Coord;
+use prototty_render::Size;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,20 +13,20 @@ pub struct MenuInstance<T: Clone> {
     pub(crate) hotkeys: HashMap<char, T>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum MenuOutput<T> {
     Quit,
     Cancel,
     Finalise(T),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Escape;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Quit;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Cancel {
     Escape,
     Quit,
@@ -34,8 +35,47 @@ pub enum Cancel {
 #[derive(Debug, Clone, Copy)]
 pub struct InitialIndexOutOfBounds;
 
+#[derive(Debug, Clone, Copy)]
+pub struct Selected;
+
 pub trait MenuIndexFromScreenCoord {
     fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize>;
+}
+
+#[derive(Debug)]
+pub struct MenuInstanceMouseTracker {
+    last_offset: Coord,
+    last_size: Size,
+}
+
+impl Default for MenuInstanceMouseTracker {
+    fn default() -> Self {
+        Self {
+            last_offset: Coord::new(0, 0),
+            last_size: Size::new_u16(0, 0),
+        }
+    }
+}
+
+impl MenuInstanceMouseTracker {
+    pub fn new_frame(&mut self, context_offset: Coord) {
+        self.last_offset = context_offset;
+        self.last_size = Size::new_u16(0, 0);
+    }
+    pub fn on_entry_view_size(&mut self, size: Size) {
+        self.last_size
+            .set_width_in_place(self.last_size.width().max(size.width()));
+        self.last_size
+            .set_height_in_place(self.last_size.height() + size.height());
+    }
+    pub fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize> {
+        let rel_coord = coord - self.last_offset;
+        if rel_coord.x < 0 || rel_coord.y < 0 || rel_coord.x >= self.last_size.x() as i32 || rel_coord.y >= len as i32 {
+            None
+        } else {
+            Some(rel_coord.y as usize)
+        }
+    }
 }
 
 pub struct MenuInstanceBuilder<T: Clone> {
@@ -105,8 +145,16 @@ impl<T: Clone> MenuInstance<T> {
         self.selected_index
     }
 
-    pub fn selected(&self) -> T {
-        self.items[self.selected_index].clone()
+    pub fn selected(&self) -> &T {
+        &self.items[self.selected_index]
+    }
+
+    pub fn enumerate(&self) -> impl Iterator<Item = (usize, &T, Option<Selected>)> {
+        let selected_index = self.selected_index;
+        self.items.iter().enumerate().map(move |(i, item)| {
+            let selected = if i == selected_index { Some(Selected) } else { None };
+            (i, item, selected)
+        })
     }
 
     pub fn choose<M>(&mut self, view: &M, input: Input) -> Option<T>
@@ -115,7 +163,7 @@ impl<T: Clone> MenuInstance<T> {
     {
         match input {
             Input::Keyboard(keys::RETURN) => {
-                return Some(self.selected());
+                return Some(self.selected().clone());
             }
             Input::Keyboard(KeyboardInput::Up)
             | Input::Mouse(MouseInput::MouseScroll {
@@ -140,7 +188,7 @@ impl<T: Clone> MenuInstance<T> {
             Input::Mouse(MouseInput::MousePress { coord, .. }) => {
                 if let Some(index) = view.menu_index_from_screen_coord(self.items.len(), coord) {
                     self.set_index(index);
-                    return Some(self.selected());
+                    return Some(self.selected().clone());
                 }
             }
             _ => (),

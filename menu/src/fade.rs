@@ -1,8 +1,10 @@
-use crate::{menu_entry_view, MenuEntryExtraView, MenuEntryViewInfo, MenuInstanceChoose, MenuInstanceView};
+use crate::{
+    MenuEntryString, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose, MenuInstanceMouseTracker, Selected,
+};
 use prototty_event_routine::{common_event, event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
-use prototty_render::{ColModify, Frame, Rgb24, Style, View, ViewContext};
+use prototty_render::{ColModify, Coord, Frame, Rgb24, Style, View, ViewContext};
 use prototty_text::StringViewSingleLine;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -63,14 +65,8 @@ impl FadeInstance {
     }
 }
 
-#[derive(Clone, Copy)]
-enum MenuEntryStatus {
-    Selected,
-    Normal,
-}
-
 struct MenuEntryChange {
-    change_to: MenuEntryStatus,
+    change_to: Option<Selected>,
     foreground: FadeInstance,
     background: FadeInstance,
 }
@@ -127,21 +123,22 @@ pub mod fade_spec {
     }
 }
 
-pub struct FadeMenuEntryView<E> {
-    last_change: BTreeMap<E, MenuEntryChange>,
+pub struct FadeMenuInstanceView {
+    last_change: HashMap<usize, MenuEntryChange>,
     previous_view_since_epoch: Duration,
     spec: fade_spec::Spec,
+    mouse_tracker: MenuInstanceMouseTracker,
+    buf: String,
 }
 
-impl<E> FadeMenuEntryView<E>
-where
-    E: Ord,
-{
+impl FadeMenuInstanceView {
     pub fn new(spec: fade_spec::Spec) -> Self {
         Self {
-            last_change: BTreeMap::new(),
+            last_change: HashMap::new(),
             previous_view_since_epoch: Duration::from_millis(0),
             spec,
+            mouse_tracker: Default::default(),
+            buf: String::new(),
         }
     }
     pub fn clear(&mut self) {
@@ -149,143 +146,118 @@ where
     }
 }
 
-impl<E> MenuEntryExtraView<E> for FadeMenuEntryView<E>
+pub struct FadeMenuInstanceModel<'a, E, S>
 where
-    E: Ord + Clone,
-    for<'a> &'a E: Into<&'a str>,
+    E: Clone,
+    S: MenuEntryString<Entry = E>,
 {
-    type Extra = Duration;
-    fn normal<G: Frame, C: ColModify>(
+    menu_instance: &'a MenuInstance<E>,
+    menu_entry_string: &'a S,
+    since_epoch: Duration,
+}
+
+impl<'a, E, S> View<FadeMenuInstanceModel<'a, E, S>> for FadeMenuInstanceView
+where
+    E: Clone,
+    S: MenuEntryString<Entry = E>,
+{
+    fn view<F: Frame, C: ColModify>(
         &mut self,
-        entry: &E,
-        since_epoch: &Duration,
+        FadeMenuInstanceModel {
+            menu_instance,
+            menu_entry_string,
+            since_epoch,
+        }: FadeMenuInstanceModel<'a, E, S>,
         context: ViewContext<C>,
-        frame: &mut G,
-    ) -> MenuEntryViewInfo {
+        frame: &mut F,
+    ) {
+        self.mouse_tracker.new_frame(context.offset);
         let spec = &self.spec;
-        let current = self
-            .last_change
-            .entry(entry.clone())
-            .or_insert_with(|| MenuEntryChange {
-                change_to: MenuEntryStatus::Normal,
+        for (i, entry, maybe_selected) in menu_instance.enumerate() {
+            let current = self.last_change.entry(i).or_insert_with(|| MenuEntryChange {
+                change_to: maybe_selected,
                 foreground: FadeInstance::constant(spec.normal.to.foreground),
                 background: FadeInstance::constant(spec.normal.to.background),
             });
-        match current.change_to {
-            MenuEntryStatus::Normal => (),
-            MenuEntryStatus::Selected => {
-                current.change_to = MenuEntryStatus::Normal;
-                current.foreground = current.foreground.transform_foreground(&spec.normal, *since_epoch);
-                current.background = current.background.transform_background(&spec.normal, *since_epoch);
+            match (current.change_to, maybe_selected) {
+                (None, None) | (Some(Selected), Some(Selected)) => (),
+                (Some(Selected), None) => {
+                    current.change_to = None;
+                    current.foreground = current.foreground.transform_foreground(&spec.normal, since_epoch);
+                    current.background = current.background.transform_background(&spec.normal, since_epoch);
+                }
+                (None, Some(Selected)) => {
+                    current.change_to = Some(Selected);
+                    current.foreground = current.foreground.transform_foreground(&spec.selected, since_epoch);
+                    current.background = current.background.transform_background(&spec.selected, since_epoch);
+                }
             }
-        }
-        let foreground = current.foreground.current(*since_epoch);
-        let background = current.background.current(*since_epoch);
-        let s: &str = entry.into();
-        menu_entry_view(
-            s,
-            StringViewSingleLine::new(
+            let foreground = current.foreground.current(since_epoch);
+            let background = current.background.current(since_epoch);
+            self.buf.clear();
+            menu_entry_string.render_string(entry, maybe_selected, &mut self.buf);
+            let mut view = StringViewSingleLine::new(
                 Style::new()
                     .with_bold(spec.normal.to.bold)
                     .with_underline(spec.normal.to.underline)
                     .with_foreground(foreground)
                     .with_background(background),
-            ),
-            context,
-            frame,
-        )
-    }
-    fn selected<G: Frame, C: ColModify>(
-        &mut self,
-        entry: &E,
-        since_epoch: &Duration,
-        context: ViewContext<C>,
-        frame: &mut G,
-    ) -> MenuEntryViewInfo {
-        let spec = &self.spec;
-        let current = self
-            .last_change
-            .entry(entry.clone())
-            .or_insert_with(|| MenuEntryChange {
-                change_to: MenuEntryStatus::Selected,
-                foreground: FadeInstance::constant(spec.selected.to.foreground),
-                background: FadeInstance::constant(spec.selected.to.background),
-            });
-        match current.change_to {
-            MenuEntryStatus::Selected => (),
-            MenuEntryStatus::Normal => {
-                current.change_to = MenuEntryStatus::Selected;
-                current.foreground = current.foreground.transform_foreground(&spec.selected, *since_epoch);
-                current.background = current.background.transform_background(&spec.selected, *since_epoch);
-            }
+            );
+            let size = view.view_size(&self.buf, context.add_offset(Coord::new(0, i as i32)), frame);
+            self.mouse_tracker.on_entry_view_size(size);
         }
-        let foreground = current.foreground.current(*since_epoch);
-        let background = current.background.current(*since_epoch);
-        let s: &str = entry.into();
-        menu_entry_view(
-            s,
-            StringViewSingleLine::new(
-                Style::new()
-                    .with_bold(spec.selected.to.bold)
-                    .with_underline(spec.selected.to.underline)
-                    .with_foreground(foreground)
-                    .with_background(background),
-            ),
-            context,
-            frame,
-        )
     }
 }
 
-pub struct FadeMenuInstanceRoutine<C> {
+impl MenuIndexFromScreenCoord for FadeMenuInstanceView {
+    fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize> {
+        self.mouse_tracker.menu_index_from_screen_coord(len, coord)
+    }
+}
+
+pub struct FadeMenuInstanceRoutine<C, S> {
     choose: PhantomData<C>,
     since_epoch: Duration,
+    menu_entry_string: S,
 }
 
-impl<C> FadeMenuInstanceRoutine<C>
+impl<C, S> FadeMenuInstanceRoutine<C, S>
 where
     C: MenuInstanceChoose,
+    S: MenuEntryString<Entry = C::Entry>,
 {
-    pub fn new() -> Self {
+    pub fn new(menu_entry_string: S) -> Self {
         Self {
             choose: PhantomData,
             since_epoch: Duration::from_millis(0),
+            menu_entry_string,
         }
     }
 }
 
-impl<C> Clone for FadeMenuInstanceRoutine<C>
+impl<C, T> Clone for FadeMenuInstanceRoutine<C, T>
 where
     C: MenuInstanceChoose,
+    T: MenuEntryString<Entry = C::Entry> + Clone,
 {
     fn clone(&self) -> Self {
         Self {
             choose: PhantomData,
             since_epoch: self.since_epoch,
+            menu_entry_string: self.menu_entry_string.clone(),
         }
     }
 }
 
-impl<C> Copy for FadeMenuInstanceRoutine<C> where C: MenuInstanceChoose {}
-
-impl<C> Default for FadeMenuInstanceRoutine<C>
+impl<C, S> EventRoutine for FadeMenuInstanceRoutine<C, S>
 where
     C: MenuInstanceChoose,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<C> EventRoutine for FadeMenuInstanceRoutine<C>
-where
-    C: MenuInstanceChoose,
-    C::Entry: Ord + Clone,
-    for<'a> &'a C::Entry: Into<&'a str>,
+    C::Entry: Clone,
+    S: MenuEntryString<Entry = C::Entry>,
 {
     type Return = C::Output;
     type Data = C;
-    type View = MenuInstanceView<FadeMenuEntryView<C::Entry>>;
+    type View = FadeMenuInstanceView;
     type Event = common_event::CommonEvent;
 
     fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
@@ -301,10 +273,15 @@ where
                 }
             }
             common_event::CommonEvent::Frame(duration) => {
-                let Self { choose, since_epoch } = s;
+                let Self {
+                    choose,
+                    since_epoch,
+                    menu_entry_string,
+                } = s;
                 Handled::Continue(Self {
                     choose,
                     since_epoch: since_epoch + duration,
+                    menu_entry_string,
                 })
             }
         })
@@ -315,10 +292,15 @@ where
         F: Frame,
         CM: ColModify,
     {
-        if self.since_epoch < view.entry_view.previous_view_since_epoch {
-            view.entry_view.clear();
+        if self.since_epoch < view.previous_view_since_epoch {
+            view.clear();
         }
-        view.view((data.menu_instance(), &self.since_epoch), context, frame);
-        view.entry_view.previous_view_since_epoch = self.since_epoch;
+        let model = FadeMenuInstanceModel {
+            menu_instance: data.menu_instance(),
+            menu_entry_string: &self.menu_entry_string,
+            since_epoch: self.since_epoch,
+        };
+        view.view(model, context, frame);
+        view.previous_view_since_epoch = self.since_epoch;
     }
 }
