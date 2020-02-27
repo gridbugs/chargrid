@@ -2,15 +2,15 @@ use crate::controls::Controls;
 use crate::depth;
 use crate::frontend::Frontend;
 use crate::game::{
-    AimEventRoutine, AudioConfig, GameData, GameEventRoutine, GameOverEventRoutine, GameReturn, GameView,
-    InjectedInput, MapEventRoutine, ScreenCoord,
+    AimEventRoutine, GameData, GameEventRoutine, GameOverEventRoutine, GameReturn, GameView, InjectedInput,
+    MapEventRoutine, ScreenCoord,
 };
 pub use crate::game::{GameConfig, Omniscient, RngSeed};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
 use maplit::hashmap;
-use menu::{fade_spec, FadeMenuInstanceView, MenuEntryStringIntoStr, MenuInstanceChoose};
+use menu::{fade_spec, FadeMenuInstanceView, MenuEntryStringFn, MenuInstanceChoose};
 use prototty::input::*;
 use prototty::*;
 use prototty_audio::AudioPlayer;
@@ -75,20 +75,6 @@ impl MainMenuEntry {
     }
 }
 
-impl<'a> From<&'a MainMenuEntry> for &'a str {
-    fn from(main_menu_entry: &'a MainMenuEntry) -> Self {
-        match main_menu_entry {
-            MainMenuEntry::NewGame => "(n) New Game",
-            MainMenuEntry::Resume => "(r) Resume",
-            MainMenuEntry::Quit => "(q) Quit",
-            MainMenuEntry::SaveQuit => "(q) Save and Quit",
-            MainMenuEntry::Save => "(s) Save",
-            MainMenuEntry::Clear => "(c) Clear",
-            MainMenuEntry::Options => "(o) Options",
-        }
-    }
-}
-
 struct AppData<S: Storage, A: AudioPlayer> {
     frontend: Frontend,
     game: GameData<S, A>,
@@ -124,7 +110,7 @@ impl<S: Storage, A: AudioPlayer> AppData<S, A> {
             frontend,
         );
         Self {
-            options_menu: OptionsMenuEntry::instance(game_data.audio_config()),
+            options_menu: OptionsMenuEntry::instance(),
             frontend,
             game: game_data,
             main_menu: MainMenuEntry::init(frontend).into_choose_or_escape(),
@@ -425,44 +411,22 @@ enum OrBack<T> {
     Back,
 }
 
-impl<'a> From<&'a OrBack<OptionsMenuEntry>> for &'a str {
-    fn from(options_menu_entry: &'a OrBack<OptionsMenuEntry>) -> Self {
-        use OptionsMenuEntry::*;
-        use OrBack::*;
-        match options_menu_entry {
-            Selection(ToggleMusic { current: true }) => "(m) Music enabled: [*]",
-            Selection(ToggleMusic { current: false }) => "(m) Music enabled: [ ]",
-            Selection(ToggleSfx { current: true }) => "(s) SFX enabled: [*]",
-            Selection(ToggleSfx { current: false }) => "(s) SFX enabled: [ ]",
-            Back => "Back",
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq)]
 enum OptionsMenuEntry {
-    ToggleMusic { current: bool },
-    ToggleSfx { current: bool },
+    ToggleMusic,
+    ToggleSfx,
 }
 
 impl OptionsMenuEntry {
-    fn instance(audio_config: AudioConfig) -> menu::MenuInstanceChooseOrEscape<OrBack<OptionsMenuEntry>> {
+    fn instance() -> menu::MenuInstanceChooseOrEscape<OrBack<OptionsMenuEntry>> {
         use OptionsMenuEntry::*;
         use OrBack::*;
         menu::MenuInstanceBuilder {
-            items: vec![
-                Selection(ToggleMusic {
-                    current: audio_config.music,
-                }),
-                Selection(ToggleSfx {
-                    current: audio_config.sfx,
-                }),
-                Back,
-            ],
+            items: vec![Selection(ToggleMusic), Selection(ToggleSfx), Back],
             selected_index: 0,
             hotkeys: Some(hashmap![
-                'm' => Selection(ToggleMusic { current: audio_config.music }),
-                's' => Selection(ToggleSfx { current: audio_config.music }),
+                'm' => Selection(ToggleMusic),
+                's' => Selection(ToggleSfx),
             ]),
         }
         .build()
@@ -566,9 +530,33 @@ fn options_menu<S: Storage, A: AudioPlayer>() -> impl EventRoutine<
     View = AppView,
     Event = CommonEvent,
 > {
-    menu::FadeMenuInstanceRoutine::new(MenuEntryStringIntoStr::new())
-        .select(SelectOptionsMenu::new())
-        .decorated(DecorateOptionsMenu::new())
+    SideEffectThen::new_with_view(|data: &mut AppData<S, A>, _: &_| {
+        let audio_config = data.game.audio_config();
+        let menu_entry_string = MenuEntryStringFn::new(
+            move |entry: &OrBack<OptionsMenuEntry>, _maybe_selected, buf: &mut String| {
+                use std::fmt::Write;
+                use OptionsMenuEntry::*;
+                use OrBack::*;
+                match entry {
+                    Back => write!(buf, "back").unwrap(),
+                    Selection(entry) => match entry {
+                        ToggleMusic => write!(
+                            buf,
+                            "(m) Music enabled [{}]",
+                            if audio_config.music { '*' } else { ' ' }
+                        )
+                        .unwrap(),
+                        ToggleSfx => {
+                            write!(buf, "(s) Sfx enabled [{}]", if audio_config.sfx { '*' } else { ' ' }).unwrap()
+                        }
+                    },
+                }
+            },
+        );
+        menu::FadeMenuInstanceRoutine::new(menu_entry_string)
+            .select(SelectOptionsMenu::new())
+            .decorated(DecorateOptionsMenu::new())
+    })
 }
 
 fn options_menu_cycle<S: Storage, A: AudioPlayer>(
@@ -582,13 +570,10 @@ fn options_menu_cycle<S: Storage, A: AudioPlayer>(
             move |data: &mut AppData<S, A>, _: &_| {
                 let mut audio_config = data.game.audio_config();
                 match selection {
-                    ToggleMusic { .. } => audio_config.music = !audio_config.music,
-                    ToggleSfx { .. } => audio_config.sfx = !audio_config.sfx,
+                    ToggleMusic => audio_config.music = !audio_config.music,
+                    ToggleSfx => audio_config.sfx = !audio_config.sfx,
                 }
                 data.game.set_audio_config(audio_config);
-                let index = data.options_menu.menu_instance().index();
-                data.options_menu = OptionsMenuEntry::instance(audio_config);
-                data.options_menu.menu_instance_mut().set_index(index);
                 options_menu()
             },
         ))),
@@ -629,9 +614,23 @@ fn main_menu<S: Storage, A: AudioPlayer>(
                 }
             }
             Ei::B(
-                menu::FadeMenuInstanceRoutine::new(MenuEntryStringIntoStr::new())
-                    .select(SelectMainMenu::new())
-                    .decorated(DecorateMainMenu::new()),
+                menu::FadeMenuInstanceRoutine::new(MenuEntryStringFn::new(
+                    |entry: &MainMenuEntry, _maybe_selected, buf: &mut String| {
+                        use std::fmt::Write;
+                        let s = match entry {
+                            MainMenuEntry::NewGame => "(n) New Game",
+                            MainMenuEntry::Resume => "(r) Resume",
+                            MainMenuEntry::Quit => "(q) Quit",
+                            MainMenuEntry::SaveQuit => "(q) Save and Quit",
+                            MainMenuEntry::Save => "(s) Save",
+                            MainMenuEntry::Clear => "(c) Clear",
+                            MainMenuEntry::Options => "(o) Options",
+                        };
+                        write!(buf, "{}", s).unwrap();
+                    },
+                ))
+                .select(SelectMainMenu::new())
+                .decorated(DecorateMainMenu::new()),
             )
         }
     })
