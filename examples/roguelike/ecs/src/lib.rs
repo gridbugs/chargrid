@@ -359,6 +359,14 @@ macro_rules! ecs_components {
                 $(pub $component_name: Option<$component_type>,)*
             }
 
+            impl Default for EntityData {
+                fn default() -> Self {
+                    Self {
+                        $($component_name: None,)*
+                    }
+                }
+            }
+
             impl $crate::ComponentsTrait for Components {
                 type EntityData = EntityData;
                 fn remove_entity(&mut self, entity: $crate::Entity) {

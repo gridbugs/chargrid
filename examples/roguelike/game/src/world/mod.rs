@@ -1,5 +1,5 @@
 use crate::{visibility::Light, ExternalEvent};
-use ecs::{Ecs, Entity};
+use ecs::{ComponentsTrait, Ecs, Entity};
 use grid_2d::{Coord, Size};
 use rand::Rng;
 use rgb24::Rgb24;
@@ -10,7 +10,7 @@ use spatial::Spatial;
 
 mod data;
 use data::{Components, Npc};
-pub use data::{Disposition, HitPoints, Layer, Tile};
+pub use data::{Disposition, EntityData, HitPoints, Layer, Location, Tile};
 
 mod realtime_periodic;
 pub use realtime_periodic::animation::{Context as AnimationContext, FRAME_DURATION as ANIMATION_FRAME_DURATION};
@@ -24,6 +24,7 @@ pub use explosion::spec as explosion_spec;
 mod action;
 
 mod spawn;
+pub use spawn::make_player;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct World {
@@ -112,6 +113,9 @@ impl World {
         rng: &mut R,
     ) {
         animation_context.tick(self, external_events, rng)
+    }
+    pub fn clone_entity_data(&self, entity: Entity) -> EntityData {
+        self.ecs.components.clone_entity_data(entity)
     }
 }
 

@@ -17,7 +17,7 @@ pub use ecs::Entity;
 use procgen::SpaceshipSpec;
 use terrain::Terrain;
 pub use visibility::{CellVisibility, Omniscient, VisibilityGrid};
-use world::{AnimationContext, World, ANIMATION_FRAME_DURATION};
+use world::{make_player, AnimationContext, World, ANIMATION_FRAME_DURATION};
 pub use world::{CharacterInfo, HitPoints, Layer, Tile, ToRenderEntity};
 
 pub struct Config {
@@ -63,17 +63,19 @@ pub struct Game {
     agents: ComponentTable<Agent>,
     agents_to_remove: Vec<Entity>,
     since_last_frame: Duration,
+    generate_frame_countdown: Option<u32>,
 }
 
 impl Game {
     pub fn new<R: Rng>(config: &Config, rng: &mut R) -> Self {
         let mut rng = Isaac64Rng::seed_from_u64(rng.gen());
-        //let Terrain { world, agents, player } = terrain::from_str(include_str!("terrain.txt"));
+        //let Terrain { world, agents, player } = terrain::from_str(include_str!("terrain.txt"), make_player());
         let Terrain { world, agents, player } = terrain::spaceship(
             SpaceshipSpec {
                 size: Size::new(80, 64),
                 surrounding_space_min_width: 16,
             },
+            make_player(),
             &mut rng,
         );
         let last_player_info = world.character_info(player).expect("couldn't get info for player");
@@ -92,6 +94,7 @@ impl Game {
             agents_to_remove: Vec::new(),
             world,
             since_last_frame: Duration::from_millis(0),
+            generate_frame_countdown: None,
         };
         game.update_behaviour();
         game.update_visibility(config);
@@ -118,6 +121,9 @@ impl Game {
     }
     #[must_use]
     pub fn handle_input(&mut self, input: Input, config: &Config) -> Option<GameControlFlow> {
+        if self.generate_frame_countdown.is_some() {
+            return None;
+        }
         if !self.is_gameplay_blocked() {
             match input {
                 Input::Walk(direction) => self.world.character_walk_in_direction(self.player, direction),
@@ -165,9 +171,44 @@ impl Game {
         for entity in self.agents_to_remove.drain(..) {
             self.agents.remove(entity);
         }
+        self.after_turn();
+    }
+    fn generate_level(&mut self, config: &Config) {
+        let player_data = self.world.clone_entity_data(self.player);
+        let Terrain { world, agents, player } = terrain::spaceship(
+            SpaceshipSpec {
+                size: Size::new(80, 64),
+                surrounding_space_min_width: 16,
+            },
+            player_data,
+            &mut self.rng,
+        );
+        self.visibility_grid = VisibilityGrid::new(world.size());
+        self.world = world;
+        self.agents = agents;
+        self.player = player;
+        self.update_last_player_info();
+        self.update_behaviour();
+        self.update_visibility(config);
+    }
+    fn after_turn(&mut self) {
+        if let Some(player_coord) = self.world.entity_coord(self.player) {
+            if let Some(_stairs_entity) = self.world.get_stairs_at_coord(player_coord) {
+                self.generate_frame_countdown = Some(10);
+            }
+        }
     }
     #[must_use]
     pub fn handle_tick(&mut self, since_last_tick: Duration, config: &Config) -> Option<GameControlFlow> {
+        if let Some(countdown) = self.generate_frame_countdown.as_mut() {
+            if *countdown == 0 {
+                self.generate_level(config);
+                self.generate_frame_countdown = None;
+            } else {
+                *countdown -= 1;
+            }
+            return None;
+        }
         self.since_last_frame += since_last_tick;
         while let Some(remaining_since_last_frame) = self.since_last_frame.checked_sub(ANIMATION_FRAME_DURATION) {
             self.since_last_frame = remaining_since_last_frame;

@@ -322,6 +322,7 @@ fn map_render_entity<F: Frame, C: ColModify>(
         Tile::Window => ViewCell::new().with_character('=').with_bold(false),
         Tile::DoorClosed | Tile::DoorOpen => ViewCell::new().with_character('+').with_bold(false),
         Tile::Floor => ViewCell::new().with_character('.').with_bold(false),
+        Tile::Stairs => ViewCell::new().with_character('>').with_bold(false),
         _ => return,
     };
     let depth = layer_depth(to_render_entity.layer);
@@ -417,6 +418,9 @@ fn render_entity<F: Frame, C: ColModify>(
             .with_character('-')
             .with_foreground(Rgb24::new(255, 255, 255))
             .with_background(Rgb24::new(127, 127, 127)),
+        Tile::Stairs => ViewCell::new()
+            .with_character('>')
+            .with_foreground(Rgb24::new(255, 255, 255)),
         Tile::Wall => if game.contains_wall(entity_coord.0 + Coord::new(0, 1)) {
             ViewCell::new().with_character('█')
         } else {

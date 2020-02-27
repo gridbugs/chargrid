@@ -1,5 +1,9 @@
 use crate::behaviour::Agent;
-use crate::World;
+use crate::{
+    world::EntityData,
+    world::{Layer, Location},
+    World,
+};
 use ecs::{ComponentTable, Entity};
 use grid_2d::{Coord, Size};
 use procgen::{LightType, Spaceship, SpaceshipCell, SpaceshipSpec};
@@ -13,11 +17,12 @@ pub struct Terrain {
 }
 
 #[allow(dead_code)]
-pub fn from_str(s: &str) -> Terrain {
+pub fn from_str(s: &str, player_data: EntityData) -> Terrain {
     let rows = s.split('\n').filter(|s| !s.is_empty()).collect::<Vec<_>>();
     let size = Size::new_u16(rows[0].len() as u16, rows.len() as u16);
     let mut world = World::new(size);
     let mut agents = ComponentTable::default();
+    let mut player_data = Some(player_data);
     let mut player = None;
     for (y, row) in rows.iter().enumerate() {
         for (x, ch) in row.chars().enumerate() {
@@ -57,7 +62,11 @@ pub fn from_str(s: &str) -> Terrain {
                 }
                 '@' => {
                     world.spawn_floor(coord);
-                    player = Some(world.spawn_player(coord));
+                    let location = Location {
+                        coord,
+                        layer: Some(Layer::Character),
+                    };
+                    player = Some(world.insert_entity_data(location, player_data.take().unwrap()));
                 }
                 'f' => {
                     world.spawn_floor(coord);
@@ -77,7 +86,7 @@ pub fn from_str(s: &str) -> Terrain {
     Terrain { world, player, agents }
 }
 
-pub fn spaceship<R: Rng>(spec: SpaceshipSpec, rng: &mut R) -> Terrain {
+pub fn spaceship<R: Rng>(spec: SpaceshipSpec, player_data: EntityData, rng: &mut R) -> Terrain {
     let mut world = World::new(spec.size);
     let mut agents = ComponentTable::default();
     let spaceship = Spaceship::generate(spec, rng);
@@ -121,7 +130,12 @@ pub fn spaceship<R: Rng>(spec: SpaceshipSpec, rng: &mut R) -> Terrain {
             LightType::Broken => (),
         }
     }
-    let player = world.spawn_player(spaceship.player_spawn);
+    world.spawn_stairs(spaceship.exit);
+    let player_location = Location {
+        coord: spaceship.player_spawn,
+        layer: Some(Layer::Character),
+    };
+    let player = world.insert_entity_data(player_location, player_data);
     for coord in npc_candidates
         .into_iter()
         .filter(|&coord| !world.is_character_at_coord(coord))

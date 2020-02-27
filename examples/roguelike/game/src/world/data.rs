@@ -26,9 +26,11 @@ ecs_components! {
         player: (),
         ignore_lighting: (),
         door_state: DoorState,
+        stairs: (),
     }
 }
 pub use components::Components;
+pub use components::EntityData;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Tile {
@@ -46,6 +48,7 @@ pub enum Tile {
     Space,
     DoorClosed,
     DoorOpen,
+    Stairs,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

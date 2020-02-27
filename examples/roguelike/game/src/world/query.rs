@@ -77,4 +77,17 @@ impl World {
     pub fn get_character_at_coord(&self, coord: Coord) -> Option<Entity> {
         self.spatial.get_cell(coord).and_then(|cell| cell.character)
     }
+
+    pub fn get_stairs_at_coord(&self, coord: Coord) -> Option<Entity> {
+        self.spatial
+            .get_cell(coord)
+            .and_then(|cell| cell.feature)
+            .and_then(|feature| {
+                if self.ecs.components.stairs.contains(feature) {
+                    Some(feature)
+                } else {
+                    None
+                }
+            })
+    }
 }

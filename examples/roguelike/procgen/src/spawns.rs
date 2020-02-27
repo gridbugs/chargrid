@@ -1,10 +1,9 @@
 use crate::hull::HullCell;
 use direction::CardinalDirection;
 use grid_2d::{Coord, Grid};
-use rand::{seq::SliceRandom, Rng};
 use std::collections::{HashSet, VecDeque};
 
-fn all_room_means(grid: &Grid<HullCell>) -> Vec<Coord> {
+pub fn all_room_means(grid: &Grid<HullCell>) -> Vec<Coord> {
     let mut means = Vec::new();
     let mut flood_fill_buffer = VecDeque::new();
     let mut visited = HashSet::new();
@@ -32,8 +31,4 @@ fn all_room_means(grid: &Grid<HullCell>) -> Vec<Coord> {
         }
     }
     means
-}
-
-pub fn choose_player_spawn<R: Rng>(grid: &Grid<HullCell>, rng: &mut R) -> Coord {
-    *all_room_means(grid).choose(rng).unwrap()
 }
