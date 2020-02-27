@@ -130,8 +130,8 @@ pub fn spaceship<R: Rng>(spec: SpaceshipSpec, player_data: EntityData, rng: &mut
             LightType::Broken => (),
         }
     }
-    //world.spawn_stairs(spaceship.exit);
-    world.spawn_stairs(spaceship.player_spawn + Coord::new(1, 0));
+    world.spawn_stairs(spaceship.exit);
+    //world.spawn_stairs(spaceship.player_spawn + Coord::new(1, 0));
     let player_location = Location {
         coord: spaceship.player_spawn,
         layer: Some(Layer::Character),
