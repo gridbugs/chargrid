@@ -581,7 +581,7 @@ fn options_menu_cycle<S: Storage, A: AudioPlayer>(
 }
 
 #[derive(Clone, Copy)]
-struct AutoPlay;
+pub struct AutoPlay;
 
 fn main_menu<S: Storage, A: AudioPlayer>(
     auto_play: Option<AutoPlay>,
@@ -801,6 +801,7 @@ pub fn app<S: Storage, A: AudioPlayer>(
     save_key: String,
     audio_player: A,
     rng_seed: RngSeed,
+    auto_play: Option<AutoPlay>,
 ) -> impl app::App {
     let app_data = AppData::new(
         game_config,
@@ -812,5 +813,5 @@ pub fn app<S: Storage, A: AudioPlayer>(
         rng_seed,
     );
     let app_view = AppView::new();
-    event_routine(Some(AutoPlay)).app_one_shot_ignore_return(app_data, app_view)
+    event_routine(auto_play).app_one_shot_ignore_return(app_data, app_view)
 }

@@ -19,6 +19,7 @@ pub fn run() -> Result<(), JsValue> {
         SAVE_KEY.to_string(),
         audio_player,
         RngSeed::Random,
+        None,
     );
     context.run_app(app);
     Ok(())

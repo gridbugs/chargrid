@@ -649,6 +649,9 @@ impl<S: Storage, A: AudioPlayer> GameData<S, A> {
     pub fn pre_game_loop(&mut self) {
         if let Some(music_handle) = self.music_handle.as_ref() {
             music_handle.set_volume(GAME_MUSIC_VOLUME);
+            if self.audio_config.music {
+                music_handle.play();
+            }
         }
     }
     pub fn post_game_loop(&mut self) {

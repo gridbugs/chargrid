@@ -4,7 +4,7 @@ use prototty_graphical::*;
 #[cfg(feature = "prototty_graphical_gfx")]
 use prototty_graphical_gfx::*;
 use rip_native::{simon::Arg, NativeCommon};
-use rip_prototty::{app, Frontend};
+use rip_prototty::{app, AutoPlay, Frontend};
 
 const CELL_SIZE: f64 = 16.;
 
@@ -52,6 +52,7 @@ fn main() {
         save_file,
         audio_player,
         rng_seed,
+        Some(AutoPlay),
     );
     context.run_app(app);
 }
