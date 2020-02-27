@@ -17,7 +17,6 @@ before_script:
   - nvm install v12
   - nvm use v12
   - cargo install wasm-bindgen-cli
-  - npm install -g npx
   - rustup target add wasm32-unknown-unknown
 script:
 - ./test.sh
