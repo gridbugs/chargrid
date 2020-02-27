@@ -174,10 +174,15 @@ where
         self.mouse_tracker.new_frame(context.offset);
         let spec = &self.spec;
         for (i, entry, maybe_selected) in menu_instance.enumerate() {
+            let current_style = if let Some(Selected) = maybe_selected {
+                &spec.selected
+            } else {
+                &spec.normal
+            };
             let current = self.last_change.entry(i).or_insert_with(|| MenuEntryChange {
                 change_to: maybe_selected,
-                foreground: FadeInstance::constant(spec.normal.to.foreground),
-                background: FadeInstance::constant(spec.normal.to.background),
+                foreground: FadeInstance::constant(current_style.to.foreground),
+                background: FadeInstance::constant(current_style.to.background),
             });
             match (current.change_to, maybe_selected) {
                 (None, None) | (Some(Selected), Some(Selected)) => (),

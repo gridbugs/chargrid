@@ -30,6 +30,25 @@ where
     }
 }
 
+pub struct MenuEntryStringFn<F, E> {
+    f: F,
+    e: PhantomData<E>,
+}
+impl<F, E> MenuEntryStringFn<F, E> {
+    pub fn new(f: F) -> Self {
+        Self { f, e: PhantomData }
+    }
+}
+impl<F, E> MenuEntryString for MenuEntryStringFn<F, E>
+where
+    F: Fn(&E, Option<Selected>, &mut String),
+{
+    type Entry = E;
+    fn render_string(&self, entry: &Self::Entry, maybe_selected: Option<Selected>, buf: &mut String) {
+        (self.f)(entry, maybe_selected, buf);
+    }
+}
+
 pub trait MenuEntryRichString {
     type Entry;
     fn render_rich_string(&self, entry: &Self::Entry, maybe_selected: Option<Selected>, buf: &mut String) -> Style;
