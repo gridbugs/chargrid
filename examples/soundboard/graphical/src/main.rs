@@ -10,10 +10,10 @@ fn main() {
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
         },
         title: "Soundboard".to_string(),
-        window_dimensions: WindowDimensions::Windowed(Dimensions {
+        window_dimensions: Dimensions {
             width: 640.,
             height: 480.,
-        }),
+        },
         cell_dimensions: Dimensions {
             width: 16.,
             height: 16.,

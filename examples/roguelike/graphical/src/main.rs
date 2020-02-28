@@ -24,10 +24,10 @@ fn main() {
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA-with-quadrant-blocks.ttf").to_vec(),
         },
         title: "RIP".to_string(),
-        window_dimensions: WindowDimensions::Windowed(Dimensions {
+        window_dimensions: Dimensions {
             width: 960.,
             height: 640.,
-        }),
+        },
         cell_dimensions: Dimensions {
             width: CELL_SIZE,
             height: CELL_SIZE,

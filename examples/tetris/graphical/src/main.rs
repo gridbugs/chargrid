@@ -9,7 +9,10 @@ fn main() {
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
         },
         title: "Tetris".to_string(),
-        window_dimensions: WindowDimensions::Fullscreen,
+        window_dimensions: Dimensions {
+            width: 640.,
+            height: 480.,
+        },
         cell_dimensions: Dimensions {
             width: 32.,
             height: 32.,

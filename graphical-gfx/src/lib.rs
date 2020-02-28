@@ -36,15 +36,12 @@ impl Context {
             .with_underline_position((underline_top_offset * cell_dimensions.height) as u32)
             .with_cell_dimensions(Size::new(cell_dimensions.width as u32, cell_dimensions.height as u32))
             .with_font_scale(font_dimensions.width as f32, font_dimensions.height as f32);
-        let builder = match window_dimensions {
-            WindowDimensions::Fullscreen => builder.with_fullscreen(),
-            WindowDimensions::Windowed(Dimensions { width, height }) => {
-                let size = Size::new(width as u32, height as u32);
-                builder
-                    .with_window_dimensions(size)
-                    .with_min_window_dimensions(size)
-                    .with_max_window_dimensions(size)
-            }
+        let builder = {
+            let size = Size::new(window_dimensions.width as u32, window_dimensions.height as u32);
+            builder
+                .with_window_dimensions(size)
+                .with_min_window_dimensions(size)
+                .with_max_window_dimensions(size)
         };
         let (gfx_context, events_loop) = builder.build()?;
         Ok(Self {

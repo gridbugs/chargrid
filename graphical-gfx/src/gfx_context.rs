@@ -109,13 +109,6 @@ impl<'a> ContextBuilder<'a> {
         }
     }
 
-    pub fn with_fullscreen(self) -> Self {
-        Self {
-            window_builder: self.window_builder.with_fullscreen(None),
-            ..self
-        }
-    }
-
     pub fn with_underline_width(self, underline_width: u32) -> Self {
         Self {
             underline_width: Some(underline_width),

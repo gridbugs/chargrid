@@ -13,15 +13,10 @@ pub type NumPixels = f64;
 pub type CellRatio = f64;
 pub type FontSourceScale = f32;
 
-pub enum WindowDimensions {
-    Windowed(Dimensions<NumPixels>),
-    Fullscreen,
-}
-
 pub struct ContextDescriptor {
     pub font_bytes: FontBytes,
     pub title: String,
-    pub window_dimensions: WindowDimensions,
+    pub window_dimensions: Dimensions<NumPixels>,
     pub cell_dimensions: Dimensions<NumPixels>,
     pub font_dimensions: Dimensions<NumPixels>,
     pub font_source_dimensions: Dimensions<FontSourceScale>,

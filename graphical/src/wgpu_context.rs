@@ -1,4 +1,4 @@
-use crate::{input, ContextDescriptor, Dimensions, FontBytes, NumPixels, WindowDimensions};
+use crate::{input, ContextDescriptor, Dimensions, FontBytes, NumPixels};
 use grid_2d::{Coord, Grid, Size};
 use prototty_app::{App, ControlFlow};
 use prototty_render::ViewContext;
@@ -369,15 +369,12 @@ impl Context {
     ) -> Result<Self, ContextBuildError> {
         let event_loop = winit::event_loop::EventLoop::new();
         let window_builder = winit::window::WindowBuilder::new().with_title(title);
-        let window_builder = match window_dimensions {
-            WindowDimensions::Fullscreen => window_builder.with_fullscreen(None),
-            WindowDimensions::Windowed(Dimensions { width, height }) => {
-                let logical_size = winit::dpi::LogicalSize::new(width, height);
-                window_builder
-                    .with_inner_size(logical_size)
-                    .with_min_inner_size(logical_size)
-                    .with_max_inner_size(logical_size)
-            }
+        let window_builder = {
+            let logical_size = winit::dpi::LogicalSize::new(window_dimensions.width, window_dimensions.height);
+            window_builder
+                .with_inner_size(logical_size)
+                .with_min_inner_size(logical_size)
+                .with_max_inner_size(logical_size)
         };
         let window = window_builder
             .build(&event_loop)
