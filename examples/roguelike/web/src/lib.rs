@@ -1,5 +1,5 @@
 use prototty_web::{Context, LocalStorage, Size, WebAudioPlayer};
-use rip_prototty::{app, Controls, Frontend, GameConfig, RngSeed};
+use rip_prototty::{app, AutoPlay, Controls, Frontend, GameConfig, RngSeed};
 use wasm_bindgen::prelude::*;
 
 const SAVE_KEY: &str = "save";
@@ -19,7 +19,7 @@ pub fn run() -> Result<(), JsValue> {
         SAVE_KEY.to_string(),
         audio_player,
         RngSeed::Random,
-        None,
+        Some(AutoPlay),
     );
     context.run_app(app);
     Ok(())
