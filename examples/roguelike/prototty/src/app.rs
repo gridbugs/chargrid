@@ -112,16 +112,16 @@ impl<S: Storage, A: AudioPlayer> AppData<S, A> {
             rng_seed,
             frontend,
         );
-        if frontend.allow_fullscreen() {
+        if env.fullscreen_supported() {
             let mut config = game_data.config();
             if fullscreen.is_some() {
                 config.fullscreen = true;
             }
-            env.set_fullscreen(config.fullscreen);
+            env.set_fullscreen_init(config.fullscreen);
             game_data.set_config(config);
         }
         Self {
-            options_menu: OptionsMenuEntry::instance(frontend),
+            options_menu: OptionsMenuEntry::instance(&env),
             frontend,
             game: game_data,
             main_menu: MainMenuEntry::init(frontend).into_choose_or_escape(),
@@ -431,11 +431,11 @@ enum OptionsMenuEntry {
 }
 
 impl OptionsMenuEntry {
-    fn instance(frontend: Frontend) -> menu::MenuInstanceChooseOrEscape<OrBack<OptionsMenuEntry>> {
+    fn instance(env: &Box<dyn Env>) -> menu::MenuInstanceChooseOrEscape<OrBack<OptionsMenuEntry>> {
         use OptionsMenuEntry::*;
         use OrBack::*;
         menu::MenuInstanceBuilder {
-            items: if frontend.allow_fullscreen() {
+            items: if env.fullscreen_supported() {
                 vec![
                     Selection(ToggleMusic),
                     Selection(ToggleSfx),
@@ -556,6 +556,7 @@ fn options_menu<S: Storage, A: AudioPlayer>() -> impl EventRoutine<
     SideEffectThen::new_with_view(|data: &mut AppData<S, A>, _: &_| {
         let config = data.game.config();
         let fullscreen = data.env.fullscreen();
+        let fullscreen_requires_restart = data.env.fullscreen_requires_restart();
         let menu_entry_string = MenuEntryStringFn::new(
             move |entry: &OrBack<OptionsMenuEntry>, _maybe_selected, buf: &mut String| {
                 use std::fmt::Write;
@@ -569,7 +570,11 @@ fn options_menu<S: Storage, A: AudioPlayer>() -> impl EventRoutine<
                         }
                         ToggleSfx => write!(buf, "(s) Sfx enabled [{}]", if config.sfx { '*' } else { ' ' }).unwrap(),
                         ToggleFullscreen => {
-                            write!(buf, "(f) Fullscreen [{}]", if fullscreen { '*' } else { ' ' }).unwrap()
+                            if fullscreen_requires_restart {
+                                write!(buf, "(f) Fullscreen (requires restart) [{}]", if fullscreen { '*' } else { ' ' }).unwrap()
+                            } else {
+                                write!(buf, "(f) Fullscreen [{}]", if fullscreen { '*' } else { ' ' }).unwrap()
+                            }
                         }
                     },
                 }
@@ -821,6 +826,10 @@ fn event_routine<S: Storage, A: AudioPlayer>(
 
 pub trait Env {
     fn fullscreen(&self) -> bool;
+    fn fullscreen_requires_restart(&self) -> bool;
+    fn fullscreen_supported(&self) -> bool;
+    // hack to get around fact that changing fullscreen mid-game on windows crashes
+    fn set_fullscreen_init(&self, fullscreen: bool);
     fn set_fullscreen(&self, fullscreen: bool);
 }
 pub struct EnvNull;
@@ -828,7 +837,14 @@ impl Env for EnvNull {
     fn fullscreen(&self) -> bool {
         false
     }
+    fn fullscreen_requires_restart(&self) -> bool {
+        false
+    }
+    fn fullscreen_supported(&self) -> bool {
+        false
+    }
     fn set_fullscreen(&self, _fullscreen: bool) {}
+    fn set_fullscreen_init(&self, _fullscreen: bool) {}
 }
 
 pub struct Fullscreen;

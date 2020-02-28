@@ -13,10 +13,4 @@ impl Frontend {
             Self::Graphical => println!("RNG Seed: {}", seed),
         }
     }
-    pub(crate) fn allow_fullscreen(self) -> bool {
-        match self {
-            Self::Graphical => true,
-            Self::AnsiTerminal | Self::Web => false,
-        }
-    }
 }

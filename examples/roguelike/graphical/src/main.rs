@@ -1,24 +1,89 @@
 #![windows_subsystem = "windows"]
 #[cfg(feature = "prototty_graphical")]
-use prototty_graphical::*;
+use prototty_graphical as graphical;
 #[cfg(feature = "prototty_graphical_gfx")]
-use prototty_graphical_gfx::*;
+use prototty_graphical_gfx as graphical;
 use rip_native::{simon::*, NativeCommon};
-use rip_prototty::{app, AutoPlay, Env, Frontend, Fullscreen};
+use rip_prototty::{app, AutoPlay, Frontend, Fullscreen};
+
+#[cfg(feature = "prototty_graphical")]
+const FULLSCREEN_SUPPORTED: bool = true;
+
+#[cfg(feature = "prototty_graphical_gfx")]
+const FULLSCREEN_SUPPORTED: bool = false;
 
 const CELL_SIZE: f64 = 16.;
 
-struct GraphicalEnv {
-    window_handle: WindowHandle,
-}
-impl Env for GraphicalEnv {
-    fn fullscreen(&self) -> bool {
-        self.window_handle.fullscreen()
+#[cfg(target_os = "windows")]
+mod graphical_env {
+    use rip_prototty::Env;
+    use super::graphical::WindowHandle;
+    use std::cell::RefCell;
+    pub struct GraphicalEnv {
+        window_handle: WindowHandle,
+        shadow_fullscreen: RefCell<bool>,
     }
-    fn set_fullscreen(&self, fullscreen: bool) {
-        self.window_handle.set_fullscreen(fullscreen)
+    impl GraphicalEnv {
+        pub fn new(window_handle: WindowHandle) -> Self {
+            Self {
+                window_handle,
+                shadow_fullscreen: RefCell::new(false),
+            }
+        }
+    }
+    impl Env for GraphicalEnv {
+        fn fullscreen(&self) -> bool {
+            *self.shadow_fullscreen.borrow()
+        }
+        fn fullscreen_requires_restart(&self) -> bool {
+            true
+        }
+        fn fullscreen_supported(&self) -> bool {
+            super::FULLSCREEN_SUPPORTED
+        }
+        fn set_fullscreen(&self, fullscreen: bool) {
+            *self.shadow_fullscreen.borrow_mut() = fullscreen;
+        }
+        fn set_fullscreen_init(&self, fullscreen: bool) {
+            self.window_handle.set_fullscreen(fullscreen);
+            *self.shadow_fullscreen.borrow_mut() = fullscreen;
+        }
     }
 }
+
+#[cfg(not(target_os = "windows"))]
+mod graphical_env {
+    use rip_prototty::Env;
+    use super::graphical::WindowHandle;
+    pub struct GraphicalEnv {
+        window_handle: WindowHandle,
+    }
+    impl GraphicalEnv {
+        pub fn new(window_handle: WindowHandle) -> Self {
+            Self { window_handle }
+        }
+    }
+    impl Env for GraphicalEnv {
+        fn fullscreen(&self) -> bool {
+            self.window_handle.fullscreen()
+        }
+        fn fullscreen_requires_restart(&self) -> bool {
+            false
+        }
+        fn fullscreen_supported(&self) -> bool {
+            super::FULLSCREEN_SUPPORTED
+        }
+        fn set_fullscreen(&self, fullscreen: bool) {
+            self.window_handle.set_fullscreen(fullscreen)
+        }
+        fn set_fullscreen_init(&self, fullscreen: bool) {
+            self.window_handle.set_fullscreen(fullscreen)
+        }
+    }
+}
+
+use graphical_env::*;
+use graphical::*;
 
 struct Args {
     native_common: NativeCommon,
@@ -78,7 +143,7 @@ fn main() {
         underline_top_offset: 0.8,
     })
     .unwrap();
-    let env = GraphicalEnv { window_handle };
+    let env = GraphicalEnv::new(window_handle);
     let app = app(
         game_config,
         Frontend::Graphical,
