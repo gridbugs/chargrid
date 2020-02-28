@@ -11,6 +11,7 @@ layout(location = 3) out float v_CellRatioY;
 
 layout(set = 0, binding = 0) uniform Globals {
     vec2 u_CellSizeRelativeToWindow;
+    vec2 u_OffsetTtoCentre;
     uint u_GridWidth;
 };
 
@@ -39,7 +40,7 @@ void main() {
     vec2 corner_offset = corner_offsets[gl_VertexIndex];
     vec2 scaled_corner_offset = corner_offsets[gl_VertexIndex] * cell_size;
     vec2 top_left_corner = coord * cell_size;
-    vec2 absolute = vec2(-1.0, -1.0) + top_left_corner + scaled_corner_offset;
+    vec2 absolute = vec2(-1.0, -1.0) + top_left_corner + scaled_corner_offset + u_OffsetTtoCentre;
     v_CellRatioY = corner_offset.y;
     gl_Position = vec4(absolute, 0.0, 1.0);
 }

@@ -1,7 +1,7 @@
 use prototty_ansi_terminal::{col_encode, Context};
 use rand::Rng;
 use rip_native::{simon::*, NativeCommon};
-use rip_prototty::{app, AutoPlay, Frontend, RngSeed};
+use rip_prototty::{app, AutoPlay, EnvNull, Frontend, RngSeed};
 
 #[derive(Clone)]
 enum ColEncodeChoice {
@@ -76,6 +76,8 @@ fn main() {
         audio_player,
         RngSeed::U64(rng_seed_u64),
         Some(AutoPlay),
+        None,
+        Box::new(EnvNull),
     );
     use ColEncodeChoice as C;
     match col_encode_choice {

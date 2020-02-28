@@ -14,7 +14,25 @@ pub struct Context {
 
 pub type ContextBuildError = gfx_context::Error;
 
+pub struct WindowHandle {}
+
+impl WindowHandle {
+    pub fn fullscreen(&self) -> bool {
+        false
+    }
+    pub fn set_fullscreen(&self, fullscreen: bool) {
+        if fullscreen {
+            log::warn!("fullscreen not implemented");
+        }
+    }
+}
+
 impl Context {
+    pub fn new_returning_window_handle(
+        context_descriptor: ContextDescriptor,
+    ) -> Result<(Self, WindowHandle), ContextBuildError> {
+        Self::new(context_descriptor).map(|s| (s, WindowHandle {}))
+    }
     pub fn new(
         ContextDescriptor {
             font_bytes,

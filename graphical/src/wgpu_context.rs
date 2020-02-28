@@ -23,6 +23,13 @@ pub enum ContextBuildError {
     FailedToRequestGraphicsAdapter,
 }
 
+const fn dimensions_from_logical_size(size: winit::dpi::LogicalSize<f64>) -> Dimensions<f64> {
+    Dimensions {
+        width: size.width,
+        height: size.height,
+    }
+}
+
 struct WgpuContext {
     device: wgpu::Device,
     sc_desc: wgpu::SwapChainDescriptor,
@@ -63,6 +70,7 @@ impl Default for BackgroundCellInstance {
 #[derive(Debug, Clone, Copy, zerocopy::AsBytes, zerocopy::FromBytes)]
 struct GlobalUniforms {
     cell_size_relative_to_window: [f32; 2],
+    offset_to_centre: [f32; 2],
     grid_width: u32,
 }
 
@@ -131,7 +139,7 @@ impl WgpuContext {
             .create_buffer_mapped(num_background_cell_instances as usize, wgpu::BufferUsage::VERTEX)
             .fill_from_slice(background_cell_instance_data.raw());
         let global_uniforms_size = mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress;
-        let global_uniforms = size_context.global_uniforms(window_size, grid_size);
+        let global_uniforms = size_context.global_uniforms(dimensions_from_logical_size(window_size));
         let global_uniforms_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
             .fill_from_slice(&[global_uniforms]);
@@ -271,10 +279,7 @@ impl WgpuContext {
     fn resize(&mut self, size_context: &SizeContext, window_size: winit::dpi::LogicalSize<f64>) {
         use std::mem;
         let physical_size: winit::dpi::PhysicalSize<f64> = window_size.to_physical(self.scale_factor);
-        let grid_size = size_context.grid_size(window_size);
         self.window_size = window_size;
-        self.render_buffer = prototty_render::Buffer::new(grid_size);
-        self.background_cell_instance_data = Grid::new_default(grid_size);
         self.sc_desc.width = physical_size.width.round() as u32;
         self.sc_desc.height = physical_size.height.round() as u32;
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
@@ -282,7 +287,7 @@ impl WgpuContext {
             .device
             .create_buffer_mapped(self.render_buffer.size().count(), wgpu::BufferUsage::VERTEX)
             .fill_from_slice(self.background_cell_instance_data.raw());
-        let global_uniforms = size_context.global_uniforms(window_size, grid_size);
+        let global_uniforms = size_context.global_uniforms(dimensions_from_logical_size(window_size));
         let temp_buffer = self
             .device
             .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
@@ -322,40 +327,91 @@ struct SizeContext {
     cell_dimensions: Dimensions<NumPixels>,
     underline_width: NumPixels,
     underline_top_offset: NumPixels,
+    native_window_dimensions: Dimensions<NumPixels>,
 }
 
 impl SizeContext {
-    fn grid_size(&self, window_size: winit::dpi::LogicalSize<f64>) -> Size {
-        let width = (window_size.width / self.cell_dimensions.width).floor();
-        let height = (window_size.height / self.cell_dimensions.height).floor();
+    fn grid_size(&self) -> Size {
+        let width = (self.native_window_dimensions.width / self.cell_dimensions.width).floor();
+        let height = (self.native_window_dimensions.height / self.cell_dimensions.height).floor();
         Size::new(width as u32, height as u32)
     }
-    fn global_uniforms(&self, window_size: winit::dpi::LogicalSize<f64>, grid_size: Size) -> GlobalUniforms {
-        log::info!(
-            "window_size {:?}\nrelative_size {:?}",
-            window_size,
-            self.cell_dimensions.width as f32 / (window_size.width as f32 / 2.)
-        );
+    fn native_ratio(&self, window_dimensions: Dimensions<f64>) -> f64 {
+        let ratio_x = window_dimensions.width / self.native_window_dimensions.width;
+        let ratio_y = window_dimensions.height / self.native_window_dimensions.height;
+        ratio_x.min(ratio_y)
+    }
+    fn pixel_offset_to_centre_native_window(&self, window_dimensions: Dimensions<f64>) -> Dimensions<f64> {
+        let native_ratio = self.native_ratio(window_dimensions);
+        let scaled_native_window_dimensions = Dimensions {
+            width: self.native_window_dimensions.width * native_ratio,
+            height: self.native_window_dimensions.height * native_ratio,
+        };
+        Dimensions {
+            width: (window_dimensions.width - scaled_native_window_dimensions.width) / 2.0,
+            height: (window_dimensions.height - scaled_native_window_dimensions.height) / 2.0,
+        }
+    }
+    fn scaled_cell_dimensions(&self, window_dimensions: Dimensions<f64>) -> Dimensions<f64> {
+        let ratio = self.native_ratio(window_dimensions);
+        Dimensions {
+            width: self.cell_dimensions.width * ratio,
+            height: self.cell_dimensions.height * ratio,
+        }
+    }
+    fn global_uniforms(&self, window_dimensions: Dimensions<f64>) -> GlobalUniforms {
+        let ratio_x = window_dimensions.width / self.native_window_dimensions.width;
+        let ratio_y = window_dimensions.height / self.native_window_dimensions.height;
+        let (scale_x, scale_y) = if ratio_x < ratio_y {
+            (1.0, ratio_y / ratio_x)
+        } else {
+            (ratio_x / ratio_y, 1.0)
+        };
+        let pixel_offset_to_centre = self.pixel_offset_to_centre_native_window(window_dimensions);
         GlobalUniforms {
             cell_size_relative_to_window: [
-                self.cell_dimensions.width as f32 / (window_size.width as f32 / 2.),
-                self.cell_dimensions.height as f32 / (window_size.height as f32 / 2.),
+                self.cell_dimensions.width as f32
+                    / ((scale_x as f32 * self.native_window_dimensions.width as f32) / 2.),
+                self.cell_dimensions.height as f32
+                    / ((scale_y as f32 * self.native_window_dimensions.height as f32) / 2.),
             ],
-            grid_width: grid_size.width(),
+            offset_to_centre: [
+                2. * (pixel_offset_to_centre.width as f32 / window_dimensions.width as f32),
+                2. * (pixel_offset_to_centre.height as f32 / window_dimensions.height as f32),
+            ],
+            grid_width: self.grid_size().width(),
         }
     }
 }
 
 pub struct Context {
     event_loop: winit::event_loop::EventLoop<()>,
-    window: winit::window::Window,
     wgpu_context: WgpuContext,
     size_context: SizeContext,
     input_context: InputContext,
 }
 
+pub struct WindowHandle {
+    window: winit::window::Window,
+}
+
+impl WindowHandle {
+    pub fn fullscreen(&self) -> bool {
+        self.window.fullscreen().is_some()
+    }
+    pub fn set_fullscreen(&self, fullscreen: bool) {
+        let fullscreen = if fullscreen {
+            let current_monitor = self.window.current_monitor();
+            Some(winit::window::Fullscreen::Borderless(current_monitor))
+        } else {
+            None
+        };
+        self.window.set_fullscreen(fullscreen);
+    }
+}
+
 impl Context {
-    pub fn new(
+    pub fn new_returning_window_handle(
         ContextDescriptor {
             font_bytes,
             title,
@@ -366,7 +422,7 @@ impl Context {
             underline_width,
             underline_top_offset,
         }: ContextDescriptor,
-    ) -> Result<Self, ContextBuildError> {
+    ) -> Result<(Self, WindowHandle), ContextBuildError> {
         let event_loop = winit::event_loop::EventLoop::new();
         let window_builder = winit::window::WindowBuilder::new().with_title(title);
         let window_builder = {
@@ -388,17 +444,23 @@ impl Context {
             cell_dimensions,
             underline_width,
             underline_top_offset,
+            native_window_dimensions: window_dimensions,
         };
-        let grid_size = size_context.grid_size(window.inner_size().to_logical(window.scale_factor()));
+        let grid_size = size_context.grid_size();
         let wgpu_context = WgpuContext::new(&window, &size_context, grid_size, font_bytes)?;
         log::info!("grid size: {:?}", grid_size);
-        Ok(Context {
-            event_loop,
-            window,
-            wgpu_context,
-            size_context,
-            input_context: Default::default(),
-        })
+        Ok((
+            Context {
+                event_loop,
+                wgpu_context,
+                size_context,
+                input_context: Default::default(),
+            },
+            WindowHandle { window },
+        ))
+    }
+    pub fn new(context_descriptor: ContextDescriptor) -> Result<Self, ContextBuildError> {
+        Self::new_returning_window_handle(context_descriptor).map(|(s, _)| s)
     }
     pub fn run_app<A>(self, mut app: A) -> !
     where
@@ -406,15 +468,14 @@ impl Context {
     {
         let Self {
             event_loop,
-            window,
             mut wgpu_context,
             size_context,
             mut input_context,
         } = self;
-        let _ = window;
         let mut frame_instant = Instant::now();
         let mut exited = false;
         log::info!("Entering main event loop");
+        let mut current_window_dimensions = size_context.native_window_dimensions;
         event_loop.run(move |event, _, control_flow| {
             if exited {
                 *control_flow = winit::event_loop::ControlFlow::Exit;
@@ -428,7 +489,8 @@ impl Context {
                 } => {
                     if let Some(event) = input::convert_event(
                         window_event,
-                        size_context.cell_dimensions,
+                        size_context.scaled_cell_dimensions(current_window_dimensions),
+                        size_context.pixel_offset_to_centre_native_window(current_window_dimensions),
                         &mut input_context.last_mouse_coord,
                         &mut input_context.last_mouse_button,
                         wgpu_context.scale_factor,
@@ -443,6 +505,7 @@ impl Context {
                             }
                             input::Event::Resize(size) => {
                                 wgpu_context.resize(&size_context, size);
+                                current_window_dimensions = dimensions_from_logical_size(size);
                             }
                         }
                     }
@@ -486,14 +549,23 @@ impl Context {
                             render_pass.draw(0..6, 0..wgpu_context.render_buffer.size().count() as u32);
                         }
                         let mut buf: [u8; 4] = [0; 4];
+                        let offset_to_centre =
+                            size_context.pixel_offset_to_centre_native_window(current_window_dimensions);
+                        let font_ratio = size_context.native_ratio(current_window_dimensions);
+                        let font_scale = wgpu_glyph::Scale {
+                            x: font_ratio as f32 * size_context.font_dimensions.width as f32,
+                            y: font_ratio as f32 * size_context.font_dimensions.height as f32,
+                        };
                         for (coord, cell) in wgpu_context.render_buffer.enumerate() {
                             if cell.character == ' ' && !cell.underline {
                                 continue;
                             }
                             let text: &str = cell.character.encode_utf8(&mut buf);
                             let screen_position = (
-                                coord.x as f32 * size_context.cell_dimensions.width as f32,
-                                coord.y as f32 * size_context.cell_dimensions.height as f32,
+                                offset_to_centre.width as f32
+                                    + font_ratio as f32 * coord.x as f32 * size_context.cell_dimensions.width as f32,
+                                offset_to_centre.height as f32
+                                    + font_ratio as f32 * coord.y as f32 * size_context.cell_dimensions.height as f32,
                             );
                             let font_id = if cell.bold { FONT_ID_BOLD } else { FONT_ID_NORMAL };
                             let color = cell.foreground_colour.to_f32_rgba(1.);
@@ -502,10 +574,7 @@ impl Context {
                                 screen_position,
                                 font_id,
                                 color,
-                                scale: wgpu_glyph::Scale {
-                                    x: size_context.font_dimensions.width as f32,
-                                    y: size_context.font_dimensions.height as f32,
-                                },
+                                scale: font_scale,
                                 ..Default::default()
                             };
                             wgpu_context.glyph_brush.queue(section);

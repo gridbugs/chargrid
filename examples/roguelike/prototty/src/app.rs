@@ -82,6 +82,7 @@ struct AppData<S: Storage, A: AudioPlayer> {
     main_menu_type: MainMenuType,
     options_menu: menu::MenuInstanceChooseOrEscape<OrBack<OptionsMenuEntry>>,
     last_mouse_coord: Coord,
+    env: Box<dyn Env>,
 }
 
 struct AppView {
@@ -99,8 +100,10 @@ impl<S: Storage, A: AudioPlayer> AppData<S, A> {
         save_key: String,
         audio_player: A,
         rng_seed: RngSeed,
+        fullscreen: Option<Fullscreen>,
+        env: Box<dyn Env>,
     ) -> Self {
-        let game_data = GameData::new(
+        let mut game_data = GameData::new(
             game_config,
             controls,
             storage,
@@ -109,13 +112,22 @@ impl<S: Storage, A: AudioPlayer> AppData<S, A> {
             rng_seed,
             frontend,
         );
+        if frontend.allow_fullscreen() {
+            let mut config = game_data.config();
+            if fullscreen.is_some() {
+                config.fullscreen = true;
+            }
+            env.set_fullscreen(config.fullscreen);
+            game_data.set_config(config);
+        }
         Self {
-            options_menu: OptionsMenuEntry::instance(),
+            options_menu: OptionsMenuEntry::instance(frontend),
             frontend,
             game: game_data,
             main_menu: MainMenuEntry::init(frontend).into_choose_or_escape(),
             main_menu_type: MainMenuType::Init,
             last_mouse_coord: Coord::new(0, 0),
+            env,
         }
     }
 }
@@ -415,18 +427,29 @@ enum OrBack<T> {
 enum OptionsMenuEntry {
     ToggleMusic,
     ToggleSfx,
+    ToggleFullscreen,
 }
 
 impl OptionsMenuEntry {
-    fn instance() -> menu::MenuInstanceChooseOrEscape<OrBack<OptionsMenuEntry>> {
+    fn instance(frontend: Frontend) -> menu::MenuInstanceChooseOrEscape<OrBack<OptionsMenuEntry>> {
         use OptionsMenuEntry::*;
         use OrBack::*;
         menu::MenuInstanceBuilder {
-            items: vec![Selection(ToggleMusic), Selection(ToggleSfx), Back],
+            items: if frontend.allow_fullscreen() {
+                vec![
+                    Selection(ToggleMusic),
+                    Selection(ToggleSfx),
+                    Selection(ToggleFullscreen),
+                    Back,
+                ]
+            } else {
+                vec![Selection(ToggleMusic), Selection(ToggleSfx), Back]
+            },
             selected_index: 0,
             hotkeys: Some(hashmap![
                 'm' => Selection(ToggleMusic),
                 's' => Selection(ToggleSfx),
+                'f' => Selection(ToggleFullscreen),
             ]),
         }
         .build()
@@ -531,7 +554,8 @@ fn options_menu<S: Storage, A: AudioPlayer>() -> impl EventRoutine<
     Event = CommonEvent,
 > {
     SideEffectThen::new_with_view(|data: &mut AppData<S, A>, _: &_| {
-        let audio_config = data.game.audio_config();
+        let config = data.game.config();
+        let fullscreen = data.env.fullscreen();
         let menu_entry_string = MenuEntryStringFn::new(
             move |entry: &OrBack<OptionsMenuEntry>, _maybe_selected, buf: &mut String| {
                 use std::fmt::Write;
@@ -540,14 +564,12 @@ fn options_menu<S: Storage, A: AudioPlayer>() -> impl EventRoutine<
                 match entry {
                     Back => write!(buf, "back").unwrap(),
                     Selection(entry) => match entry {
-                        ToggleMusic => write!(
-                            buf,
-                            "(m) Music enabled [{}]",
-                            if audio_config.music { '*' } else { ' ' }
-                        )
-                        .unwrap(),
-                        ToggleSfx => {
-                            write!(buf, "(s) Sfx enabled [{}]", if audio_config.sfx { '*' } else { ' ' }).unwrap()
+                        ToggleMusic => {
+                            write!(buf, "(m) Music enabled [{}]", if config.music { '*' } else { ' ' }).unwrap()
+                        }
+                        ToggleSfx => write!(buf, "(s) Sfx enabled [{}]", if config.sfx { '*' } else { ' ' }).unwrap(),
+                        ToggleFullscreen => {
+                            write!(buf, "(f) Fullscreen [{}]", if fullscreen { '*' } else { ' ' }).unwrap()
                         }
                     },
                 }
@@ -568,12 +590,16 @@ fn options_menu_cycle<S: Storage, A: AudioPlayer>(
         Ok(Back) | Err(menu::Escape) => Handled::Return(()),
         Ok(Selection(selection)) => Handled::Continue(Ei::B(SideEffectThen::new_with_view(
             move |data: &mut AppData<S, A>, _: &_| {
-                let mut audio_config = data.game.audio_config();
+                let mut config = data.game.config();
                 match selection {
-                    ToggleMusic => audio_config.music = !audio_config.music,
-                    ToggleSfx => audio_config.sfx = !audio_config.sfx,
+                    ToggleMusic => config.music = !config.music,
+                    ToggleSfx => config.sfx = !config.sfx,
+                    ToggleFullscreen => {
+                        data.env.set_fullscreen(!data.env.fullscreen());
+                        config.fullscreen = data.env.fullscreen();
+                    }
                 }
-                data.game.set_audio_config(audio_config);
+                data.game.set_config(config);
                 options_menu()
             },
         ))),
@@ -793,6 +819,20 @@ fn event_routine<S: Storage, A: AudioPlayer>(
     )
 }
 
+pub trait Env {
+    fn fullscreen(&self) -> bool;
+    fn set_fullscreen(&self, fullscreen: bool);
+}
+pub struct EnvNull;
+impl Env for EnvNull {
+    fn fullscreen(&self) -> bool {
+        false
+    }
+    fn set_fullscreen(&self, _fullscreen: bool) {}
+}
+
+pub struct Fullscreen;
+
 pub fn app<S: Storage, A: AudioPlayer>(
     game_config: GameConfig,
     frontend: Frontend,
@@ -802,6 +842,8 @@ pub fn app<S: Storage, A: AudioPlayer>(
     audio_player: A,
     rng_seed: RngSeed,
     auto_play: Option<AutoPlay>,
+    fullscreen: Option<Fullscreen>,
+    env: Box<dyn Env>,
 ) -> impl app::App {
     let app_data = AppData::new(
         game_config,
@@ -811,6 +853,8 @@ pub fn app<S: Storage, A: AudioPlayer>(
         save_key,
         audio_player,
         rng_seed,
+        fullscreen,
+        env,
     );
     let app_view = AppView::new();
     event_routine(auto_play).app_one_shot_ignore_return(app_data, app_view)

@@ -127,6 +127,7 @@ fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input
 pub fn convert_event(
     event: WindowEvent,
     cell_dimensions: Dimensions<f64>,
+    top_left_position: Dimensions<f64>,
     last_mouse_coord: &mut Coord,
     last_mouse_button: &mut Option<MouseButton>,
     scale_factor: f64,
@@ -150,8 +151,8 @@ pub fn convert_event(
             ..
         } => {
             let LogicalPosition { x, y }: LogicalPosition<f64> = physical_position.to_logical(scale_factor);
-            let x = (x / cell_dimensions.width) as i32;
-            let y = (y / cell_dimensions.height) as i32;
+            let x = ((x - top_left_position.width) / cell_dimensions.width) as i32;
+            let y = ((y - top_left_position.height) / cell_dimensions.height) as i32;
             let coord = Coord::new(x, y);
             *last_mouse_coord = coord;
             Some(Event::Input(Input::Mouse(MouseInput::MouseMove {
