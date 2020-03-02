@@ -162,7 +162,7 @@ impl<T: Clone> MenuInstance<T> {
         M: MenuIndexFromScreenCoord,
     {
         match input {
-            Input::Keyboard(keys::RETURN) => {
+            Input::Keyboard(keys::RETURN) | Input::Keyboard(KeyboardInput::Char(' ')) => {
                 return Some(self.selected().clone());
             }
             Input::Keyboard(KeyboardInput::Up)
