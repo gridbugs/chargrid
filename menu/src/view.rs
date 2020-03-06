@@ -1,10 +1,15 @@
-use crate::Selected;
 use prototty_render::Style;
 use std::marker::PhantomData;
 
+pub struct MenuEntryToRender<'a, E> {
+    pub entry: &'a E,
+    pub selected: bool,
+    pub index: usize,
+}
+
 pub trait MenuEntryString {
     type Entry;
-    fn render_string(&self, entry: &Self::Entry, maybe_selected: Option<Selected>, buf: &mut String);
+    fn render_string(&self, entry: MenuEntryToRender<Self::Entry>, buf: &mut String);
 }
 
 #[derive(Clone, Copy)]
@@ -24,9 +29,9 @@ where
     for<'a> &'a E: Into<&'a str>,
 {
     type Entry = E;
-    fn render_string(&self, entry: &Self::Entry, _maybe_selected: Option<Selected>, buf: &mut String) {
+    fn render_string(&self, entry: MenuEntryToRender<Self::Entry>, buf: &mut String) {
         use std::fmt::Write;
-        write!(buf, "{}", entry.into()).unwrap()
+        write!(buf, "{}", entry.entry.into()).unwrap()
     }
 }
 
@@ -41,17 +46,17 @@ impl<F, E> MenuEntryStringFn<F, E> {
 }
 impl<F, E> MenuEntryString for MenuEntryStringFn<F, E>
 where
-    F: Fn(&E, Option<Selected>, &mut String),
+    F: Fn(MenuEntryToRender<E>, &mut String),
 {
     type Entry = E;
-    fn render_string(&self, entry: &Self::Entry, maybe_selected: Option<Selected>, buf: &mut String) {
-        (self.f)(entry, maybe_selected, buf);
+    fn render_string(&self, entry: MenuEntryToRender<Self::Entry>, buf: &mut String) {
+        (self.f)(entry, buf);
     }
 }
 
 pub trait MenuEntryRichString {
     type Entry;
-    fn render_rich_string(&self, entry: &Self::Entry, maybe_selected: Option<Selected>, buf: &mut String) -> Style;
+    fn render_rich_string(&self, entry: MenuEntryToRender<Self::Entry>, buf: &mut String) -> Style;
 }
 
 pub struct MenuEntryRichStringFn<F, E> {
@@ -65,10 +70,10 @@ impl<F, E> MenuEntryRichStringFn<F, E> {
 }
 impl<F, E> MenuEntryRichString for MenuEntryRichStringFn<F, E>
 where
-    F: Fn(&E, Option<Selected>, &mut String) -> Style,
+    F: Fn(MenuEntryToRender<E>, &mut String) -> Style,
 {
     type Entry = E;
-    fn render_rich_string(&self, entry: &Self::Entry, maybe_selected: Option<Selected>, buf: &mut String) -> Style {
-        (self.f)(entry, maybe_selected, buf)
+    fn render_rich_string(&self, entry: MenuEntryToRender<Self::Entry>, buf: &mut String) -> Style {
+        (self.f)(entry, buf)
     }
 }

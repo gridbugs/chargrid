@@ -115,10 +115,10 @@ fn colour_menu(
     SideEffectThen::new_with_view(|data: &mut AppData, _: &_| {
         let current = data.current;
         menu::DynamicStyleMenuInstanceRoutine::new(menu::MenuEntryRichStringFn::new(
-            move |entry: &ColourMenuEntry, maybe_selected: Option<menu::Selected>, buf: &mut String| {
+            move |entry: menu::MenuEntryToRender<ColourMenuEntry>, buf: &mut String| {
                 use std::fmt::Write;
-                let cursor = if maybe_selected.is_some() { " >" } else { "  " };
-                match entry {
+                let cursor = if entry.selected { " >" } else { "  " };
+                match entry.entry {
                     ColourMenuEntry::Red => {
                         write!(buf, "{} Red", cursor).unwrap();
                     }
@@ -129,8 +129,8 @@ fn colour_menu(
                         write!(buf, "{} Blue", cursor).unwrap();
                     }
                 };
-                let foreground = entry.to_rgb24();
-                let (background, bold) = if maybe_selected.is_some() {
+                let foreground = entry.entry.to_rgb24();
+                let (background, bold) = if entry.selected {
                     (selected_background(current), true)
                 } else {
                     (render::Rgb24::new_grey(0), false)
@@ -152,14 +152,14 @@ fn main_menu(
     SideEffectThen::new_with_view(|data: &mut AppData, _: &_| {
         let current = data.current;
         menu::DynamicStyleMenuInstanceRoutine::new(menu::MenuEntryRichStringFn::new(
-            move |entry: &MainMenuEntry, maybe_selected: Option<menu::Selected>, buf: &mut String| {
+            move |entry: menu::MenuEntryToRender<MainMenuEntry>, buf: &mut String| {
                 use std::fmt::Write;
-                let cursor = if maybe_selected.is_some() { " >" } else { "  " };
-                match entry {
+                let cursor = if entry.selected { " >" } else { "  " };
+                match entry.entry {
                     MainMenuEntry::ChooseColour => write!(buf, "{} Choose Colour", cursor).unwrap(),
                     MainMenuEntry::Quit => write!(buf, "{} Quit", cursor).unwrap(),
                 }
-                let background = if maybe_selected.is_some() {
+                let background = if entry.selected {
                     selected_background(current)
                 } else {
                     render::Rgb24::new_grey(0)

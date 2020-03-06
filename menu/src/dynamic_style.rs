@@ -1,5 +1,6 @@
 use crate::{
-    MenuEntryRichString, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose, MenuInstanceMouseTracker,
+    MenuEntryRichString, MenuEntryToRender, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose,
+    MenuInstanceMouseTracker,
 };
 use prototty_event_routine::{event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
 use prototty_input::Input;
@@ -53,7 +54,12 @@ where
         self.mouse_tracker.new_frame(context.offset);
         for (i, entry, maybe_selected) in menu_instance.enumerate() {
             self.buf.clear();
-            let style = menu_entry_rich_string.render_rich_string(entry, maybe_selected, &mut self.buf);
+            let entry_to_render = MenuEntryToRender {
+                index: i,
+                entry,
+                selected: maybe_selected.is_some(),
+            };
+            let style = menu_entry_rich_string.render_rich_string(entry_to_render, &mut self.buf);
             let mut view = StringViewSingleLine::new(style);
             let size = view.view_size(&self.buf, context.add_offset(Coord::new(0, i as i32)), frame);
             self.mouse_tracker.on_entry_view_size(size);

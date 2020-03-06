@@ -1,5 +1,6 @@
 use crate::{
-    MenuEntryString, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose, MenuInstanceMouseTracker, Selected,
+    MenuEntryString, MenuEntryToRender, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose,
+    MenuInstanceMouseTracker, Selected,
 };
 use prototty_event_routine::{common_event, event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
 use prototty_render::{ColModify, Coord, Frame, Rgb24, Style, View, ViewContext};
@@ -199,8 +200,13 @@ where
             }
             let foreground = current.foreground.current(since_epoch);
             let background = current.background.current(since_epoch);
+            let entry_to_render = MenuEntryToRender {
+                index: i,
+                entry,
+                selected: maybe_selected.is_some(),
+            };
             self.buf.clear();
-            menu_entry_string.render_string(entry, maybe_selected, &mut self.buf);
+            menu_entry_string.render_string(entry_to_render, &mut self.buf);
             let mut view = StringViewSingleLine::new(
                 Style::new()
                     .with_bold(spec.normal.to.bold)

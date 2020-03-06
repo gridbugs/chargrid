@@ -10,7 +10,7 @@ use common_event::*;
 use decorator::*;
 use event_routine::*;
 use maplit::hashmap;
-use menu::{fade_spec, FadeMenuInstanceView, MenuEntryStringFn, MenuInstanceChoose};
+use menu::{fade_spec, FadeMenuInstanceView, MenuEntryStringFn, MenuEntryToRender, MenuInstanceChoose};
 use prototty::input::*;
 use prototty::*;
 use prototty_audio::AudioPlayer;
@@ -558,11 +558,11 @@ fn options_menu<S: Storage, A: AudioPlayer>() -> impl EventRoutine<
         let fullscreen = data.env.fullscreen();
         let fullscreen_requires_restart = data.env.fullscreen_requires_restart();
         let menu_entry_string = MenuEntryStringFn::new(
-            move |entry: &OrBack<OptionsMenuEntry>, _maybe_selected, buf: &mut String| {
+            move |entry: MenuEntryToRender<OrBack<OptionsMenuEntry>>, buf: &mut String| {
                 use std::fmt::Write;
                 use OptionsMenuEntry::*;
                 use OrBack::*;
-                match entry {
+                match entry.entry {
                     Back => write!(buf, "back").unwrap(),
                     Selection(entry) => match entry {
                         ToggleMusic => {
@@ -571,7 +571,12 @@ fn options_menu<S: Storage, A: AudioPlayer>() -> impl EventRoutine<
                         ToggleSfx => write!(buf, "(s) Sfx enabled [{}]", if config.sfx { '*' } else { ' ' }).unwrap(),
                         ToggleFullscreen => {
                             if fullscreen_requires_restart {
-                                write!(buf, "(f) Fullscreen (requires restart) [{}]", if fullscreen { '*' } else { ' ' }).unwrap()
+                                write!(
+                                    buf,
+                                    "(f) Fullscreen (requires restart) [{}]",
+                                    if fullscreen { '*' } else { ' ' }
+                                )
+                                .unwrap()
                             } else {
                                 write!(buf, "(f) Fullscreen [{}]", if fullscreen { '*' } else { ' ' }).unwrap()
                             }
@@ -646,9 +651,9 @@ fn main_menu<S: Storage, A: AudioPlayer>(
             }
             Ei::B(
                 menu::FadeMenuInstanceRoutine::new(MenuEntryStringFn::new(
-                    |entry: &MainMenuEntry, _maybe_selected, buf: &mut String| {
+                    |entry: MenuEntryToRender<MainMenuEntry>, buf: &mut String| {
                         use std::fmt::Write;
-                        let s = match entry {
+                        let s = match entry.entry {
                             MainMenuEntry::NewGame => "(n) New Game",
                             MainMenuEntry::Resume => "(r) Resume",
                             MainMenuEntry::Quit => "(q) Quit",
