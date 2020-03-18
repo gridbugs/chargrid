@@ -129,6 +129,9 @@ impl Wrap for Word {
         context: ViewContext<C>,
         frame: &mut F,
     ) {
+        if context.size.width() == 0 {
+            return;
+        }
         match character {
             '\n' => {
                 self.flush(context, frame);
@@ -175,6 +178,10 @@ impl Wrap for Word {
     }
 
     fn flush<F: Frame, C: ColModify>(&mut self, context: ViewContext<C>, frame: &mut F) {
+        if context.size.width() == 0 {
+            self.current_word_buffer.clear();
+            return;
+        }
         for view_cell in self.current_word_buffer.drain(..) {
             frame.set_cell_relative(self.cursor, 0, view_cell, context);
             self.cursor.x += 1;
