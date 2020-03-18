@@ -24,7 +24,7 @@ impl<F: Fn(Option<Rgb24>) -> Option<Rgb24> + Copy> ColModify for F {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ColModifyDefaultForeground(pub Rgb24);
 impl ColModify for ColModifyDefaultForeground {
     fn foreground(&self, rgb24: Option<Rgb24>) -> Option<Rgb24> {
@@ -46,7 +46,7 @@ impl<F: Fn(Rgb24) -> Rgb24 + Copy> ColModify for ColModifyMap<F> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ColModifyIdentity;
 
 impl ColModify for ColModifyIdentity {
@@ -58,7 +58,7 @@ impl ColModify for ColModifyIdentity {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ColModifyCompose<Inner: ColModify, Outer: ColModify> {
     pub inner: Inner,
     pub outer: Outer,

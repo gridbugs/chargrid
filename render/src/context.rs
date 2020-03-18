@@ -1,7 +1,7 @@
 use super::{Coord, Size};
 use crate::col_modify::{ColModify, ColModifyCompose, ColModifyIdentity};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ViewContext<C: ColModify = ColModifyIdentity> {
     pub offset: Coord,
     pub depth: i8,
