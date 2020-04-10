@@ -239,6 +239,7 @@ impl WgpuContext {
             alpha_to_coverage_enabled: false,
         });
         let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(font_bytes_to_fonts(font_bytes))
+            .expect("Failed to load font")
             .texture_filter_method(wgpu::FilterMode::Nearest)
             .build(&mut device, TEXTURE_FORMAT);
         let modifier_state = winit::event::ModifiersState::default();
@@ -486,36 +487,35 @@ impl Context {
             match event {
                 winit::event::Event::WindowEvent {
                     event: window_event, ..
-                } => {
-                    if let Some(event) = input::convert_event(
-                        window_event,
-                        size_context.scaled_cell_dimensions(current_window_dimensions),
-                        size_context.pixel_offset_to_centre_native_window(current_window_dimensions),
-                        &mut input_context.last_mouse_coord,
-                        &mut input_context.last_mouse_button,
-                        wgpu_context.scale_factor,
-                        wgpu_context.modifier_state,
-                    ) {
-                        match event {
-                            input::Event::Input(input) => {
-                                if let Some(ControlFlow::Exit) = app.on_input(input) {
-                                    exited = true;
-                                    return;
+                } => match window_event {
+                    winit::event::WindowEvent::ModifiersChanged(modifier_state) => {
+                        wgpu_context.modifier_state = modifier_state;
+                    }
+                    other => {
+                        if let Some(event) = input::convert_event(
+                            other,
+                            size_context.scaled_cell_dimensions(current_window_dimensions),
+                            size_context.pixel_offset_to_centre_native_window(current_window_dimensions),
+                            &mut input_context.last_mouse_coord,
+                            &mut input_context.last_mouse_button,
+                            wgpu_context.scale_factor,
+                            wgpu_context.modifier_state,
+                        ) {
+                            match event {
+                                input::Event::Input(input) => {
+                                    if let Some(ControlFlow::Exit) = app.on_input(input) {
+                                        exited = true;
+                                        return;
+                                    }
                                 }
-                            }
-                            input::Event::Resize(size) => {
-                                wgpu_context.resize(&size_context, size);
-                                current_window_dimensions = dimensions_from_logical_size(size);
+                                input::Event::Resize(size) => {
+                                    wgpu_context.resize(&size_context, size);
+                                    current_window_dimensions = dimensions_from_logical_size(size);
+                                }
                             }
                         }
                     }
-                }
-                winit::event::Event::DeviceEvent {
-                    event: winit::event::DeviceEvent::ModifiersChanged(modifier_state),
-                    ..
-                } => {
-                    wgpu_context.modifier_state = modifier_state;
-                }
+                },
                 winit::event::Event::MainEventsCleared => {
                     let frame_duration = frame_instant.elapsed();
                     frame_instant = Instant::now();

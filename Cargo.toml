@@ -72,4 +72,5 @@ members = [
 lto = true
 
 [patch.crates-io]
+#wgpu_glyph = { git = "https://github.com/hecrj/wgpu_glyph", rev = "4f31fc2a6f50cf256e70cdac3d747f514d1a3d47" }
 wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "c176e5d6e415a4d7769c7dd02c0f63cd747ca2db" }

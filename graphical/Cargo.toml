@@ -21,8 +21,8 @@ prototty_input = { path = "../input", version = "0.29" }
 prototty_app = { path = "../app", version = "0.29" }
 prototty_graphical_common = { path = "../graphical-common", version = "0.29" }
 wgpu = "0.4"
-wgpu_glyph = "0.6"
-winit = "0.21"
-zerocopy = "0.2"
+wgpu_glyph = "0.7"
+winit = "0.22"
+zerocopy = "0.3"
 log = "0.4"
 grid_2d = "0.14"
