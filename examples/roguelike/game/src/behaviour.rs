@@ -163,7 +163,7 @@ impl<'a, R: Rng> BestSearch for Wander<'a, R> {
     fn is_at_max_depth(&self, _depth: Depth) -> bool {
         false
     }
-    fn can_enter_updating_best(&mut self, coord: Coord) -> bool {
+    fn can_enter_initial_updating_best(&mut self, coord: Coord) -> bool {
         if self.world.can_npc_traverse_feature_at_coord(coord) {
             if let Some(entity) = self.world.get_character_at_coord(coord) {
                 if entity != self.entity {

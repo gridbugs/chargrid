@@ -9,7 +9,7 @@ force_dedicated_audio_thread = ["prototty_native_audio/force_dedicated_audio_thr
 
 [dependencies]
 log = "0.4"
-simon = "0.3"
+simon = "0.4"
 serde_json = "1.0"
 rip_prototty = { path = "../prototty" }
 prototty_file_storage = { path = "../../../file-storage" }

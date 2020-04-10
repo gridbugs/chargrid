@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 prototty_ansi_terminal = { path = "../../../ansi-terminal" }
 colour_grid_prototty = { path = "../prototty" }
-simon = "0.3"
+simon = "0.4"

@@ -23,7 +23,7 @@ wasm-bindgen = "0.2"
 js-sys = "0.3"
 grid_2d = "0.14"
 serde_json = "1.0"
-base64 = "0.11"
+base64 = "0.12"
 log = "0.4"
 
 [dependencies.web-sys]

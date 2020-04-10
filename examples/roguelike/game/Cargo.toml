@@ -19,4 +19,4 @@ rational = { path = "../rational" }
 rand_range = { path = "../rand-range" }
 procgen = { path = "../procgen" }
 shadowcast = { version = "0.7", features = ["serialize"] }
-grid_search_cardinal = { version = "0.1", features = ["serialize"] }
+grid_search_cardinal = { version = "0.2", features = ["serialize"] }
