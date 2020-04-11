@@ -10,7 +10,6 @@ cargo clean
 
 cargo test --workspace
 cargo test --manifest-path=prototty/Cargo.toml --features=serialize
-cargo test --manifest-path=native-audio/Cargo.toml --features=force_dedicated_audio_thread
 cargo test --manifest-path=examples/roguelike/graphical/Cargo.toml --no-default-features --features=prototty_graphical_gfx
 
 cargo clean
@@ -20,11 +19,6 @@ find -name package-lock.json -delete || true
 find -name dist -exec rm -rf {} \; || true
 
 pushd $DIR/examples/tetris/web
-npm install
-npm run build -- --mode development
-popd
-
-pushd $DIR/examples/fib/web
 npm install
 npm run build -- --mode development
 popd
@@ -53,7 +47,6 @@ pushd $DIR/examples/colour_grid/web
 npm install
 npm run build -- --mode development
 popd
-
 
 pushd $DIR/examples/soundboard/web
 npm install

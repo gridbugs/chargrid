@@ -8,6 +8,7 @@ use game::{
     VisibilityGrid,
 };
 pub use game::{Config as GameConfig, Input as GameInput, Omniscient};
+use general_audio::{AudioHandle, AudioPlayer};
 use general_storage::{format, Storage};
 use line_2d::{Config as LineConfig, LineSegment};
 use prototty::event_routine::common_event::*;
@@ -15,7 +16,6 @@ use prototty::event_routine::*;
 use prototty::input::*;
 use prototty::render::*;
 use prototty::text::*;
-use prototty_audio::{AudioHandle, AudioPlayer};
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};

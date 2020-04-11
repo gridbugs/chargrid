@@ -1,5 +1,5 @@
+use general_audio_native::NativeAudioPlayer;
 use prototty_ansi_terminal::{col_encode, Context};
-use prototty_native_audio::NativeAudioPlayer;
 use soundboard_prototty::app;
 
 fn main() {

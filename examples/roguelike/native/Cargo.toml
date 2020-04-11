@@ -5,12 +5,12 @@ authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
 [features]
-force_dedicated_audio_thread = ["prototty_native_audio/force_dedicated_audio_thread"]
+force_dedicated_audio_thread = ["general_audio_native/force_dedicated_audio_thread"]
 
 [dependencies]
 log = "0.4"
 simon = "0.4"
 serde_json = "1.0"
 rip_prototty = { path = "../prototty" }
-prototty_native_audio = { path = "../../../native-audio" }
 general_storage_file = "0.1"
+general_audio_native = "0.1"

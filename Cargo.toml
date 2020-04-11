@@ -12,10 +12,8 @@ members = [
     "graphical-common",
     "ansi-terminal",
     "web",
-    "audio",
     "input",
     "event-routine",
-    "native-audio",
     "test-grid",
 
     "examples/tetris/tetris",

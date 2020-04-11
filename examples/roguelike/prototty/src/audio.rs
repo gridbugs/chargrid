@@ -1,5 +1,5 @@
+use general_audio::AudioPlayer;
 use maplit::hashmap;
-use prototty_audio::AudioPlayer;
 use std::collections::HashMap;
 
 const EXPLOSION: &[u8] = include_bytes!("./audio/explosion.ogg");

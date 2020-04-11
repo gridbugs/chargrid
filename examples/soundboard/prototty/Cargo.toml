@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 prototty = { path = "../../../prototty" }
-prototty_audio = { path = "../../../audio" }
+general_audio = "0.1"

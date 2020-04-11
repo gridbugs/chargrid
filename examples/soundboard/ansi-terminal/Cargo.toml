@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 prototty_ansi_terminal = { path = "../../../ansi-terminal" }
-prototty_native_audio = { path = "../../../native-audio" }
 soundboard_prototty = { path = "../prototty" }
+general_audio_native = "0.1"

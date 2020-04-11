@@ -1,4 +1,5 @@
-use prototty_web::{Context, Size, WebAudioPlayer};
+use general_audio_web::WebAudioPlayer;
+use prototty_web::{Context, Size};
 use soundboard_prototty::app;
 use wasm_bindgen::prelude::*;
 
