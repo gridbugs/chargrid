@@ -17,7 +17,6 @@ publish() {
     publish_single event-routine
     publish_single menu
     publish_single prototty
-    publish_single audio
     publish_single web
     publish_single ansi-terminal
     publish_single graphical-common
