@@ -11,9 +11,9 @@ use gfx::Device;
 use gfx_glyph::{GlyphCruncher, HorizontalAlign, Layout, VerticalAlign};
 use glutin::dpi::LogicalSize;
 use glutin::Event;
-use prototty_app as app;
-use prototty_input::*;
-use prototty_render::*;
+use chargrid_app as app;
+use chargrid_input::*;
+use chargrid_render::*;
 use std::time::Instant;
 
 type Resources = gfx_device_gl::Resources;

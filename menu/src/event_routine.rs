@@ -1,7 +1,7 @@
 use crate::{MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose};
-use prototty_event_routine::{event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled, ViewSelector};
-use prototty_input::Input;
-use prototty_render::{ColModify, Frame, View, ViewContext};
+use chargrid_event_routine::{event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled, ViewSelector};
+use chargrid_input::Input;
+use chargrid_render::{ColModify, Frame, View, ViewContext};
 use std::marker::PhantomData;
 
 #[derive(Default)]

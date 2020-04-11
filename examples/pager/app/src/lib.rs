@@ -1,9 +1,9 @@
-use prototty::app;
-use prototty::decorator::*;
-use prototty::input::*;
-use prototty::input::{keys, Input, KeyboardInput};
-use prototty::render::*;
-use prototty::text::*;
+use chargrid::app;
+use chargrid::decorator::*;
+use chargrid::input::*;
+use chargrid::input::{keys, Input, KeyboardInput};
+use chargrid::render::*;
+use chargrid::text::*;
 
 pub struct AppData {
     text: String,

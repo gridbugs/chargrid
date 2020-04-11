@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 use libc;
-use prototty_render::*;
+use chargrid_render::*;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::mem;

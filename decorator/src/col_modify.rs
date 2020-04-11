@@ -1,4 +1,4 @@
-use prototty_render::*;
+use chargrid_render::*;
 
 pub struct ColModifyView<V, C> {
     pub view: V,

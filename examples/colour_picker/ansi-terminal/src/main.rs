@@ -1,5 +1,5 @@
-use colour_picker_prototty::app;
-use prototty_ansi_terminal::{col_encode, Context};
+use colour_picker_app::app;
+use chargrid_ansi_terminal::{col_encode, Context};
 
 fn main() {
     let context = Context::new().unwrap();

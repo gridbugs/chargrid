@@ -1,4 +1,4 @@
-use prototty_input::*;
+use chargrid_input::*;
 
 macro_rules! convert_char_shift {
     ($lower:expr, $upper:expr, $shift:expr) => {

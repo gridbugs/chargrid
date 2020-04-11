@@ -1,6 +1,6 @@
 use common_event::*;
 use event_routine::*;
-use prototty::*;
+use chargrid::*;
 
 #[derive(Clone)]
 enum MainMenuEntry {

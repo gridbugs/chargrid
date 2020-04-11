@@ -1,4 +1,4 @@
-use prototty_render::{grid_2d::Grid, Blend, Coord, Frame, Rgb24, Size, ViewCell};
+use chargrid_render::{grid_2d::Grid, Blend, Coord, Frame, Rgb24, Size, ViewCell};
 
 struct Cell {
     view_cell: Option<ViewCell>,

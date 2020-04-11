@@ -1,5 +1,5 @@
-use colour_grid_prototty::app;
-use prototty_ansi_terminal::{col_encode, Context};
+use colour_grid_app::app;
+use chargrid_ansi_terminal::{col_encode, Context};
 use simon::*;
 
 #[derive(Clone)]

@@ -1,6 +1,6 @@
-use prototty_input::{keys, Input, KeyboardInput, MouseInput, ScrollDirection};
-use prototty_render::Coord;
-use prototty_render::Size;
+use chargrid_input::{keys, Input, KeyboardInput, MouseInput, ScrollDirection};
+use chargrid_render::Coord;
+use chargrid_render::Size;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

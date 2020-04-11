@@ -1,6 +1,6 @@
-# prototty\_text
+# chargrid\_text
 
-[![Version](https://img.shields.io/crates/v/prototty_text.svg)](https://crates.io/crates/prototty_text)
-[![Documentation](https://docs.rs/prototty_text/badge.svg)](https://docs.rs/prototty_text)
+[![Version](https://img.shields.io/crates/v/chargrid_text.svg)](https://crates.io/crates/chargrid_text)
+[![Documentation](https://docs.rs/chargrid_text/badge.svg)](https://docs.rs/chargrid_text)
 
-Prototty text rendering
+Chargrid text rendering

@@ -1,5 +1,5 @@
-pub use prototty_input::Input;
-pub use prototty_render::{ColModify, Frame, ViewContext};
+pub use chargrid_input::Input;
+pub use chargrid_render::{ColModify, Frame, ViewContext};
 pub use std::time::Duration;
 
 pub enum ControlFlow {

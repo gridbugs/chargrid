@@ -1,22 +1,22 @@
 #![windows_subsystem = "windows"]
-#[cfg(feature = "prototty_graphical")]
-use prototty_graphical as graphical;
-#[cfg(feature = "prototty_graphical_gfx")]
-use prototty_graphical_gfx as graphical;
+#[cfg(feature = "chargrid_graphical")]
+use chargrid_graphical as graphical;
+#[cfg(feature = "chargrid_graphical_gfx")]
+use chargrid_graphical_gfx as graphical;
 use rip_native::{simon::*, NativeCommon};
-use rip_prototty::{app, AutoPlay, Frontend, Fullscreen};
+use rip_app::{app, AutoPlay, Frontend, Fullscreen};
 
-#[cfg(feature = "prototty_graphical")]
+#[cfg(feature = "chargrid_graphical")]
 const FULLSCREEN_SUPPORTED: bool = true;
 
-#[cfg(feature = "prototty_graphical_gfx")]
+#[cfg(feature = "chargrid_graphical_gfx")]
 const FULLSCREEN_SUPPORTED: bool = false;
 
 const CELL_SIZE: f64 = 16.;
 
 #[cfg(target_os = "windows")]
 mod graphical_env {
-    use rip_prototty::Env;
+    use rip_app::Env;
     use super::graphical::WindowHandle;
     use std::cell::RefCell;
     pub struct GraphicalEnv {
@@ -53,7 +53,7 @@ mod graphical_env {
 
 #[cfg(not(target_os = "windows"))]
 mod graphical_env {
-    use rip_prototty::Env;
+    use rip_app::Env;
     use super::graphical::WindowHandle;
     pub struct GraphicalEnv {
         window_handle: WindowHandle,

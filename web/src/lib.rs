@@ -3,12 +3,12 @@ mod input;
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
-use prototty_app::App;
-pub use prototty_input;
-pub use prototty_input::{Input, MouseInput};
-use prototty_input::{MouseButton, ScrollDirection};
-pub use prototty_render;
-use prototty_render::{Buffer, Rgb24, ViewContext};
+use chargrid_app::App;
+pub use chargrid_input;
+pub use chargrid_input::{Input, MouseInput};
+use chargrid_input::{MouseButton, ScrollDirection};
+pub use chargrid_render;
+use chargrid_render::{Buffer, Rgb24, ViewContext};
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use std::time::Duration;
@@ -125,42 +125,42 @@ impl Context {
     }
 
     fn render_internal(&mut self) {
-        for (prototty_cell, element_cell) in self.buffer.iter().zip(self.element_grid.iter_mut()) {
-            if element_cell.character != prototty_cell.character {
-                element_cell.character = prototty_cell.character;
-                let string = match prototty_cell.character {
+        for (chargrid_cell, element_cell) in self.buffer.iter().zip(self.element_grid.iter_mut()) {
+            if element_cell.character != chargrid_cell.character {
+                element_cell.character = chargrid_cell.character;
+                let string = match chargrid_cell.character {
                     ' ' => "&nbsp;".to_string(),
                     other => other.to_string(),
                 };
                 element_cell.element.set_inner_html(&string);
             }
             let element_style = element_cell.element.style();
-            if element_cell.foreground_colour != prototty_cell.foreground_colour {
-                element_cell.foreground_colour = prototty_cell.foreground_colour;
+            if element_cell.foreground_colour != chargrid_cell.foreground_colour {
+                element_cell.foreground_colour = chargrid_cell.foreground_colour;
                 element_style
-                    .set_property("color", &rgb24_to_web_colour(prototty_cell.foreground_colour))
+                    .set_property("color", &rgb24_to_web_colour(chargrid_cell.foreground_colour))
                     .unwrap();
             }
-            if element_cell.background_colour != prototty_cell.background_colour {
-                element_cell.background_colour = prototty_cell.background_colour;
+            if element_cell.background_colour != chargrid_cell.background_colour {
+                element_cell.background_colour = chargrid_cell.background_colour;
                 element_style
                     .set_property(
                         "background-color",
-                        &rgb24_to_web_colour(prototty_cell.background_colour),
+                        &rgb24_to_web_colour(chargrid_cell.background_colour),
                     )
                     .unwrap();
             }
-            if element_cell.underline != prototty_cell.underline {
-                element_cell.underline = prototty_cell.underline;
-                if prototty_cell.underline {
+            if element_cell.underline != chargrid_cell.underline {
+                element_cell.underline = chargrid_cell.underline;
+                if chargrid_cell.underline {
                     element_style.set_property("text-decoration", "underline").unwrap();
                 } else {
                     element_style.remove_property("text-decoration").unwrap();
                 }
             }
-            if element_cell.bold != prototty_cell.bold {
-                element_cell.bold = prototty_cell.bold;
-                if prototty_cell.bold {
+            if element_cell.bold != chargrid_cell.bold {
+                element_cell.bold = chargrid_cell.bold;
+                if chargrid_cell.bold {
                     element_style.set_property("font-weight", "bold").unwrap();
                 } else {
                     element_style.remove_property("font-weight").unwrap();
@@ -228,7 +228,7 @@ mod buttons {
 }
 
 mod button {
-    use prototty_input::MouseButton;
+    use chargrid_input::MouseButton;
     const LEFT: i16 = 0;
     const MIDDLE: i16 = 1;
     const RIGHT: i16 = 2;

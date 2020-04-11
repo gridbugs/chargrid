@@ -2,9 +2,9 @@ use crate::{
     MenuEntryString, MenuEntryToRender, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose,
     MenuInstanceMouseTracker, Selected,
 };
-use prototty_event_routine::{common_event, event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
-use prototty_render::{ColModify, Coord, Frame, Rgb24, Style, View, ViewContext};
-use prototty_text::StringViewSingleLine;
+use chargrid_event_routine::{common_event, event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
+use chargrid_render::{ColModify, Coord, Frame, Rgb24, Style, View, ViewContext};
+use chargrid_text::StringViewSingleLine;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -73,7 +73,7 @@ struct MenuEntryChange {
 }
 
 pub mod fade_spec {
-    pub use prototty_render::Rgb24;
+    pub use chargrid_render::Rgb24;
     pub use std::time::Duration;
 
     #[derive(Debug, Clone)]

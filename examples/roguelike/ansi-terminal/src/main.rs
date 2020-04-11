@@ -1,7 +1,7 @@
-use prototty_ansi_terminal::{col_encode, Context};
+use chargrid_ansi_terminal::{col_encode, Context};
 use rand::Rng;
 use rip_native::{simon::*, NativeCommon};
-use rip_prototty::{app, AutoPlay, EnvNull, Frontend, RngSeed};
+use rip_app::{app, AutoPlay, EnvNull, Frontend, RngSeed};
 
 #[derive(Clone)]
 enum ColEncodeChoice {

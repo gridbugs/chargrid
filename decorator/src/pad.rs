@@ -1,4 +1,4 @@
-use prototty_render::*;
+use chargrid_render::*;
 
 pub struct PadView<V> {
     pub view: V,

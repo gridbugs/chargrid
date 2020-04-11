@@ -1,6 +1,6 @@
 use crate::error::Result;
-use prototty_input::*;
-use prototty_render::*;
+use chargrid_input::*;
+use chargrid_render::*;
 use std::time::Duration;
 
 mod ansi_colour_codes;

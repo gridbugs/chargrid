@@ -1,8 +1,8 @@
 use crate::Dimensions;
-use prototty_input::{
-    keys, Input, KeyboardInput, MouseButton as ProtottyMouseButton, MouseButton, MouseInput, ScrollDirection,
+use chargrid_input::{
+    keys, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput, ScrollDirection,
 };
-use prototty_render::Coord;
+use chargrid_render::Coord;
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::event::{
     ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent,
@@ -134,7 +134,7 @@ pub fn convert_event(
     modifier_state: ModifiersState,
 ) -> Option<Event> {
     match event {
-        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(prototty_input::keys::ETX))),
+        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(chargrid_input::keys::ETX))),
         WindowEvent::Resized(physical_size) => Some(Event::Resize(physical_size.to_logical(scale_factor))),
         WindowEvent::KeyboardInput { input, .. } => {
             if let ElementState::Pressed = input.state {
@@ -162,9 +162,9 @@ pub fn convert_event(
         }
         WindowEvent::MouseInput { state, button, .. } => {
             let button = match button {
-                GlutinMouseButton::Left => ProtottyMouseButton::Left,
-                GlutinMouseButton::Middle => ProtottyMouseButton::Middle,
-                GlutinMouseButton::Right => ProtottyMouseButton::Right,
+                GlutinMouseButton::Left => ChargridMouseButton::Left,
+                GlutinMouseButton::Middle => ChargridMouseButton::Middle,
+                GlutinMouseButton::Right => ChargridMouseButton::Right,
                 GlutinMouseButton::Other(_) => return None,
             };
             let input = match state {

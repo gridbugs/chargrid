@@ -1,4 +1,4 @@
-use prototty_render::*;
+use chargrid_render::*;
 
 pub struct FillBackgroundView<V> {
     pub view: V,

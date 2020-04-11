@@ -1,5 +1,5 @@
-use colour_grid_prototty::app;
-use prototty_web::{Context, Size};
+use colour_grid_app::app;
+use chargrid_web::{Context, Size};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]

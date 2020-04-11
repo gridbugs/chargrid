@@ -13,8 +13,8 @@ use general_audio::AudioPlayer;
 use general_storage::Storage;
 use maplit::hashmap;
 use menu::{fade_spec, FadeMenuInstanceView, MenuEntryStringFn, MenuEntryToRender, MenuInstanceChoose};
-use prototty::input::*;
-use prototty::*;
+use chargrid::input::*;
+use chargrid::*;
 use render::{ColModifyDefaultForeground, ColModifyMap, Coord, Rgb24, Style};
 use std::marker::PhantomData;
 

@@ -1,7 +1,7 @@
 use common_event::*;
 use event_routine::*;
 use general_audio::{AudioHandle, AudioPlayer};
-use prototty::*;
+use chargrid::*;
 use render::*;
 use std::marker::PhantomData;
 

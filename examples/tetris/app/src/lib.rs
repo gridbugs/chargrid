@@ -1,9 +1,9 @@
-use prototty::app;
-use prototty::decorator::*;
-use prototty::input::{keys, Input, KeyboardInput};
-use prototty::menu::*;
-use prototty::render::*;
-use prototty::text::*;
+use chargrid::app;
+use chargrid::decorator::*;
+use chargrid::input::{keys, Input, KeyboardInput};
+use chargrid::menu::*;
+use chargrid::render::*;
+use chargrid::text::*;
 use rand::Rng;
 use std::collections::VecDeque;
 use std::time::Duration;

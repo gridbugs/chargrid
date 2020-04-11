@@ -3,9 +3,9 @@ mod formats;
 mod gfx_context;
 mod input;
 
-use prototty_app as app;
-pub use prototty_graphical_common::*;
-use prototty_render::Size;
+use chargrid_app as app;
+pub use chargrid_graphical_common::*;
+use chargrid_render::Size;
 
 pub struct Context {
     events_loop: glutin::EventsLoop,

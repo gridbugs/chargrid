@@ -1,5 +1,5 @@
 use crate::wrap::{self, Wrap};
-use prototty_render::*;
+use chargrid_render::*;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 

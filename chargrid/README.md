@@ -1,4 +1,4 @@
-# prototty
+# chargrid
 
-[![Version](https://img.shields.io/crates/v/prototty.svg)](https://crates.io/crates/prototty)
-[![Documentation](https://docs.rs/prototty/badge.svg)](https://docs.rs/prototty)
+[![Version](https://img.shields.io/crates/v/chargrid.svg)](https://crates.io/crates/chargrid)
+[![Documentation](https://docs.rs/chargrid/badge.svg)](https://docs.rs/chargrid)

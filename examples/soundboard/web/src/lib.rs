@@ -1,6 +1,6 @@
 use general_audio_web::WebAudioPlayer;
-use prototty_web::{Context, Size};
-use soundboard_prototty::app;
+use chargrid_web::{Context, Size};
+use soundboard_app::app;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]

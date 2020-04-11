@@ -2,10 +2,10 @@ use glutin::dpi::{LogicalPosition, LogicalSize};
 use glutin::{
     ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent,
 };
-use prototty_input::{
-    keys, Input, KeyboardInput, MouseButton as ProtottyMouseButton, MouseButton, MouseInput, ScrollDirection,
+use chargrid_input::{
+    keys, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput, ScrollDirection,
 };
-use prototty_render::Coord;
+use chargrid_render::Coord;
 
 pub enum InputEvent {
     Input(Input),
@@ -158,9 +158,9 @@ pub fn convert_event(
         }
         WindowEvent::MouseInput { state, button, .. } => {
             let button = match button {
-                GlutinMouseButton::Left => ProtottyMouseButton::Left,
-                GlutinMouseButton::Middle => ProtottyMouseButton::Middle,
-                GlutinMouseButton::Right => ProtottyMouseButton::Right,
+                GlutinMouseButton::Left => ChargridMouseButton::Left,
+                GlutinMouseButton::Middle => ChargridMouseButton::Middle,
+                GlutinMouseButton::Right => ChargridMouseButton::Right,
                 GlutinMouseButton::Other(_) => return None,
             };
             let input = match state {

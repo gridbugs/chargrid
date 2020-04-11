@@ -1,7 +1,7 @@
 use line_2d::{Coord, LineSegment};
-use prototty::app;
-use prototty::input::*;
-use prototty::render::*;
+use chargrid::app;
+use chargrid::input::*;
+use chargrid::render::*;
 
 #[derive(Debug, Clone, Copy)]
 enum LineType {

@@ -1,5 +1,5 @@
-use colour_grid_prototty::app;
-use prototty_graphical::*;
+use colour_grid_app::app;
+use chargrid_graphical::*;
 
 fn main() {
     let context = Context::new(ContextDescriptor {

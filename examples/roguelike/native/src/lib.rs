@@ -1,7 +1,7 @@
 use general_audio_native::{Error as NativeAudioError, NativeAudioPlayer};
 use general_storage_file::IfDirectoryMissing;
 pub use general_storage_file::{FileStorage, Storage};
-use rip_prototty::{Controls, GameConfig, Omniscient, RngSeed};
+use rip_app::{Controls, GameConfig, Omniscient, RngSeed};
 pub use simon;
 use simon::*;
 use std::env;

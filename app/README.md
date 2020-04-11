@@ -1,6 +1,6 @@
-# prototty\_app
+# chargrid\_app
 
-[![Version](https://img.shields.io/crates/v/prototty_app.svg)](https://crates.io/crates/prototty_app)
-[![Documentation](https://docs.rs/prototty_app/badge.svg)](https://docs.rs/prototty_app)
+[![Version](https://img.shields.io/crates/v/chargrid_app.svg)](https://crates.io/crates/chargrid_app)
+[![Documentation](https://docs.rs/chargrid_app/badge.svg)](https://docs.rs/chargrid_app)
 
-Interface to be implemented by all prototty applications
+Interface to be implemented by all chargrid applications

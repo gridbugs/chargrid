@@ -1,8 +1,8 @@
 use gfx::{self, *};
 
 use crate::formats::*;
-use prototty_render::grid_2d::CoordIter;
-use prototty_render::Size;
+use chargrid_render::grid_2d::CoordIter;
+use chargrid_render::Size;
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
 const QUAD_COORDS: [[f32; 2]; 4] = [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0]];

@@ -1,7 +1,7 @@
 use crate::{input, ContextDescriptor, Dimensions, FontBytes, NumPixels};
 use grid_2d::{Coord, Grid, Size};
-use prototty_app::{App, ControlFlow};
-use prototty_render::ViewContext;
+use chargrid_app::{App, ControlFlow};
+use chargrid_render::ViewContext;
 use std::thread;
 use std::time::{Duration, Instant};
 use zerocopy::AsBytes;
@@ -57,7 +57,7 @@ struct WgpuContext {
     bind_group: wgpu::BindGroup,
     queue: wgpu::Queue,
     background_cell_instance_data: Grid<BackgroundCellInstance>,
-    render_buffer: prototty_render::Buffer,
+    render_buffer: chargrid_render::Buffer,
     glyph_brush: wgpu_glyph::GlyphBrush<'static, ()>,
     global_uniforms_buffer: wgpu::Buffer,
     window_size: winit::dpi::LogicalSize<f64>,
@@ -144,7 +144,7 @@ impl WgpuContext {
         use std::mem;
         let num_background_cell_instances = grid_size.count();
         let background_cell_instance_data = Grid::new_default(grid_size);
-        let render_buffer = prototty_render::Buffer::new(grid_size);
+        let render_buffer = chargrid_render::Buffer::new(grid_size);
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
@@ -365,7 +365,7 @@ impl WgpuContext {
 
 struct InputContext {
     last_mouse_coord: Coord,
-    last_mouse_button: Option<prototty_input::MouseButton>,
+    last_mouse_button: Option<chargrid_input::MouseButton>,
 }
 
 impl Default for InputContext {

@@ -1,6 +1,6 @@
 use general_audio_native::NativeAudioPlayer;
-use prototty_graphical::*;
-use soundboard_prototty::app;
+use chargrid_graphical::*;
+use soundboard_app::app;
 
 fn main() {
     let player = NativeAudioPlayer::new_default_device();

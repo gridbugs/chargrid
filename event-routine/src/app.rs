@@ -1,5 +1,5 @@
 use crate::{common_event::CommonEvent, Event, EventRoutine, Handled};
-use prototty_app::{App, ColModify, ControlFlow, Duration, Frame, Input, ViewContext};
+use chargrid_app::{App, ColModify, ControlFlow, Duration, Frame, Input, ViewContext};
 
 pub struct EventRoutineAppOneShotIgnoreReturn<ER>
 where

@@ -1,5 +1,5 @@
-use prototty_graphical::*;
-use tetris_prototty::TetrisApp;
+use chargrid_graphical::*;
+use tetris_app::TetrisApp;
 
 fn main() {
     env_logger::init();

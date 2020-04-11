@@ -1,7 +1,7 @@
-pub use prototty_input;
-pub use prototty_input::Input;
-pub use prototty_render;
-pub use prototty_render::{ColModify, Frame, View, ViewContext};
+pub use chargrid_input;
+pub use chargrid_input::Input;
+pub use chargrid_render;
+pub use chargrid_render::{ColModify, Frame, View, ViewContext};
 use std::marker::PhantomData;
 use std::time::Duration;
 

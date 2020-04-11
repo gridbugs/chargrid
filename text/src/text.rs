@@ -1,6 +1,6 @@
 use crate::default::*;
 use crate::wrap::{self, Wrap};
-use prototty_render::*;
+use chargrid_render::*;
 
 pub struct TextView<W: Wrap> {
     pub style: Style,
@@ -95,7 +95,7 @@ mod test {
 
     #[test]
     fn word_wrap_very_wide_context() {
-        let mut test_grid = prototty_test_grid::TestGrid::new(Size::new(6, 1));
+        let mut test_grid = chargrid_test_grid::TestGrid::new(Size::new(6, 1));
         let context = ViewContext::default_with_size(Size::new(Size::max_field(), 10));
         let text = &["hello"];
         let mut text_view = TextView::new_default_style(wrap::Word::new());
@@ -105,7 +105,7 @@ mod test {
 
     #[test]
     fn word_wrap_typical_string() {
-        let mut test_grid = prototty_test_grid::TestGrid::new(Size::new(80, 10));
+        let mut test_grid = chargrid_test_grid::TestGrid::new(Size::new(80, 10));
         let context = ViewContext::default_with_size(Size::new(80, 40));
         let text = &[include_str!("sample.txt")];
         let mut text_view = TextView::new_default_style(wrap::Word::new());

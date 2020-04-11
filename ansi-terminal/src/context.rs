@@ -1,8 +1,8 @@
 use crate::error::*;
 use crate::terminal::*;
-use prototty_app::{App, ControlFlow};
-use prototty_input::*;
-use prototty_render::*;
+use chargrid_app::{App, ControlFlow};
+use chargrid_input::*;
+use chargrid_render::*;
 use std::thread;
 use std::time::{Duration, Instant};
 

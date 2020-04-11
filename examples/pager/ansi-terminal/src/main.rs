@@ -1,5 +1,5 @@
-use pager_prototty::App;
-use prototty_ansi_terminal::{col_encode, Context};
+use pager_app::App;
+use chargrid_ansi_terminal::{col_encode, Context};
 use std::io::{self, Read};
 
 fn main() -> io::Result<()> {

@@ -1,5 +1,5 @@
-use drag_prototty::App;
-use prototty_web::*;
+use drag_app::App;
+use chargrid_web::*;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]

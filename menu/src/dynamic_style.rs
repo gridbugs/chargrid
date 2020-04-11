@@ -2,10 +2,10 @@ use crate::{
     MenuEntryRichString, MenuEntryToRender, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose,
     MenuInstanceMouseTracker,
 };
-use prototty_event_routine::{event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
-use prototty_input::Input;
-use prototty_render::*;
-use prototty_text::StringViewSingleLine;
+use chargrid_event_routine::{event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
+use chargrid_input::Input;
+use chargrid_render::*;
+use chargrid_text::StringViewSingleLine;
 use std::marker::PhantomData;
 
 pub struct DynamicStyleMenuInstanceView {

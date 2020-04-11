@@ -1,4 +1,4 @@
-use prototty_render::Style;
+use chargrid_render::Style;
 use std::marker::PhantomData;
 
 pub struct MenuEntryToRender<'a, E> {

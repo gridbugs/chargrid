@@ -1,5 +1,5 @@
 use crate::*;
-use prototty_input::keys;
+use chargrid_input::keys;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CommonEvent {

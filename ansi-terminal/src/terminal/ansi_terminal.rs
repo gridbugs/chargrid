@@ -2,8 +2,8 @@ use super::byte_prefix_tree::{BytePrefixTree, Found};
 use super::low_level::LowLevel;
 use super::term_info_cache::{MousePrefix, TermInfoCache, TerminalInput};
 use crate::error::Result;
-use prototty_input::*;
-use prototty_render::*;
+use chargrid_input::*;
+use chargrid_render::*;
 use std::collections::{vec_deque, VecDeque};
 use std::time::Duration;
 use term::terminfo::parm::{self, Param};
@@ -25,7 +25,7 @@ pub struct AnsiTerminal {
 pub mod col_encode {
     use crate::terminal::ansi_colour_codes::{nearest_ansi_code, nearest_mean_greyscale_code, nearest_palette_code};
     use crate::terminal::term_info_cache::TermInfoCache;
-    use prototty_render::Rgb24;
+    use chargrid_render::Rgb24;
 
     pub trait Trait: Clone {
         fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache);

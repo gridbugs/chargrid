@@ -1,7 +1,7 @@
-use prototty_web::{Context, Size};
+use chargrid_web::{Context, Size};
 use rand::SeedableRng;
 use rand_isaac::IsaacRng;
-use tetris_prototty::TetrisApp;
+use tetris_app::TetrisApp;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]

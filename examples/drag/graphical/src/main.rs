@@ -1,5 +1,5 @@
-use drag_prototty::App;
-use prototty_graphical::*;
+use drag_app::App;
+use chargrid_graphical::*;
 
 fn main() {
     let context = Context::new(ContextDescriptor {

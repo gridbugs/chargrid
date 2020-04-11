@@ -1,6 +1,6 @@
-# prototty\_web
+# chargrid\_web
 
-[![Version](https://img.shields.io/crates/v/prototty_web.svg)](https://crates.io/crates/prototty_web)
-[![Documentation](https://docs.rs/prototty_web/badge.svg)](https://docs.rs/prototty_web)
+[![Version](https://img.shields.io/crates/v/chargrid_web.svg)](https://crates.io/crates/chargrid_web)
+[![Documentation](https://docs.rs/chargrid_web/badge.svg)](https://docs.rs/chargrid_web)
 
-Web prototty frontend.
+Web chargrid frontend.
