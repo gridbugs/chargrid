@@ -10,7 +10,6 @@ repository = "https://github.com/stevebob/prototty.git"
 documentation = "https://docs.rs/prototty_graphical"
 edition = "2018"
 
-
 [features]
 serialize = ["prototty_input/serialize", "prototty_render/serialize"]
 force_vulkan = ["wgpu/vulkan"]
@@ -26,3 +25,4 @@ winit = "0.22"
 zerocopy = "0.3"
 log = "0.4"
 grid_2d = "0.14"
+futures-executor = "0.3"

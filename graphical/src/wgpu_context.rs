@@ -4,6 +4,7 @@ use prototty_app::{App, ControlFlow};
 use prototty_render::ViewContext;
 use std::thread;
 use std::time::{Duration, Instant};
+use zerocopy::AsBytes;
 
 const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
@@ -28,6 +29,22 @@ const fn dimensions_from_logical_size(size: winit::dpi::LogicalSize<f64>) -> Dim
         width: size.width,
         height: size.height,
     }
+}
+
+fn finish_create_buffer_mapped_from_slice<T>(
+    create_buffer_mapped: wgpu::CreateBufferMapped<'_>,
+    slice: &[T],
+) -> wgpu::Buffer
+where
+    T: AsBytes,
+{
+    for (t, slot) in slice
+        .iter()
+        .zip(create_buffer_mapped.data.chunks_exact_mut(std::mem::size_of::<T>()))
+    {
+        slot.copy_from_slice(t.as_bytes());
+    }
+    create_buffer_mapped.finish()
 }
 
 struct WgpuContext {
@@ -81,6 +98,31 @@ struct UnderlineUniforms {
     underline_top_offset_cell_ratio: f32,
 }
 
+async fn init_device() -> Result<(wgpu::Device, wgpu::Queue), ContextBuildError> {
+    let backend = if cfg!(feature = "force_vulkan") {
+        wgpu::BackendBit::VULKAN
+    } else {
+        wgpu::BackendBit::PRIMARY
+    };
+    let adapter = wgpu::Adapter::request(
+        &wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::Default,
+            compatible_surface: None,
+        },
+        backend,
+    )
+    .await
+    .ok_or(ContextBuildError::FailedToRequestGraphicsAdapter)?;
+    Ok(adapter
+        .request_device(&wgpu::DeviceDescriptor {
+            extensions: wgpu::Extensions {
+                anisotropic_filtering: false,
+            },
+            limits: wgpu::Limits::default(),
+        })
+        .await)
+}
+
 impl WgpuContext {
     fn u8_slice_to_u32_vec(bytes: &[u8]) -> Vec<u32> {
         let mut buffer = Vec::with_capacity(bytes.len() / 4);
@@ -100,32 +142,14 @@ impl WgpuContext {
         font_bytes: FontBytes,
     ) -> Result<Self, ContextBuildError> {
         use std::mem;
-        let num_background_cell_instances = grid_size.count() as u32;
+        let num_background_cell_instances = grid_size.count();
         let background_cell_instance_data = Grid::new_default(grid_size);
         let render_buffer = prototty_render::Buffer::new(grid_size);
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
         let surface = wgpu::Surface::create(window);
-        let backend = if cfg!(feature = "force_vulkan") {
-            wgpu::BackendBit::VULKAN
-        } else {
-            wgpu::BackendBit::PRIMARY
-        };
-        let adapter = wgpu::Adapter::request(
-            &wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::Default,
-                compatible_surface: None,
-            },
-            backend,
-        )
-        .ok_or(ContextBuildError::FailedToRequestGraphicsAdapter)?;
-        let (mut device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
-            extensions: wgpu::Extensions {
-                anisotropic_filtering: false,
-            },
-            limits: wgpu::Limits::default(),
-        });
+        let (mut device, queue) = futures_executor::block_on(init_device())?;
         let sc_desc = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
             format: TEXTURE_FORMAT,
@@ -136,22 +160,37 @@ impl WgpuContext {
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
         let vs_module = device.create_shader_module(&Self::u8_slice_to_u32_vec(include_bytes!("./shader.vert.spv")));
         let fs_module = device.create_shader_module(&Self::u8_slice_to_u32_vec(include_bytes!("./shader.frag.spv")));
-        let background_cell_instance_buffer = device
-            .create_buffer_mapped(num_background_cell_instances as usize, wgpu::BufferUsage::VERTEX)
-            .fill_from_slice(background_cell_instance_data.raw());
+        let background_cell_instance_buffer = finish_create_buffer_mapped_from_slice(
+            device.create_buffer_mapped(&wgpu::BufferDescriptor {
+                label: None,
+                size: num_background_cell_instances as u64 * std::mem::size_of::<BackgroundCellInstance>() as u64,
+                usage: wgpu::BufferUsage::VERTEX,
+            }),
+            background_cell_instance_data.raw(),
+        );
         let global_uniforms_size = mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress;
         let global_uniforms = size_context.global_uniforms(dimensions_from_logical_size(window_size));
-        let global_uniforms_buffer = device
-            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
-            .fill_from_slice(&[global_uniforms]);
+        let global_uniforms_buffer = finish_create_buffer_mapped_from_slice(
+            device.create_buffer_mapped(&wgpu::BufferDescriptor {
+                label: None,
+                size: 1 * global_uniforms_size,
+                usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            }),
+            &[global_uniforms],
+        );
         let underline_uniforms_size = mem::size_of::<UnderlineUniforms>() as wgpu::BufferAddress;
         let underline_uniforms = UnderlineUniforms {
             underline_width_cell_ratio: size_context.underline_width as f32,
             underline_top_offset_cell_ratio: size_context.underline_top_offset as f32,
         };
-        let underline_uniforms_buffer = device
-            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM)
-            .fill_from_slice(&[underline_uniforms]);
+        let underline_uniforms_buffer = finish_create_buffer_mapped_from_slice(
+            device.create_buffer_mapped(&wgpu::BufferDescriptor {
+                label: None,
+                size: 1 * underline_uniforms_size,
+                usage: wgpu::BufferUsage::UNIFORM,
+            }),
+            &[underline_uniforms],
+        );
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             bindings: &[
@@ -276,14 +315,14 @@ impl WgpuContext {
             background_cell_instance.foreground_colour = buffer_cell.foreground_colour.to_f32_rgb();
             background_cell_instance.underline = buffer_cell.underline as u32;
         }
-        self.background_cell_instance_buffer = self
-            .device
-            .create_buffer_mapped(&wgpu::BufferDescriptor {
+        self.background_cell_instance_buffer = finish_create_buffer_mapped_from_slice(
+            self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
                 label: None,
-                size: self.render_buffer.size().count() as u64,
+                size: self.render_buffer.size().count() as u64 * std::mem::size_of::<BackgroundCellInstance>() as u64,
                 usage: wgpu::BufferUsage::VERTEX,
-            })
-            .fill_from_slice(self.background_cell_instance_data.raw());
+            }),
+            self.background_cell_instance_data.raw(),
+        );
     }
 
     fn resize(&mut self, size_context: &SizeContext, window_size: winit::dpi::LogicalSize<f64>) {
@@ -293,23 +332,23 @@ impl WgpuContext {
         self.sc_desc.width = physical_size.width.round() as u32;
         self.sc_desc.height = physical_size.height.round() as u32;
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
-        self.background_cell_instance_buffer = self
-            .device
-            .create_buffer_mapped(&wgpu::BufferDescriptor {
+        self.background_cell_instance_buffer = finish_create_buffer_mapped_from_slice(
+            self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
                 label: None,
-                size: self.render_buffer.size().count() as u64,
+                size: self.render_buffer.size().count() as u64 * std::mem::size_of::<BackgroundCellInstance>() as u64,
                 usage: wgpu::BufferUsage::VERTEX,
-            })
-            .fill_from_slice(self.background_cell_instance_data.raw());
+            }),
+            self.background_cell_instance_data.raw(),
+        );
         let global_uniforms = size_context.global_uniforms(dimensions_from_logical_size(window_size));
-        let temp_buffer = self
-            .device
-            .create_buffer_mapped(&wgpu::BufferDescriptor {
+        let temp_buffer = finish_create_buffer_mapped_from_slice(
+            self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
                 label: None,
-                size: 1,
+                size: 1 * std::mem::size_of::<GlobalUniforms>() as u64,
                 usage: wgpu::BufferUsage::COPY_SRC,
-            })
-            .fill_from_slice(&[global_uniforms]);
+            }),
+            &[global_uniforms],
+        );
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -562,12 +601,7 @@ impl Context {
                             });
                             render_pass.set_pipeline(&wgpu_context.render_pipeline);
                             render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
-                            render_pass.set_vertex_buffer(
-                                0,
-                                &wgpu_context.background_cell_instance_buffer,
-                                0,
-                                todo!("work out size"),
-                            );
+                            render_pass.set_vertex_buffer(0, &wgpu_context.background_cell_instance_buffer, 0, 0);
                             render_pass.draw(0..6, 0..wgpu_context.render_buffer.size().count() as u32);
                         }
                         let mut buf: [u8; 4] = [0; 4];

@@ -41,6 +41,7 @@ void main() {
     vec2 scaled_corner_offset = corner_offsets[gl_VertexIndex] * cell_size;
     vec2 top_left_corner = coord * cell_size;
     vec2 absolute = vec2(-1.0, -1.0) + top_left_corner + scaled_corner_offset + u_OffsetTtoCentre;
+    absolute.y *= -1;
     v_CellRatioY = corner_offset.y;
     gl_Position = vec4(absolute, 0.0, 1.0);
 }
