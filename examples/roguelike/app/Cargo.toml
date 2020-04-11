@@ -1,5 +1,5 @@
 [package]
-name = "rip_prototty"
+name = "rip_app"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
@@ -9,7 +9,7 @@ wasm = ["rand/wasm-bindgen"]
 
 [dependencies]
 log = "0.4"
-prototty = { path = "../../../prototty", features = ["serialize"] }
+chargrid = { path = "../../../chargrid", features = ["serialize"] }
 game = { path = "../game" }
 serde = { version = "1.0", features = ["serde_derive"] }
 rand = "0.7"

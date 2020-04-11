@@ -8,6 +8,6 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-prototty_web = { path = "../../../web" }
-colour_grid_prototty = { path = "../prototty" }
+chargrid_web = { path = "../../../web" }
+colour_grid_app = { path = "../app" }
 wasm-bindgen = "0.2"

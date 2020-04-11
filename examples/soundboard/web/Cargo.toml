@@ -8,8 +8,8 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-soundboard_prototty = { path = "../prototty" }
-prototty_web = { path = "../../../web" }
+chargrid_web = { path = "../../../web" }
+soundboard_app = { path = "../app" }
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"
 wasm-logger = "0.2"

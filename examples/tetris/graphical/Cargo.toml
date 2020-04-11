@@ -5,7 +5,7 @@ authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
 [dependencies]
-tetris_prototty = { path = "../prototty" }
-prototty_graphical = { path = "../../../graphical" }
+chargrid_graphical = { path = "../../../graphical" }
+tetris_app = { path = "../app" }
 rand = "0.7"
 env_logger = "0.7"
