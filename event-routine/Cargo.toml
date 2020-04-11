@@ -1,20 +1,20 @@
 [package]
-name = "prototty_event_routine"
-description = "Pseudo-synchronous composable event-based state machines for prototty apps"
-version = "0.29.0"
+name = "chargrid_event_routine"
+description = "Pseudo-synchronous composable event-based state machines for chargrid apps"
+version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/stevebob/prototty.git"
-repository = "https://github.com/stevebob/prototty.git"
-documentation = "https://docs.rs/prototty_event_routine"
+homepage = "https://github.com/stevebob/chargrid.git"
+repository = "https://github.com/stevebob/chargrid.git"
+documentation = "https://docs.rs/chargrid_event_routine"
 edition = "2018"
 
 [features]
-serialize = ["prototty_render/serialize", "prototty_input/serialize"]
+serialize = ["chargrid_render/serialize", "chargrid_input/serialize"]
 
 [dependencies]
-prototty_render = { path = "../render", version = "0.29" }
-prototty_input = { path = "../input", version = "0.29" }
-prototty_app = { path = "../app", version = "0.29" }
+chargrid_render = { path = "../render", version = "0.1" }
+chargrid_input = { path = "../input", version = "0.1" }
+chargrid_app = { path = "../app", version = "0.1" }
 log = "0.4"

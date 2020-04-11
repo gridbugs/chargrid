@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "prototty",
+    "chargrid",
     "app",
     "render",
     "decorator",
@@ -17,22 +17,22 @@ members = [
     "test-grid",
 
     "examples/tetris/tetris",
-    "examples/tetris/prototty",
+    "examples/tetris/app",
     "examples/tetris/graphical",
     "examples/tetris/ansi-terminal",
     "examples/tetris/web",
 
-    "examples/drag/prototty",
+    "examples/drag/app",
     "examples/drag/ansi-terminal",
     "examples/drag/graphical",
     "examples/drag/web",
 
-    "examples/pager/prototty",
+    "examples/pager/app",
     "examples/pager/ansi-terminal",
     "examples/pager/graphical",
     "examples/pager/web",
 
-    "examples/colour_picker/prototty",
+    "examples/colour_picker/app",
     "examples/colour_picker/graphical",
     "examples/colour_picker/ansi-terminal",
     "examples/colour_picker/web",
@@ -43,18 +43,18 @@ members = [
     "examples/roguelike/rational",
     "examples/roguelike/rand-range",
     "examples/roguelike/game",
-    "examples/roguelike/prototty",
+    "examples/roguelike/app",
     "examples/roguelike/native",
     "examples/roguelike/graphical",
     "examples/roguelike/ansi-terminal",
     "examples/roguelike/web",
 
-    "examples/colour_grid/prototty",
+    "examples/colour_grid/app",
     "examples/colour_grid/graphical",
     "examples/colour_grid/ansi-terminal",
     "examples/colour_grid/web",
 
-    "examples/soundboard/prototty",
+    "examples/soundboard/app",
     "examples/soundboard/graphical",
     "examples/soundboard/ansi-terminal",
     "examples/soundboard/web",

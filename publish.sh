@@ -16,7 +16,7 @@ publish() {
     publish_single app
     publish_single event-routine
     publish_single menu
-    publish_single prototty
+    publish_single chargrid
     publish_single web
     publish_single ansi-terminal
     publish_single graphical-common

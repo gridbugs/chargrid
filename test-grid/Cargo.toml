@@ -1,13 +1,13 @@
 [package]
-name = "prototty_test_grid"
-description = "Prototty frontend that renders to an in-memory buffer for use in tests"
-version = "0.29.0"
+name = "chargrid_test_grid"
+description = "chargrid frontend that renders to an in-memory buffer for use in tests"
+version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
-homepage = "https://github.com/stevebob/prototty.git"
-repository = "https://github.com/stevebob/prototty.git"
-documentation = "https://docs.rs/prototty_test_grid"
+homepage = "https://github.com/stevebob/chargrid.git"
+repository = "https://github.com/stevebob/chargrid.git"
+documentation = "https://docs.rs/chargrid_test_grid"
 edition = "2018"
 
 [dependencies]
-prototty_render = { path = "../render", version = "0.29" }
+chargrid_render = { path = "../render", version = "0.1" }

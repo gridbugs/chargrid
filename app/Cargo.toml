@@ -1,15 +1,15 @@
 [package]
-name = "prototty_app"
-description = "Interface to be implemented by all prototty applications"
-version = "0.29.0"
+name = "chargrid_app"
+description = "Interface to be implemented by all chargrid applications"
+version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/stevebob/prototty.git"
-repository = "https://github.com/stevebob/prototty.git"
-documentation = "https://docs.rs/prototty_app"
+homepage = "https://github.com/stevebob/chargrid.git"
+repository = "https://github.com/stevebob/chargrid.git"
+documentation = "https://docs.rs/chargrid_app"
 edition = "2018"
 
 [dependencies]
-prototty_render = { path = "../render", version = "0.29" }
-prototty_input = { path = "../input", version = "0.29" }
+chargrid_render = { path = "../render", version = "0.1" }
+chargrid_input = { path = "../input", version = "0.1" }
