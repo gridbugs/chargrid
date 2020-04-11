@@ -12,17 +12,11 @@ members = [
     "graphical-common",
     "ansi-terminal",
     "web",
-    "storage",
     "audio",
     "input",
-    "file-storage",
     "event-routine",
     "native-audio",
     "test-grid",
-
-    "examples/fib/fib",
-    "examples/fib/file",
-    "examples/fib/web",
 
     "examples/tetris/tetris",
     "examples/tetris/prototty",

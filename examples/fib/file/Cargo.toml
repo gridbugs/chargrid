@@ -1,9 +1,0 @@
-[package]
-name = "fib_file"
-version = "0.1.0"
-authors = ["Stephen Sherratt <stephen@sherra.tt>"]
-edition = "2018"
-
-[dependencies]
-prototty_file_storage = { path = "../../../file-storage" }
-fib = { path = "../fib" }

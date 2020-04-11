@@ -1,5 +1,5 @@
-use prototty_file_storage::IfDirectoryMissing;
-pub use prototty_file_storage::{FileStorage, Storage};
+use general_storage_file::IfDirectoryMissing;
+pub use general_storage_file::{FileStorage, Storage};
 use prototty_native_audio::{Error as NativeAudioError, NativeAudioPlayer};
 use rip_prototty::{Controls, GameConfig, Omniscient, RngSeed};
 pub use simon;

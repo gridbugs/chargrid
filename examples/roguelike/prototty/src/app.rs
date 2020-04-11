@@ -9,12 +9,12 @@ pub use crate::game::{GameConfig, Omniscient, RngSeed};
 use common_event::*;
 use decorator::*;
 use event_routine::*;
+use general_storage::Storage;
 use maplit::hashmap;
 use menu::{fade_spec, FadeMenuInstanceView, MenuEntryStringFn, MenuEntryToRender, MenuInstanceChoose};
 use prototty::input::*;
 use prototty::*;
 use prototty_audio::AudioPlayer;
-use prototty_storage::Storage;
 use render::{ColModifyDefaultForeground, ColModifyMap, Coord, Rgb24, Style};
 use std::marker::PhantomData;
 

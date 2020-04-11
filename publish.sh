@@ -19,8 +19,6 @@ publish() {
     publish_single prototty
     publish_single audio
     publish_single native-audio
-    publish_single storage
-    publish_single file-storage
     publish_single web
     publish_single ansi-terminal
     publish_single graphical-common
