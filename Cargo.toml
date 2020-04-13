@@ -62,6 +62,3 @@ members = [
 
 [profile.release]
 lto = true
-
-[patch.crates-io]
-wgpu_glyph = { git = "https://github.com/hecrj/wgpu_glyph", rev = "5fc683fabaaacf924abaf5fa0da08ab3b91a03ed" }
