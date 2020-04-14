@@ -10,7 +10,6 @@ cargo clean
 
 cargo test --workspace
 cargo test --manifest-path=chargrid/Cargo.toml --features=serialize
-cargo test --manifest-path=examples/roguelike/graphical/Cargo.toml --no-default-features --features=chargrid_graphical_gfx
 
 cargo clean
 

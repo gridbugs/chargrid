@@ -8,8 +8,6 @@ members = [
     "menu",
     "text",
     "graphical",
-    "graphical-gfx",
-    "graphical-common",
     "ansi-terminal",
     "web",
     "input",

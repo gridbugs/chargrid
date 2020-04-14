@@ -20,7 +20,6 @@ publish() {
     publish_single web
     publish_single ansi-terminal
     publish_single graphical-common
-    publish_single graphical-gfx
     publish_single graphical
 }
 

@@ -1,23 +1,15 @@
 #![windows_subsystem = "windows"]
-#[cfg(feature = "chargrid_graphical")]
-use chargrid_graphical as graphical;
-#[cfg(feature = "chargrid_graphical_gfx")]
-use chargrid_graphical_gfx as graphical;
-use rip_native::{simon::*, NativeCommon};
 use rip_app::{app, AutoPlay, Frontend, Fullscreen};
+use rip_native::{simon::*, NativeCommon};
 
-#[cfg(feature = "chargrid_graphical")]
 const FULLSCREEN_SUPPORTED: bool = true;
-
-#[cfg(feature = "chargrid_graphical_gfx")]
-const FULLSCREEN_SUPPORTED: bool = false;
 
 const CELL_SIZE: f64 = 16.;
 
 #[cfg(target_os = "windows")]
 mod graphical_env {
+    use chargrid_graphical::WindowHandle;
     use rip_app::Env;
-    use super::graphical::WindowHandle;
     use std::cell::RefCell;
     pub struct GraphicalEnv {
         window_handle: WindowHandle,
@@ -53,8 +45,8 @@ mod graphical_env {
 
 #[cfg(not(target_os = "windows"))]
 mod graphical_env {
+    use chargrid_graphical::WindowHandle;
     use rip_app::Env;
-    use super::graphical::WindowHandle;
     pub struct GraphicalEnv {
         window_handle: WindowHandle,
     }
@@ -82,8 +74,8 @@ mod graphical_env {
     }
 }
 
+use chargrid_graphical::*;
 use graphical_env::*;
-use graphical::*;
 
 struct Args {
     native_common: NativeCommon,

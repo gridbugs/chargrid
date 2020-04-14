@@ -18,7 +18,6 @@ force_vulkan = ["wgpu/vulkan"]
 chargrid_render = { path = "../render", version = "0.1" }
 chargrid_input = { path = "../input", version = "0.1" }
 chargrid_app = { path = "../app", version = "0.1" }
-chargrid_graphical_common = { path = "../graphical-common", version = "0.1" }
 wgpu = "0.5"
 wgpu_glyph = "0.8"
 winit = "0.22"
