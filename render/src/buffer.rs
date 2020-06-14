@@ -57,6 +57,7 @@ const BLANK_CELL: BufferCell = BufferCell {
 
 pub type BufferIter<'a> = grid_2d::GridIter<'a, BufferCell>;
 pub type BufferEnumerate<'a> = grid_2d::GridEnumerate<'a, BufferCell>;
+pub type BufferRows<'a> = grid_2d::GridRows<'a, BufferCell>;
 
 #[derive(Debug, Clone)]
 pub struct Buffer {
@@ -89,6 +90,10 @@ impl Buffer {
 
     pub fn iter(&self) -> BufferIter {
         self.grid.iter()
+    }
+
+    pub fn rows(&self) -> BufferRows {
+        self.grid.rows()
     }
 }
 

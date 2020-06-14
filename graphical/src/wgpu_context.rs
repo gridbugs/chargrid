@@ -5,14 +5,15 @@ use grid_2d::{Coord, Grid, Size};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
+use wgpu_glyph::ab_glyph;
 use zerocopy::AsBytes;
 
 const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
-fn font_bytes_to_fonts(FontBytes { normal, bold }: FontBytes) -> Vec<wgpu_glyph::SharedBytes<'static>> {
+fn font_bytes_to_fonts(FontBytes { normal, bold }: FontBytes) -> Vec<ab_glyph::FontVec> {
     vec![
-        wgpu_glyph::SharedBytes::ByArc(normal.into()),
-        wgpu_glyph::SharedBytes::ByArc(bold.into()),
+        ab_glyph::FontVec::try_from_vec(normal).unwrap(),
+        ab_glyph::FontVec::try_from_vec(bold).unwrap(),
     ]
 }
 
@@ -59,7 +60,7 @@ struct WgpuContext {
     queue: wgpu::Queue,
     background_cell_instance_data: Grid<BackgroundCellInstance>,
     render_buffer: chargrid_render::Buffer,
-    glyph_brush: wgpu_glyph::GlyphBrush<'static, ()>,
+    glyph_brush: wgpu_glyph::GlyphBrush<(), ab_glyph::FontVec>,
     global_uniforms_buffer: wgpu::Buffer,
     window_size: winit::dpi::LogicalSize<f64>,
     scale_factor: f64,
@@ -283,8 +284,7 @@ impl WgpuContext {
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
         });
-        let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(font_bytes_to_fonts(font_bytes))
-            .expect("Failed to load font")
+        let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
             .texture_filter_method(wgpu::FilterMode::Nearest)
             .build(&mut device, TEXTURE_FORMAT);
         let modifier_state = winit::event::ModifiersState::default();
@@ -380,7 +380,7 @@ impl Default for InputContext {
 
 #[derive(Debug)]
 struct SizeContext {
-    font_source_scale: wgpu_glyph::Scale,
+    font_source_scale: ab_glyph::PxScale,
     font_dimensions: Dimensions<NumPixels>,
     cell_dimensions: Dimensions<NumPixels>,
     underline_width: NumPixels,
@@ -495,7 +495,7 @@ impl Context {
             .build(&event_loop)
             .map_err(ContextBuildError::FailedToBuildWindow)?;
         let size_context = SizeContext {
-            font_source_scale: wgpu_glyph::Scale {
+            font_source_scale: ab_glyph::PxScale {
                 x: font_source_dimensions.width,
                 y: font_source_dimensions.height,
             },
@@ -611,37 +611,38 @@ impl Context {
                             render_pass.set_vertex_buffer(0, &wgpu_context.background_cell_instance_buffer, 0, 0);
                             render_pass.draw(0..6, 0..wgpu_context.render_buffer.size().count() as u32);
                         }
-                        let mut buf: [u8; 4] = [0; 4];
                         let offset_to_centre =
                             size_context.pixel_offset_to_centre_native_window(current_window_dimensions);
                         let font_ratio = size_context.native_ratio(current_window_dimensions);
-                        let font_scale = wgpu_glyph::Scale {
+                        let font_scale = ab_glyph::PxScale {
                             x: font_ratio as f32 * size_context.font_dimensions.width as f32,
                             y: font_ratio as f32 * size_context.font_dimensions.height as f32,
                         };
-                        for (coord, cell) in wgpu_context.render_buffer.enumerate() {
-                            if cell.character == ' ' && !cell.underline {
-                                continue;
+                        let mut all_text = String::new();
+                        for row in wgpu_context.render_buffer.rows() {
+                            for cell in row {
+                                all_text.push(cell.character);
                             }
-                            let text: &str = cell.character.encode_utf8(&mut buf);
-                            let screen_position = (
-                                offset_to_centre.width as f32
-                                    + font_ratio as f32 * coord.x as f32 * size_context.cell_dimensions.width as f32,
-                                offset_to_centre.height as f32
-                                    + font_ratio as f32 * coord.y as f32 * size_context.cell_dimensions.height as f32,
-                            );
-                            let font_id = if cell.bold { FONT_ID_BOLD } else { FONT_ID_NORMAL };
-                            let color = cell.foreground_colour.to_f32_rgba(1.);
-                            let section = wgpu_glyph::Section {
-                                text,
-                                screen_position,
-                                font_id,
-                                color,
-                                scale: font_scale,
-                                ..Default::default()
-                            };
-                            wgpu_context.glyph_brush.queue(section);
                         }
+                        let mut section = wgpu_glyph::Section::default()
+                            .with_screen_position((offset_to_centre.width as f32, offset_to_centre.height as f32));
+                        let mut char_start = 0;
+                        for (ch, (coord, cell)) in all_text.chars().zip(wgpu_context.render_buffer.enumerate()) {
+                            let char_end = char_start + ch.len_utf8();
+                            let str_slice = &all_text[char_start..char_end];
+                            let font_id = if cell.bold { FONT_ID_BOLD } else { FONT_ID_NORMAL };
+                            section = section.add_text(
+                                wgpu_glyph::Text::new(str_slice)
+                                    .with_scale(font_scale)
+                                    .with_font_id(font_id)
+                                    .with_color(cell.foreground_colour.to_f32_rgba(1.)),
+                            );
+                            char_start = char_end;
+                            if coord.x as u32 == wgpu_context.render_buffer.size().width() - 1 {
+                                section = section.add_text(wgpu_glyph::Text::new("\n").with_scale(font_scale));
+                            }
+                        }
+                        wgpu_context.glyph_brush.queue(section);
                         wgpu_context
                             .glyph_brush
                             .draw_queued(
