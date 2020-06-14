@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 chargrid_ansi_terminal = { path = "../../../ansi-terminal" }
 soundboard_app = { path = "../app" }
-general_audio_native = "0.1"
+general_audio_native = { version = "0.2", features = ["vorbis"] }
