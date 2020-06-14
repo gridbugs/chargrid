@@ -35,18 +35,6 @@ members = [
     "examples/colour_picker/ansi-terminal",
     "examples/colour_picker/web",
 
-    "examples/roguelike/ecs",
-    "examples/roguelike/procgen",
-    "examples/roguelike/vector",
-    "examples/roguelike/rational",
-    "examples/roguelike/rand-range",
-    "examples/roguelike/game",
-    "examples/roguelike/app",
-    "examples/roguelike/native",
-    "examples/roguelike/graphical",
-    "examples/roguelike/ansi-terminal",
-    "examples/roguelike/web",
-
     "examples/colour_grid/app",
     "examples/colour_grid/graphical",
     "examples/colour_grid/ansi-terminal",

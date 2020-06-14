@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 chargrid = { path = "../../../chargrid" }
-general_audio = "0.1"
+general_audio = "0.2"
