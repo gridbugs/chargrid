@@ -1,6 +1,6 @@
 use super::{Blend, Coord, Frame, Rgb24, Size, ViewCell};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct BufferCell {
     pub character: char,
     pub bold: bool,
@@ -66,7 +66,7 @@ pub struct Buffer {
 
 impl Buffer {
     pub fn new(size: Size) -> Self {
-        let grid = grid_2d::Grid::new_clone(size, BLANK_CELL);
+        let grid = grid_2d::Grid::new_copy(size, BLANK_CELL);
         Self { grid }
     }
 
@@ -75,7 +75,7 @@ impl Buffer {
     }
 
     pub fn resize(&mut self, size: Size) {
-        self.grid = grid_2d::Grid::new_clone(size, BLANK_CELL);
+        self.grid = grid_2d::Grid::new_copy(size, BLANK_CELL);
     }
 
     pub fn clear(&mut self) {
