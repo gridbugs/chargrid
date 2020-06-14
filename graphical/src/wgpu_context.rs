@@ -1,7 +1,8 @@
 use crate::{input, ContextDescriptor, Dimensions, FontBytes, NumPixels};
-use grid_2d::{Coord, Grid, Size};
 use chargrid_app::{App, ControlFlow};
 use chargrid_render::ViewContext;
+use grid_2d::{Coord, Grid, Size};
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use zerocopy::AsBytes;
@@ -442,6 +443,7 @@ impl SizeContext {
 }
 
 pub struct Context {
+    window: Arc<winit::window::Window>,
     event_loop: winit::event_loop::EventLoop<()>,
     wgpu_context: WgpuContext,
     size_context: SizeContext,
@@ -449,7 +451,7 @@ pub struct Context {
 }
 
 pub struct WindowHandle {
-    window: winit::window::Window,
+    window: Arc<winit::window::Window>,
 }
 
 impl WindowHandle {
@@ -506,14 +508,16 @@ impl Context {
         let grid_size = size_context.grid_size();
         let wgpu_context = WgpuContext::new(&window, &size_context, grid_size, font_bytes)?;
         log::info!("grid size: {:?}", grid_size);
+        let window = Arc::new(window);
         Ok((
             Context {
+                window: window.clone(),
                 event_loop,
                 wgpu_context,
                 size_context,
                 input_context: Default::default(),
             },
-            WindowHandle { window },
+            WindowHandle { window: window.clone() },
         ))
     }
     pub fn new(context_descriptor: ContextDescriptor) -> Result<Self, ContextBuildError> {
@@ -524,11 +528,14 @@ impl Context {
         A: App + 'static,
     {
         let Self {
+            window,
             event_loop,
             mut wgpu_context,
             size_context,
             mut input_context,
         } = self;
+        #[allow(unused_variables)]
+        let window = window; // dropping the window will close it, so keep this in scope
         let mut frame_instant = Instant::now();
         let mut exited = false;
         log::info!("Entering main event loop");
