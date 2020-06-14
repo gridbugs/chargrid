@@ -448,6 +448,7 @@ pub struct Context {
     wgpu_context: WgpuContext,
     size_context: SizeContext,
     input_context: InputContext,
+    text_buffer: String,
 }
 
 pub struct WindowHandle {
@@ -515,6 +516,7 @@ impl Context {
             wgpu_context,
             size_context,
             input_context: Default::default(),
+            text_buffer: String::new(),
         })
     }
     pub fn window_handle(&self) -> WindowHandle {
@@ -532,6 +534,7 @@ impl Context {
             mut wgpu_context,
             size_context,
             mut input_context,
+            mut text_buffer,
         } = self;
         #[allow(unused_variables)]
         let window = window; // dropping the window will close it, so keep this in scope
@@ -617,18 +620,18 @@ impl Context {
                             x: font_ratio as f32 * size_context.font_dimensions.width as f32,
                             y: font_ratio as f32 * size_context.font_dimensions.height as f32,
                         };
-                        let mut all_text = String::new();
+                        text_buffer.clear();
                         for row in wgpu_context.render_buffer.rows() {
                             for cell in row {
-                                all_text.push(cell.character);
+                                text_buffer.push(cell.character);
                             }
                         }
                         let mut section = wgpu_glyph::Section::default()
                             .with_screen_position((offset_to_centre.width as f32, offset_to_centre.height as f32));
                         let mut char_start = 0;
-                        for (ch, (coord, cell)) in all_text.chars().zip(wgpu_context.render_buffer.enumerate()) {
+                        for (ch, (coord, cell)) in text_buffer.chars().zip(wgpu_context.render_buffer.enumerate()) {
                             let char_end = char_start + ch.len_utf8();
-                            let str_slice = &all_text[char_start..char_end];
+                            let str_slice = &text_buffer[char_start..char_end];
                             let font_id = if cell.bold { FONT_ID_BOLD } else { FONT_ID_NORMAL };
                             section = section.add_text(
                                 wgpu_glyph::Text::new(str_slice)
