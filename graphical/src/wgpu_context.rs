@@ -470,7 +470,7 @@ impl WindowHandle {
 }
 
 impl Context {
-    pub fn new_returning_window_handle(
+    pub fn new(
         ContextDescriptor {
             font_bytes,
             title,
@@ -481,7 +481,7 @@ impl Context {
             underline_width,
             underline_top_offset,
         }: ContextDescriptor,
-    ) -> Result<(Self, WindowHandle), ContextBuildError> {
+    ) -> Result<Self, ContextBuildError> {
         let event_loop = winit::event_loop::EventLoop::new();
         let window_builder = winit::window::WindowBuilder::new().with_title(title);
         let window_builder = {
@@ -509,19 +509,18 @@ impl Context {
         let wgpu_context = WgpuContext::new(&window, &size_context, grid_size, font_bytes)?;
         log::info!("grid size: {:?}", grid_size);
         let window = Arc::new(window);
-        Ok((
-            Context {
-                window: window.clone(),
-                event_loop,
-                wgpu_context,
-                size_context,
-                input_context: Default::default(),
-            },
-            WindowHandle { window: window.clone() },
-        ))
+        Ok(Context {
+            window,
+            event_loop,
+            wgpu_context,
+            size_context,
+            input_context: Default::default(),
+        })
     }
-    pub fn new(context_descriptor: ContextDescriptor) -> Result<Self, ContextBuildError> {
-        Self::new_returning_window_handle(context_descriptor).map(|(s, _)| s)
+    pub fn window_handle(&self) -> WindowHandle {
+        WindowHandle {
+            window: self.window.clone(),
+        }
     }
     pub fn run_app<A>(self, mut app: A) -> !
     where
