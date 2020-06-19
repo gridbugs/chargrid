@@ -18,6 +18,7 @@ serialize = [
     "chargrid_decorator/serialize",
     "chargrid_menu/serialize",
 ]
+gamepad = ["chargrid_input/gamepad", "chargrid_menu/gamepad"]
 
 [dependencies]
 chargrid_render = { path = "../render", version = "0.1" }

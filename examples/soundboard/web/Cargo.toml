@@ -8,7 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-chargrid_web = { path = "../../../web" }
+chargrid_web = { path = "../../../web", features = ["gamepad"] }
 soundboard_app = { path = "../app" }
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"

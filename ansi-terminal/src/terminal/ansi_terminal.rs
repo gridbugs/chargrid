@@ -5,7 +5,6 @@ use crate::error::Result;
 use chargrid_input::*;
 use chargrid_render::*;
 use std::collections::{vec_deque, VecDeque};
-use std::time::Duration;
 use term::terminfo::parm::{self, Param};
 
 const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
@@ -176,39 +175,6 @@ impl AnsiTerminal {
         self.low_level.read_polling(&mut self.input_buffer)?;
         self.drain_input_into_ring()?;
         Ok(self.input_ring.drain(..))
-    }
-
-    pub fn poll_input(&mut self) -> Result<Option<Input>> {
-        if let Some(input) = self.input_ring.pop_front() {
-            return Ok(Some(input));
-        }
-        self.low_level.read_polling(&mut self.input_buffer)?;
-        self.drain_input_into_ring()?;
-        Ok(self.input_ring.pop_front())
-    }
-
-    pub fn wait_input(&mut self) -> Result<Input> {
-        let input = loop {
-            // This loop is for good measure. If for some reason
-            // read_waiting returns without a new input becoming
-            // available, this will ensure we don't return without
-            // an input.
-            if let Some(input) = self.input_ring.pop_front() {
-                break input;
-            }
-            self.low_level.read_waiting(&mut self.input_buffer)?;
-            self.drain_input_into_ring()?;
-        };
-        Ok(input)
-    }
-
-    pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
-        if let Some(input) = self.input_ring.pop_front() {
-            return Ok(Some(input));
-        }
-        self.low_level.read_timeout(&mut self.input_buffer, timeout)?;
-        self.drain_input_into_ring()?;
-        Ok(self.input_ring.pop_front())
     }
 
     fn drain_input_into_ring(&mut self) -> Result<()> {

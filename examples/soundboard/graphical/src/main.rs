@@ -1,8 +1,9 @@
-use general_audio_native::NativeAudioPlayer;
 use chargrid_graphical::*;
+use general_audio_native::NativeAudioPlayer;
 use soundboard_app::app;
 
 fn main() {
+    env_logger::init();
     let player = NativeAudioPlayer::new_default_device();
     let context = Context::new(ContextDescriptor {
         font_bytes: FontBytes {

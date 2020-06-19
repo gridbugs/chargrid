@@ -1,14 +1,16 @@
 mod input;
 
-use grid_2d::Coord;
-pub use grid_2d::Size;
-use js_sys::Function;
 use chargrid_app::App;
+#[cfg(feature = "gamepad")]
+use chargrid_gamepad::GamepadContext;
 pub use chargrid_input;
 pub use chargrid_input::{Input, MouseInput};
 use chargrid_input::{MouseButton, ScrollDirection};
 pub use chargrid_render;
 use chargrid_render::{Buffer, Rgb24, ViewContext};
+use grid_2d::Coord;
+pub use grid_2d::Size;
+use js_sys::Function;
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use std::time::Duration;
@@ -66,6 +68,8 @@ pub struct Context {
     element_grid: grid_2d::Grid<ElementCell>,
     buffer: Buffer,
     container_element: Element,
+    #[cfg(feature = "gamepad")]
+    gamepad: GamepadContext,
 }
 
 impl Context {
@@ -121,6 +125,8 @@ impl Context {
             element_grid,
             buffer,
             container_element: document.get_element_by_id(container).unwrap(),
+            #[cfg(feature = "gamepad")]
+            gamepad: GamepadContext::new(),
         }
     }
 
@@ -260,7 +266,7 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
             let mut app = app.borrow_mut();
-            let context = context.borrow_mut();
+            let mut context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
@@ -285,6 +291,10 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
                     button: Some(MouseButton::Middle),
                     coord,
                 }));
+            }
+            #[cfg(feature = "gamepad")]
+            for input in context.gamepad.drain_input() {
+                app.on_input(chargrid_input::Input::Gamepad(input));
             }
         }) as Box<dyn FnMut(JsValue)>)
     };

@@ -1,5 +1,7 @@
 use crate::{input, ContextDescriptor, Dimensions, FontBytes, NumPixels};
 use chargrid_app::{App, ControlFlow};
+#[cfg(feature = "gamepad")]
+use chargrid_gamepad::GamepadContext;
 use chargrid_render::ViewContext;
 use grid_2d::{Coord, Grid, Size};
 use std::sync::Arc;
@@ -449,6 +451,8 @@ pub struct Context {
     size_context: SizeContext,
     input_context: InputContext,
     text_buffer: String,
+    #[cfg(feature = "gamepad")]
+    gamepad: GamepadContext,
 }
 
 pub struct WindowHandle {
@@ -517,6 +521,8 @@ impl Context {
             size_context,
             input_context: Default::default(),
             text_buffer: String::new(),
+            #[cfg(feature = "gamepad")]
+            gamepad: GamepadContext::new(),
         })
     }
     pub fn window_handle(&self) -> WindowHandle {
@@ -535,6 +541,8 @@ impl Context {
             size_context,
             mut input_context,
             mut text_buffer,
+            #[cfg(feature = "gamepad")]
+            mut gamepad,
         } = self;
         #[allow(unused_variables)]
         let window = window; // dropping the window will close it, so keep this in scope
@@ -549,6 +557,13 @@ impl Context {
             } else {
                 *control_flow = winit::event_loop::ControlFlow::Poll;
             };
+            #[cfg(feature = "gamepad")]
+            for input in gamepad.drain_input() {
+                if let Some(ControlFlow::Exit) = app.on_input(chargrid_input::Input::Gamepad(input)) {
+                    exited = true;
+                    return;
+                }
+            }
             match event {
                 winit::event::Event::WindowEvent {
                     event: window_event, ..

@@ -191,6 +191,16 @@ impl<T: Clone> MenuInstance<T> {
                     return Some(self.selected().clone());
                 }
             }
+            #[cfg(feature = "gamepad")]
+            Input::Gamepad(gamepad_input) => {
+                use chargrid_input::GamepadInput;
+                match gamepad_input {
+                    GamepadInput::DPadDown => self.down(),
+                    GamepadInput::DPadUp => self.up(),
+                    GamepadInput::Start | GamepadInput::South => return Some(self.selected().clone()),
+                    _ => (),
+                }
+            }
             _ => (),
         }
         None
@@ -202,6 +212,8 @@ impl<T: Clone> MenuInstance<T> {
     {
         match input {
             Input::Keyboard(keys::ESCAPE) => Some(Err(Escape)),
+            #[cfg(feature = "gamepad")]
+            Input::Gamepad(chargrid_input::GamepadInput::East) => Some(Err(Escape)),
             other => self.choose(view, other).map(Ok),
         }
     }

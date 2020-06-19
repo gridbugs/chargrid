@@ -1,7 +1,6 @@
 use crate::error::Result;
 use chargrid_input::*;
 use chargrid_render::*;
-use std::time::Duration;
 
 mod ansi_colour_codes;
 mod ansi_terminal;
@@ -136,17 +135,5 @@ impl Terminal {
 
     pub fn drain_input(&mut self) -> Result<DrainInput> {
         self.ansi.drain_input()
-    }
-
-    pub fn poll_input(&mut self) -> Result<Option<Input>> {
-        self.ansi.poll_input()
-    }
-
-    pub fn wait_input(&mut self) -> Result<Input> {
-        self.ansi.wait_input()
-    }
-
-    pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
-        self.ansi.wait_input_timeout(timeout)
     }
 }

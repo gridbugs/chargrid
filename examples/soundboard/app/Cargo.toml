@@ -5,5 +5,5 @@ authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
 [dependencies]
-chargrid = { path = "../../../chargrid" }
+chargrid = { path = "../../../chargrid", features = ["gamepad"] }
 general_audio = "0.1"

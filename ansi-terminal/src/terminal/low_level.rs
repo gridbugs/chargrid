@@ -1,13 +1,10 @@
 use crate::error::{Error, Result};
-use libc;
 use chargrid_render::*;
+use libc;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
-use std::mem;
 use std::mem::MaybeUninit;
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::ptr;
-use std::time::Duration;
 
 struct WinSize {
     ws_row: libc::c_ushort,
@@ -87,62 +84,6 @@ impl LowLevel {
 
     pub fn read_polling(&mut self, buf: &mut Vec<u8>) -> Result<()> {
         self.tty_file.read_to_end(buf)?;
-        Ok(())
-    }
-
-    pub fn read_timeout(&mut self, buf: &mut Vec<u8>, timeout: Duration) -> Result<()> {
-        let timeout = libc::timespec {
-            tv_sec: timeout.as_secs() as libc::time_t,
-            tv_nsec: timeout.subsec_nanos() as libc::c_long,
-        };
-        let mut rfds: libc::fd_set = unsafe { mem::zeroed() };
-        unsafe {
-            libc::FD_SET(self.tty_fd, &mut rfds);
-        }
-        let res = unsafe {
-            libc::pselect(
-                self.tty_fd + 1,
-                &mut rfds,
-                ptr::null_mut(),
-                ptr::null_mut(),
-                &timeout,
-                ptr::null_mut(),
-            )
-        };
-        let num_events = if res == -1 {
-            return Err(Error::last_os_error());
-        } else {
-            res
-        };
-        if num_events > 0 {
-            self.read_polling(buf)?;
-        }
-        Ok(())
-    }
-
-    pub fn read_waiting(&mut self, buf: &mut Vec<u8>) -> Result<()> {
-        let mut rfds: libc::fd_set = unsafe { mem::zeroed() };
-        unsafe {
-            libc::FD_SET(self.tty_fd, &mut rfds);
-        }
-        let res = unsafe {
-            libc::pselect(
-                self.tty_fd + 1,
-                &mut rfds,
-                ptr::null_mut(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-            )
-        };
-        let num_events = if res == -1 {
-            return Err(Error::last_os_error());
-        } else {
-            res
-        };
-        if num_events > 0 {
-            self.read_polling(buf)?;
-        }
         Ok(())
     }
 

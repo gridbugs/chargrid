@@ -1,7 +1,8 @@
 use crate::error::*;
 use crate::terminal::*;
 use chargrid_app::{App, ControlFlow};
-use chargrid_input::*;
+#[cfg(feature = "gamepad")]
+use chargrid_gamepad::GamepadContext;
 use chargrid_render::*;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -12,6 +13,8 @@ const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 pub struct Context {
     terminal: Terminal,
     buffer: Buffer,
+    #[cfg(feature = "gamepad")]
+    gamepad: GamepadContext,
 }
 
 impl Context {
@@ -20,10 +23,15 @@ impl Context {
         Terminal::new().and_then(Self::from_terminal)
     }
 
-    pub fn from_terminal(mut terminal: Terminal) -> Result<Self> {
+    fn from_terminal(mut terminal: Terminal) -> Result<Self> {
         let size = terminal.resize_if_necessary()?;
         let buffer = Buffer::new(size);
-        Ok(Self { terminal, buffer })
+        Ok(Self {
+            terminal,
+            buffer,
+            #[cfg(feature = "gamepad")]
+            gamepad: GamepadContext::new(),
+        })
     }
 
     fn resize_if_necessary(&mut self) -> Result<()> {
@@ -34,27 +42,8 @@ impl Context {
         Ok(())
     }
 
-    pub fn drain_input(&mut self) -> Result<DrainInput> {
+    fn drain_input(&mut self) -> Result<DrainInput> {
         self.terminal.drain_input()
-    }
-
-    /// Gets an input event from the terminal if one is present,
-    /// returning immediately.
-    pub fn poll_input(&mut self) -> Result<Option<Input>> {
-        self.terminal.poll_input()
-    }
-
-    /// Gets an input event from the terminal, waiting until
-    /// an event occurs.
-    pub fn wait_input(&mut self) -> Result<Input> {
-        self.terminal.wait_input()
-    }
-
-    /// Gets an input event from the terminal, waiting until
-    /// either an event occurs, or the timeout expires, in which
-    /// case this method returns `None`.
-    pub fn wait_input_timeout(&mut self, timeout: Duration) -> Result<Option<Input>> {
-        self.terminal.wait_input_timeout(timeout)
     }
 
     pub fn run_app<A, E>(mut self, mut app: A, col_encode: E)
@@ -67,6 +56,12 @@ impl Context {
             let frame_start = Instant::now();
             for input in self.drain_input().unwrap() {
                 if let Some(ControlFlow::Exit) = app.on_input(input) {
+                    return;
+                }
+            }
+            #[cfg(feature = "gamepad")]
+            for input in self.gamepad.drain_input() {
+                if let Some(ControlFlow::Exit) = app.on_input(chargrid_input::Input::Gamepad(input)) {
                     return;
                 }
             }
