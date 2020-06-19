@@ -153,6 +153,9 @@ pub enum MouseInput {
 
 #[cfg(feature = "gamepad")]
 mod gamepad {
+    #[cfg(feature = "serialize")]
+    use serde::{Deserialize, Serialize};
+
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
     pub enum GamepadInput {
