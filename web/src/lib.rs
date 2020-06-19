@@ -266,7 +266,10 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
             let mut app = app.borrow_mut();
+            #[cfg(feature = "gamepad")]
             let mut context = context.borrow_mut();
+            #[cfg(not(feature = "gamepad"))]
+            let context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
             let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
