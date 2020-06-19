@@ -13,7 +13,7 @@ matrix:
   - rust: nightly
 dist: trusty
 before_script:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install libasound2-dev; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install libasound2-dev libudev-dev; fi
   - nvm install v12
   - nvm use v12
   - cargo install wasm-bindgen-cli
