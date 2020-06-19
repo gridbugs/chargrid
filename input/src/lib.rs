@@ -151,12 +151,37 @@ pub enum MouseInput {
     },
 }
 
+#[cfg(feature = "gamepad")]
+mod gamepad {
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+    pub enum GamepadInput {
+        DPadUp,
+        DPadRight,
+        DPadDown,
+        DPadLeft,
+        North,
+        East,
+        South,
+        West,
+        Start,
+        Select,
+        LeftBumper,
+        RightBumper,
+    }
+}
+
+#[cfg(feature = "gamepad")]
+pub use gamepad::GamepadInput;
+
 /// An input event
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum Input {
     Keyboard(KeyboardInput),
     Mouse(MouseInput),
+    #[cfg(feature = "gamepad")]
+    Gamepad(GamepadInput),
 }
 
 impl Input {
@@ -164,6 +189,8 @@ impl Input {
         match self {
             Input::Keyboard(_) => true,
             Input::Mouse(_) => false,
+            #[cfg(feature = "gamepad")]
+            Input::Gamepad(_) => false,
         }
     }
 }

@@ -10,6 +10,7 @@ members = [
     "graphical",
     "ansi-terminal",
     "web",
+    "gamepad",
     "input",
     "event-routine",
     "test-grid",

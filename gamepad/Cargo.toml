@@ -1,0 +1,16 @@
+[package]
+name = "chargrid_gamepad"
+description = "Gamepad handler for chargrid frontends"
+version = "0.1.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/stevebob/chargrid.git"
+repository = "https://github.com/stevebob/chargrid.git"
+documentation = "https://docs.rs/chargrid_gamepad"
+edition = "2018"
+
+[dependencies]
+chargrid_input = { path = "../input", version = "0.1", features = ["gamepad"] }
+gilrs = "0.7"
+log = "0.4"

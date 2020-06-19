@@ -12,6 +12,7 @@ edition = "2018"
 
 [features]
 serialize = ["serde", "coord_2d/serialize"]
+gamepad = []
 
 [dependencies]
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
