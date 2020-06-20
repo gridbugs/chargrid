@@ -1,24 +1,24 @@
-use chargrid_input::GamepadInput;
+use chargrid_input::{GamepadButton, GamepadInput};
 use gilrs::{Button, EventType, Gilrs};
 
-fn event_type_to_gamepad_input(event_type: EventType) -> Option<GamepadInput> {
+fn event_type_to_gamepad_button(event_type: EventType) -> Option<GamepadButton> {
     if let EventType::ButtonPressed(button, _code) = event_type {
-        let gamepad_input = match button {
-            Button::DPadUp => GamepadInput::DPadUp,
-            Button::DPadRight => GamepadInput::DPadRight,
-            Button::DPadDown => GamepadInput::DPadDown,
-            Button::DPadLeft => GamepadInput::DPadLeft,
-            Button::North => GamepadInput::North,
-            Button::East => GamepadInput::East,
-            Button::South => GamepadInput::South,
-            Button::West => GamepadInput::West,
-            Button::Start => GamepadInput::Start,
-            Button::Select => GamepadInput::Select,
-            Button::LeftTrigger => GamepadInput::LeftBumper,
-            Button::RightTrigger => GamepadInput::RightBumper,
+        let gamepad_button = match button {
+            Button::DPadUp => GamepadButton::DPadUp,
+            Button::DPadRight => GamepadButton::DPadRight,
+            Button::DPadDown => GamepadButton::DPadDown,
+            Button::DPadLeft => GamepadButton::DPadLeft,
+            Button::North => GamepadButton::North,
+            Button::East => GamepadButton::East,
+            Button::South => GamepadButton::South,
+            Button::West => GamepadButton::West,
+            Button::Start => GamepadButton::Start,
+            Button::Select => GamepadButton::Select,
+            Button::LeftTrigger => GamepadButton::LeftBumper,
+            Button::RightTrigger => GamepadButton::RightBumper,
             _ => return None,
         };
-        Some(gamepad_input)
+        Some(gamepad_button)
     } else {
         None
     }
@@ -59,8 +59,10 @@ impl<'a> Iterator for GamepadDrainInput<'a> {
         if let Some(ref mut gilrs) = self.gilrs {
             loop {
                 if let Some(event) = gilrs.next_event() {
-                    if let Some(gamepad_input) = event_type_to_gamepad_input(event.event) {
-                        return Some(gamepad_input);
+                    if let Some(button) = event_type_to_gamepad_button(event.event) {
+                        let id_usize: usize = event.id.into();
+                        let id = id_usize as u64;
+                        return Some(GamepadInput { button, id });
                     }
                 } else {
                     return None;

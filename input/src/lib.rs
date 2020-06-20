@@ -158,7 +158,7 @@ mod gamepad {
 
     #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
     #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-    pub enum GamepadInput {
+    pub enum GamepadButton {
         DPadUp,
         DPadRight,
         DPadDown,
@@ -172,10 +172,17 @@ mod gamepad {
         LeftBumper,
         RightBumper,
     }
+
+    #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+    pub struct GamepadInput {
+        pub button: GamepadButton,
+        pub id: u64,
+    }
 }
 
 #[cfg(feature = "gamepad")]
-pub use gamepad::GamepadInput;
+pub use gamepad::{GamepadButton, GamepadInput};
 
 /// An input event
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
