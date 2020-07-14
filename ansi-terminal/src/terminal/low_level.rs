@@ -68,7 +68,7 @@ impl LowLevel {
             _ws_ypixel: 0,
         };
         unsafe {
-            libc::ioctl(self.tty_fd, libc::TIOCGWINSZ, &mut win_size);
+            libc::ioctl(self.tty_fd, libc::TIOCGWINSZ.into(), &mut win_size);
         }
 
         if win_size.ws_row == 0 || win_size.ws_col == 0 {
