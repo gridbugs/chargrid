@@ -18,5 +18,5 @@ gamepad = ["chargrid_input/gamepad"]
 chargrid_render = { path = "../render", version = "0.1" }
 chargrid_input = { path = "../input", version = "0.1" }
 chargrid_text = { path = "../text", version = "0.1" }
-chargrid_event_routine = { path = "../event-routine", version = "0.1" }
+chargrid_event_routine = { path = "../event-routine", version = "0.2" }
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
