@@ -582,6 +582,7 @@ pub trait Decorate {
     type Data;
 
     fn view<E, F, C>(
+        &self,
         data: &Self::Data,
         event_routine_view: EventRoutineView<E>,
         context: ViewContext<C>,
@@ -624,7 +625,7 @@ where
             event_routine: &self.t,
             view,
         };
-        D::view(data, event_routine_view, context, frame)
+        self.d.view(data, event_routine_view, context, frame)
     }
 }
 

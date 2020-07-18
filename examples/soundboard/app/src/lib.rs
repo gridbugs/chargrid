@@ -1,7 +1,7 @@
+use chargrid::*;
 use common_event::*;
 use event_routine::*;
 use general_audio::{AudioHandle, AudioPlayer};
-use chargrid::*;
 use render::*;
 use std::marker::PhantomData;
 
@@ -114,6 +114,7 @@ impl<P: AudioPlayer> Decorate for MenuDecorator<P> {
     type View = AppView;
     type Data = AppData<P>;
     fn view<E, F, C>(
+        &self,
         data: &Self::Data,
         mut event_routine_view: EventRoutineView<E>,
         context: ViewContext<C>,
