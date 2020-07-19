@@ -97,3 +97,57 @@ where
         self.t.view(data, view, context, frame)
     }
 }
+
+pub struct Delay<D, V> {
+    remaining: Duration,
+    data: PhantomData<D>,
+    view: PhantomData<V>,
+}
+
+impl<D, V> Delay<D, V> {
+    pub fn new(remaining: Duration) -> Self {
+        Self {
+            remaining,
+            data: PhantomData,
+            view: PhantomData,
+        }
+    }
+}
+
+impl<D, V> EventRoutine for Delay<D, V> {
+    type Return = ();
+    type Data = D;
+    type View = V;
+    type Event = CommonEvent;
+
+    fn handle<EP>(self, _data: &mut Self::Data, _view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        event_or_peek.with(
+            self,
+            |s, event| match event {
+                CommonEvent::Input(_) => Handled::Continue(s),
+                CommonEvent::Frame(duration) => {
+                    if let Some(remaining) = s.remaining.checked_sub(duration) {
+                        Handled::Continue(Self {
+                            remaining,
+                            data: PhantomData,
+                            view: PhantomData,
+                        })
+                    } else {
+                        Handled::Return(())
+                    }
+                }
+            },
+            Handled::Continue,
+        )
+    }
+
+    fn view<G, C>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<C>, _frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+    }
+}
