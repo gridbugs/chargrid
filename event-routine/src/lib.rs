@@ -669,6 +669,66 @@ where
     }
 }
 
+pub struct Unfold<T, U, F, R> {
+    t: PhantomData<T>,
+    u: PhantomData<U>,
+    f: F,
+    routine: R,
+}
+
+impl<T, U, F, R> Unfold<T, U, F, R>
+where
+    F: FnMut(T) -> R,
+    R: EventRoutine<Return = Handled<U, T>>,
+{
+    pub fn new(acc: T, mut f: F) -> Self {
+        let routine = f(acc);
+        Self {
+            f,
+            routine,
+            t: PhantomData,
+            u: PhantomData,
+        }
+    }
+}
+
+impl<T, U, F, R> EventRoutine for Unfold<T, U, F, R>
+where
+    F: FnMut(T) -> R,
+    R: EventRoutine<Return = Handled<U, T>>,
+{
+    type Return = U;
+    type Data = R::Data;
+    type View = R::View;
+    type Event = R::Event;
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        let Self { t, u, mut f, routine } = self;
+        match routine.handle(data, view, event_or_peek) {
+            Handled::Continue(routine) => Handled::Continue(Self { t, u, f, routine }),
+            Handled::Return(maybe_acc) => match maybe_acc {
+                Handled::Continue(acc) => Handled::Continue(Self {
+                    t,
+                    u,
+                    routine: f(acc),
+                    f,
+                }),
+                Handled::Return(ret) => Handled::Return(ret),
+            },
+        }
+    }
+
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+        self.routine.view(data, view, context, frame)
+    }
+}
+
 #[macro_export]
 macro_rules! make_either {
     ($type:ident = $first:ident | $($rest:ident)|*) => {
