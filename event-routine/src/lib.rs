@@ -701,6 +701,7 @@ where
     type Data = R::Data;
     type View = R::View;
     type Event = R::Event;
+
     fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
@@ -708,7 +709,7 @@ where
         let Self { t, u, mut f, routine } = self;
         match routine.handle(data, view, event_or_peek) {
             Handled::Continue(routine) => Handled::Continue(Self { t, u, f, routine }),
-            Handled::Return(maybe_acc) => match maybe_acc {
+            Handled::Return(handled) => match handled {
                 Handled::Continue(acc) => Handled::Continue(Self {
                     t,
                     u,
@@ -716,6 +717,59 @@ where
                     f,
                 }),
                 Handled::Return(ret) => Handled::Return(ret),
+            },
+        }
+    }
+
+    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
+    where
+        G: Frame,
+        C: ColModify,
+    {
+        self.routine.view(data, view, context, frame)
+    }
+}
+
+pub struct Loop<T, F, R> {
+    t: PhantomData<T>,
+    f: F,
+    routine: R,
+}
+impl<T, F, R> Loop<T, F, R>
+where
+    F: FnMut() -> R,
+    R: EventRoutine<Return = Option<T>>,
+{
+    pub fn new(mut f: F) -> Self {
+        let routine = f();
+        Self {
+            t: PhantomData,
+            f,
+            routine,
+        }
+    }
+}
+
+impl<T, F, R> EventRoutine for Loop<T, F, R>
+where
+    F: FnMut() -> R,
+    R: EventRoutine<Return = Option<T>>,
+{
+    type Return = T;
+    type Data = R::Data;
+    type View = R::View;
+    type Event = R::Event;
+
+    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    where
+        EP: EventOrPeek<Event = Self::Event>,
+    {
+        let Self { t, mut f, routine } = self;
+        match routine.handle(data, view, event_or_peek) {
+            Handled::Continue(routine) => Handled::Continue(Self { t, f, routine }),
+            Handled::Return(maybe_ret) => match maybe_ret {
+                None => Handled::Continue(Self { t, routine: f(), f }),
+                Some(ret) => Handled::Return(ret),
             },
         }
     }
