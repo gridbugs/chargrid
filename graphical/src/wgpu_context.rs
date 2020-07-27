@@ -159,7 +159,7 @@ impl WgpuContext {
             format: TEXTURE_FORMAT,
             width: physical_size.width,
             height: physical_size.height,
-            present_mode: wgpu::PresentMode::Mailbox,
+            present_mode: wgpu::PresentMode::Fifo,
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
         let vs_module = device.create_shader_module(&Self::u8_slice_to_u32_vec(include_bytes!("./shader.vert.spv")));
