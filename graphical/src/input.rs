@@ -69,9 +69,6 @@ fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<K
         VirtualKeyCode::Numpad8 => KeyboardInput::Char('8'),
         VirtualKeyCode::Numpad9 => KeyboardInput::Char('9'),
         VirtualKeyCode::Numpad0 => KeyboardInput::Char('0'),
-        VirtualKeyCode::Period => convert_char_shift!('.', '>', shift),
-        VirtualKeyCode::Comma => convert_char_shift!(',', '<', shift),
-        VirtualKeyCode::Slash => convert_char_shift!('/', '?', shift),
         VirtualKeyCode::Left => KeyboardInput::Left,
         VirtualKeyCode::Right => KeyboardInput::Right,
         VirtualKeyCode::Up => KeyboardInput::Up,
@@ -124,6 +121,13 @@ fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input
     convert_keycode_keyboard_input(code, keymod.shift()).map(Input::Keyboard)
 }
 
+fn convert_char(ch: char) -> Option<Event> {
+    match ch {
+        '>' | '.' | ',' | '<' | '/' | '?' => Some(Event::Input(Input::Keyboard(KeyboardInput::Char(ch)))),
+        _ => None,
+    }
+}
+
 pub fn convert_event(
     event: WindowEvent,
     cell_dimensions: Dimensions<f64>,
@@ -136,6 +140,7 @@ pub fn convert_event(
     match event {
         WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(chargrid_input::keys::ETX))),
         WindowEvent::Resized(physical_size) => Some(Event::Resize(physical_size.to_logical(scale_factor))),
+        WindowEvent::ReceivedCharacter(ch) => convert_char(ch),
         WindowEvent::KeyboardInput { input, .. } => {
             if let ElementState::Pressed = input.state {
                 if let Some(virtual_keycode) = input.virtual_keycode {
