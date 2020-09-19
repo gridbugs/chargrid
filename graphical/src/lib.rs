@@ -25,6 +25,7 @@ pub struct ContextDescriptor {
     pub font_source_dimensions: Dimensions<FontSourceScale>,
     pub underline_width: CellRatio,
     pub underline_top_offset: CellRatio,
+    pub resizable: bool,
 }
 
 pub use wgpu_context::*;

@@ -510,6 +510,7 @@ impl Context {
             font_source_dimensions,
             underline_width,
             underline_top_offset,
+            resizable,
         }: ContextDescriptor,
     ) -> Result<Self, ContextBuildError> {
         let event_loop = winit::event_loop::EventLoop::new();
@@ -520,6 +521,7 @@ impl Context {
                 .with_inner_size(logical_size)
                 .with_min_inner_size(logical_size)
                 .with_max_inner_size(logical_size)
+                .with_resizable(resizable)
         };
         let window = window_builder
             .build(&event_loop)
