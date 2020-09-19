@@ -29,6 +29,7 @@ fn main() -> io::Result<()> {
         },
         underline_width: 0.1,
         underline_top_offset: 0.8,
+        resizable: false,
     })
     .unwrap();
     context.run_app(App::new(text))
