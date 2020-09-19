@@ -1,7 +1,7 @@
-use line_2d::{Coord, LineSegment};
 use chargrid::app;
 use chargrid::input::*;
 use chargrid::render::*;
+use line_2d::{Coord, LineSegment};
 
 #[derive(Debug, Clone, Copy)]
 enum LineType {

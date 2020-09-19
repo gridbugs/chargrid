@@ -1,5 +1,5 @@
-use pager_app::App;
 use chargrid_web::{Context, Size};
+use pager_app::App;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]

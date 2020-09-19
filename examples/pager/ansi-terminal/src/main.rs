@@ -1,5 +1,5 @@
-use pager_app::App;
 use chargrid_ansi_terminal::{col_encode, Context};
+use pager_app::App;
 use std::io::{self, Read};
 
 fn main() -> io::Result<()> {

@@ -1,5 +1,5 @@
-use colour_grid_app::app;
 use chargrid_ansi_terminal::{col_encode, Context};
+use colour_grid_app::app;
 use simon::*;
 
 #[derive(Clone)]

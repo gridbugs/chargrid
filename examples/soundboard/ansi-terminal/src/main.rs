@@ -1,5 +1,5 @@
-use general_audio_native::NativeAudioPlayer;
 use chargrid_ansi_terminal::{col_encode, Context};
+use general_audio_native::NativeAudioPlayer;
 use soundboard_app::app;
 
 fn main() {
