@@ -1,11 +1,13 @@
 use crate::Dimensions;
 use chargrid_input::{
-    keys, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput, ScrollDirection,
+    keys, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput,
+    ScrollDirection,
 };
 use chargrid_render::Coord;
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::event::{
-    ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent,
+    ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta,
+    VirtualKeyCode, WindowEvent,
 };
 
 pub enum Event {
@@ -123,7 +125,9 @@ fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input
 
 fn convert_char(ch: char) -> Option<Event> {
     match ch {
-        '>' | '.' | ',' | '<' | '/' | '?' => Some(Event::Input(Input::Keyboard(KeyboardInput::Char(ch)))),
+        '>' | '.' | ',' | '<' | '/' | '?' => {
+            Some(Event::Input(Input::Keyboard(KeyboardInput::Char(ch))))
+        }
         _ => None,
     }
 }
@@ -138,8 +142,12 @@ pub fn convert_event(
     modifier_state: ModifiersState,
 ) -> Option<Event> {
     match event {
-        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(chargrid_input::keys::ETX))),
-        WindowEvent::Resized(physical_size) => Some(Event::Resize(physical_size.to_logical(scale_factor))),
+        WindowEvent::CloseRequested => {
+            Some(Event::Input(Input::Keyboard(chargrid_input::keys::ETX)))
+        }
+        WindowEvent::Resized(physical_size) => {
+            Some(Event::Resize(physical_size.to_logical(scale_factor)))
+        }
         WindowEvent::ReceivedCharacter(ch) => convert_char(ch),
         WindowEvent::KeyboardInput { input, .. } => {
             if let ElementState::Pressed = input.state {
@@ -155,7 +163,8 @@ pub fn convert_event(
             position: physical_position,
             ..
         } => {
-            let LogicalPosition { x, y }: LogicalPosition<f64> = physical_position.to_logical(scale_factor);
+            let LogicalPosition { x, y }: LogicalPosition<f64> =
+                physical_position.to_logical(scale_factor);
             let x = ((x - top_left_position.width) / cell_dimensions.width) as i32;
             let y = ((y - top_left_position.height) / cell_dimensions.height) as i32;
             let coord = Coord::new(x, y);

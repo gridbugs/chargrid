@@ -44,7 +44,9 @@ impl AppData {
                 Input::Mouse(MouseInput::MouseRelease { .. }) => {
                     self.last_clicked_coord = None;
                 }
-                Input::Keyboard(keys::ETX) | Input::Keyboard(keys::ESCAPE) => return Some(app::ControlFlow::Exit),
+                Input::Keyboard(keys::ETX) | Input::Keyboard(keys::ESCAPE) => {
+                    return Some(app::ControlFlow::Exit)
+                }
                 _ => (),
             }
         }
@@ -52,7 +54,11 @@ impl AppData {
     }
 }
 
-fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(frame: &mut F, iter: I, context: ViewContext<C>) {
+fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(
+    frame: &mut F,
+    iter: I,
+    context: ViewContext<C>,
+) {
     for coord in iter {
         if !coord.is_valid(context.size) {
             break;
@@ -71,8 +77,15 @@ fn draw_line<F: Frame, C: ColModify, I: IntoIterator<Item = Coord>>(frame: &mut 
 }
 
 impl<'a> View<&'a AppData> for AppView {
-    fn view<F: Frame, C: ColModify>(&mut self, app: &'a AppData, context: ViewContext<C>, frame: &mut F) {
-        let context = context.compose_col_modify(ColModifyMap(|rgb24: Rgb24| rgb24.normalised_scalar_mul(128)));
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        app: &'a AppData,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
+        let context = context.compose_col_modify(ColModifyMap(|rgb24: Rgb24| {
+            rgb24.normalised_scalar_mul(128)
+        }));
         if let (Some(last_clicked_coord), Some(coord)) = (app.last_clicked_coord, app.coord) {
             if let Ok(line) = LineSegment::try_new(last_clicked_coord, coord) {
                 match app.line_type {

@@ -75,8 +75,14 @@ impl TermInfoCache {
         let mut bg_colours = Vec::with_capacity(256);
         for code in 0..=255 {
             let params = &[Param::Number(code)];
-            fg_colours.push(::std::str::from_utf8(&parm::expand(setfg.as_bytes(), params, &mut vars)?)?.to_string());
-            bg_colours.push(::std::str::from_utf8(&parm::expand(setbg.as_bytes(), params, &mut vars)?)?.to_string());
+            fg_colours.push(
+                ::std::str::from_utf8(&parm::expand(setfg.as_bytes(), params, &mut vars)?)?
+                    .to_string(),
+            );
+            bg_colours.push(
+                ::std::str::from_utf8(&parm::expand(setbg.as_bytes(), params, &mut vars)?)?
+                    .to_string(),
+            );
         }
         let escseq = |name: &'static str, input: Input| {
             term_info
@@ -116,7 +122,10 @@ impl TermInfoCache {
             escseq("kend", Input::Keyboard(KeyboardInput::End))?,
             escseq("kdch1", Input::Keyboard(KeyboardInput::Delete))?,
             raw_escseq("[MC", TerminalInput::MousePrefix(MousePrefix::Move(None))),
-            raw_escseq("[M ", TerminalInput::MousePrefix(MousePrefix::Press(MouseButton::Left))),
+            raw_escseq(
+                "[M ",
+                TerminalInput::MousePrefix(MousePrefix::Press(MouseButton::Left)),
+            ),
             raw_escseq(
                 "[M!",
                 TerminalInput::MousePrefix(MousePrefix::Press(MouseButton::Middle)),

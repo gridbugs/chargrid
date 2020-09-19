@@ -35,8 +35,12 @@ impl ElementCell {
     fn with_element(element: HtmlElement) -> Self {
         element.set_inner_html("&nbsp;");
         let element_style = element.style();
-        element_style.set_property("color", "rgb(255,255,255)").unwrap();
-        element_style.set_property("background-color", "rgb(0,0,0)").unwrap();
+        element_style
+            .set_property("color", "rgb(255,255,255)")
+            .unwrap();
+        element_style
+            .set_property("background-color", "rgb(0,0,0)")
+            .unwrap();
         Self {
             element,
             character: ' ',
@@ -113,11 +117,21 @@ impl Context {
         for y in 0..size.height() {
             for x in 0..size.width() {
                 container_node
-                    .append_child(&element_grid.get_checked(Coord::new(x as i32, y as i32)).element)
+                    .append_child(
+                        &element_grid
+                            .get_checked(Coord::new(x as i32, y as i32))
+                            .element,
+                    )
                     .unwrap();
             }
             container_node
-                .append_child(document.create_element("br").unwrap().dyn_ref::<HtmlElement>().unwrap())
+                .append_child(
+                    document
+                        .create_element("br")
+                        .unwrap()
+                        .dyn_ref::<HtmlElement>()
+                        .unwrap(),
+                )
                 .unwrap();
         }
         let buffer = Buffer::new(size);
@@ -144,7 +158,10 @@ impl Context {
             if element_cell.foreground_colour != chargrid_cell.foreground_colour {
                 element_cell.foreground_colour = chargrid_cell.foreground_colour;
                 element_style
-                    .set_property("color", &rgb24_to_web_colour(chargrid_cell.foreground_colour))
+                    .set_property(
+                        "color",
+                        &rgb24_to_web_colour(chargrid_cell.foreground_colour),
+                    )
                     .unwrap();
             }
             if element_cell.background_colour != chargrid_cell.background_colour {
@@ -159,7 +176,9 @@ impl Context {
             if element_cell.underline != chargrid_cell.underline {
                 element_cell.underline = chargrid_cell.underline;
                 if chargrid_cell.underline {
-                    element_style.set_property("text-decoration", "underline").unwrap();
+                    element_style
+                        .set_property("text-decoration", "underline")
+                        .unwrap();
                 } else {
                     element_style.remove_property("text-decoration").unwrap();
                 }
@@ -254,9 +273,10 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
         let app = app.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
             let keyboard_event = event.unchecked_ref::<KeyboardEvent>();
-            if let Some(input) =
-                input::from_js_event_key_press(keyboard_event.key_code() as u8, keyboard_event.shift_key())
-            {
+            if let Some(input) = input::from_js_event_key_press(
+                keyboard_event.key_code() as u8,
+                keyboard_event.shift_key(),
+            ) {
                 app.borrow_mut().on_input(input);
             }
         }) as Box<dyn FnMut(JsValue)>)
@@ -272,10 +292,14 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
             let context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
-            let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
+            let coord =
+                element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let buttons = mouse_event.buttons();
             if buttons::has_none(buttons) {
-                app.on_input(Input::Mouse(MouseInput::MouseMove { button: None, coord }));
+                app.on_input(Input::Mouse(MouseInput::MouseMove {
+                    button: None,
+                    coord,
+                }));
             }
             if buttons::has_left(buttons) {
                 app.on_input(Input::Mouse(MouseInput::MouseMove {
@@ -309,7 +333,8 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
             let context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
-            let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
+            let coord =
+                element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
             if let Some(button) = button::to_mouse_button(button) {
                 app.on_input(Input::Mouse(MouseInput::MousePress { button, coord }));
@@ -324,7 +349,8 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
             let context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
-            let coord = element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
+            let coord =
+                element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
             if let Some(button) = button::to_mouse_button(button) {
                 app.on_input(Input::Mouse(MouseInput::MouseRelease {
@@ -339,7 +365,8 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
         let mut app = app.borrow_mut();
         let element_display_info = context.element_display_info();
         let wheel_event = event.unchecked_ref::<WheelEvent>();
-        let coord = element_display_info.mouse_coord(wheel_event.client_x(), wheel_event.client_y());
+        let coord =
+            element_display_info.mouse_coord(wheel_event.client_x(), wheel_event.client_y());
         if wheel_event.delta_x() < 0. {
             app.on_input(Input::Mouse(MouseInput::MouseScroll {
                 direction: ScrollDirection::Left,

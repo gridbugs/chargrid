@@ -63,7 +63,10 @@ impl<C: ColModify> ViewContext<C> {
         }
     }
 
-    pub fn compose_col_modify<Inner: ColModify>(self, inner: Inner) -> ViewContext<ColModifyCompose<Inner, C>> {
+    pub fn compose_col_modify<Inner: ColModify>(
+        self,
+        inner: Inner,
+    ) -> ViewContext<ColModifyCompose<Inner, C>> {
         ViewContext {
             col_modify: inner.compose(self.col_modify),
             offset: self.offset,

@@ -35,9 +35,12 @@ impl Default for AppData {
     fn default() -> Self {
         Self {
             current: None,
-            main_menu: menu::MenuInstance::new(vec![MainMenuEntry::ChooseColour, MainMenuEntry::Quit])
-                .unwrap()
-                .into_choose_or_cancel(),
+            main_menu: menu::MenuInstance::new(vec![
+                MainMenuEntry::ChooseColour,
+                MainMenuEntry::Quit,
+            ])
+            .unwrap()
+            .into_choose_or_cancel(),
             colour_menu: menu::MenuInstance::new(vec![
                 ColourMenuEntry::Red,
                 ColourMenuEntry::Green,
@@ -109,9 +112,12 @@ fn selected_background(current: Option<render::Rgb24>) -> render::Rgb24 {
     }
 }
 
-fn colour_menu(
-) -> impl EventRoutine<Return = Result<ColourMenuEntry, menu::Cancel>, Data = AppData, View = AppView, Event = CommonEvent>
-{
+fn colour_menu() -> impl EventRoutine<
+    Return = Result<ColourMenuEntry, menu::Cancel>,
+    Data = AppData,
+    View = AppView,
+    Event = CommonEvent,
+> {
     SideEffectThen::new_with_view(|data: &mut AppData, _: &_| {
         let current = data.current;
         menu::DynamicStyleMenuInstanceRoutine::new(menu::MenuEntryRichStringFn::new(
@@ -146,9 +152,12 @@ fn colour_menu(
     })
 }
 
-fn main_menu(
-) -> impl EventRoutine<Return = Result<MainMenuEntry, menu::Cancel>, Data = AppData, View = AppView, Event = CommonEvent>
-{
+fn main_menu() -> impl EventRoutine<
+    Return = Result<MainMenuEntry, menu::Cancel>,
+    Data = AppData,
+    View = AppView,
+    Event = CommonEvent,
+> {
     SideEffectThen::new_with_view(|data: &mut AppData, _: &_| {
         let current = data.current;
         menu::DynamicStyleMenuInstanceRoutine::new(menu::MenuEntryRichStringFn::new(
@@ -175,18 +184,21 @@ fn main_menu(
     })
 }
 
-fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
+fn event_routine(
+) -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
     make_either!(Ei = A | B);
     Ei::A(main_menu()).repeat(|choice| match choice {
         Err(_) | Ok(MainMenuEntry::Quit) => Handled::Return(()),
-        Ok(MainMenuEntry::ChooseColour) => Handled::Continue(Ei::B(colour_menu().and_then(|choice| {
-            SideEffectThen::new_with_view(move |data: &mut AppData, _: &_| {
-                if let Ok(colour_choice) = choice {
-                    data.current = Some(colour_choice.to_rgb24());
-                }
-                main_menu()
-            })
-        }))),
+        Ok(MainMenuEntry::ChooseColour) => {
+            Handled::Continue(Ei::B(colour_menu().and_then(|choice| {
+                SideEffectThen::new_with_view(move |data: &mut AppData, _: &_| {
+                    if let Ok(colour_choice) = choice {
+                        data.current = Some(colour_choice.to_rgb24());
+                    }
+                    main_menu()
+                })
+            })))
+        }
     })
 }
 

@@ -106,12 +106,22 @@ pub trait EventRoutine: Sized {
     type View;
     type Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>;
 
-    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
-    where
+    fn view<F, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) where
         F: Frame,
         C: ColModify;
 
@@ -218,15 +228,25 @@ impl<T, D, V, E> EventRoutine for Value<T, D, V, E> {
     type View = V;
     type Event = E;
 
-    fn handle<EP>(self, _data: &mut Self::Data, _view: &Self::View, _event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        _data: &mut Self::Data,
+        _view: &Self::View,
+        _event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
         Handled::Return(self.0.field)
     }
 
-    fn view<F, C>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<C>, _frame: &mut F)
-    where
+    fn view<F, C>(
+        &self,
+        _data: &Self::Data,
+        _view: &mut Self::View,
+        _context: ViewContext<C>,
+        _frame: &mut F,
+    ) where
         F: Frame,
         C: ColModify,
     {
@@ -241,14 +261,18 @@ impl<F, D, V, E> SideEffect<F, D, V, E> {
     }
 }
 
-pub fn side_effect_with_view<F, D, V, E, T>(f: F) -> impl EventRoutine<Return = T, Data = D, View = V, Event = E>
+pub fn side_effect_with_view<F, D, V, E, T>(
+    f: F,
+) -> impl EventRoutine<Return = T, Data = D, View = V, Event = E>
 where
     F: FnOnce(&mut D, &V) -> T,
 {
     SideEffect::new_with_view(f)
 }
 
-pub fn side_effect<F, D, V, E, T>(f: F) -> impl EventRoutine<Return = T, Data = D, View = V, Event = E>
+pub fn side_effect<F, D, V, E, T>(
+    f: F,
+) -> impl EventRoutine<Return = T, Data = D, View = V, Event = E>
 where
     F: FnOnce(&mut D) -> T,
 {
@@ -264,15 +288,25 @@ where
     type View = V;
     type Event = E;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, _event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        _event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
         Handled::Return((self.0.field)(data, view))
     }
 
-    fn view<G, C>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<C>, _frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        _data: &Self::Data,
+        _view: &mut Self::View,
+        _context: ViewContext<C>,
+        _frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -325,7 +359,12 @@ where
     type View = V;
     type Event = E;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -339,8 +378,13 @@ where
         }
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -366,7 +410,12 @@ where
     type View = T::View;
     type Event = T::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -377,8 +426,13 @@ where
         }
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -404,7 +458,12 @@ where
     type View = T::View;
     type Event = T::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -421,8 +480,13 @@ where
         }
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -446,7 +510,12 @@ where
     type View = T::View;
     type Event = T::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -463,8 +532,13 @@ where
         }
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -507,7 +581,12 @@ where
     type View = S::ViewInput;
     type Event = T::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -516,13 +595,22 @@ where
             .map_continue(|t| Self { t, selector })
     }
 
-    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
-    where
+    fn view<F, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) where
         F: Frame,
         C: ColModify,
     {
-        self.t
-            .view(self.selector.data(data), self.selector.view_mut(view), context, frame)
+        self.t.view(
+            self.selector.data(data),
+            self.selector.view_mut(view),
+            context,
+            frame,
+        )
     }
 }
 
@@ -540,7 +628,12 @@ where
     type View = T::View;
     type Event = T::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -554,8 +647,13 @@ where
         }
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -572,7 +670,12 @@ impl<'e, 'v, 'd, E> View<&'d E::Data> for EventRoutineView<'e, 'v, E>
 where
     E: EventRoutine,
 {
-    fn view<F: Frame, C: ColModify>(&mut self, data: &'d E::Data, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        data: &'d E::Data,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
         self.event_routine.view(data, self.view, context, frame)
     }
 }
@@ -608,16 +711,27 @@ where
     type View = T::View;
     type Event = T::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
         let Self { t, d } = self;
-        t.handle(data, view, event_or_peek).map_continue(|t| Self { t, d })
+        t.handle(data, view, event_or_peek)
+            .map_continue(|t| Self { t, d })
     }
 
-    fn view<F, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
-    where
+    fn view<F, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) where
         F: Frame,
         C: ColModify,
     {
@@ -644,24 +758,36 @@ where
     type View = T::View;
     type Event = T::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
         let on_peek = |(s, data)| {
             let Self { t, f } = s;
-            t.handle(data, view, Peek::new()).map_continue(|t| Self { t, f })
+            t.handle(data, view, Peek::new())
+                .map_continue(|t| Self { t, f })
         };
         let on_event = |(s, mut data), event| {
             let Self { t, mut f } = s;
             (f)(&mut data, &event);
-            t.handle(data, view, Event::new(event)).map_continue(|t| Self { t, f })
+            t.handle(data, view, Event::new(event))
+                .map_continue(|t| Self { t, f })
         };
         event_or_peek.with((self, data), on_event, on_peek)
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -702,11 +828,21 @@ where
     type View = R::View;
     type Event = R::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
-        let Self { t, u, mut f, routine } = self;
+        let Self {
+            t,
+            u,
+            mut f,
+            routine,
+        } = self;
         match routine.handle(data, view, event_or_peek) {
             Handled::Continue(routine) => Handled::Continue(Self { t, u, f, routine }),
             Handled::Return(handled) => match handled {
@@ -721,8 +857,13 @@ where
         }
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -760,7 +901,12 @@ where
     type View = R::View;
     type Event = R::Event;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -774,8 +920,13 @@ where
         }
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {

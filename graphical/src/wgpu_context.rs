@@ -171,23 +171,25 @@ impl WgpuContext {
             present_mode: wgpu::PresentMode::Fifo,
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
-        let vs_module = device.create_shader_module(Self::spirv_slice_to_shader_module_source(include_bytes!(
-            "./shader.vert.spv"
-        )));
-        let fs_module = device.create_shader_module(Self::spirv_slice_to_shader_module_source(include_bytes!(
-            "./shader.frag.spv"
-        )));
+        let vs_module = device.create_shader_module(Self::spirv_slice_to_shader_module_source(
+            include_bytes!("./shader.vert.spv"),
+        ));
+        let fs_module = device.create_shader_module(Self::spirv_slice_to_shader_module_source(
+            include_bytes!("./shader.frag.spv"),
+        ));
         let background_cell_instance_buffer = populate_and_finish_buffer(
             device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
-                size: num_background_cell_instances as u64 * std::mem::size_of::<BackgroundCellInstance>() as u64,
+                size: num_background_cell_instances as u64
+                    * std::mem::size_of::<BackgroundCellInstance>() as u64,
                 usage: wgpu::BufferUsage::VERTEX,
                 mapped_at_creation: true,
             }),
             background_cell_instance_data.raw(),
         );
         let global_uniforms_size = mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress;
-        let global_uniforms = size_context.global_uniforms(dimensions_from_logical_size(window_size));
+        let global_uniforms =
+            size_context.global_uniforms(dimensions_from_logical_size(window_size));
         let global_uniforms_buffer = populate_and_finish_buffer(
             device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
@@ -308,9 +310,10 @@ impl WgpuContext {
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
         });
-        let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
-            .texture_filter_method(wgpu::FilterMode::Nearest)
-            .build(&mut device, TEXTURE_FORMAT);
+        let glyph_brush =
+            wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
+                .texture_filter_method(wgpu::FilterMode::Nearest)
+                .build(&mut device, TEXTURE_FORMAT);
         let modifier_state = winit::event::ModifiersState::default();
         Ok(Self {
             device,
@@ -343,7 +346,8 @@ impl WgpuContext {
         self.background_cell_instance_buffer = populate_and_finish_buffer(
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
-                size: self.render_buffer.size().count() as u64 * std::mem::size_of::<BackgroundCellInstance>() as u64,
+                size: self.render_buffer.size().count() as u64
+                    * std::mem::size_of::<BackgroundCellInstance>() as u64,
                 usage: wgpu::BufferUsage::VERTEX,
                 mapped_at_creation: true,
             }),
@@ -353,7 +357,8 @@ impl WgpuContext {
 
     fn resize(&mut self, size_context: &SizeContext, window_size: winit::dpi::LogicalSize<f64>) {
         use std::mem;
-        let physical_size: winit::dpi::PhysicalSize<f64> = window_size.to_physical(self.scale_factor);
+        let physical_size: winit::dpi::PhysicalSize<f64> =
+            window_size.to_physical(self.scale_factor);
         self.window_size = window_size;
         self.sc_desc.width = physical_size.width.round() as u32;
         self.sc_desc.height = physical_size.height.round() as u32;
@@ -361,13 +366,15 @@ impl WgpuContext {
         self.background_cell_instance_buffer = populate_and_finish_buffer(
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
-                size: self.render_buffer.size().count() as u64 * std::mem::size_of::<BackgroundCellInstance>() as u64,
+                size: self.render_buffer.size().count() as u64
+                    * std::mem::size_of::<BackgroundCellInstance>() as u64,
                 usage: wgpu::BufferUsage::VERTEX,
                 mapped_at_creation: true,
             }),
             self.background_cell_instance_data.raw(),
         );
-        let global_uniforms = size_context.global_uniforms(dimensions_from_logical_size(window_size));
+        let global_uniforms =
+            size_context.global_uniforms(dimensions_from_logical_size(window_size));
         let temp_buffer = populate_and_finish_buffer(
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
@@ -426,7 +433,10 @@ impl SizeContext {
         let ratio_y = window_dimensions.height / self.native_window_dimensions.height;
         ratio_x.min(ratio_y)
     }
-    fn pixel_offset_to_centre_native_window(&self, window_dimensions: Dimensions<f64>) -> Dimensions<f64> {
+    fn pixel_offset_to_centre_native_window(
+        &self,
+        window_dimensions: Dimensions<f64>,
+    ) -> Dimensions<f64> {
         let native_ratio = self.native_ratio(window_dimensions);
         let scaled_native_window_dimensions = Dimensions {
             width: self.native_window_dimensions.width * native_ratio,
@@ -516,7 +526,8 @@ impl Context {
         let event_loop = winit::event_loop::EventLoop::new();
         let window_builder = winit::window::WindowBuilder::new().with_title(title);
         let window_builder = {
-            let logical_size = winit::dpi::LogicalSize::new(window_dimensions.width, window_dimensions.height);
+            let logical_size =
+                winit::dpi::LogicalSize::new(window_dimensions.width, window_dimensions.height);
             window_builder
                 .with_inner_size(logical_size)
                 .with_min_inner_size(logical_size)
@@ -589,14 +600,16 @@ impl Context {
             };
             #[cfg(feature = "gamepad")]
             for input in gamepad.drain_input() {
-                if let Some(ControlFlow::Exit) = app.on_input(chargrid_input::Input::Gamepad(input)) {
+                if let Some(ControlFlow::Exit) = app.on_input(chargrid_input::Input::Gamepad(input))
+                {
                     exited = true;
                     return;
                 }
             }
             match event {
                 winit::event::Event::WindowEvent {
-                    event: window_event, ..
+                    event: window_event,
+                    ..
                 } => match window_event {
                     winit::event::WindowEvent::ModifiersChanged(modifier_state) => {
                         wgpu_context.modifier_state = modifier_state;
@@ -605,7 +618,8 @@ impl Context {
                         if let Some(event) = input::convert_event(
                             other,
                             size_context.scaled_cell_dimensions(current_window_dimensions),
-                            size_context.pixel_offset_to_centre_native_window(current_window_dimensions),
+                            size_context
+                                .pixel_offset_to_centre_native_window(current_window_dimensions),
                             &mut input_context.last_mouse_coord,
                             &mut input_context.last_mouse_button,
                             wgpu_context.scale_factor,
@@ -629,38 +643,48 @@ impl Context {
                 winit::event::Event::MainEventsCleared => {
                     let frame_duration = frame_instant.elapsed();
                     frame_instant = Instant::now();
-                    let view_context = ViewContext::default_with_size(wgpu_context.render_buffer.size());
+                    let view_context =
+                        ViewContext::default_with_size(wgpu_context.render_buffer.size());
                     wgpu_context.render_buffer.clear();
-                    if let Some(ControlFlow::Exit) =
-                        app.on_frame(frame_duration, view_context, &mut wgpu_context.render_buffer)
-                    {
+                    if let Some(ControlFlow::Exit) = app.on_frame(
+                        frame_duration,
+                        view_context,
+                        &mut wgpu_context.render_buffer,
+                    ) {
                         exited = true;
                         return;
                     }
                     wgpu_context.render_background();
                     if let Ok(frame) = wgpu_context.swap_chain.get_current_frame() {
-                        let mut encoder = wgpu_context
-                            .device
-                            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+                        let mut encoder = wgpu_context.device.create_command_encoder(
+                            &wgpu::CommandEncoderDescriptor { label: None },
+                        );
                         {
-                            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                                    attachment: &frame.output.view,
-                                    resolve_target: None,
-                                    ops: wgpu::Operations {
-                                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                                        store: true,
-                                    },
-                                }],
-                                depth_stencil_attachment: None,
-                            });
+                            let mut render_pass =
+                                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                    color_attachments: &[
+                                        wgpu::RenderPassColorAttachmentDescriptor {
+                                            attachment: &frame.output.view,
+                                            resolve_target: None,
+                                            ops: wgpu::Operations {
+                                                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                                                store: true,
+                                            },
+                                        },
+                                    ],
+                                    depth_stencil_attachment: None,
+                                });
                             render_pass.set_pipeline(&wgpu_context.render_pipeline);
                             render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
-                            render_pass.set_vertex_buffer(0, wgpu_context.background_cell_instance_buffer.slice(..));
-                            render_pass.draw(0..6, 0..wgpu_context.render_buffer.size().count() as u32);
+                            render_pass.set_vertex_buffer(
+                                0,
+                                wgpu_context.background_cell_instance_buffer.slice(..),
+                            );
+                            render_pass
+                                .draw(0..6, 0..wgpu_context.render_buffer.size().count() as u32);
                         }
-                        let offset_to_centre =
-                            size_context.pixel_offset_to_centre_native_window(current_window_dimensions);
+                        let offset_to_centre = size_context
+                            .pixel_offset_to_centre_native_window(current_window_dimensions);
                         let font_ratio = size_context.native_ratio(current_window_dimensions);
                         let font_scale = ab_glyph::PxScale {
                             x: font_ratio as f32 * size_context.font_dimensions.width as f32,
@@ -672,13 +696,22 @@ impl Context {
                                 text_buffer.push(cell.character);
                             }
                         }
-                        let mut section = wgpu_glyph::Section::default()
-                            .with_screen_position((offset_to_centre.width as f32, offset_to_centre.height as f32));
+                        let mut section = wgpu_glyph::Section::default().with_screen_position((
+                            offset_to_centre.width as f32,
+                            offset_to_centre.height as f32,
+                        ));
                         let mut char_start = 0;
-                        for (ch, (coord, cell)) in text_buffer.chars().zip(wgpu_context.render_buffer.enumerate()) {
+                        for (ch, (coord, cell)) in text_buffer
+                            .chars()
+                            .zip(wgpu_context.render_buffer.enumerate())
+                        {
                             let char_end = char_start + ch.len_utf8();
                             let str_slice = &text_buffer[char_start..char_end];
-                            let font_id = if cell.bold { FONT_ID_BOLD } else { FONT_ID_NORMAL };
+                            let font_id = if cell.bold {
+                                FONT_ID_BOLD
+                            } else {
+                                FONT_ID_NORMAL
+                            };
                             section = section.add_text(
                                 wgpu_glyph::Text::new(str_slice)
                                     .with_scale(font_scale)
@@ -687,7 +720,8 @@ impl Context {
                             );
                             char_start = char_end;
                             if coord.x as u32 == wgpu_context.render_buffer.size().width() - 1 {
-                                section = section.add_text(wgpu_glyph::Text::new("\n").with_scale(font_scale));
+                                section = section
+                                    .add_text(wgpu_glyph::Text::new("\n").with_scale(font_scale));
                             }
                         }
                         wgpu_context.glyph_brush.queue(section);
@@ -705,7 +739,9 @@ impl Context {
                         staging_belt.finish();
                         wgpu_context.queue.submit(Some(encoder.finish()));
                         use futures::task::SpawnExt;
-                        local_spawner.spawn(staging_belt.recall()).expect("Recall staging belt");
+                        local_spawner
+                            .spawn(staging_belt.recall())
+                            .expect("Recall staging belt");
                         local_pool.run_until_stalled();
                     } else {
                         log::warn!("timeout when acquiring next swapchain texture");

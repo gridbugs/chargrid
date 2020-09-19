@@ -22,7 +22,9 @@ pub struct AnsiTerminal {
 }
 
 pub mod col_encode {
-    use crate::terminal::ansi_colour_codes::{nearest_ansi_code, nearest_mean_greyscale_code, nearest_palette_code};
+    use crate::terminal::ansi_colour_codes::{
+        nearest_ansi_code, nearest_mean_greyscale_code, nearest_palette_code,
+    };
     use crate::terminal::term_info_cache::TermInfoCache;
     use chargrid_render::Rgb24;
 
@@ -67,17 +69,35 @@ pub mod col_encode {
     #[derive(Clone, Copy)]
     pub struct NoColour;
     impl Trait for NoColour {
-        fn encode_foreground(_buffer: &mut String, _rgb24: Rgb24, _term_info_cache: &TermInfoCache) {}
-        fn encode_background(_buffer: &mut String, _rgb24: Rgb24, _term_info_cache: &TermInfoCache) {}
+        fn encode_foreground(
+            _buffer: &mut String,
+            _rgb24: Rgb24,
+            _term_info_cache: &TermInfoCache,
+        ) {
+        }
+        fn encode_background(
+            _buffer: &mut String,
+            _rgb24: Rgb24,
+            _term_info_cache: &TermInfoCache,
+        ) {
+        }
     }
 
     #[derive(Clone, Copy)]
     pub struct XtermTrueColour;
     impl Trait for XtermTrueColour {
-        fn encode_foreground(buffer: &mut String, Rgb24 { r, g, b }: Rgb24, _term_info_cache: &TermInfoCache) {
+        fn encode_foreground(
+            buffer: &mut String,
+            Rgb24 { r, g, b }: Rgb24,
+            _term_info_cache: &TermInfoCache,
+        ) {
             buffer.push_str(&format!("\x1B[38;2;{};{};{}m", r, g, b));
         }
-        fn encode_background(buffer: &mut String, Rgb24 { r, g, b }: Rgb24, _term_info_cache: &TermInfoCache) {
+        fn encode_background(
+            buffer: &mut String,
+            Rgb24 { r, g, b }: Rgb24,
+            _term_info_cache: &TermInfoCache,
+        ) {
             buffer.push_str(&format!("\x1B[48;2;{};{};{}m", r, g, b));
         }
     }
@@ -112,12 +132,14 @@ impl AnsiTerminal {
         }
         self.output_buffer.push_str(&self.ti_cache.hide_cursor);
         self.output_buffer.push_str(&self.ti_cache.clear);
-        self.output_buffer.push_str(&self.ti_cache.enable_mouse_reporting);
+        self.output_buffer
+            .push_str(&self.ti_cache.enable_mouse_reporting);
         self.flush_buffer().map_err(Into::into)
     }
 
     fn teardown(&mut self) -> Result<()> {
-        self.output_buffer.push_str(&self.ti_cache.disable_mouse_reporting);
+        self.output_buffer
+            .push_str(&self.ti_cache.disable_mouse_reporting);
         if let Some(exit_ca) = self.ti_cache.exit_ca.as_ref() {
             self.output_buffer.push_str(exit_ca);
         }
@@ -135,7 +157,11 @@ impl AnsiTerminal {
 
     pub fn set_cursor(&mut self, coord: Coord) -> Result<()> {
         let params = &[Param::Number(coord.y), Param::Number(coord.x)];
-        let command = parm::expand(self.ti_cache.set_cursor.as_bytes(), params, &mut self.ti_cache.vars)?;
+        let command = parm::expand(
+            self.ti_cache.set_cursor.as_bytes(),
+            params,
+            &mut self.ti_cache.vars,
+        )?;
         let command_slice = ::std::str::from_utf8(&command)?;
         self.output_buffer.push_str(command_slice);
         Ok(())
@@ -230,8 +256,12 @@ impl AnsiTerminal {
                             let y = rest[1] as i32 - COORD_OFFSET;
                             let coord = Coord::new(x, y);
                             let input = match prefix {
-                                MousePrefix::Move(button) => Input::Mouse(MouseInput::MouseMove { button, coord }),
-                                MousePrefix::Press(button) => Input::Mouse(MouseInput::MousePress { button, coord }),
+                                MousePrefix::Move(button) => {
+                                    Input::Mouse(MouseInput::MouseMove { button, coord })
+                                }
+                                MousePrefix::Press(button) => {
+                                    Input::Mouse(MouseInput::MousePress { button, coord })
+                                }
                                 MousePrefix::Release => Input::Mouse(MouseInput::MouseRelease {
                                     button: Err(NotSupported),
                                     coord,
@@ -277,6 +307,7 @@ impl AnsiTerminal {
 
 impl Drop for AnsiTerminal {
     fn drop(&mut self) {
-        self.teardown().expect("Failed to reset terminal to original settings");
+        self.teardown()
+            .expect("Failed to reset terminal to original settings");
     }
 }

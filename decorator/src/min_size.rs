@@ -17,7 +17,14 @@ where
         self.view.size(data, context).pairwise_max(self.size)
     }
 
-    fn view_size<F: Frame, C: ColModify>(&mut self, data: T, context: ViewContext<C>, frame: &mut F) -> Size {
-        self.view.view_size(data, context, frame).pairwise_max(self.size)
+    fn view_size<F: Frame, C: ColModify>(
+        &mut self,
+        data: T,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) -> Size {
+        self.view
+            .view_size(data, context, frame)
+            .pairwise_max(self.size)
     }
 }

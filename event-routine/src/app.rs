@@ -50,7 +50,11 @@ where
         C: ColModify,
     {
         self.event_routine = if let Some(event_routine) = self.event_routine.take() {
-            match event_routine.handle(&mut self.data, &self.view, Event::new(since_last_frame.into())) {
+            match event_routine.handle(
+                &mut self.data,
+                &self.view,
+                Event::new(since_last_frame.into()),
+            ) {
                 Handled::Continue(event_routine) => {
                     event_routine.view(&self.data, &mut self.view, view_context, frame);
                     Some(event_routine)

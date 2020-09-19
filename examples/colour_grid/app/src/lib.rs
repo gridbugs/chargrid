@@ -36,7 +36,12 @@ impl EventRoutine for PressAnyKey {
     type View = AppView;
     type Event = CommonEvent;
 
-    fn handle<EP>(self, _data: &mut Self::Data, _view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        _data: &mut Self::Data,
+        _view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -52,8 +57,13 @@ impl EventRoutine for PressAnyKey {
         })
     }
 
-    fn view<F, C>(&self, _data: &Self::Data, _view: &mut Self::View, context: ViewContext<C>, frame: &mut F)
-    where
+    fn view<F, C>(
+        &self,
+        _data: &Self::Data,
+        _view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) where
         F: Frame,
         C: ColModify,
     {
@@ -61,7 +71,8 @@ impl EventRoutine for PressAnyKey {
     }
 }
 
-fn event_routine() -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
+fn event_routine(
+) -> impl EventRoutine<Return = (), Data = AppData, View = AppView, Event = CommonEvent> {
     PressAnyKey
 }
 

@@ -70,7 +70,11 @@ impl MenuInstanceMouseTracker {
     }
     pub fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize> {
         let rel_coord = coord - self.last_offset;
-        if rel_coord.x < 0 || rel_coord.y < 0 || rel_coord.x >= self.last_size.x() as i32 || rel_coord.y >= len as i32 {
+        if rel_coord.x < 0
+            || rel_coord.y < 0
+            || rel_coord.x >= self.last_size.x() as i32
+            || rel_coord.y >= len as i32
+        {
             None
         } else {
             Some(rel_coord.y as usize)
@@ -152,7 +156,11 @@ impl<T: Clone> MenuInstance<T> {
     pub fn enumerate(&self) -> impl Iterator<Item = (usize, &T, Option<Selected>)> {
         let selected_index = self.selected_index;
         self.items.iter().enumerate().map(move |(i, item)| {
-            let selected = if i == selected_index { Some(Selected) } else { None };
+            let selected = if i == selected_index {
+                Some(Selected)
+            } else {
+                None
+            };
             (i, item, selected)
         })
     }
@@ -197,7 +205,9 @@ impl<T: Clone> MenuInstance<T> {
                 match gamepad_input.button {
                     GamepadButton::DPadDown => self.down(),
                     GamepadButton::DPadUp => self.up(),
-                    GamepadButton::Start | GamepadButton::South => return Some(self.selected().clone()),
+                    GamepadButton::Start | GamepadButton::South => {
+                        return Some(self.selected().clone())
+                    }
                     _ => (),
                 }
             }

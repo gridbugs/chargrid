@@ -60,7 +60,8 @@ where
         self.wrap.clear();
         for part in parts {
             for character in part.text.chars() {
-                self.wrap.process_character(character, part.style, context, frame);
+                self.wrap
+                    .process_character(character, part.style, context, frame);
             }
         }
         self.wrap.flush(context, frame);
@@ -99,11 +100,17 @@ impl<'a, W> View<RichTextPart<'a>> for RichStringView<W>
 where
     W: Wrap,
 {
-    fn view<F: Frame, C: ColModify>(&mut self, part: RichTextPart<'a>, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        part: RichTextPart<'a>,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
         self.wrap.clear();
         let part: RichTextPart = part.into();
         for character in part.text.chars() {
-            self.wrap.process_character(character, part.style, context, frame);
+            self.wrap
+                .process_character(character, part.style, context, frame);
         }
         self.wrap.flush(context, frame);
     }
@@ -119,7 +126,12 @@ impl RichStringViewSingleLine {
 }
 
 impl<'a> View<RichTextPart<'a>> for RichStringViewSingleLine {
-    fn view<F: Frame, C: ColModify>(&mut self, part: RichTextPart<'a>, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        part: RichTextPart<'a>,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
         RichStringView::new(wrap::None::new()).view(part, context, frame);
     }
 }

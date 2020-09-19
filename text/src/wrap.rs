@@ -164,8 +164,13 @@ impl Wrap for Word {
                     style,
                 };
                 self.current_word_buffer.push(view_cell);
-                assert!(self.cursor.x as u32 + self.current_word_buffer.len() as u32 <= context.size.width());
-                if self.cursor.x as u32 + self.current_word_buffer.len() as u32 == context.size.width() {
+                assert!(
+                    self.cursor.x as u32 + self.current_word_buffer.len() as u32
+                        <= context.size.width()
+                );
+                if self.cursor.x as u32 + self.current_word_buffer.len() as u32
+                    == context.size.width()
+                {
                     if self.cursor.x == 0 {
                         self.flush(context, frame);
                     } else {

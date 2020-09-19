@@ -128,8 +128,8 @@ impl<P: AudioPlayer> Decorate for MenuDecorator<P> {
     }
 }
 
-fn single<P: AudioPlayer>() -> impl EventRoutine<Return = Option<()>, Data = AppData<P>, View = AppView, Event = Input>
-{
+fn single<P: AudioPlayer>(
+) -> impl EventRoutine<Return = Option<()>, Data = AppData<P>, View = AppView, Event = Input> {
     make_either!(Ei = A | B);
     menu::StaticStyleMenuInstanceRoutine::new(menu::MenuEntryStringIntoStr::new())
         .select(SelectMenu::new())

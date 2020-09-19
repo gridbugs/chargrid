@@ -43,7 +43,12 @@ impl TestGrid {
 }
 
 impl Frame for TestGrid {
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
+    fn set_cell_absolute(
+        &mut self,
+        absolute_coord: Coord,
+        absolute_depth: i8,
+        absolute_cell: ViewCell,
+    ) {
         if let Some(cell) = self.grid.get_mut(absolute_coord) {
             if absolute_depth >= cell.depth {
                 cell.depth = absolute_depth;

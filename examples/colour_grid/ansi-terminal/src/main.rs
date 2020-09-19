@@ -24,7 +24,9 @@ impl ColEncodeChoice {
 }
 
 fn main() {
-    let col_encode_choice = ColEncodeChoice::arg().with_help_default().parse_env_or_exit();
+    let col_encode_choice = ColEncodeChoice::arg()
+        .with_help_default()
+        .parse_env_or_exit();
     let context = Context::new().unwrap();
     let app = app();
     use ColEncodeChoice as C;

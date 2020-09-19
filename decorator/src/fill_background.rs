@@ -17,7 +17,9 @@ where
                 frame.set_cell_relative(
                     coord,
                     0,
-                    ViewCell::new().with_background(self.rgb24).with_character(' '),
+                    ViewCell::new()
+                        .with_background(self.rgb24)
+                        .with_character(' '),
                     context,
                 );
             }

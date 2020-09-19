@@ -142,7 +142,12 @@ where
     F: Frame,
 {
     let span = style.span_offset() + size;
-    frame.set_cell_relative(Coord::new(0, 0), 0, style.view_cell(style.chars.top_left), context);
+    frame.set_cell_relative(
+        Coord::new(0, 0),
+        0,
+        style.view_cell(style.chars.top_left),
+        context,
+    );
     frame.set_cell_relative(
         Coord::new(span.x, 0),
         0,
@@ -164,7 +169,12 @@ where
     let title_offset = if let Some(title) = style.title.as_ref() {
         let before = Coord::new(1, 0);
         let after = Coord::new(title.len() as i32 + 2, 0);
-        frame.set_cell_relative(before, 0, style.view_cell(style.chars.before_title), context);
+        frame.set_cell_relative(
+            before,
+            0,
+            style.view_cell(style.chars.before_title),
+            context,
+        );
         frame.set_cell_relative(after, 0, style.view_cell(style.chars.after_title), context);
         for (index, ch) in title.chars().enumerate() {
             let coord = Coord::new(index as i32 + 2, 0);
@@ -183,19 +193,44 @@ where
         0
     };
     for i in (1 + title_offset)..span.x {
-        frame.set_cell_relative(Coord::new(i, 0), 0, style.view_cell(style.chars.top), context);
+        frame.set_cell_relative(
+            Coord::new(i, 0),
+            0,
+            style.view_cell(style.chars.top),
+            context,
+        );
     }
     for i in 1..span.x {
-        frame.set_cell_relative(Coord::new(i, span.y), 0, style.view_cell(style.chars.bottom), context);
+        frame.set_cell_relative(
+            Coord::new(i, span.y),
+            0,
+            style.view_cell(style.chars.bottom),
+            context,
+        );
     }
     for i in 1..span.y {
-        frame.set_cell_relative(Coord::new(0, i), 0, style.view_cell(style.chars.left), context);
-        frame.set_cell_relative(Coord::new(span.x, i), 0, style.view_cell(style.chars.right), context);
+        frame.set_cell_relative(
+            Coord::new(0, i),
+            0,
+            style.view_cell(style.chars.left),
+            context,
+        );
+        frame.set_cell_relative(
+            Coord::new(span.x, i),
+            0,
+            style.view_cell(style.chars.right),
+            context,
+        );
     }
 }
 
-fn border_view<V, T, F, C>(mut view: V, data: T, style: &BorderStyle, context: ViewContext<C>, frame: &mut F)
-where
+fn border_view<V, T, F, C>(
+    mut view: V,
+    data: T,
+    style: &BorderStyle,
+    context: ViewContext<C>,
+    frame: &mut F,
+) where
     V: View<T>,
     C: ColModify,
     F: Frame,

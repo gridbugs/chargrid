@@ -65,27 +65,33 @@ impl AppData {
                     return Some(app::ControlFlow::Exit);
                 }
                 Input::Mouse(MouseInput::MouseScroll { direction, .. }) => match direction {
-                    ScrollDirection::Up => self.vertical_scroll_state.scroll_up_line(view.vertical_scroll_limits),
-                    ScrollDirection::Down => self.vertical_scroll_state.scroll_down_line(view.vertical_scroll_limits),
+                    ScrollDirection::Up => self
+                        .vertical_scroll_state
+                        .scroll_up_line(view.vertical_scroll_limits),
+                    ScrollDirection::Down => self
+                        .vertical_scroll_state
+                        .scroll_down_line(view.vertical_scroll_limits),
                     _ => (),
                 },
-                Input::Keyboard(KeyboardInput::Up) => {
-                    self.vertical_scroll_state.scroll_up_line(view.vertical_scroll_limits)
-                }
-                Input::Keyboard(KeyboardInput::Down) => {
-                    self.vertical_scroll_state.scroll_down_line(view.vertical_scroll_limits)
-                }
-                Input::Keyboard(KeyboardInput::PageUp) => {
-                    self.vertical_scroll_state.scroll_up_page(view.vertical_scroll_limits)
-                }
-                Input::Keyboard(KeyboardInput::PageDown) => {
-                    self.vertical_scroll_state.scroll_down_page(view.vertical_scroll_limits)
-                }
-                Input::Keyboard(KeyboardInput::Home) | Input::Keyboard(KeyboardInput::Char('g')) => {
-                    self.vertical_scroll_state.scroll_to_top(view.vertical_scroll_limits)
-                }
+                Input::Keyboard(KeyboardInput::Up) => self
+                    .vertical_scroll_state
+                    .scroll_up_line(view.vertical_scroll_limits),
+                Input::Keyboard(KeyboardInput::Down) => self
+                    .vertical_scroll_state
+                    .scroll_down_line(view.vertical_scroll_limits),
+                Input::Keyboard(KeyboardInput::PageUp) => self
+                    .vertical_scroll_state
+                    .scroll_up_page(view.vertical_scroll_limits),
+                Input::Keyboard(KeyboardInput::PageDown) => self
+                    .vertical_scroll_state
+                    .scroll_down_page(view.vertical_scroll_limits),
+                Input::Keyboard(KeyboardInput::Home)
+                | Input::Keyboard(KeyboardInput::Char('g')) => self
+                    .vertical_scroll_state
+                    .scroll_to_top(view.vertical_scroll_limits),
                 Input::Keyboard(KeyboardInput::End) | Input::Keyboard(KeyboardInput::Char('G')) => {
-                    self.vertical_scroll_state.scroll_to_bottom(view.vertical_scroll_limits)
+                    self.vertical_scroll_state
+                        .scroll_to_bottom(view.vertical_scroll_limits)
                 }
                 _ => (),
             }
@@ -95,7 +101,12 @@ impl AppData {
 }
 
 impl<'a> View<&'a AppData> for AppView {
-    fn view<F: Frame, C: ColModify>(&mut self, app_state: &'a AppData, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        app_state: &'a AppData,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
         let rich_text = &[
             (
                 "Hello, World!\nblah\nblah blah ",
@@ -109,7 +120,10 @@ impl<'a> View<&'a AppData> for AppView {
                     ..Style::new()
                 },
             ),
-            ("User string:\n", Style::new().with_foreground(Rgb24::new_grey(255))),
+            (
+                "User string:\n",
+                Style::new().with_foreground(Rgb24::new_grey(255)),
+            ),
             (
                 app_state.text.as_ref(),
                 Style {
@@ -178,7 +192,9 @@ impl app::App for App {
         F: app::Frame,
         C: app::ColModify,
     {
-        if let Some(app::ControlFlow::Exit) = self.data.tick(self.input_buffer.drain(..), &self.view) {
+        if let Some(app::ControlFlow::Exit) =
+            self.data.tick(self.input_buffer.drain(..), &self.view)
+        {
             return Some(app::ControlFlow::Exit);
         }
         self.view.view(&self.data, view_context, frame);

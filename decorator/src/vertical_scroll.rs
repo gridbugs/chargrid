@@ -130,9 +130,10 @@ fn render_scroll_bar<F: Frame, C: ColModify>(
             character: Some(scroll_bar_style.character),
         };
         let bar_x = context.size.width() as i32 - 1;
-        let bar_height =
-            (limits.last_rendered_outer_height * limits.last_rendered_outer_height) / limits.last_rendered_inner_height;
-        let bar_top = ((limits.last_rendered_outer_height - bar_height) * state.scroll_position as u32)
+        let bar_height = (limits.last_rendered_outer_height * limits.last_rendered_outer_height)
+            / limits.last_rendered_inner_height;
+        let bar_top = ((limits.last_rendered_outer_height - bar_height)
+            * state.scroll_position as u32)
             / limits.max_scroll_position() as u32;
         for y in 0..bar_height {
             let bar_y = (y + bar_top) as i32;
@@ -166,8 +167,12 @@ where
             let absolute_depth = relative_depth + context.depth;
             let absolute_cell = ViewCell {
                 style: Style {
-                    foreground: context.col_modify.foreground(relative_cell.style.foreground),
-                    background: context.col_modify.background(relative_cell.style.background),
+                    foreground: context
+                        .col_modify
+                        .foreground(relative_cell.style.foreground),
+                    background: context
+                        .col_modify
+                        .background(relative_cell.style.background),
                     ..relative_cell.style
                 },
                 ..relative_cell
@@ -176,7 +181,12 @@ where
         }
     }
 
-    fn set_cell_absolute(&mut self, absolute_coord: Coord, absolute_depth: i8, absolute_cell: ViewCell) {
+    fn set_cell_absolute(
+        &mut self,
+        absolute_coord: Coord,
+        absolute_depth: i8,
+        absolute_cell: ViewCell,
+    ) {
         self.frame
             .set_cell_absolute(absolute_coord, absolute_depth, absolute_cell);
     }
@@ -196,7 +206,13 @@ where
             let absolute_coord = adjusted_relative_coord + context.offset;
             let absolute_depth = relative_depth + context.depth;
             if let Some(modified_rgb24) = context.col_modify.background(Some(rgb24)) {
-                self.blend_cell_background_absolute(absolute_coord, absolute_depth, modified_rgb24, alpha, blend);
+                self.blend_cell_background_absolute(
+                    absolute_coord,
+                    absolute_depth,
+                    modified_rgb24,
+                    alpha,
+                    blend,
+                );
             }
         }
     }
@@ -209,8 +225,13 @@ where
         alpha: u8,
         blend: B,
     ) {
-        self.frame
-            .blend_cell_background_absolute(absolute_coord, absolute_depth, rgb24, alpha, blend);
+        self.frame.blend_cell_background_absolute(
+            absolute_coord,
+            absolute_depth,
+            rgb24,
+            alpha,
+            blend,
+        );
     }
 }
 
@@ -229,8 +250,15 @@ where
             context.constrain_size_by(Size::new(1 + self.scroll_bar_style.left_padding, 0)),
             &mut partial_frame,
         );
-        self.limits.last_rendered_inner_height = (partial_frame.max_y - context.offset.y).max(0) as u32 + 1;
+        self.limits.last_rendered_inner_height =
+            (partial_frame.max_y - context.offset.y).max(0) as u32 + 1;
         self.limits.last_rendered_outer_height = context.size.height();
-        render_scroll_bar(self.scroll_bar_style, self.state, *self.limits, context, frame);
+        render_scroll_bar(
+            self.scroll_bar_style,
+            self.state,
+            *self.limits,
+            context,
+            frame,
+        );
     }
 }

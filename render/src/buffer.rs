@@ -119,11 +119,19 @@ impl Frame for Buffer {
             }
         }
     }
-    fn blend_cell_background_absolute<B: Blend>(&mut self, coord: Coord, depth: i8, rgb24: Rgb24, alpha: u8, blend: B) {
+    fn blend_cell_background_absolute<B: Blend>(
+        &mut self,
+        coord: Coord,
+        depth: i8,
+        rgb24: Rgb24,
+        alpha: u8,
+        blend: B,
+    ) {
         if let Some(cell) = self.grid.get_mut(coord) {
             if cell.background_depth <= depth {
                 let current_background_colour = cell.background_colour;
-                let blended_background_colour = blend.blend(current_background_colour, rgb24, alpha);
+                let blended_background_colour =
+                    blend.blend(current_background_colour, rgb24, alpha);
                 cell.background_colour = blended_background_colour;
                 cell.background_depth = depth;
             }

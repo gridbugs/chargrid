@@ -64,7 +64,11 @@ where
                 self.normal
             };
             let mut view = StringViewSingleLine::new(style);
-            let size = view.view_size(&self.buf, context.add_offset(Coord::new(0, i as i32)), frame);
+            let size = view.view_size(
+                &self.buf,
+                context.add_offset(Coord::new(0, i as i32)),
+                frame,
+            );
             self.mouse_tracker.on_entry_view_size(size);
         }
     }
@@ -115,7 +119,12 @@ where
     type View = StaticStyleMenuInstanceView;
     type Event = Input;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -128,8 +137,13 @@ where
         })
     }
 
-    fn view<F, CM>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<CM>, frame: &mut F)
-    where
+    fn view<F, CM>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<CM>,
+        frame: &mut F,
+    ) where
         F: Frame,
         CM: ColModify,
     {

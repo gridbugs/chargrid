@@ -56,7 +56,10 @@ where
             AlignmentY::Centre => (context.size.y() as i32 - data_size.y() as i32) / 2,
             AlignmentY::Bottom => context.size.y() as i32 - data_size.y() as i32,
         };
-        self.view
-            .view(data, context.add_offset(Coord::new(x_offset, y_offset)), frame);
+        self.view.view(
+            data,
+            context.add_offset(Coord::new(x_offset, y_offset)),
+            frame,
+        );
     }
 }

@@ -35,7 +35,12 @@ fn piece_colour(typ: PieceType) -> Rgb24 {
     }
 }
 impl<'a> View<&'a Tetris> for TetrisBoardView {
-    fn view<F: Frame, C: ColModify>(&mut self, tetris: &'a Tetris, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        tetris: &'a Tetris,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
         for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
                 let mut cell_info = ViewCell::new().with_bold(true);
@@ -70,7 +75,12 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
 }
 
 impl<'a> View<&'a Tetris> for TetrisNextPieceView {
-    fn view<F: Frame, C: ColModify>(&mut self, tetris: &'a Tetris, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        tetris: &'a Tetris,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
         let offset = Coord::new(1, 0);
         for coord in tetris.game_state.next_piece.coords.iter().cloned() {
             let cell_info = ViewCell {
@@ -161,7 +171,9 @@ impl AppData {
     fn new<R: Rng>(rng: &mut R) -> Self {
         let main_menu = vec![MainMenuChoice::Play, MainMenuChoice::Quit];
         let main_menu = MenuInstance::new(main_menu).unwrap();
-        let end_text_style = Style::new().with_bold(true).with_foreground(Rgb24::new(187, 0, 0));
+        let end_text_style = Style::new()
+            .with_bold(true)
+            .with_foreground(Rgb24::new(187, 0, 0));
         let end_text = RichTextPartOwned::new("YOU DIED".to_string(), end_text_style);
         Self {
             main_menu,
@@ -174,7 +186,13 @@ impl AppData {
         }
     }
 
-    fn tick<I, R>(&mut self, inputs: I, period: Duration, view: &AppView, rng: &mut R) -> Option<app::ControlFlow>
+    fn tick<I, R>(
+        &mut self,
+        inputs: I,
+        period: Duration,
+        view: &AppView,
+        rng: &mut R,
+    ) -> Option<app::ControlFlow>
     where
         I: IntoIterator<Item = Input>,
         R: Rng,
@@ -182,7 +200,10 @@ impl AppData {
         match self.state {
             AppState::Menu => {
                 for input in inputs {
-                    if let Some(menu_output) = self.main_menu.choose_or_quit(&view.menu_instance_view, input) {
+                    if let Some(menu_output) = self
+                        .main_menu
+                        .choose_or_quit(&view.menu_instance_view, input)
+                    {
                         match menu_output {
                             Err(Quit) => return Some(app::ControlFlow::Exit),
                             Ok(selection) => match selection {
@@ -202,10 +223,18 @@ impl AppData {
                         Input::Keyboard(keys::ESCAPE) => {
                             self.state = AppState::Menu;
                         }
-                        Input::Keyboard(KeyboardInput::Up) => self.input_buffer.push_back(TetrisInput::Up),
-                        Input::Keyboard(KeyboardInput::Down) => self.input_buffer.push_back(TetrisInput::Down),
-                        Input::Keyboard(KeyboardInput::Left) => self.input_buffer.push_back(TetrisInput::Left),
-                        Input::Keyboard(KeyboardInput::Right) => self.input_buffer.push_back(TetrisInput::Right),
+                        Input::Keyboard(KeyboardInput::Up) => {
+                            self.input_buffer.push_back(TetrisInput::Up)
+                        }
+                        Input::Keyboard(KeyboardInput::Down) => {
+                            self.input_buffer.push_back(TetrisInput::Down)
+                        }
+                        Input::Keyboard(KeyboardInput::Left) => {
+                            self.input_buffer.push_back(TetrisInput::Left)
+                        }
+                        Input::Keyboard(KeyboardInput::Right) => {
+                            self.input_buffer.push_back(TetrisInput::Right)
+                        }
                         _ => (),
                     }
                 }
@@ -283,7 +312,9 @@ impl<'a> View<&'a MenuInstance<MainMenuChoice>> for MenuInstanceView {
                         ("y", base_style.with_foreground(Rgb24::new(0, 0, 187))),
                         ("!", base_style.with_foreground(Rgb24::new(187, 0, 187))),
                     ],
-                    MainMenuChoice::Quit => vec![("> Quit", base_style.with_foreground(Rgb24::new_grey(255)))],
+                    MainMenuChoice::Quit => {
+                        vec![("> Quit", base_style.with_foreground(Rgb24::new_grey(255)))]
+                    }
                 };
                 RichTextViewSingleLine::new().view_size(
                     rich_text
@@ -297,11 +328,8 @@ impl<'a> View<&'a MenuInstance<MainMenuChoice>> for MenuInstanceView {
                     MainMenuChoice::Play => "  Play",
                     MainMenuChoice::Quit => "  Quit",
                 };
-                StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(127))).view_size(
-                    string,
-                    context.add_offset(Coord::new(0, i as i32)),
-                    frame,
-                )
+                StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(127)))
+                    .view_size(string, context.add_offset(Coord::new(0, i as i32)), frame)
             };
             self.mouse_tracker.on_entry_view_size(size);
         }
@@ -309,7 +337,12 @@ impl<'a> View<&'a MenuInstance<MainMenuChoice>> for MenuInstanceView {
 }
 
 impl<'a> View<&'a AppData> for AppView {
-    fn view<F: Frame, C: ColModify>(&mut self, app: &'a AppData, context: ViewContext<C>, frame: &mut F) {
+    fn view<F: Frame, C: ColModify>(
+        &mut self,
+        app: &'a AppData,
+        context: ViewContext<C>,
+        frame: &mut F,
+    ) {
         match app.state {
             AppState::Game | AppState::GameOver => {
                 let mut view = BorderView {
@@ -390,10 +423,12 @@ impl<R: Rng> app::App for TetrisApp<R> {
         F: app::Frame,
         C: app::ColModify,
     {
-        if let Some(control_flow) =
-            self.data
-                .tick(self.input_buffer.drain(..), since_last_frame, &self.view, &mut self.rng)
-        {
+        if let Some(control_flow) = self.data.tick(
+            self.input_buffer.drain(..),
+            since_last_frame,
+            &self.view,
+            &mut self.rng,
+        ) {
             Some(control_flow)
         } else {
             self.view.view(&self.data, view_context, frame);

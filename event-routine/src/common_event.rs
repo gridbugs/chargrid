@@ -30,22 +30,34 @@ where
     type View = T::View;
     type Event = CommonEvent;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
         event_or_peek.with(
             self,
             |s, event| match event {
-                CommonEvent::Input(input) => s.0.handle(data, view, Event::new(input)).map_continue(Self),
+                CommonEvent::Input(input) => {
+                    s.0.handle(data, view, Event::new(input)).map_continue(Self)
+                }
                 CommonEvent::Frame(_) => Handled::Continue(s),
             },
             Handled::Continue,
         )
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -68,7 +80,12 @@ where
     type View = T::View;
     type Event = CommonEvent;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -79,18 +96,25 @@ where
                 if event == CommonEvent::Input(Input::Keyboard(keys::ETX)) {
                     Handled::Return(f(data))
                 } else {
-                    t.handle(data, view, Event::new(event)).map_continue(|t| Self { t, f })
+                    t.handle(data, view, Event::new(event))
+                        .map_continue(|t| Self { t, f })
                 }
             },
             |(s, data)| {
                 let Self { t, f } = s;
-                t.handle(data, view, Peek::new()).map_continue(|t| Self { t, f })
+                t.handle(data, view, Peek::new())
+                    .map_continue(|t| Self { t, f })
             },
         )
     }
 
-    fn view<G, C>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<C>, frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<C>,
+        frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {
@@ -120,7 +144,12 @@ impl<D, V> EventRoutine for Delay<D, V> {
     type View = V;
     type Event = CommonEvent;
 
-    fn handle<EP>(self, _data: &mut Self::Data, _view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        _data: &mut Self::Data,
+        _view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -144,8 +173,13 @@ impl<D, V> EventRoutine for Delay<D, V> {
         )
     }
 
-    fn view<G, C>(&self, _data: &Self::Data, _view: &mut Self::View, _context: ViewContext<C>, _frame: &mut G)
-    where
+    fn view<G, C>(
+        &self,
+        _data: &Self::Data,
+        _view: &mut Self::View,
+        _context: ViewContext<C>,
+        _frame: &mut G,
+    ) where
         G: Frame,
         C: ColModify,
     {

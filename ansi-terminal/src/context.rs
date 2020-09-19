@@ -61,14 +61,17 @@ impl Context {
             }
             #[cfg(feature = "gamepad")]
             for input in self.gamepad.drain_input() {
-                if let Some(ControlFlow::Exit) = app.on_input(chargrid_input::Input::Gamepad(input)) {
+                if let Some(ControlFlow::Exit) = app.on_input(chargrid_input::Input::Gamepad(input))
+                {
                     return;
                 }
             }
             self.resize_if_necessary().unwrap();
             self.buffer.clear();
             let view_context = ViewContext::default_with_size(self.size().unwrap());
-            if let Some(ControlFlow::Exit) = app.on_frame(FRAME_DURATION, view_context, &mut self.buffer) {
+            if let Some(ControlFlow::Exit) =
+                app.on_frame(FRAME_DURATION, view_context, &mut self.buffer)
+            {
                 return;
             }
             self.terminal.draw_frame::<E>(&mut self.buffer).unwrap();

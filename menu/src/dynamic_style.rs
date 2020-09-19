@@ -1,6 +1,6 @@
 use crate::{
-    MenuEntryRichString, MenuEntryToRender, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose,
-    MenuInstanceMouseTracker,
+    MenuEntryRichString, MenuEntryToRender, MenuIndexFromScreenCoord, MenuInstance,
+    MenuInstanceChoose, MenuInstanceMouseTracker,
 };
 use chargrid_event_routine::{event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
 use chargrid_input::Input;
@@ -61,7 +61,11 @@ where
             };
             let style = menu_entry_rich_string.render_rich_string(entry_to_render, &mut self.buf);
             let mut view = StringViewSingleLine::new(style);
-            let size = view.view_size(&self.buf, context.add_offset(Coord::new(0, i as i32)), frame);
+            let size = view.view_size(
+                &self.buf,
+                context.add_offset(Coord::new(0, i as i32)),
+                frame,
+            );
             self.mouse_tracker.on_entry_view_size(size);
         }
     }
@@ -112,7 +116,12 @@ where
     type View = DynamicStyleMenuInstanceView;
     type Event = Input;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -125,8 +134,13 @@ where
         })
     }
 
-    fn view<F, CM>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<CM>, frame: &mut F)
-    where
+    fn view<F, CM>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<CM>,
+        frame: &mut F,
+    ) where
         F: Frame,
         CM: ColModify,
     {

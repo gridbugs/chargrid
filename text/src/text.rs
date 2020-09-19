@@ -27,7 +27,8 @@ where
         for part in parts {
             let part = part.as_ref();
             for character in part.chars() {
-                self.wrap.process_character(character, self.style, context, frame);
+                self.wrap
+                    .process_character(character, self.style, context, frame);
             }
         }
         self.wrap.flush(context, frame);
@@ -57,7 +58,8 @@ where
         self.wrap.clear();
         let part = part.as_ref();
         for character in part.chars() {
-            self.wrap.process_character(character, self.style, context, frame);
+            self.wrap
+                .process_character(character, self.style, context, frame);
         }
         self.wrap.flush(context, frame);
     }
@@ -70,7 +72,9 @@ pub struct StringViewSingleLine {
 
 impl Default for StringViewSingleLine {
     fn default() -> Self {
-        Self { style: DEFAULT_STYLE }
+        Self {
+            style: DEFAULT_STYLE,
+        }
     }
 }
 

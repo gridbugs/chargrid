@@ -2,7 +2,9 @@ use crate::{
     MenuEntryString, MenuEntryToRender, MenuIndexFromScreenCoord, MenuInstance, MenuInstanceChoose,
     MenuInstanceMouseTracker, Selected,
 };
-use chargrid_event_routine::{common_event, event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled};
+use chargrid_event_routine::{
+    common_event, event_or_peek_with_handled, EventOrPeek, EventRoutine, Handled,
+};
 use chargrid_render::{ColModify, Coord, Frame, Rgb24, Style, View, ViewContext};
 use chargrid_text::StringViewSingleLine;
 use std::collections::HashMap;
@@ -54,7 +56,12 @@ impl FadeInstance {
             fade_spec::FromCol::Current => self.current(since_epoch),
             fade_spec::FromCol::Rgb24(rgb24) => rgb24,
         };
-        Self::new(from, style.to.foreground, style.durations.foreground, since_epoch)
+        Self::new(
+            from,
+            style.to.foreground,
+            style.durations.foreground,
+            since_epoch,
+        )
     }
 
     fn transform_background(&self, style: &fade_spec::Style, since_epoch: Duration) -> Self {
@@ -62,7 +69,12 @@ impl FadeInstance {
             fade_spec::FromCol::Current => self.current(since_epoch),
             fade_spec::FromCol::Rgb24(rgb24) => rgb24,
         };
-        Self::new(from, style.to.background, style.durations.background, since_epoch)
+        Self::new(
+            from,
+            style.to.background,
+            style.durations.background,
+            since_epoch,
+        )
     }
 }
 
@@ -180,22 +192,33 @@ where
             } else {
                 &spec.normal
             };
-            let current = self.last_change.entry(i).or_insert_with(|| MenuEntryChange {
-                change_to: maybe_selected,
-                foreground: FadeInstance::constant(current_style.to.foreground),
-                background: FadeInstance::constant(current_style.to.background),
-            });
+            let current = self
+                .last_change
+                .entry(i)
+                .or_insert_with(|| MenuEntryChange {
+                    change_to: maybe_selected,
+                    foreground: FadeInstance::constant(current_style.to.foreground),
+                    background: FadeInstance::constant(current_style.to.background),
+                });
             match (current.change_to, maybe_selected) {
                 (None, None) | (Some(Selected), Some(Selected)) => (),
                 (Some(Selected), None) => {
                     current.change_to = None;
-                    current.foreground = current.foreground.transform_foreground(&spec.normal, since_epoch);
-                    current.background = current.background.transform_background(&spec.normal, since_epoch);
+                    current.foreground = current
+                        .foreground
+                        .transform_foreground(&spec.normal, since_epoch);
+                    current.background = current
+                        .background
+                        .transform_background(&spec.normal, since_epoch);
                 }
                 (None, Some(Selected)) => {
                     current.change_to = Some(Selected);
-                    current.foreground = current.foreground.transform_foreground(&spec.selected, since_epoch);
-                    current.background = current.background.transform_background(&spec.selected, since_epoch);
+                    current.foreground = current
+                        .foreground
+                        .transform_foreground(&spec.selected, since_epoch);
+                    current.background = current
+                        .background
+                        .transform_background(&spec.selected, since_epoch);
                 }
             }
             let foreground = current.foreground.current(since_epoch);
@@ -214,7 +237,11 @@ where
                     .with_foreground(foreground)
                     .with_background(background),
             );
-            let size = view.view_size(&self.buf, context.add_offset(Coord::new(0, i as i32)), frame);
+            let size = view.view_size(
+                &self.buf,
+                context.add_offset(Coord::new(0, i as i32)),
+                frame,
+            );
             self.mouse_tracker.on_entry_view_size(size);
         }
     }
@@ -271,7 +298,12 @@ where
     type View = FadeMenuInstanceView;
     type Event = common_event::CommonEvent;
 
-    fn handle<EP>(self, data: &mut Self::Data, view: &Self::View, event_or_peek: EP) -> Handled<Self::Return, Self>
+    fn handle<EP>(
+        self,
+        data: &mut Self::Data,
+        view: &Self::View,
+        event_or_peek: EP,
+    ) -> Handled<Self::Return, Self>
     where
         EP: EventOrPeek<Event = Self::Event>,
     {
@@ -298,8 +330,13 @@ where
         })
     }
 
-    fn view<F, CM>(&self, data: &Self::Data, view: &mut Self::View, context: ViewContext<CM>, frame: &mut F)
-    where
+    fn view<F, CM>(
+        &self,
+        data: &Self::Data,
+        view: &mut Self::View,
+        context: ViewContext<CM>,
+        frame: &mut F,
+    ) where
         F: Frame,
         CM: ColModify,
     {

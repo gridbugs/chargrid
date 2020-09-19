@@ -27,7 +27,12 @@ pub struct Piece {
 
 impl Piece {
     fn new(coords: [(i32, i32); PIECE_SIZE], typ: PieceType) -> Self {
-        let coords = [coords[0].into(), coords[1].into(), coords[2].into(), coords[3].into()];
+        let coords = [
+            coords[0].into(),
+            coords[1].into(),
+            coords[2].into(),
+            coords[3].into(),
+        ];
         Self { coords, typ }
     }
 
@@ -154,7 +159,9 @@ impl Board {
         if c.x < 0 || c.y < 0 {
             return None;
         }
-        self.rows.get(c.y as usize).and_then(|r| r.cells.get(c.x as usize))
+        self.rows
+            .get(c.y as usize)
+            .and_then(|r| r.cells.get(c.x as usize))
     }
 
     fn get_mut(&mut self, c: Coord) -> Option<&mut Cell> {
@@ -171,7 +178,9 @@ impl Board {
             if c.y == self.size.y() as i32 - 1 {
                 return true;
             }
-            self.get(c + Coord::new(0, 1)).map(|c| c.typ.is_some()).unwrap_or(false)
+            self.get(c + Coord::new(0, 1))
+                .map(|c| c.typ.is_some())
+                .unwrap_or(false)
         })
     }
 

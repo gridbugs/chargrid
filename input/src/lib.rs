@@ -122,7 +122,8 @@ impl<'de> serde::Deserialize<'de> for KeyboardInput {
             where
                 E: serde::de::Error,
             {
-                KeyboardInput::try_from_str(s).ok_or_else(|| E::custom(format!("couldn't parse {}", s)))
+                KeyboardInput::try_from_str(s)
+                    .ok_or_else(|| E::custom(format!("couldn't parse {}", s)))
             }
         }
         deserializer.deserialize_str(Visitor)
