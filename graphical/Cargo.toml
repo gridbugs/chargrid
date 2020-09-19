@@ -12,7 +12,7 @@ edition = "2018"
 
 [features]
 serialize = ["chargrid_input/serialize", "chargrid_render/serialize"]
-force_vulkan = ["wgpu/vulkan"]
+force_vulkan = ["wgpu/vulkan-portability"]
 gamepad = ["chargrid_gamepad", "chargrid_input/gamepad"]
 
 [dependencies]
