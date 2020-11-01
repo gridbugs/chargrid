@@ -582,8 +582,6 @@ impl Context {
             #[cfg(feature = "gamepad")]
             mut gamepad,
         } = self;
-        #[allow(unused_variables)]
-        let window = window; // dropping the window will close it, so keep this in scope
         let mut frame_instant = Instant::now();
         let mut exited = false;
         log::info!("Entering main event loop");
@@ -640,7 +638,7 @@ impl Context {
                         }
                     }
                 },
-                winit::event::Event::MainEventsCleared => {
+                winit::event::Event::RedrawRequested(_) => {
                     let frame_duration = frame_instant.elapsed();
                     frame_instant = Instant::now();
                     let view_context =
@@ -747,6 +745,9 @@ impl Context {
                         log::warn!("timeout when acquiring next swapchain texture");
                         thread::sleep(Duration::from_millis(100));
                     }
+                }
+                winit::event::Event::MainEventsCleared => {
+                    window.request_redraw();
                 }
                 _ => (),
             }
