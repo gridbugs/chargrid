@@ -8,4 +8,4 @@ edition = "2018"
 chargrid_graphical = { path = "../../../graphical" }
 tetris_app = { path = "../app" }
 rand = "0.7"
-env_logger = "0.7"
+env_logger = "0.8"

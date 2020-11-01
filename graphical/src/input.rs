@@ -78,8 +78,8 @@ fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<K
         VirtualKeyCode::Escape => keys::ESCAPE,
         VirtualKeyCode::Return => keys::RETURN,
         VirtualKeyCode::At => KeyboardInput::Char('@'),
-        VirtualKeyCode::Add => KeyboardInput::Char('+'),
-        VirtualKeyCode::Subtract => KeyboardInput::Char('-'),
+        VirtualKeyCode::Plus => KeyboardInput::Char('+'),
+        VirtualKeyCode::Minus => KeyboardInput::Char('-'),
         VirtualKeyCode::Equals => convert_char_shift!('=', '+', shift),
         VirtualKeyCode::Backslash => convert_char_shift!('\\', '|', shift),
         VirtualKeyCode::Grave => convert_char_shift!('`', '~', shift),
@@ -202,7 +202,11 @@ pub fn convert_event(
         WindowEvent::MouseWheel { delta, .. } => {
             let (x, y) = match delta {
                 MouseScrollDelta::LineDelta(x, y) => (x, y),
-                MouseScrollDelta::PixelDelta(LogicalPosition { x, y }) => (x as f32, y as f32),
+                MouseScrollDelta::PixelDelta(physical_position) => {
+                    let LogicalPosition { x, y } =
+                        physical_position.to_logical::<f64>(scale_factor);
+                    (x as f32, y as f32)
+                }
             };
             let direction = if y > 0. {
                 ScrollDirection::Up

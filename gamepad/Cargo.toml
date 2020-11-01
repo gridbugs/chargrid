@@ -12,5 +12,5 @@ edition = "2018"
 
 [dependencies]
 chargrid_input = { path = "../input", version = "0.1", features = ["gamepad"] }
-gilrs = "0.7"
+gilrs = "0.8"
 log = "0.4"
