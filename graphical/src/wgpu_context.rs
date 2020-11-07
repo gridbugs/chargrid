@@ -355,13 +355,12 @@ impl WgpuContext {
         );
     }
 
-    fn resize(&mut self, size_context: &SizeContext, window_size: winit::dpi::LogicalSize<f64>) {
+    fn resize(&mut self, size_context: &SizeContext, physical_size: winit::dpi::PhysicalSize<u32>) {
         use std::mem;
-        let physical_size: winit::dpi::PhysicalSize<f64> =
-            window_size.to_physical(self.scale_factor);
-        self.window_size = window_size;
-        self.sc_desc.width = physical_size.width.round() as u32;
-        self.sc_desc.height = physical_size.height.round() as u32;
+        let logical_size = physical_size.to_logical(self.scale_factor);
+        self.window_size = logical_size;
+        self.sc_desc.width = physical_size.width;
+        self.sc_desc.height = physical_size.height;
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
         self.background_cell_instance_buffer = populate_and_finish_buffer(
             self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -374,7 +373,7 @@ impl WgpuContext {
             self.background_cell_instance_data.raw(),
         );
         let global_uniforms =
-            size_context.global_uniforms(dimensions_from_logical_size(window_size));
+            size_context.global_uniforms(dimensions_from_logical_size(logical_size));
         let temp_buffer = populate_and_finish_buffer(
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
@@ -620,7 +619,7 @@ impl Context {
                                 .pixel_offset_to_centre_native_window(current_window_dimensions),
                             &mut input_context.last_mouse_coord,
                             &mut input_context.last_mouse_button,
-                            wgpu_context.scale_factor,
+                            &mut wgpu_context.scale_factor,
                             wgpu_context.modifier_state,
                         ) {
                             match event {
@@ -632,7 +631,8 @@ impl Context {
                                 }
                                 input::Event::Resize(size) => {
                                     wgpu_context.resize(&size_context, size);
-                                    current_window_dimensions = dimensions_from_logical_size(size);
+                                    current_window_dimensions =
+                                        dimensions_from_logical_size(wgpu_context.window_size);
                                 }
                             }
                         }

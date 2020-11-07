@@ -4,7 +4,7 @@ use chargrid_input::{
     ScrollDirection,
 };
 use chargrid_render::Coord;
-use winit::dpi::{LogicalPosition, LogicalSize};
+use winit::dpi::{LogicalPosition, PhysicalSize};
 use winit::event::{
     ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta,
     VirtualKeyCode, WindowEvent,
@@ -12,7 +12,7 @@ use winit::event::{
 
 pub enum Event {
     Input(Input),
-    Resize(LogicalSize<f64>),
+    Resize(PhysicalSize<u32>),
 }
 
 macro_rules! convert_char_shift {
@@ -138,15 +138,20 @@ pub fn convert_event(
     top_left_position: Dimensions<f64>,
     last_mouse_coord: &mut Coord,
     last_mouse_button: &mut Option<MouseButton>,
-    scale_factor: f64,
+    scale_factor: &mut f64,
     modifier_state: ModifiersState,
 ) -> Option<Event> {
     match event {
         WindowEvent::CloseRequested => {
             Some(Event::Input(Input::Keyboard(chargrid_input::keys::ETX)))
         }
-        WindowEvent::Resized(physical_size) => {
-            Some(Event::Resize(physical_size.to_logical(scale_factor)))
+        WindowEvent::Resized(physical_size) => Some(Event::Resize(physical_size)),
+        WindowEvent::ScaleFactorChanged {
+            scale_factor: new_scale_factor,
+            new_inner_size,
+        } => {
+            *scale_factor = new_scale_factor;
+            Some(Event::Resize(*new_inner_size))
         }
         WindowEvent::ReceivedCharacter(ch) => convert_char(ch),
         WindowEvent::KeyboardInput { input, .. } => {
@@ -164,7 +169,7 @@ pub fn convert_event(
             ..
         } => {
             let LogicalPosition { x, y }: LogicalPosition<f64> =
-                physical_position.to_logical(scale_factor);
+                physical_position.to_logical(*scale_factor);
             let x = ((x - top_left_position.width) / cell_dimensions.width) as i32;
             let y = ((y - top_left_position.height) / cell_dimensions.height) as i32;
             let coord = Coord::new(x, y);
@@ -204,7 +209,7 @@ pub fn convert_event(
                 MouseScrollDelta::LineDelta(x, y) => (x, y),
                 MouseScrollDelta::PixelDelta(physical_position) => {
                     let LogicalPosition { x, y } =
-                        physical_position.to_logical::<f64>(scale_factor);
+                        physical_position.to_logical::<f64>(*scale_factor);
                     (x as f32, y as f32)
                 }
             };
