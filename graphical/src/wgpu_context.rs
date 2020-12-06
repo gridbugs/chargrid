@@ -110,7 +110,7 @@ async fn init_device() -> Result<(wgpu::Instance, wgpu::Device, wgpu::Queue), Co
     let backend = if cfg!(feature = "force_vulkan") {
         wgpu::BackendBit::VULKAN
     } else {
-        wgpu::BackendBit::PRIMARY
+        wgpu::BackendBit::all()
     };
     let instance = wgpu::Instance::new(backend);
     let adapter = instance
