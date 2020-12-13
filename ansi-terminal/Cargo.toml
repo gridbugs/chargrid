@@ -20,7 +20,7 @@ chargrid_input = { path = "../input", version = "0.1" }
 chargrid_app = { path = "../app", version = "0.1" }
 chargrid_gamepad = { path = "../gamepad", version = "0.1", optional = true }
 libc = "0.2"
-term = "0.6"
+term = "0.6.1"
 
 [dev-dependencies]
 chargrid = { path = "../chargrid", version = "0.3" }
