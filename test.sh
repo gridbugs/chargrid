@@ -13,9 +13,9 @@ cargo test --manifest-path=chargrid/Cargo.toml --features=serialize
 
 cargo clean
 
-find -name node_modules -exec rm -rf {} \; || true
-find -name package-lock.json -delete || true
-find -name dist -exec rm -rf {} \; || true
+find . -name node_modules -exec rm -rf {} \; || true
+find . -name package-lock.json -delete || true
+find . -name dist -exec rm -rf {} \; || true
 
 pushd $DIR/examples/tetris/web
 npm install
