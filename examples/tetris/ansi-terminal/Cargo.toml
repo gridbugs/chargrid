@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 chargrid_ansi_terminal = { path = "../../../ansi-terminal" }
 tetris_app = { path = "../app" }
-rand = "0.7"
+rand = "0.8"
