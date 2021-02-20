@@ -19,4 +19,5 @@ jobs:
     - if: matrix.os != 'windows-latest'
       run: ./test.sh
     - if: matrix.os == 'windows-latest'
-      run: cargo test
+      run: cargo test --workspace
+      run: cargo test --manifest-path=chargrid/Cargo.toml --features=serialize
