@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 chargrid = { path = "../../../chargrid" }
-line_2d = "0.4"
+line_2d = "0.5"
