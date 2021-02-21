@@ -11,5 +11,5 @@ crate-type = ["cdylib"]
 chargrid_web = { path = "../../../web" }
 tetris_app = { path = "../app" }
 wasm-bindgen = "0.2"
-rand = { version = "0.7", features = ["wasm-bindgen"] }
-rand_isaac = "0.2"
+rand = "0.8"
+rand_isaac = "0.3"

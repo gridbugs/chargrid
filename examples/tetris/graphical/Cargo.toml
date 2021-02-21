@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 chargrid_graphical = { path = "../../../graphical" }
 tetris_app = { path = "../app" }
-rand = "0.7"
+rand = "0.8"
 env_logger = "0.8"
