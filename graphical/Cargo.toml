@@ -20,7 +20,7 @@ chargrid_render = { path = "../render", version = "0.2" }
 chargrid_input = { path = "../input", version = "0.2" }
 chargrid_app = { path = "../app", version = "0.2" }
 chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
-wgpu = "0.6"
+wgpu = "0.7"
 wgpu_glyph = "0.10"
 winit = "0.24"
 zerocopy = "0.3"
