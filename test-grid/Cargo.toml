@@ -1,7 +1,7 @@
 [package]
 name = "chargrid_test_grid"
 description = "chargrid frontend that renders to an in-memory buffer for use in tests"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 homepage = "https://github.com/stevebob/chargrid.git"
@@ -10,4 +10,4 @@ documentation = "https://docs.rs/chargrid_test_grid"
 edition = "2018"
 
 [dependencies]
-chargrid_render = { path = "../render", version = "0.1" }
+chargrid_render = { path = "../render", version = "0.2" }
