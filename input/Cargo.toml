@@ -16,7 +16,7 @@ gamepad = []
 
 [dependencies]
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
-coord_2d = "0.2"
+coord_2d = "0.3"
 
 [dev-dependencies]
 serde_json = "1.0"
