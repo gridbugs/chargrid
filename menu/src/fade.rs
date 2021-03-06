@@ -230,10 +230,15 @@ where
             };
             self.buf.clear();
             menu_entry_string.render_string(entry_to_render, &mut self.buf);
+            let (bold, underline) = if maybe_selected.is_some() {
+                (spec.selected.to.bold, spec.selected.to.underline)
+            } else {
+                (spec.normal.to.bold, spec.normal.to.underline)
+            };
             let mut view = StringViewSingleLine::new(
                 Style::new()
-                    .with_bold(spec.normal.to.bold)
-                    .with_underline(spec.normal.to.underline)
+                    .with_bold(bold)
+                    .with_underline(underline)
                     .with_foreground(foreground)
                     .with_background(background),
             );
