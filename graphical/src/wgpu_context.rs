@@ -10,6 +10,27 @@ use std::time::{Duration, Instant};
 use wgpu_glyph::ab_glyph;
 use zerocopy::AsBytes;
 
+fn rgb_to_srgb_channel(c: f32) -> f32 {
+    c.powf(2.2)
+}
+
+fn rgb_to_srgb([r, g, b]: [f32; 3]) -> [f32; 3] {
+    [
+        rgb_to_srgb_channel(r),
+        rgb_to_srgb_channel(g),
+        rgb_to_srgb_channel(b),
+    ]
+}
+
+fn rgba_to_srgb([r, g, b, a]: [f32; 4]) -> [f32; 4] {
+    [
+        rgb_to_srgb_channel(r),
+        rgb_to_srgb_channel(g),
+        rgb_to_srgb_channel(b),
+        a,
+    ]
+}
+
 const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
 fn font_bytes_to_fonts(FontBytes { normal, bold }: FontBytes) -> Vec<ab_glyph::FontVec> {
@@ -347,8 +368,10 @@ impl WgpuContext {
             .iter()
             .zip(self.background_cell_instance_data.iter_mut())
         {
-            background_cell_instance.background_colour = buffer_cell.background_colour.to_f32_rgb();
-            background_cell_instance.foreground_colour = buffer_cell.foreground_colour.to_f32_rgb();
+            background_cell_instance.background_colour =
+                rgb_to_srgb(buffer_cell.background_colour.to_f32_rgb());
+            background_cell_instance.foreground_colour =
+                rgb_to_srgb(buffer_cell.foreground_colour.to_f32_rgb());
             background_cell_instance.underline = buffer_cell.underline as u32;
         }
         self.background_cell_instance_buffer = populate_and_finish_buffer(
@@ -723,7 +746,9 @@ impl Context {
                                 wgpu_glyph::Text::new(str_slice)
                                     .with_scale(font_scale)
                                     .with_font_id(font_id)
-                                    .with_color(cell.foreground_colour.to_f32_rgba(1.)),
+                                    .with_color(rgba_to_srgb(
+                                        cell.foreground_colour.to_f32_rgba(1.),
+                                    )),
                             );
                             char_start = char_end;
                             if coord.x as u32 == wgpu_context.render_buffer.size().width() - 1 {
