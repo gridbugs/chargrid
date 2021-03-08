@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 use wgpu_glyph::ab_glyph;
 use zerocopy::AsBytes;
 
-const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
+const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
 fn font_bytes_to_fonts(FontBytes { normal, bold }: FontBytes) -> Vec<ab_glyph::FontVec> {
     vec![
