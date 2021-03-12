@@ -194,7 +194,7 @@ impl WgpuContext {
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
-        let (instance, mut device, queue, adapter, surface) =
+        let (_instance, mut device, queue, adapter, surface) =
             futures_executor::block_on(init_device(&window))?;
         let swapchain_format = adapter.get_swap_chain_preferred_format(&surface);
         let sc_desc = wgpu::SwapChainDescriptor {
