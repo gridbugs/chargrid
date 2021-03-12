@@ -31,8 +31,6 @@ fn rgba_to_srgb([r, g, b, a]: [f32; 4]) -> [f32; 4] {
     ]
 }
 
-const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
-
 fn font_bytes_to_fonts(FontBytes { normal, bold }: FontBytes) -> Vec<ab_glyph::FontVec> {
     vec![
         ab_glyph::FontVec::try_from_vec(normal).unwrap(),
@@ -127,29 +125,46 @@ struct UnderlineUniforms {
     underline_top_offset_cell_ratio: f32,
 }
 
-async fn init_device() -> Result<(wgpu::Instance, wgpu::Device, wgpu::Queue), ContextBuildError> {
+async fn init_device(
+    window: &winit::window::Window,
+) -> Result<
+    (
+        wgpu::Instance,
+        wgpu::Device,
+        wgpu::Queue,
+        wgpu::Adapter,
+        wgpu::Surface,
+    ),
+    ContextBuildError,
+> {
     let backend = if cfg!(feature = "force_vulkan") {
         wgpu::BackendBit::VULKAN
     } else {
         wgpu::BackendBit::all()
     };
     let instance = wgpu::Instance::new(backend);
+    let surface = unsafe { instance.create_surface(window) };
     let adapter = instance
-        .request_adapter(&wgpu::RequestAdapterOptions::default())
+        .request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
+            compatible_surface: Some(&surface),
+        })
         .await
         .ok_or(ContextBuildError::FailedToRequestGraphicsAdapter)?;
+    let adapter_info = adapter.get_info();
+    log::info!("Using {} ({:?})", adapter_info.name, adapter_info.backend);
     let (device, queue) = adapter
         .request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
-                features: wgpu::Features::default(),
+                features: wgpu::Features::empty(),
                 limits: wgpu::Limits::default(),
             },
             None,
         )
         .await
         .map_err(ContextBuildError::FailedToRequestDevice)?;
-    Ok((instance, device, queue))
+    Ok((instance, device, queue, adapter, surface))
 }
 
 impl WgpuContext {
@@ -179,14 +194,15 @@ impl WgpuContext {
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
-        let (instance, mut device, queue) = futures_executor::block_on(init_device())?;
-        let surface = unsafe { instance.create_surface(window) };
+        let (instance, mut device, queue, adapter, surface) =
+            futures_executor::block_on(init_device(&window))?;
+        let swapchain_format = adapter.get_swap_chain_preferred_format(&surface);
         let sc_desc = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-            format: TEXTURE_FORMAT,
+            format: swapchain_format,
             width: physical_size.width,
             height: physical_size.height,
-            present_mode: wgpu::PresentMode::Fifo,
+            present_mode: wgpu::PresentMode::Mailbox,
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
         let vs_module = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
@@ -315,34 +331,19 @@ impl WgpuContext {
                     ],
                 }],
             },
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: wgpu::CullMode::None,
-                polygon_mode: wgpu::PolygonMode::Fill,
-            },
+            primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
+            multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &fs_module,
                 entry_point: "main",
-                targets: &[wgpu::ColorTargetState {
-                    format: TEXTURE_FORMAT,
-                    color_blend: wgpu::BlendState::REPLACE,
-                    alpha_blend: wgpu::BlendState::REPLACE,
-                    write_mask: wgpu::ColorWrite::ALL,
-                }],
+                targets: &[swapchain_format.into()],
             }),
         });
         let glyph_brush =
             wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
                 .texture_filter_method(wgpu::FilterMode::Nearest)
-                .build(&mut device, TEXTURE_FORMAT);
+                .build(&mut device, swapchain_format);
         let modifier_state = winit::event::ModifiersState::default();
         Ok(Self {
             device,
