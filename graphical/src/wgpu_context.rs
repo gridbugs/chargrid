@@ -137,11 +137,7 @@ async fn init_device(
     ),
     ContextBuildError,
 > {
-    let backend = if cfg!(feature = "force_vulkan") {
-        wgpu::BackendBit::VULKAN
-    } else {
-        wgpu::BackendBit::all()
-    };
+    let backend = wgpu::BackendBit::all();
     let instance = wgpu::Instance::new(backend);
     let surface = unsafe { instance.create_surface(window) };
     let adapter = instance
