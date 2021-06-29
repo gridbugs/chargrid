@@ -196,7 +196,9 @@ impl WgpuContext {
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
         let (_instance, mut device, queue, adapter, surface) =
             futures_executor::block_on(init_device(&window))?;
-        let swapchain_format = adapter.get_swap_chain_preferred_format(&surface);
+        let swapchain_format = adapter
+            .get_swap_chain_preferred_format(&surface)
+            .expect("Failed to find compatible texture format");
         let sc_desc = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
             format: swapchain_format,
@@ -282,19 +284,19 @@ impl WgpuContext {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::Buffer {
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
                         buffer: &global_uniforms_buffer,
                         offset: 0,
                         size: None,
-                    },
+                    }),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Buffer {
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
                         buffer: &underline_uniforms_buffer,
                         offset: 0,
                         size: None,
-                    },
+                    }),
                 },
             ],
         });
@@ -314,17 +316,17 @@ impl WgpuContext {
                     step_mode: wgpu::InputStepMode::Instance,
                     attributes: &[
                         wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float3,
+                            format: wgpu::VertexFormat::Float32x3,
                             offset: 0,
                             shader_location: 0,
                         },
                         wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float3,
+                            format: wgpu::VertexFormat::Float32x3,
                             offset: 12,
                             shader_location: 1,
                         },
                         wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Uint,
+                            format: wgpu::VertexFormat::Uint32,
                             offset: 24,
                             shader_location: 2,
                         },
@@ -693,16 +695,14 @@ impl Context {
                             let mut render_pass =
                                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                                     label: None,
-                                    color_attachments: &[
-                                        wgpu::RenderPassColorAttachmentDescriptor {
-                                            attachment: &frame.output.view,
-                                            resolve_target: None,
-                                            ops: wgpu::Operations {
-                                                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                                                store: true,
-                                            },
+                                    color_attachments: &[wgpu::RenderPassColorAttachment {
+                                        view: &frame.output.view,
+                                        resolve_target: None,
+                                        ops: wgpu::Operations {
+                                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                                            store: true,
                                         },
-                                    ],
+                                    }],
                                     depth_stencil_attachment: None,
                                 });
                             render_pass.set_pipeline(&wgpu_context.render_pipeline);

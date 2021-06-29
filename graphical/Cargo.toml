@@ -1,7 +1,7 @@
 [package]
 name = "chargrid_graphical"
 description = "Graphical chargrid context which renders with wgpu"
-version = "0.4.2"
+version = "0.5.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -12,7 +12,6 @@ edition = "2018"
 
 [features]
 serialize = ["chargrid_input/serialize", "chargrid_render/serialize"]
-force_vulkan = ["wgpu/vulkan-portability"]
 gamepad = ["chargrid_gamepad", "chargrid_input/gamepad"]
 
 [dependencies]
@@ -20,10 +19,10 @@ chargrid_render = { path = "../render", version = "0.2" }
 chargrid_input = { path = "../input", version = "0.2" }
 chargrid_app = { path = "../app", version = "0.2" }
 chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
-wgpu = "0.7"
-wgpu_glyph = "0.11"
-winit = "0.24"
-zerocopy = "0.3"
+wgpu = "0.9"
+wgpu_glyph = "0.13"
+winit = "0.25"
+zerocopy = "0.5"
 log = "0.4"
 grid_2d = "0.15"
 futures = "0.3"
