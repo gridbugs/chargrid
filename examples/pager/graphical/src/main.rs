@@ -3,6 +3,7 @@ use pager_app::App;
 use std::io::{self, Read};
 
 fn main() -> io::Result<()> {
+    env_logger::init();
     let mut text = String::new();
     io::stdin().read_to_string(&mut text)?;
     let context = Context::new(ContextDescriptor {

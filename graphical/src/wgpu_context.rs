@@ -116,39 +116,43 @@ struct GlobalUniforms {
     cell_size_relative_to_window: [f32; 2],
     offset_to_centre: [f32; 2],
     grid_width: u32,
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, zerocopy::AsBytes, zerocopy::FromBytes)]
-struct UnderlineUniforms {
     underline_width_cell_ratio: f32,
     underline_top_offset_cell_ratio: f32,
 }
 
-async fn init_device(
+struct Setup {
+    window: winit::window::Window,
+    event_loop: winit::event_loop::EventLoop<()>,
+    instance: wgpu::Instance,
+    surface: wgpu::Surface,
+    adapter: wgpu::Adapter,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+}
+
+async fn request_adapter_for_backend(
+    backend: wgpu::BackendBit,
     window: &winit::window::Window,
 ) -> Result<
     (
+        wgpu::Adapter,
         wgpu::Instance,
+        wgpu::Surface,
         wgpu::Device,
         wgpu::Queue,
-        wgpu::Adapter,
-        wgpu::Surface,
     ),
-    ContextBuildError,
+    String,
 > {
-    let backend = wgpu::BackendBit::all();
+    let power_preference = wgpu::PowerPreference::default();
     let instance = wgpu::Instance::new(backend);
     let surface = unsafe { instance.create_surface(window) };
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
+            power_preference,
             compatible_surface: Some(&surface),
         })
         .await
-        .ok_or(ContextBuildError::FailedToRequestGraphicsAdapter)?;
-    let adapter_info = adapter.get_info();
-    log::info!("Using {} ({:?})", adapter_info.name, adapter_info.backend);
+        .ok_or_else(|| "No suitable GPU adapters found on the system!".to_string())?;
     let (device, queue) = adapter
         .request_device(
             &wgpu::DeviceDescriptor {
@@ -159,8 +163,49 @@ async fn init_device(
             None,
         )
         .await
-        .map_err(ContextBuildError::FailedToRequestDevice)?;
-    Ok((instance, device, queue, adapter, surface))
+        .map_err(|e| format!("Unable to find a suitable GPU adapter! ({:?})", e))?;
+    Ok((adapter, instance, surface, device, queue))
+}
+
+async fn setup(title: &str, window_dimensions: Dimensions<NumPixels>, resizable: bool) -> Setup {
+    let event_loop = winit::event_loop::EventLoop::new();
+    let window_builder = winit::window::WindowBuilder::new().with_title(title);
+    let window_builder = {
+        let logical_size =
+            winit::dpi::LogicalSize::new(window_dimensions.width, window_dimensions.height);
+        window_builder
+            .with_inner_size(logical_size)
+            .with_min_inner_size(logical_size)
+            .with_max_inner_size(logical_size)
+            .with_resizable(resizable)
+    };
+    let window = window_builder.build(&event_loop).unwrap();
+    let (adapter, instance, surface, device, queue) = match request_adapter_for_backend(
+        wgpu::BackendBit::PRIMARY,
+        &window,
+    )
+    .await
+    {
+        Ok(x) => x,
+        Err(message) => {
+            log::error!(
+                "Failed to initialize primary backend: {}\nFalling back to secondary backend....",
+                message
+            );
+            request_adapter_for_backend(wgpu::BackendBit::SECONDARY, &window)
+                .await
+                .expect("Failed to initialize secondary backend!")
+        }
+    };
+    Setup {
+        window,
+        event_loop,
+        instance,
+        surface,
+        adapter,
+        device,
+        queue,
+    }
 }
 
 impl WgpuContext {
@@ -179,6 +224,10 @@ impl WgpuContext {
     }
     fn new(
         window: &winit::window::Window,
+        mut device: wgpu::Device,
+        queue: wgpu::Queue,
+        adapter: &wgpu::Adapter,
+        surface: wgpu::Surface,
         size_context: &SizeContext,
         grid_size: Size,
         font_bytes: FontBytes,
@@ -190,8 +239,6 @@ impl WgpuContext {
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
-        let (_instance, mut device, queue, adapter, surface) =
-            futures_executor::block_on(init_device(&window))?;
         let swapchain_format = adapter
             .get_swap_chain_preferred_format(&surface)
             .expect("Failed to find compatible texture format");
@@ -235,66 +282,30 @@ impl WgpuContext {
             }),
             &[global_uniforms],
         );
-        let underline_uniforms_size = mem::size_of::<UnderlineUniforms>() as wgpu::BufferAddress;
-        let underline_uniforms = UnderlineUniforms {
-            underline_width_cell_ratio: size_context.underline_width as f32,
-            underline_top_offset_cell_ratio: size_context.underline_top_offset as f32,
-        };
-        let underline_uniforms_buffer = populate_and_finish_buffer(
-            device.create_buffer(&wgpu::BufferDescriptor {
-                label: None,
-                size: 1 * underline_uniforms_size,
-                usage: wgpu::BufferUsage::UNIFORM,
-                mapped_at_creation: true,
-            }),
-            &[underline_uniforms],
-        );
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStage::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
+                count: None,
+            }],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &global_uniforms_buffer,
-                        offset: 0,
-                        size: None,
-                    }),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &underline_uniforms_buffer,
-                        offset: 0,
-                        size: None,
-                    }),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer: &global_uniforms_buffer,
+                    offset: 0,
+                    size: None,
+                }),
+            }],
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -322,7 +333,7 @@ impl WgpuContext {
                             shader_location: 1,
                         },
                         wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Uint32,
+                            format: wgpu::VertexFormat::Sint32,
                             offset: 24,
                             shader_location: 2,
                         },
@@ -504,6 +515,8 @@ impl SizeContext {
                 2. * (pixel_offset_to_centre.height as f32 / window_dimensions.height as f32),
             ],
             grid_width: self.grid_size().width(),
+            underline_width_cell_ratio: self.underline_width as f32,
+            underline_top_offset_cell_ratio: self.underline_top_offset as f32,
         }
     }
 }
@@ -515,6 +528,8 @@ pub struct Context {
     size_context: SizeContext,
     input_context: InputContext,
     text_buffer: String,
+    instance: wgpu::Instance,
+    adapter: wgpu::Adapter,
     #[cfg(feature = "gamepad")]
     gamepad: GamepadContext,
 }
@@ -552,20 +567,15 @@ impl Context {
             resizable,
         }: ContextDescriptor,
     ) -> Result<Self, ContextBuildError> {
-        let event_loop = winit::event_loop::EventLoop::new();
-        let window_builder = winit::window::WindowBuilder::new().with_title(title);
-        let window_builder = {
-            let logical_size =
-                winit::dpi::LogicalSize::new(window_dimensions.width, window_dimensions.height);
-            window_builder
-                .with_inner_size(logical_size)
-                .with_min_inner_size(logical_size)
-                .with_max_inner_size(logical_size)
-                .with_resizable(resizable)
-        };
-        let window = window_builder
-            .build(&event_loop)
-            .map_err(ContextBuildError::FailedToBuildWindow)?;
+        let Setup {
+            window,
+            event_loop,
+            instance,
+            surface,
+            adapter,
+            device,
+            queue,
+        } = pollster::block_on(setup(title.as_str(), window_dimensions, resizable));
         let size_context = SizeContext {
             font_source_scale: ab_glyph::PxScale {
                 x: font_source_dimensions.width,
@@ -578,7 +588,16 @@ impl Context {
             native_window_dimensions: window_dimensions,
         };
         let grid_size = size_context.grid_size();
-        let wgpu_context = WgpuContext::new(&window, &size_context, grid_size, font_bytes)?;
+        let wgpu_context = WgpuContext::new(
+            &window,
+            device,
+            queue,
+            &adapter,
+            surface,
+            &size_context,
+            grid_size,
+            font_bytes,
+        )?;
         log::info!("grid size: {:?}", grid_size);
         let window = Arc::new(window);
         Ok(Context {
@@ -588,6 +607,8 @@ impl Context {
             size_context,
             input_context: Default::default(),
             text_buffer: String::new(),
+            instance,
+            adapter,
             #[cfg(feature = "gamepad")]
             gamepad: GamepadContext::new(),
         })
@@ -608,17 +629,20 @@ impl Context {
             size_context,
             mut input_context,
             mut text_buffer,
+            instance,
+            adapter,
             #[cfg(feature = "gamepad")]
             mut gamepad,
         } = self;
         let mut frame_instant = Instant::now();
+        let mut last_update_inst = Instant::now();
         let mut exited = false;
         log::info!("Entering main event loop");
         let mut current_window_dimensions = size_context.native_window_dimensions;
         let mut staging_belt = wgpu::util::StagingBelt::new(1024);
-        let mut local_pool = futures::executor::LocalPool::new();
-        let local_spawner = local_pool.spawner();
+        let executor = async_executor::LocalExecutor::new();
         event_loop.run(move |event, _, control_flow| {
+            let _ = (&instance, &adapter); // force ownership by the closure
             if exited {
                 *control_flow = winit::event_loop::ControlFlow::Exit;
                 return;
@@ -766,19 +790,26 @@ impl Context {
                             )
                             .unwrap();
                         staging_belt.finish();
-                        wgpu_context.queue.submit(Some(encoder.finish()));
-                        use futures::task::SpawnExt;
-                        local_spawner
-                            .spawn(staging_belt.recall())
-                            .expect("Recall staging belt");
-                        local_pool.run_until_stalled();
+                        wgpu_context.queue.submit(std::iter::once(encoder.finish()));
+                        executor.spawn(staging_belt.recall()).detach();
                     } else {
                         log::warn!("timeout when acquiring next swapchain texture");
                         thread::sleep(Duration::from_millis(100));
                     }
                 }
-                winit::event::Event::MainEventsCleared => {
-                    window.request_redraw();
+                winit::event::Event::RedrawEventsCleared => {
+                    let target_frametime = Duration::from_secs_f64(1.0 / 60.0);
+                    let time_since_last_frame = last_update_inst.elapsed();
+                    if time_since_last_frame >= target_frametime {
+                        window.request_redraw();
+                        last_update_inst = Instant::now();
+                    } else {
+                        *control_flow = winit::event_loop::ControlFlow::WaitUntil(
+                            Instant::now() + target_frametime - time_since_last_frame,
+                        );
+                    }
+
+                    while executor.try_tick() {}
                 }
                 _ => (),
             }

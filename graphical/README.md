@@ -36,3 +36,14 @@ pkgs.mkShell {
   '';
 }
 ```
+
+## Compiling Shaders
+
+To simplify building/runnig, pre-compiled shaders are checked into the repo. After changing the
+shader source, run the `compile-shaders.sh` script to update the compiled shaders. This script
+depends on the [shader-translator](https://crates.io/crates/shader-translator) tool.
+
+```
+cargo install shader-translator
+./compile-shaders.sh
+```
