@@ -374,9 +374,24 @@ impl<A: App + 'static> ggez::event::EventHandler for GgezApp<A> {
     }
 }
 
+pub struct WindowHandle {}
+
+impl WindowHandle {
+    pub fn fullscreen(&self) -> bool {
+        false
+    }
+    pub fn set_fullscreen(&self, _fullscreen: bool) {
+        log::error!("Setting fullscreen not implemented!");
+    }
+}
+
 impl Context {
     pub fn new(config: Config) -> Self {
         Self { config }
+    }
+
+    pub fn window_handle(&self) -> WindowHandle {
+        WindowHandle {}
     }
 
     pub fn run_app<A>(self, app: A) -> !
