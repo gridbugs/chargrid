@@ -7,7 +7,9 @@ members = [
     "decorator",
     "menu",
     "text",
+    "wgpu",
     "graphical",
+    "graphical-common",
     "ansi-terminal",
     "web",
     "ggez",
@@ -21,7 +23,6 @@ members = [
     "examples/tetris/graphical",
     "examples/tetris/ansi-terminal",
     "examples/tetris/web",
-    "examples/tetris/ggez",
 
     "examples/drag/app",
     "examples/drag/ansi-terminal",

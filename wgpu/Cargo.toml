@@ -1,23 +1,30 @@
 [package]
-name = "chargrid_ggez"
-description = "Graphical chargrid context which renders with ggez"
+name = "chargrid_wgpu"
+description = "Graphical chargrid context which renders with wgpu"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/stevebob/chargrid.git"
 repository = "https://github.com/stevebob/chargrid.git"
-documentation = "https://docs.rs/chargrid_ggez"
+documentation = "https://docs.rs/chargrid_wgpu"
 edition = "2018"
 
 [features]
 serialize = ["chargrid_input/serialize", "chargrid_render/serialize"]
-gamepad = ["chargrid_input/gamepad"]
+gamepad = ["chargrid_gamepad", "chargrid_input/gamepad"]
 
 [dependencies]
 chargrid_graphical_common = { path = "../graphical-common", version = "0.1" }
 chargrid_render = { path = "../render", version = "0.2" }
 chargrid_input = { path = "../input", version = "0.2" }
 chargrid_app = { path = "../app", version = "0.2" }
+chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
+wgpu = "0.9"
+wgpu_glyph = "0.13"
+winit = "0.25"
+zerocopy = "0.5"
 log = "0.4"
-ggez = "0.6.0-rc1"
+grid_2d = "0.15"
+pollster = "0.2"
+async-executor = "1.0"

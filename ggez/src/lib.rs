@@ -1,30 +1,15 @@
 use chargrid_app::{App, ControlFlow};
+pub use chargrid_graphical_common::*;
 use chargrid_input::{keys, Input, KeyboardInput};
 use chargrid_render::{Buffer, Size, ViewContext};
 use std::time::Instant;
 
-pub struct FontBytes {
-    pub normal: Vec<u8>,
-    pub bold: Vec<u8>,
-}
-
-pub struct ContextDescriptor {
-    pub window_title: String,
-    pub window_width: u32,
-    pub window_height: u32,
-    pub cell_width: f64,
-    pub cell_height: f64,
-    pub font_bytes: FontBytes,
-    pub font_size: u16,
-    pub resizable: bool,
-}
-
 pub struct Context {
-    descriptor: ContextDescriptor,
+    config: Config,
 }
 
 struct GgezApp<A: App + 'static> {
-    descriptor: ContextDescriptor,
+    config: Config,
     chargrid_app: A,
     buffer: Buffer,
     last_frame: Instant,
@@ -54,8 +39,8 @@ impl<A: App + 'static> ggez::event::EventHandler for GgezApp<A> {
                 ctx,
                 &ggez::graphics::Text::new(cell.character),
                 ggez::mint::Point2 {
-                    x: coord.x as f32 * self.descriptor.cell_width as f32,
-                    y: coord.y as f32 * self.descriptor.cell_height as f32,
+                    x: coord.x as f32 * self.config.cell_dimensions_px.width as f32,
+                    y: coord.y as f32 * self.config.cell_dimensions_px.height as f32,
                 },
                 Some(cell.foreground_colour.to_f32_rgba(1.).into()),
             );
@@ -110,40 +95,37 @@ impl<A: App + 'static> ggez::event::EventHandler for GgezApp<A> {
 }
 
 impl Context {
-    pub fn new(descriptor: ContextDescriptor) -> Self {
-        Self { descriptor }
+    pub fn new(config: Config) -> Self {
+        Self { config }
     }
 
     pub fn run_app<A>(self, app: A) -> !
     where
         A: App + 'static,
     {
-        let Self { descriptor } = self;
+        let Self { config } = self;
         let grid_size = Size::new(
-            (descriptor.window_width as f64 / descriptor.cell_width) as u32,
-            (descriptor.window_height as f64 / descriptor.cell_height) as u32,
+            (config.window_dimensions_px.width as f64 / config.cell_dimensions_px.width) as u32,
+            (config.window_dimensions_px.height as f64 / config.cell_dimensions_px.height) as u32,
         );
         let buffer = Buffer::new(grid_size);
-        let (ctx, events_loop) =
-            ggez::ContextBuilder::new(descriptor.window_title.as_str(), "chargrid_ggez")
-                .window_setup(
-                    ggez::conf::WindowSetup::default().title(descriptor.window_title.as_str()),
-                )
-                .window_mode(
-                    ggez::conf::WindowMode::default()
-                        .dimensions(
-                            descriptor.window_width as f32,
-                            descriptor.window_height as f32,
-                        )
-                        .resizable(descriptor.resizable),
-                )
-                .build()
-                .expect("failed to initialize ggez");
+        let (ctx, events_loop) = ggez::ContextBuilder::new(config.title.as_str(), "chargrid_ggez")
+            .window_setup(ggez::conf::WindowSetup::default().title(config.title.as_str()))
+            .window_mode(
+                ggez::conf::WindowMode::default()
+                    .dimensions(
+                        config.window_dimensions_px.width as f32,
+                        config.window_dimensions_px.height as f32,
+                    )
+                    .resizable(config.resizable),
+            )
+            .build()
+            .expect("failed to initialize ggez");
         ggez::event::run(
             ctx,
             events_loop,
             GgezApp {
-                descriptor,
+                config,
                 chargrid_app: app,
                 buffer,
                 last_frame: Instant::now(),

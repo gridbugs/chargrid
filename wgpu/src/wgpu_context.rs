@@ -1,4 +1,4 @@
-use crate::{input, ContextDescriptor, Dimensions, FontBytes, NumPixels};
+use crate::{input, Config, Dimensions, FontBytes};
 use chargrid_app::{App, ControlFlow};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
@@ -167,7 +167,7 @@ async fn request_adapter_for_backend(
     Ok((adapter, instance, surface, device, queue))
 }
 
-async fn setup(title: &str, window_dimensions: Dimensions<NumPixels>, resizable: bool) -> Setup {
+async fn setup(title: &str, window_dimensions: Dimensions<f64>, resizable: bool) -> Setup {
     let event_loop = winit::event_loop::EventLoop::new();
     let window_builder = winit::window::WindowBuilder::new().with_title(title);
     let window_builder = {
@@ -180,23 +180,19 @@ async fn setup(title: &str, window_dimensions: Dimensions<NumPixels>, resizable:
             .with_resizable(resizable)
     };
     let window = window_builder.build(&event_loop).unwrap();
-    let (adapter, instance, surface, device, queue) = match request_adapter_for_backend(
-        wgpu::BackendBit::PRIMARY,
-        &window,
-    )
-    .await
-    {
-        Ok(x) => x,
-        Err(message) => {
-            log::error!(
+    let (adapter, instance, surface, device, queue) =
+        match request_adapter_for_backend(wgpu::BackendBit::PRIMARY, &window).await {
+            Ok(x) => x,
+            Err(message) => {
+                log::error!(
                 "Failed to initialize primary backend: {}\nFalling back to secondary backend....",
                 message
             );
-            request_adapter_for_backend(wgpu::BackendBit::SECONDARY, &window)
-                .await
-                .expect("Failed to initialize secondary backend!")
-        }
-    };
+                request_adapter_for_backend(wgpu::BackendBit::SECONDARY, &window)
+                    .await
+                    .expect("Failed to initialize secondary backend!")
+            }
+        };
     Setup {
         window,
         event_loop,
@@ -455,11 +451,10 @@ impl Default for InputContext {
 #[derive(Debug)]
 struct SizeContext {
     font_source_scale: ab_glyph::PxScale,
-    font_dimensions: Dimensions<NumPixels>,
-    cell_dimensions: Dimensions<NumPixels>,
-    underline_width: NumPixels,
-    underline_top_offset: NumPixels,
-    native_window_dimensions: Dimensions<NumPixels>,
+    cell_dimensions: Dimensions<f64>,
+    underline_width: f64,
+    underline_top_offset: f64,
+    native_window_dimensions: Dimensions<f64>,
 }
 
 impl SizeContext {
@@ -554,18 +549,21 @@ impl WindowHandle {
 }
 
 impl Context {
-    pub fn new(
-        ContextDescriptor {
+    pub fn new(config: Config) -> Self {
+        Self::try_new(config).expect("Failed to initialize context!")
+    }
+
+    pub fn try_new(
+        Config {
             font_bytes,
             title,
-            window_dimensions,
-            cell_dimensions,
-            font_dimensions,
-            font_source_dimensions,
-            underline_width,
-            underline_top_offset,
+            window_dimensions_px,
+            cell_dimensions_px,
+            font_scale,
+            underline_width_cell_ratio,
+            underline_top_offset_cell_ratio,
             resizable,
-        }: ContextDescriptor,
+        }: Config,
     ) -> Result<Self, ContextBuildError> {
         let Setup {
             window,
@@ -575,17 +573,16 @@ impl Context {
             adapter,
             device,
             queue,
-        } = pollster::block_on(setup(title.as_str(), window_dimensions, resizable));
+        } = pollster::block_on(setup(title.as_str(), window_dimensions_px, resizable));
         let size_context = SizeContext {
             font_source_scale: ab_glyph::PxScale {
-                x: font_source_dimensions.width,
-                y: font_source_dimensions.height,
+                x: font_scale.width as f32,
+                y: font_scale.height as f32,
             },
-            font_dimensions,
-            cell_dimensions,
-            underline_width,
-            underline_top_offset,
-            native_window_dimensions: window_dimensions,
+            cell_dimensions: cell_dimensions_px,
+            underline_width: underline_width_cell_ratio,
+            underline_top_offset: underline_top_offset_cell_ratio,
+            native_window_dimensions: window_dimensions_px,
         };
         let grid_size = size_context.grid_size();
         let wgpu_context = WgpuContext::new(
@@ -736,11 +733,7 @@ impl Context {
                         }
                         let offset_to_centre = size_context
                             .pixel_offset_to_centre_native_window(current_window_dimensions);
-                        let font_ratio = size_context.native_ratio(current_window_dimensions);
-                        let font_scale = ab_glyph::PxScale {
-                            x: font_ratio as f32 * size_context.font_dimensions.width as f32,
-                            y: font_ratio as f32 * size_context.font_dimensions.height as f32,
-                        };
+                        let font_scale = size_context.font_source_scale;
                         text_buffer.clear();
                         for row in wgpu_context.render_buffer.rows() {
                             for cell in row {

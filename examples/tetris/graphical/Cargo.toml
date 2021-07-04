@@ -4,8 +4,13 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 
+[features]
+default = ["wgpu"]
+wgpu = ["chargrid_graphical/wgpu"]
+ggez = ["chargrid_graphical/ggez"]
+
 [dependencies]
-chargrid_graphical = { path = "../../../graphical" }
+chargrid_graphical = { path = "../../../graphical", default-features = false }
 tetris_app = { path = "../app" }
 rand = "0.8"
 env_logger = "0.8"

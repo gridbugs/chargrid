@@ -10,6 +10,7 @@ cargo clean
 
 cargo test --workspace
 cargo test --manifest-path=chargrid/Cargo.toml --features=serialize
+cargo test --manifest-path=examples/tetris/graphical/Cargo.toml --no-default-features --features ggez
 
 cargo clean
 

@@ -1,6 +1,6 @@
 [package]
 name = "chargrid_graphical"
-description = "Graphical chargrid context which renders with wgpu"
+description = "Graphical chargrid context"
 version = "0.6.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
@@ -11,19 +11,13 @@ documentation = "https://docs.rs/chargrid_graphical"
 edition = "2018"
 
 [features]
-serialize = ["chargrid_input/serialize", "chargrid_render/serialize"]
-gamepad = ["chargrid_gamepad", "chargrid_input/gamepad"]
+default = ["wgpu"]
+serialize = ["chargrid_wgpu/serialize"]
+gamepad = ["chargrid_wgpu/gamepad"]
+wgpu = ["chargrid_wgpu"]
+ggez = ["chargrid_ggez"]
 
 [dependencies]
-chargrid_render = { path = "../render", version = "0.2" }
-chargrid_input = { path = "../input", version = "0.2" }
-chargrid_app = { path = "../app", version = "0.2" }
-chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
-wgpu = "0.9"
-wgpu_glyph = "0.13"
-winit = "0.25"
-zerocopy = "0.5"
-log = "0.4"
-grid_2d = "0.15"
-pollster = "0.2"
-async-executor = "1.0"
+chargrid_graphical_common = { path = "../graphical-common", version = "0.1" }
+chargrid_wgpu = { path = "../wgpu", version = "0.1", optional =  true }
+chargrid_ggez = { path = "../ggez", version = "0.1", optional =  true }
