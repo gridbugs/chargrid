@@ -1,0 +1,153 @@
+use chargrid_app::{App, ControlFlow};
+use chargrid_input::{keys, Input, KeyboardInput};
+use chargrid_render::{Buffer, Size, ViewContext};
+use std::time::Instant;
+
+pub struct FontBytes {
+    pub normal: Vec<u8>,
+    pub bold: Vec<u8>,
+}
+
+pub struct ContextDescriptor {
+    pub window_title: String,
+    pub window_width: u32,
+    pub window_height: u32,
+    pub cell_width: f64,
+    pub cell_height: f64,
+    pub font_bytes: FontBytes,
+    pub font_size: u16,
+    pub resizable: bool,
+}
+
+pub struct Context {
+    descriptor: ContextDescriptor,
+}
+
+struct GgezApp<A: App + 'static> {
+    descriptor: ContextDescriptor,
+    chargrid_app: A,
+    buffer: Buffer,
+    last_frame: Instant,
+}
+
+impl<A: App + 'static> ggez::event::EventHandler for GgezApp<A> {
+    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        const DESIRED_FPS: u32 = 60;
+        while ggez::timer::check_update_time(ctx, DESIRED_FPS) {}
+        let now = Instant::now();
+        self.buffer.clear();
+        let view_context = ViewContext::default_with_size(self.buffer.size());
+        if let Some(ControlFlow::Exit) =
+            self.chargrid_app
+                .on_frame(now - self.last_frame, view_context, &mut self.buffer)
+        {
+            ggez::event::quit(ctx);
+        }
+        self.last_frame = now;
+        Ok(())
+    }
+
+    fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        ggez::graphics::clear(ctx, [0., 0., 0., 1.0].into());
+        for (coord, cell) in self.buffer.enumerate() {
+            ggez::graphics::queue_text(
+                ctx,
+                &ggez::graphics::Text::new(cell.character),
+                ggez::mint::Point2 {
+                    x: coord.x as f32 * self.descriptor.cell_width as f32,
+                    y: coord.y as f32 * self.descriptor.cell_height as f32,
+                },
+                Some(cell.foreground_colour.to_f32_rgba(1.).into()),
+            );
+        }
+        ggez::graphics::draw_queued_text(
+            ctx,
+            ggez::graphics::DrawParam::default(),
+            None,
+            ggez::graphics::FilterMode::Linear,
+        )?;
+        ggez::graphics::present(ctx)?;
+        ggez::timer::yield_now();
+        Ok(())
+    }
+
+    fn resize_event(&mut self, ctx: &mut ggez::Context, width: f32, height: f32) {
+        ggez::graphics::set_screen_coordinates(
+            ctx,
+            ggez::graphics::Rect::new(0.0, 0.0, width, height),
+        )
+        .unwrap();
+    }
+
+    fn key_down_event(
+        &mut self,
+        ctx: &mut ggez::Context,
+        keycode: ggez::input::keyboard::KeyCode,
+        _keymods: ggez::input::keyboard::KeyMods,
+        _repeat: bool,
+    ) {
+        let input = match keycode {
+            ggez::event::KeyCode::Up => Input::Keyboard(KeyboardInput::Up),
+            ggez::event::KeyCode::Down => Input::Keyboard(KeyboardInput::Down),
+            ggez::event::KeyCode::Left => Input::Keyboard(KeyboardInput::Left),
+            ggez::event::KeyCode::Right => Input::Keyboard(KeyboardInput::Right),
+            ggez::event::KeyCode::Return => Input::Keyboard(keys::RETURN),
+            ggez::event::KeyCode::Escape => Input::Keyboard(keys::ESCAPE),
+            _ => return,
+        };
+        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(input) {
+            ggez::event::quit(ctx);
+        }
+    }
+
+    fn quit_event(&mut self, _ctx: &mut ggez::Context) -> bool {
+        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Keyboard(keys::ETX)) {
+            false
+        } else {
+            true
+        }
+    }
+}
+
+impl Context {
+    pub fn new(descriptor: ContextDescriptor) -> Self {
+        Self { descriptor }
+    }
+
+    pub fn run_app<A>(self, app: A) -> !
+    where
+        A: App + 'static,
+    {
+        let Self { descriptor } = self;
+        let grid_size = Size::new(
+            (descriptor.window_width as f64 / descriptor.cell_width) as u32,
+            (descriptor.window_height as f64 / descriptor.cell_height) as u32,
+        );
+        let buffer = Buffer::new(grid_size);
+        let (ctx, events_loop) =
+            ggez::ContextBuilder::new(descriptor.window_title.as_str(), "chargrid_ggez")
+                .window_setup(
+                    ggez::conf::WindowSetup::default().title(descriptor.window_title.as_str()),
+                )
+                .window_mode(
+                    ggez::conf::WindowMode::default()
+                        .dimensions(
+                            descriptor.window_width as f32,
+                            descriptor.window_height as f32,
+                        )
+                        .resizable(descriptor.resizable),
+                )
+                .build()
+                .expect("failed to initialize ggez");
+        ggez::event::run(
+            ctx,
+            events_loop,
+            GgezApp {
+                descriptor,
+                chargrid_app: app,
+                buffer,
+                last_frame: Instant::now(),
+            },
+        )
+    }
+}

@@ -12,7 +12,7 @@ use tetris::{Input as TetrisInput, Meta, PieceType, Tetris};
 const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24::new(24, 24, 24);
 const FOREGROUND_COLOUR: Rgb24 = Rgb24::new_grey(255);
 const BACKGROUND_COLOUR: Rgb24 = Rgb24::new_grey(0);
-const BLOCK_CHAR: char = '-';
+const BLOCK_CHAR: char = '+';
 const BLANK_CHAR: char = '-';
 
 const NEXT_PIECE_SIZE: [u32; 2] = [6, 4];

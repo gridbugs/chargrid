@@ -10,6 +10,7 @@ members = [
     "graphical",
     "ansi-terminal",
     "web",
+    "ggez",
     "gamepad",
     "input",
     "event-routine",
@@ -20,6 +21,7 @@ members = [
     "examples/tetris/graphical",
     "examples/tetris/ansi-terminal",
     "examples/tetris/web",
+    "examples/tetris/ggez",
 
     "examples/drag/app",
     "examples/drag/ansi-terminal",
