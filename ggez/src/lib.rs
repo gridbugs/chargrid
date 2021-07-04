@@ -1,7 +1,7 @@
 use chargrid_app::{App, ControlFlow};
 pub use chargrid_graphical_common::*;
-use chargrid_input::{keys, Input, KeyboardInput};
-use chargrid_render::{Buffer, Rgb24, Size, ViewContext};
+use chargrid_input::{keys, Input, KeyboardInput, MouseButton, MouseInput, ScrollDirection};
+use chargrid_render::{Buffer, Coord, Rgb24, Size, ViewContext};
 use std::time::Instant;
 
 pub struct Context {
@@ -23,6 +23,28 @@ struct GgezApp<A: App + 'static> {
     background_mesh: ggez::graphics::Mesh,
     cell_width: f32,
     cell_height: f32,
+    current_mouse_button: Option<MouseButton>,
+    current_mouse_position: Coord,
+    #[cfg(feature = "gamepad")]
+    gamepad_id_to_integer_id: hashbrown::HashMap<ggez::event::GamepadId, u64>,
+}
+
+impl<A: App + 'static> GgezApp<A> {
+    fn convert_mouse_position(&self, x: f32, y: f32) -> Coord {
+        Coord {
+            x: (x / self.cell_width) as i32,
+            y: (y / self.cell_height) as i32,
+        }
+    }
+
+    fn convert_mouse_button(button: ggez::event::MouseButton) -> Option<MouseButton> {
+        match button {
+            ggez::input::mouse::MouseButton::Left => Some(MouseButton::Left),
+            ggez::input::mouse::MouseButton::Right => Some(MouseButton::Right),
+            ggez::input::mouse::MouseButton::Middle => Some(MouseButton::Middle),
+            ggez::input::mouse::MouseButton::Other(_) => None,
+        }
+    }
 }
 
 impl<A: App + 'static> ggez::event::EventHandler for GgezApp<A> {
@@ -113,20 +135,193 @@ impl<A: App + 'static> ggez::event::EventHandler for GgezApp<A> {
         &mut self,
         ctx: &mut ggez::Context,
         keycode: ggez::input::keyboard::KeyCode,
-        _keymods: ggez::input::keyboard::KeyMods,
+        keymods: ggez::input::keyboard::KeyMods,
         _repeat: bool,
     ) {
-        let input = match keycode {
-            ggez::event::KeyCode::Up => Input::Keyboard(KeyboardInput::Up),
-            ggez::event::KeyCode::Down => Input::Keyboard(KeyboardInput::Down),
-            ggez::event::KeyCode::Left => Input::Keyboard(KeyboardInput::Left),
-            ggez::event::KeyCode::Right => Input::Keyboard(KeyboardInput::Right),
-            ggez::event::KeyCode::Return => Input::Keyboard(keys::RETURN),
-            ggez::event::KeyCode::Escape => Input::Keyboard(keys::ESCAPE),
-            _ => return,
+        let key_char_shift = |lower: char, upper: char| {
+            KeyboardInput::Char(if keymods.contains(ggez::input::keyboard::KeyMods::SHIFT) {
+                upper
+            } else {
+                lower
+            })
         };
-        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(input) {
+        let input = match keycode {
+            ggez::event::KeyCode::A => key_char_shift('a', 'A'),
+            ggez::event::KeyCode::B => key_char_shift('b', 'B'),
+            ggez::event::KeyCode::C => key_char_shift('c', 'C'),
+            ggez::event::KeyCode::D => key_char_shift('d', 'D'),
+            ggez::event::KeyCode::E => key_char_shift('e', 'E'),
+            ggez::event::KeyCode::F => key_char_shift('f', 'F'),
+            ggez::event::KeyCode::G => key_char_shift('g', 'G'),
+            ggez::event::KeyCode::H => key_char_shift('h', 'H'),
+            ggez::event::KeyCode::I => key_char_shift('i', 'I'),
+            ggez::event::KeyCode::J => key_char_shift('j', 'J'),
+            ggez::event::KeyCode::K => key_char_shift('k', 'K'),
+            ggez::event::KeyCode::L => key_char_shift('l', 'L'),
+            ggez::event::KeyCode::M => key_char_shift('m', 'M'),
+            ggez::event::KeyCode::N => key_char_shift('n', 'N'),
+            ggez::event::KeyCode::O => key_char_shift('o', 'O'),
+            ggez::event::KeyCode::P => key_char_shift('p', 'P'),
+            ggez::event::KeyCode::Q => key_char_shift('q', 'Q'),
+            ggez::event::KeyCode::R => key_char_shift('r', 'R'),
+            ggez::event::KeyCode::S => key_char_shift('s', 'S'),
+            ggez::event::KeyCode::T => key_char_shift('t', 'T'),
+            ggez::event::KeyCode::U => key_char_shift('u', 'U'),
+            ggez::event::KeyCode::V => key_char_shift('v', 'V'),
+            ggez::event::KeyCode::W => key_char_shift('w', 'W'),
+            ggez::event::KeyCode::X => key_char_shift('x', 'X'),
+            ggez::event::KeyCode::Y => key_char_shift('y', 'Y'),
+            ggez::event::KeyCode::Z => key_char_shift('z', 'Z'),
+            ggez::event::KeyCode::Key1 => KeyboardInput::Char('1'),
+            ggez::event::KeyCode::Key2 => KeyboardInput::Char('2'),
+            ggez::event::KeyCode::Key3 => KeyboardInput::Char('3'),
+            ggez::event::KeyCode::Key4 => KeyboardInput::Char('4'),
+            ggez::event::KeyCode::Key5 => KeyboardInput::Char('5'),
+            ggez::event::KeyCode::Key6 => KeyboardInput::Char('6'),
+            ggez::event::KeyCode::Key7 => KeyboardInput::Char('7'),
+            ggez::event::KeyCode::Key8 => KeyboardInput::Char('8'),
+            ggez::event::KeyCode::Key9 => KeyboardInput::Char('9'),
+            ggez::event::KeyCode::Key0 => KeyboardInput::Char('0'),
+            ggez::event::KeyCode::Numpad1 => KeyboardInput::Char('1'),
+            ggez::event::KeyCode::Numpad2 => KeyboardInput::Char('2'),
+            ggez::event::KeyCode::Numpad3 => KeyboardInput::Char('3'),
+            ggez::event::KeyCode::Numpad4 => KeyboardInput::Char('4'),
+            ggez::event::KeyCode::Numpad5 => KeyboardInput::Char('5'),
+            ggez::event::KeyCode::Numpad6 => KeyboardInput::Char('6'),
+            ggez::event::KeyCode::Numpad7 => KeyboardInput::Char('7'),
+            ggez::event::KeyCode::Numpad8 => KeyboardInput::Char('8'),
+            ggez::event::KeyCode::Numpad9 => KeyboardInput::Char('9'),
+            ggez::event::KeyCode::Numpad0 => KeyboardInput::Char('0'),
+            ggez::event::KeyCode::F1 => KeyboardInput::Function(1),
+            ggez::event::KeyCode::F2 => KeyboardInput::Function(2),
+            ggez::event::KeyCode::F3 => KeyboardInput::Function(3),
+            ggez::event::KeyCode::F4 => KeyboardInput::Function(4),
+            ggez::event::KeyCode::F5 => KeyboardInput::Function(5),
+            ggez::event::KeyCode::F6 => KeyboardInput::Function(6),
+            ggez::event::KeyCode::F7 => KeyboardInput::Function(7),
+            ggez::event::KeyCode::F8 => KeyboardInput::Function(8),
+            ggez::event::KeyCode::F9 => KeyboardInput::Function(9),
+            ggez::event::KeyCode::F10 => KeyboardInput::Function(10),
+            ggez::event::KeyCode::F11 => KeyboardInput::Function(11),
+            ggez::event::KeyCode::F12 => KeyboardInput::Function(12),
+            ggez::event::KeyCode::F13 => KeyboardInput::Function(13),
+            ggez::event::KeyCode::F14 => KeyboardInput::Function(14),
+            ggez::event::KeyCode::F15 => KeyboardInput::Function(15),
+            ggez::event::KeyCode::F16 => KeyboardInput::Function(16),
+            ggez::event::KeyCode::F17 => KeyboardInput::Function(17),
+            ggez::event::KeyCode::F18 => KeyboardInput::Function(18),
+            ggez::event::KeyCode::F19 => KeyboardInput::Function(19),
+            ggez::event::KeyCode::F20 => KeyboardInput::Function(20),
+            ggez::event::KeyCode::F21 => KeyboardInput::Function(21),
+            ggez::event::KeyCode::F22 => KeyboardInput::Function(22),
+            ggez::event::KeyCode::F23 => KeyboardInput::Function(23),
+            ggez::event::KeyCode::F24 => KeyboardInput::Function(24),
+            ggez::event::KeyCode::At => KeyboardInput::Char('@'),
+            ggez::event::KeyCode::Plus => KeyboardInput::Char('+'),
+            ggez::event::KeyCode::Minus => KeyboardInput::Char('-'),
+            ggez::event::KeyCode::Equals => key_char_shift('=', '+'),
+            ggez::event::KeyCode::Backslash => KeyboardInput::Char('\\'),
+            ggez::event::KeyCode::Grave => KeyboardInput::Char('`'),
+            ggez::event::KeyCode::Apostrophe => KeyboardInput::Char('\''),
+            ggez::event::KeyCode::LBracket => KeyboardInput::Char('['),
+            ggez::event::KeyCode::RBracket => KeyboardInput::Char(']'),
+            ggez::event::KeyCode::Period => KeyboardInput::Char('.'),
+            ggez::event::KeyCode::Comma => KeyboardInput::Char(','),
+            ggez::event::KeyCode::Slash => KeyboardInput::Char('/'),
+            ggez::event::KeyCode::NumpadAdd => KeyboardInput::Char('+'),
+            ggez::event::KeyCode::NumpadSubtract => KeyboardInput::Char('-'),
+            ggez::event::KeyCode::NumpadMultiply => KeyboardInput::Char('*'),
+            ggez::event::KeyCode::NumpadDivide => KeyboardInput::Char('/'),
+            ggez::event::KeyCode::PageUp => KeyboardInput::PageUp,
+            ggez::event::KeyCode::PageDown => KeyboardInput::PageDown,
+            ggez::event::KeyCode::Home => KeyboardInput::Home,
+            ggez::event::KeyCode::End => KeyboardInput::End,
+            ggez::event::KeyCode::Up => KeyboardInput::Up,
+            ggez::event::KeyCode::Down => KeyboardInput::Down,
+            ggez::event::KeyCode::Left => KeyboardInput::Left,
+            ggez::event::KeyCode::Right => KeyboardInput::Right,
+            ggez::event::KeyCode::Return => keys::RETURN,
+            ggez::event::KeyCode::Escape => keys::ESCAPE,
+            other => {
+                log::warn!("Unhandled input: {:?}", other);
+                return;
+            }
+        };
+        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Keyboard(input)) {
             ggez::event::quit(ctx);
+        }
+    }
+
+    fn mouse_button_down_event(
+        &mut self,
+        ctx: &mut ggez::Context,
+        button: ggez::event::MouseButton,
+        x: f32,
+        y: f32,
+    ) {
+        if let Some(button) = Self::convert_mouse_button(button) {
+            self.current_mouse_button = Some(button);
+            let coord = self.convert_mouse_position(x, y);
+            self.current_mouse_position = coord;
+            let input = MouseInput::MousePress { button, coord };
+            if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Mouse(input)) {
+                ggez::event::quit(ctx);
+            }
+        }
+    }
+
+    fn mouse_button_up_event(
+        &mut self,
+        ctx: &mut ggez::Context,
+        button: ggez::event::MouseButton,
+        x: f32,
+        y: f32,
+    ) {
+        if let Some(button) = Self::convert_mouse_button(button) {
+            self.current_mouse_button = None;
+            let coord = self.convert_mouse_position(x, y);
+            self.current_mouse_position = coord;
+            let input = MouseInput::MouseRelease {
+                button: Ok(button),
+                coord,
+            };
+            if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Mouse(input)) {
+                ggez::event::quit(ctx);
+            }
+        }
+    }
+
+    fn mouse_motion_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32, _dx: f32, _dy: f32) {
+        let coord = self.convert_mouse_position(x, y);
+        self.current_mouse_position = coord;
+        let input = MouseInput::MouseMove {
+            coord,
+            button: self.current_mouse_button,
+        };
+        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Mouse(input)) {
+            ggez::event::quit(ctx);
+        }
+    }
+
+    fn mouse_wheel_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32) {
+        let mut handle = |direction| {
+            let coord = self.current_mouse_position;
+            let input = MouseInput::MouseScroll { direction, coord };
+            if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Mouse(input)) {
+                ggez::event::quit(ctx);
+            }
+        };
+        if x > 0.0 {
+            handle(ScrollDirection::Right);
+        }
+        if x < 0.0 {
+            handle(ScrollDirection::Left);
+        }
+        if y > 0.0 {
+            handle(ScrollDirection::Up);
+        }
+        if y < 0.0 {
+            handle(ScrollDirection::Down);
         }
     }
 
@@ -135,6 +330,46 @@ impl<A: App + 'static> ggez::event::EventHandler for GgezApp<A> {
             false
         } else {
             true
+        }
+    }
+
+    #[cfg(feature = "gamepad")]
+    fn gamepad_button_down_event(
+        &mut self,
+        ctx: &mut ggez::Context,
+        btn: ggez::event::Button,
+        id: ggez::event::GamepadId,
+    ) {
+        use chargrid_input::{GamepadButton, GamepadInput};
+        let num_gamepad_ids = self.gamepad_id_to_integer_id.len() as u64;
+        let &mut integer_id = self
+            .gamepad_id_to_integer_id
+            .entry(id)
+            .or_insert(num_gamepad_ids);
+        let button = match btn {
+            ggez::event::Button::DPadUp => GamepadButton::DPadUp,
+            ggez::event::Button::DPadRight => GamepadButton::DPadRight,
+            ggez::event::Button::DPadDown => GamepadButton::DPadDown,
+            ggez::event::Button::DPadLeft => GamepadButton::DPadLeft,
+            ggez::event::Button::North => GamepadButton::North,
+            ggez::event::Button::East => GamepadButton::East,
+            ggez::event::Button::South => GamepadButton::South,
+            ggez::event::Button::West => GamepadButton::West,
+            ggez::event::Button::Start => GamepadButton::Start,
+            ggez::event::Button::Select => GamepadButton::Select,
+            ggez::event::Button::LeftTrigger => GamepadButton::LeftBumper,
+            ggez::event::Button::RightTrigger => GamepadButton::RightBumper,
+            other => {
+                log::warn!("Unhandled input: {:?}", other);
+                return;
+            }
+        };
+        let input = GamepadInput {
+            button,
+            id: integer_id,
+        };
+        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Gamepad(input)) {
+            ggez::event::quit(ctx);
         }
     }
 }
@@ -231,6 +466,10 @@ impl Context {
                 background_mesh,
                 cell_width: config.cell_dimensions_px.width as f32,
                 cell_height: config.cell_dimensions_px.height as f32,
+                current_mouse_button: None,
+                current_mouse_position: Coord::new(0, 0),
+                #[cfg(feature = "gamepad")]
+                gamepad_id_to_integer_id: hashbrown::HashMap::default(),
             },
         )
     }

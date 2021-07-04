@@ -13,7 +13,7 @@ edition = "2018"
 [features]
 default = ["wgpu"]
 serialize = ["chargrid_wgpu/serialize"]
-gamepad = ["chargrid_wgpu/gamepad"]
+gamepad = ["chargrid_wgpu/gamepad", "chargrid_ggez/gamepad"]
 wgpu = ["chargrid_wgpu"]
 ggez = ["chargrid_ggez"]
 
