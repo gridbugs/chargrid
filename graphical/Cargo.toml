@@ -18,6 +18,6 @@ wgpu = ["chargrid_wgpu"]
 ggez = ["chargrid_ggez"]
 
 [dependencies]
-chargrid_graphical_common = { path = "../graphical-common", version = "0.1" }
+chargrid_graphical_common = { path = "../graphical-common", version = "0.2" }
 chargrid_wgpu = { path = "../wgpu", version = "0.1", optional =  true }
 chargrid_ggez = { path = "../ggez", version = "0.1", optional =  true }
