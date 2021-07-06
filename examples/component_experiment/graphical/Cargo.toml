@@ -1,0 +1,8 @@
+[package]
+name = "component_experiment_graphical"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+chargrid_graphical = { path = "../../../graphical" }
+chargrid_component = { path = "../../../component" }

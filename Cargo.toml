@@ -16,6 +16,7 @@ members = [
     "gamepad",
     "input",
     "event-routine",
+    "component",
     "test-grid",
 
     "examples/tetris/tetris",
@@ -48,6 +49,8 @@ members = [
     "examples/soundboard/graphical",
     "examples/soundboard/ansi-terminal",
     "examples/soundboard/web",
+
+    "examples/component_experiment/graphical",
 ]
 
 [profile.release]
