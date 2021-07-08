@@ -1,31 +1,29 @@
 use chargrid_component::*;
-use chargrid_component_common::menu;
+use chargrid_component_common::{menu, text};
 use chargrid_graphical::*;
 
 struct HelloWorld;
 impl PureComponent for HelloWorld {
-    type PureOutput = Option<ControlFlow>;
+    type Output = Option<ControlFlow>;
 
-    fn pure_render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
-        let s = "Hello, World!";
-        let offset = ctx.bounding_box.coord + Coord::new(2, 2);
-        for (i, character) in s.chars().enumerate() {
-            fb.set_cell(
-                offset + Coord::new(i as i32, 0),
-                1,
-                RenderCell {
-                    character: Some(character),
-                    style: Style {
-                        foreground: Some(Rgba32::new_rgb(0, 255, 255)),
-                        background: Some(Rgba32::new_rgb(255, 0, 255)),
-                        underline: Some(true),
-                        bold: Some(true),
-                    },
-                },
-            );
+    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+        text::StyledString {
+            string: "Hello, World!".to_string(),
+            style: Style {
+                foreground: Some(Rgba32::new_rgb(0, 255, 255)),
+                background: Some(Rgba32::new_rgb(255, 0, 255)),
+                underline: Some(true),
+                bold: Some(true),
+            },
         }
+        .wrap_word()
+        .render(
+            ctx.add_offset(Coord::new(2, 3))
+                .constrain_size(Coord::new(8, 5)),
+            fb,
+        );
     }
-    fn pure_update(&mut self, _ctx: Ctx, event: Event) -> Self::PureOutput {
+    fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
         match event {
             Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(ControlFlow::Exit),
             _ => None,
@@ -57,8 +55,8 @@ fn main() {
         resizable: false,
     });
     let app_wrapper = AppWrapper {
-        component: HelloWorld,
-        frame_buffer: FrameBuffer::new(Size::new(100, 100)),
+        component: HelloWorld.component(),
+        frame_buffer: FrameBuffer::new(context.grid_size()),
     };
     context.run_app(app_wrapper);
 }

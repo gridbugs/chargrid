@@ -5,26 +5,52 @@ use input::Input;
 pub use rgba32::Rgba32;
 use std::time::Duration;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct BoundingBox {
-    pub coord: Coord,
-    pub size: Size,
+    top_left: Coord,
+    bottom_right: Coord,
 }
 
 impl BoundingBox {
     pub fn default_with_size(size: Size) -> Self {
         Self {
-            coord: Coord::new(0, 0),
-            size,
+            top_left: Coord::new(0, 0),
+            bottom_right: size.to_coord().unwrap(),
         }
     }
 
+    pub fn size(&self) -> Size {
+        (self.bottom_right - self.top_left).to_size().unwrap()
+    }
+
     pub fn coord_relative_to_absolute(&self, coord: Coord) -> Option<Coord> {
-        let absolute_coord = self.coord + coord;
-        if coord.x >= self.coord.x && coord.y >= self.coord.y && self.size.is_valid(coord) {
+        if coord.x < 0 || coord.y < 0 {
+            return None;
+        }
+        let absolute_coord = self.top_left + coord;
+        if absolute_coord.x < self.bottom_right.x && absolute_coord.y < self.bottom_right.y {
             Some(absolute_coord)
         } else {
             None
+        }
+    }
+
+    pub fn add_offset(self, offset: Coord) -> Self {
+        let top_left = Coord {
+            x: (self.top_left.x + offset.x).min(self.bottom_right.x),
+            y: (self.top_left.y + offset.y).min(self.bottom_right.y),
+        };
+        Self { top_left, ..self }
+    }
+
+    pub fn constrain_size(self, by: Coord) -> Self {
+        let bottom_right = Coord {
+            x: (self.bottom_right.x - by.x).max(self.top_left.x),
+            y: (self.bottom_right.y - by.y).max(self.top_left.y),
+        };
+        Self {
+            bottom_right,
+            ..self
         }
     }
 }
@@ -237,6 +263,20 @@ impl<'a> Ctx<'a> {
             bounding_box: BoundingBox::default_with_size(size),
         }
     }
+
+    pub fn add_offset(self, offset: Coord) -> Self {
+        Self {
+            bounding_box: self.bounding_box.add_offset(offset),
+            ..self
+        }
+    }
+
+    pub fn constrain_size(self, by: Coord) -> Self {
+        Self {
+            bounding_box: self.bounding_box.constrain_size(by),
+            ..self
+        }
+    }
 }
 
 pub enum Event {
@@ -245,25 +285,75 @@ pub enum Event {
     Peek,
 }
 
-pub trait Component<S> {
+pub trait Component {
     type Output;
-    fn render(&self, state: &S, ctx: Ctx, fb: &mut FrameBuffer);
-    fn update(&mut self, state: &mut S, ctx: Ctx, event: Event) -> Self::Output;
+    type State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer);
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output;
 }
 
-pub trait PureComponent {
-    type PureOutput;
-    fn pure_render(&self, ctx: Ctx, fb: &mut FrameBuffer);
-    fn pure_update(&mut self, ctx: Ctx, event: Event) -> Self::PureOutput;
-}
-
-impl<T: PureComponent, S> Component<S> for T {
-    type Output = T::PureOutput;
-    fn render(&self, _: &S, ctx: Ctx, fb: &mut FrameBuffer) {
-        self.pure_render(ctx, fb);
+pub trait PureComponent: Sized {
+    type Output;
+    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer);
+    fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output;
+    fn component(self) -> convert::PureComponentT<Self> {
+        convert::PureComponentT(self)
     }
-    fn update(&mut self, _: &mut S, ctx: Ctx, event: Event) -> Self::Output {
-        self.pure_update(ctx, event)
+}
+
+pub trait StaticComponent: Sized {
+    type State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer);
+    fn component(self) -> convert::StaticComponentT<Self> {
+        convert::StaticComponentT(self)
+    }
+}
+
+pub trait PureStaticComponent: Sized {
+    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer);
+    fn component(self) -> convert::PureStaticComponentT<Self> {
+        convert::PureStaticComponentT(self)
+    }
+}
+
+pub mod convert {
+    use super::{
+        Component, Ctx, Event, FrameBuffer, PureComponent, PureStaticComponent, StaticComponent,
+    };
+
+    pub struct PureComponentT<T: PureComponent>(pub T);
+
+    impl<T: PureComponent> Component for PureComponentT<T> {
+        type State = ();
+        type Output = T::Output;
+        fn render(&self, _: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+            self.0.render(ctx, fb);
+        }
+        fn update(&mut self, _: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+            self.0.update(ctx, event)
+        }
+    }
+
+    pub struct StaticComponentT<T: StaticComponent>(pub T);
+
+    impl<T: StaticComponent> Component for StaticComponentT<T> {
+        type State = T::State;
+        type Output = ();
+        fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+            self.0.render(state, ctx, fb);
+        }
+        fn update(&mut self, _: &mut Self::State, _: Ctx, _: Event) -> Self::Output {}
+    }
+
+    pub struct PureStaticComponentT<T: PureStaticComponent>(pub T);
+
+    impl<T: PureStaticComponent> Component for PureStaticComponentT<T> {
+        type State = ();
+        type Output = ();
+        fn render(&self, _: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+            self.0.render(ctx, fb);
+        }
+        fn update(&mut self, _: &mut Self::State, _: Ctx, _: Event) -> Self::Output {}
     }
 }
 
@@ -282,14 +372,14 @@ pub enum ControlFlow {
 }
 
 /// Temporary wrapper to convert a Component into an App
-pub struct AppWrapper<C> {
+pub struct AppWrapper<C: Component<State = (), Output = Option<ControlFlow>>> {
     pub component: C,
     pub frame_buffer: FrameBuffer,
 }
 
 impl<C> chargrid_app::App for AppWrapper<C>
 where
-    C: Component<(), Output = Option<ControlFlow>>,
+    C: Component<State = (), Output = Option<ControlFlow>>,
 {
     fn on_input(&mut self, input: Input) -> Option<chargrid_app::ControlFlow> {
         self.component

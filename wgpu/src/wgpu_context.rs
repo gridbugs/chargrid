@@ -610,6 +610,11 @@ impl Context {
             gamepad: GamepadContext::new(),
         })
     }
+
+    pub fn grid_size(&self) -> Size {
+        self.size_context.grid_size()
+    }
+
     pub fn window_handle(&self) -> WindowHandle {
         WindowHandle {
             window: self.window.clone(),
