@@ -2,7 +2,7 @@ pub use chargrid_input as input;
 use grid_2d::Grid;
 pub use grid_2d::{Coord, Size};
 use input::Input;
-pub use rgba32::Rgba32;
+pub use rgba32::{rgba32, rgba32_grey, rgba32_rgb, Rgba32};
 use std::time::Duration;
 
 #[derive(Clone, Copy, Debug)]
@@ -368,6 +368,18 @@ pub mod convert {
             self.0.render(ctx, fb);
         }
         fn update(&mut self, _: &mut Self::State, _: Ctx, _: Event) -> Self::Output {}
+    }
+
+    pub struct ComponentPureT<C: Component<State = ()>>(pub C);
+
+    impl<C: Component<State = ()>> PureComponent for ComponentPureT<C> {
+        type Output = C::Output;
+        fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+            self.0.render(&(), ctx, fb);
+        }
+        fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output {
+            self.0.update(&mut (), ctx, event)
+        }
     }
 }
 

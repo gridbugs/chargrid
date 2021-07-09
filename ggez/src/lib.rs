@@ -47,7 +47,7 @@ impl<A: App + 'static> GgezApp<A> {
     }
 }
 
-impl<A: App + 'static> ggez::event::EventHandler for GgezApp<A> {
+impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         const DESIRED_FPS: u32 = 60;
         while ggez::timer::check_update_time(ctx, DESIRED_FPS) {}

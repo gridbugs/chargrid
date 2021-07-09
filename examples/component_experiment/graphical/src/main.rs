@@ -2,9 +2,15 @@ use chargrid_component::*;
 use chargrid_component_common::{menu, text};
 use chargrid_graphical::*;
 
+#[derive(Clone)]
+enum MenuItem {
+    String(String),
+    Quit,
+}
+
 struct HelloWorld {
     title: text::StyledStringWordWrapped,
-    menu: menu::Menu<String>,
+    menu: menu::PureMenu<MenuItem>,
 }
 
 impl HelloWorld {
@@ -20,7 +26,47 @@ impl HelloWorld {
                 },
             }
             .wrap_word(),
-            menu: menu::MenuBuilder::default().add_item().build(),
+            menu: {
+                use menu::builder::*;
+                let make_identifier = |s: &str| {
+                    identifiers_styled_strings(
+                        format!("> {}", s),
+                        format!("  {}", s),
+                        Style {
+                            bold: Some(true),
+                            foreground: Some(rgba32_grey(255)),
+                            ..Style::default()
+                        },
+                        Style {
+                            bold: Some(false),
+                            foreground: Some(rgba32_grey(127)),
+                            ..Style::default()
+                        },
+                    )
+                };
+                menu_builder()
+                    .add_choice(
+                        choice(
+                            MenuItem::String("foo".to_string()),
+                            make_identifier("[F]oo"),
+                        )
+                        .add_hotkey(KeyboardInput::Char('f')),
+                    )
+                    .add_choice(
+                        choice(
+                            MenuItem::String("bar".to_string()),
+                            make_identifier("[B]ar"),
+                        )
+                        .add_hotkey(KeyboardInput::Char('b')),
+                    )
+                    .add_space()
+                    .add_choice(
+                        choice(MenuItem::Quit, make_identifier("[Q]uit"))
+                            .add_hotkey(KeyboardInput::Char('q')),
+                    )
+                    .build()
+                    .pure()
+            },
         }
     }
 }
@@ -34,6 +80,7 @@ impl PureComponent for HelloWorld {
                 .constrain_size_by(Coord::new(8, 5)),
             fb,
         );
+        self.menu.render(ctx.add_offset(Coord::new(4, 6)), fb);
     }
 
     fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
