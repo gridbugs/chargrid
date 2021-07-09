@@ -59,7 +59,6 @@ impl HelloWorld {
                         )
                         .add_hotkey(KeyboardInput::Char('b')),
                     )
-                    .add_space()
                     .add_choice(
                         choice(MenuItem::Quit, make_identifier("[Q]uit"))
                             .add_hotkey(KeyboardInput::Char('q')),
@@ -83,10 +82,22 @@ impl PureComponent for HelloWorld {
         self.menu.render(ctx.add_offset(Coord::new(4, 6)), fb);
     }
 
-    fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
+    fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output {
         match event {
             Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(ControlFlow::Exit),
-            _ => None,
+            _ => {
+                if let Some(choice) = self.menu.update(ctx.add_offset(Coord::new(4, 6)), event) {
+                    match choice {
+                        MenuItem::String(s) => {
+                            self.title.styled_string.string = s;
+                            None
+                        }
+                        MenuItem::Quit => Some(ControlFlow::Exit),
+                    }
+                } else {
+                    None
+                }
+            }
         }
     }
 }

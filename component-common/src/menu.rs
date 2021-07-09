@@ -13,7 +13,6 @@ pub struct MenuItemChoice<T: Clone, S = ()> {
 
 pub enum MenuItem<T: Clone, S = ()> {
     Choice(MenuItemChoice<T, S>),
-    Space,
 }
 
 pub struct Menu<T: Clone, S = ()> {
@@ -29,6 +28,98 @@ pub type PureMenu<T> = convert::ComponentPureT<Menu<T, ()>>;
 impl<T: Clone> Menu<T, ()> {
     pub fn pure(self) -> PureMenu<T> {
         convert::ComponentPureT(self)
+    }
+}
+
+impl<T: Clone, S> Menu<T, S> {
+    pub fn up(&mut self) {
+        match self.selected_index.checked_sub(1) {
+            Some(index) => self.selected_index = index,
+            None => self.selected_index = self.items.len() - 1,
+        }
+    }
+
+    pub fn down(&mut self) {
+        if self.selected_index < self.items.len() - 1 {
+            self.selected_index += 1;
+        } else {
+            self.selected_index = 0;
+        }
+    }
+
+    pub fn set_index(&mut self, index: usize) {
+        if index < self.items.len() {
+            self.selected_index = index;
+        }
+    }
+
+    pub fn index(&self) -> usize {
+        self.selected_index
+    }
+
+    pub fn selected(&self) -> &T {
+        match &self.items[self.selected_index] {
+            MenuItem::Choice(choice) => &choice.value,
+        }
+    }
+
+    fn menu_index_from_screen_coord(&self, ctx: Ctx, coord: Coord) -> Option<usize> {
+        if let Some(relative_coord) = ctx.bounding_box.coord_absolute_to_relative(coord) {
+            let index = relative_coord.y as usize;
+            if index < self.items.len() {
+                Some(index)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn choose(&mut self, ctx: Ctx, input: input::Input) -> Option<T> {
+        use input::*;
+        match input {
+            Input::Keyboard(keys::RETURN) | Input::Keyboard(KeyboardInput::Char(' ')) => {
+                return Some(self.selected().clone());
+            }
+            Input::Keyboard(KeyboardInput::Up)
+            | Input::Mouse(MouseInput::MouseScroll {
+                direction: ScrollDirection::Up,
+                ..
+            }) => self.up(),
+            Input::Keyboard(KeyboardInput::Down)
+            | Input::Mouse(MouseInput::MouseScroll {
+                direction: ScrollDirection::Down,
+                ..
+            }) => self.down(),
+            Input::Keyboard(other) => {
+                if let Some(item) = self.hotkeys.get(&other).cloned() {
+                    return Some(item);
+                }
+            }
+            Input::Mouse(MouseInput::MouseMove { coord, .. }) => {
+                if let Some(index) = self.menu_index_from_screen_coord(ctx, coord) {
+                    self.set_index(index);
+                }
+            }
+            Input::Mouse(MouseInput::MousePress { coord, .. }) => {
+                if let Some(index) = self.menu_index_from_screen_coord(ctx, coord) {
+                    self.set_index(index);
+                    return Some(self.selected().clone());
+                }
+            }
+            #[cfg(feature = "gamepad")]
+            Input::Gamepad(gamepad_input) => match gamepad_input.button {
+                GamepadButton::DPadDown => self.down(),
+                GamepadButton::DPadUp => self.up(),
+                GamepadButton::Start | GamepadButton::South => {
+                    return Some(self.selected().clone())
+                }
+                _ => (),
+            },
+            _ => (),
+        }
+        None
     }
 }
 
@@ -51,12 +142,11 @@ impl<T: Clone, S> Component for Menu<T, S> {
                         fb,
                     );
                 }
-                MenuItem::Space => (),
             }
         }
     }
-    fn update(&mut self, state: &mut S, ctx: Ctx, event: Event) -> Self::Output {
-        None
+    fn update(&mut self, _: &mut S, ctx: Ctx, event: Event) -> Self::Output {
+        event.input().and_then(|i| self.choose(ctx, i))
     }
 }
 
@@ -143,11 +233,6 @@ pub mod builder {
                 identifiers: add_choice.identifiers,
                 value: add_choice.value,
             }));
-            self
-        }
-
-        pub fn add_space(mut self) -> Self {
-            self.items.push(MenuItem::Space);
             self
         }
 

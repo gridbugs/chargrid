@@ -35,6 +35,17 @@ impl BoundingBox {
         }
     }
 
+    pub fn coord_absolute_to_relative(&self, coord: Coord) -> Option<Coord> {
+        if coord.x < self.top_left.x
+            || coord.y < self.top_left.y
+            || coord.x >= self.bottom_right.x
+            || coord.y >= self.bottom_right.y
+        {
+            return None;
+        }
+        Some(coord - self.top_left)
+    }
+
     pub fn add_offset(self, offset: Coord) -> Self {
         let top_left = Coord {
             x: (self.top_left.x + offset.x).min(self.bottom_right.x),
@@ -293,10 +304,37 @@ impl<'a> Ctx<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum Event {
     Input(Input),
     Tick(Duration),
     Peek,
+}
+
+impl Event {
+    pub fn input(self) -> Option<Input> {
+        if let Self::Input(input) = self {
+            Some(input)
+        } else {
+            None
+        }
+    }
+
+    pub fn tick(self) -> Option<Duration> {
+        if let Self::Tick(duration) = self {
+            Some(duration)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_peek(self) -> bool {
+        if let Self::Peek = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 pub trait Component {
