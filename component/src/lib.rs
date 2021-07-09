@@ -43,13 +43,20 @@ impl BoundingBox {
         Self { top_left, ..self }
     }
 
-    pub fn constrain_size(self, by: Coord) -> Self {
+    pub fn constrain_size_by(self, by: Coord) -> Self {
         let bottom_right = Coord {
             x: (self.bottom_right.x - by.x).max(self.top_left.x),
             y: (self.bottom_right.y - by.y).max(self.top_left.y),
         };
         Self {
             bottom_right,
+            ..self
+        }
+    }
+
+    pub fn set_size(self, size: Size) -> Self {
+        Self {
+            bottom_right: self.bottom_right + size.to_coord().unwrap(),
             ..self
         }
     }
@@ -271,9 +278,16 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    pub fn constrain_size(self, by: Coord) -> Self {
+    pub fn constrain_size_by(self, by: Coord) -> Self {
         Self {
-            bounding_box: self.bounding_box.constrain_size(by),
+            bounding_box: self.bounding_box.constrain_size_by(by),
+            ..self
+        }
+    }
+
+    pub fn set_size(self, size: Size) -> Self {
+        Self {
+            bounding_box: self.bounding_box.set_size(size),
             ..self
         }
     }

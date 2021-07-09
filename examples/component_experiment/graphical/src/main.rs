@@ -2,27 +2,40 @@ use chargrid_component::*;
 use chargrid_component_common::{menu, text};
 use chargrid_graphical::*;
 
-struct HelloWorld;
+struct HelloWorld {
+    title: text::StyledStringWordWrapped,
+    menu: menu::Menu<String>,
+}
+
+impl HelloWorld {
+    fn new() -> Self {
+        Self {
+            title: text::StyledString {
+                string: "Hello, World!".to_string(),
+                style: Style {
+                    foreground: Some(Rgba32::new_rgb(0, 255, 255)),
+                    background: Some(Rgba32::new_rgb(255, 0, 255)),
+                    underline: Some(true),
+                    bold: Some(true),
+                },
+            }
+            .wrap_word(),
+            menu: menu::MenuBuilder::default().add_item().build(),
+        }
+    }
+}
+
 impl PureComponent for HelloWorld {
     type Output = Option<ControlFlow>;
 
     fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
-        text::StyledString {
-            string: "Hello, World!".to_string(),
-            style: Style {
-                foreground: Some(Rgba32::new_rgb(0, 255, 255)),
-                background: Some(Rgba32::new_rgb(255, 0, 255)),
-                underline: Some(true),
-                bold: Some(true),
-            },
-        }
-        .wrap_word()
-        .render(
+        self.title.render(
             ctx.add_offset(Coord::new(2, 3))
-                .constrain_size(Coord::new(8, 5)),
+                .constrain_size_by(Coord::new(8, 5)),
             fb,
         );
     }
+
     fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
         match event {
             Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(ControlFlow::Exit),
@@ -55,7 +68,7 @@ fn main() {
         resizable: false,
     });
     let app_wrapper = AppWrapper {
-        component: HelloWorld.component(),
+        component: HelloWorld::new().component(),
         frame_buffer: FrameBuffer::new(context.grid_size()),
     };
     context.run_app(app_wrapper);
