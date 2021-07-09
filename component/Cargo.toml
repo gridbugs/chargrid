@@ -3,6 +3,9 @@ name = "chargrid_component"
 version = "0.1.0"
 edition = "2018"
 
+[features]
+gamepad = ["chargrid_input/gamepad"]
+
 [dependencies]
 rgba32 = "0.1"
 grid_2d = "0.15"

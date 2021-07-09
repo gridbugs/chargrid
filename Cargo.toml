@@ -17,6 +17,7 @@ members = [
     "input",
     "event-routine",
     "component",
+    "component-common",
     "test-grid",
 
     "examples/tetris/tetris",

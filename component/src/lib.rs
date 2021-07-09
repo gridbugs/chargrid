@@ -1,8 +1,33 @@
-pub use chargrid_input::{self as input, Input};
+pub use chargrid_input as input;
 use grid_2d::Grid;
 pub use grid_2d::{Coord, Size};
+use input::Input;
 pub use rgba32::Rgba32;
 use std::time::Duration;
+
+#[derive(Clone, Copy)]
+pub struct BoundingBox {
+    pub coord: Coord,
+    pub size: Size,
+}
+
+impl BoundingBox {
+    pub fn default_with_size(size: Size) -> Self {
+        Self {
+            coord: Coord::new(0, 0),
+            size,
+        }
+    }
+
+    pub fn coord_relative_to_absolute(&self, coord: Coord) -> Option<Coord> {
+        let absolute_coord = self.coord + coord;
+        if coord.x >= self.coord.x && coord.y >= self.coord.y && self.size.is_valid(coord) {
+            Some(absolute_coord)
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct FrameBufferCell {
@@ -119,9 +144,26 @@ impl FrameBuffer {
             }
         }
     }
+
+    pub fn default_ctx<'a>(&self) -> Ctx<'a> {
+        Ctx::default_with_bounding_box_size(self.size())
+    }
+
+    pub fn set_cell_relative_to_ctx<'a>(
+        &mut self,
+        ctx: Ctx<'a>,
+        coord: Coord,
+        depth: i8,
+        render_cell: RenderCell,
+    ) {
+        if let Some(absolute_coord) = ctx.bounding_box.coord_relative_to_absolute(coord) {
+            let absolute_depth = depth + ctx.depth;
+            self.set_cell(absolute_coord, absolute_depth, render_cell);
+        }
+    }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Style {
     pub bold: Option<bool>,
     pub underline: Option<bool>,
@@ -144,7 +186,7 @@ impl Default for Style {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct RenderCell {
     pub character: Option<char>,
     pub style: Style,
@@ -180,34 +222,19 @@ impl<F: Fn(Rgba32) -> Rgba32> Tint for F {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Ctx<'a> {
     pub tint: &'a dyn Tint,
-    pub offset: Coord,
     pub depth: i8,
-}
-
-impl<'a> Default for Ctx<'a> {
-    fn default() -> Self {
-        Self {
-            tint: &TintIdentity,
-            offset: Coord::new(0, 0),
-            depth: 0,
-        }
-    }
+    pub bounding_box: BoundingBox,
 }
 
 impl<'a> Ctx<'a> {
-    pub fn add_offset(self, offset_delta: Coord) -> Self {
+    pub fn default_with_bounding_box_size(size: Size) -> Self {
         Self {
-            offset: self.offset + offset_delta,
-            ..self
-        }
-    }
-
-    pub fn add_depth(self, depth_delta: i8) -> Self {
-        Self {
-            depth: self.depth + depth_delta,
-            ..self
+            tint: &TintIdentity,
+            depth: 0,
+            bounding_box: BoundingBox::default_with_size(size),
         }
     }
 }
@@ -262,11 +289,15 @@ pub struct AppWrapper<C> {
 
 impl<C> chargrid_app::App for AppWrapper<C>
 where
-    C: PureComponent<PureOutput = Option<ControlFlow>>,
+    C: Component<(), Output = Option<ControlFlow>>,
 {
     fn on_input(&mut self, input: Input) -> Option<chargrid_app::ControlFlow> {
         self.component
-            .pure_update(Ctx::default(), Event::Input(input))
+            .update(
+                &mut (),
+                self.frame_buffer.default_ctx(),
+                Event::Input(input),
+            )
             .map(|cf| match cf {
                 ControlFlow::Exit => chargrid_app::ControlFlow::Exit,
             })
@@ -283,7 +314,7 @@ where
     {
         self.frame_buffer.clear();
         self.component
-            .pure_render(Ctx::default(), &mut self.frame_buffer);
+            .render(&(), self.frame_buffer.default_ctx(), &mut self.frame_buffer);
         for (coord, cell) in self.frame_buffer.enumerate() {
             frame.set_cell_absolute(
                 coord,
@@ -308,7 +339,11 @@ where
             );
         }
         self.component
-            .pure_update(Ctx::default(), Event::Tick(since_last_frame))
+            .update(
+                &mut (),
+                self.frame_buffer.default_ctx(),
+                Event::Tick(since_last_frame),
+            )
             .map(|cf| match cf {
                 ControlFlow::Exit => chargrid_app::ControlFlow::Exit,
             })

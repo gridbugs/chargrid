@@ -1,22 +1,23 @@
-use chargrid_component as cc;
+use chargrid_component::*;
+use chargrid_component_common::menu;
 use chargrid_graphical::*;
 
 struct HelloWorld;
-impl cc::PureComponent for HelloWorld {
-    type PureOutput = Option<cc::ControlFlow>;
+impl PureComponent for HelloWorld {
+    type PureOutput = Option<ControlFlow>;
 
-    fn pure_render(&self, ctx: cc::Ctx, fb: &mut cc::FrameBuffer) {
+    fn pure_render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
         let s = "Hello, World!";
-        let offset = ctx.offset + cc::Coord::new(2, 2);
+        let offset = ctx.bounding_box.coord + Coord::new(2, 2);
         for (i, character) in s.chars().enumerate() {
             fb.set_cell(
-                offset + cc::Coord::new(i as i32, 0),
+                offset + Coord::new(i as i32, 0),
                 1,
-                cc::RenderCell {
+                RenderCell {
                     character: Some(character),
-                    style: cc::Style {
-                        foreground: Some(cc::Rgba32::new_rgb(0, 255, 255)),
-                        background: Some(cc::Rgba32::new_rgb(255, 0, 255)),
+                    style: Style {
+                        foreground: Some(Rgba32::new_rgb(0, 255, 255)),
+                        background: Some(Rgba32::new_rgb(255, 0, 255)),
                         underline: Some(true),
                         bold: Some(true),
                     },
@@ -24,11 +25,9 @@ impl cc::PureComponent for HelloWorld {
             );
         }
     }
-    fn pure_update(&mut self, _ctx: cc::Ctx, event: cc::Event) -> Self::PureOutput {
+    fn pure_update(&mut self, _ctx: Ctx, event: Event) -> Self::PureOutput {
         match event {
-            cc::Event::Input(cc::Input::Keyboard(cc::input::keys::ESCAPE)) => {
-                Some(cc::ControlFlow::Exit)
-            }
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(ControlFlow::Exit),
             _ => None,
         }
     }
@@ -57,9 +56,9 @@ fn main() {
         underline_top_offset_cell_ratio: 0.8,
         resizable: false,
     });
-    let app_wrapper = cc::AppWrapper {
+    let app_wrapper = AppWrapper {
         component: HelloWorld,
-        frame_buffer: cc::FrameBuffer::new(cc::Size::new(100, 100)),
+        frame_buffer: FrameBuffer::new(Size::new(100, 100)),
     };
     context.run_app(app_wrapper);
 }
