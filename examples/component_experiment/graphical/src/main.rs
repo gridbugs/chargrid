@@ -28,41 +28,62 @@ impl HelloWorld {
             .wrap_word(),
             menu: {
                 use menu::builder::*;
-                let make_identifier = |s: &str| {
-                    identifiers_styled_strings(
-                        format!("> {}", s),
-                        format!("  {}", s),
-                        Style {
-                            bold: Some(true),
-                            foreground: Some(rgba32_grey(255)),
-                            ..Style::default()
+                let _make_identifier = |s: &str| {
+                    identifier::static_(
+                        StyledString {
+                            string: format!("> {}", s),
+                            style: Style {
+                                bold: Some(true),
+                                foreground: Some(rgba32_grey(255)),
+                                ..Style::default()
+                            },
                         },
-                        Style {
-                            bold: Some(false),
-                            foreground: Some(rgba32_grey(127)),
-                            ..Style::default()
+                        StyledString {
+                            string: format!("  {}", s),
+                            style: Style {
+                                bold: Some(false),
+                                foreground: Some(rgba32_grey(127)),
+                                ..Style::default()
+                            },
                         },
                     )
                 };
+                let make_identifier = |s: &str| {
+                    let string = s.to_string();
+                    identifier::dynamic_fn(move |ctx| {
+                        if ctx.is_selected {
+                            write!(&mut ctx.component.string, "> {}", string).unwrap();
+                            ctx.component.style = Style {
+                                bold: Some(false),
+                                foreground: Some(rgba32_grey(255)),
+                                ..Style::default()
+                            };
+                        } else {
+                            write!(&mut ctx.component.string, "  {}", string).unwrap();
+                            ctx.component.style = Style {
+                                bold: Some(false),
+                                foreground: Some(rgba32_grey(127)),
+                                ..Style::default()
+                            };
+                        }
+                    })
+                };
                 menu_builder()
-                    .add_choice(
-                        choice(
+                    .add_item(
+                        item(
                             MenuItem::String("foo".to_string()),
                             make_identifier("[F]oo"),
                         )
-                        .add_hotkey(KeyboardInput::Char('f')),
+                        .add_hotkey_char('f'),
                     )
-                    .add_choice(
-                        choice(
+                    .add_item(
+                        item(
                             MenuItem::String("bar".to_string()),
                             make_identifier("[B]ar"),
                         )
-                        .add_hotkey(KeyboardInput::Char('b')),
+                        .add_hotkey_char('b'),
                     )
-                    .add_choice(
-                        choice(MenuItem::Quit, make_identifier("[Q]uit"))
-                            .add_hotkey(KeyboardInput::Char('q')),
-                    )
+                    .add_item(item(MenuItem::Quit, make_identifier("[Q]uit")).add_hotkey_char('q'))
                     .build()
                     .pure()
             },
@@ -86,8 +107,8 @@ impl PureComponent for HelloWorld {
         match event {
             Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(ControlFlow::Exit),
             _ => {
-                if let Some(choice) = self.menu.update(ctx.add_offset(Coord::new(4, 6)), event) {
-                    match choice {
+                if let Some(item) = self.menu.update(ctx.add_offset(Coord::new(4, 6)), event) {
+                    match item {
                         MenuItem::String(s) => {
                             self.title.styled_string.string = s;
                             None

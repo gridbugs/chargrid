@@ -1,26 +1,24 @@
 use chargrid_component::*;
 use std::collections::HashMap;
+use std::time::Duration;
 
-pub struct MenuItemChoiceIdentifiers<S = ()> {
-    pub selected: Box<dyn Component<State = S, Output = ()>>,
-    pub deselected: Box<dyn Component<State = S, Output = ()>>,
+pub trait MenuItemIdentifier: Component {
+    fn init_selection(&mut self, selection: bool);
+    fn set_selection(&mut self, selection: bool);
 }
 
-pub struct MenuItemChoice<T: Clone, S = ()> {
-    pub value: T,
-    pub identifiers: MenuItemChoiceIdentifiers<S>,
-}
+pub type MenuItemIdentifierBoxed<S = ()> = Box<dyn MenuItemIdentifier<State = S, Output = ()>>;
 
-pub enum MenuItem<T: Clone, S = ()> {
-    Choice(MenuItemChoice<T, S>),
+pub struct MenuItem<T: Clone, S = ()> {
+    value: T,
+    identifier: MenuItemIdentifierBoxed<S>,
 }
 
 pub struct Menu<T: Clone, S = ()> {
     items: Vec<MenuItem<T, S>>,
     selected_index: usize,
     hotkeys: HashMap<input::KeyboardInput, T>,
-    #[cfg(feature = "gamepad")]
-    gamepad_hotkeys: HashMap<input::GamepadButton, T>,
+    since_epoch: Duration,
 }
 
 pub type PureMenu<T> = convert::ComponentPureT<Menu<T, ()>>;
@@ -49,7 +47,15 @@ impl<T: Clone, S> Menu<T, S> {
 
     pub fn set_index(&mut self, index: usize) {
         if index < self.items.len() {
-            self.selected_index = index;
+            if self.selected_index != index {
+                self.items[self.selected_index]
+                    .identifier
+                    .set_selection(false);
+                self.selected_index = index;
+                self.items[self.selected_index]
+                    .identifier
+                    .set_selection(true);
+            }
         }
     }
 
@@ -58,9 +64,7 @@ impl<T: Clone, S> Menu<T, S> {
     }
 
     pub fn selected(&self) -> &T {
-        match &self.items[self.selected_index] {
-            MenuItem::Choice(choice) => &choice.value,
-        }
+        &self.items[self.selected_index].value
     }
 
     fn menu_index_from_screen_coord(&self, ctx: Ctx, coord: Coord) -> Option<usize> {
@@ -128,53 +132,174 @@ impl<T: Clone, S> Component for Menu<T, S> {
     type Output = Option<T>;
     fn render(&self, state: &S, ctx: Ctx, fb: &mut FrameBuffer) {
         for (i, item) in self.items.iter().enumerate() {
-            match item {
-                MenuItem::Choice(choice) => {
-                    let identifier = if i == self.selected_index {
-                        &choice.identifiers.selected
-                    } else {
-                        &choice.identifiers.deselected
-                    };
-                    identifier.render(
-                        state,
-                        ctx.add_offset(Coord::new(0, i as i32))
-                            .set_size(Size::new(ctx.bounding_box.size().width(), 1)),
-                        fb,
-                    );
+            item.identifier.render(
+                state,
+                ctx.add_offset(Coord::new(0, i as i32))
+                    .set_size(Size::new(ctx.bounding_box.size().width(), 1)),
+                fb,
+            );
+        }
+    }
+    fn update(&mut self, state: &mut S, ctx: Ctx, event: Event) -> Self::Output {
+        match event {
+            Event::Input(input) => self.choose(ctx, input),
+            Event::Tick(duration) => {
+                self.since_epoch += duration;
+                for item in self.items.iter_mut() {
+                    item.identifier.update(state, ctx, event);
                 }
+                None
+            }
+            _ => None,
+        }
+    }
+}
+
+pub mod identifier {
+    use super::*;
+    use crate::text::StyledString;
+
+    pub struct MenuItemIdentifierStaticInner {
+        selected: StyledString,
+        deselected: StyledString,
+        is_selected: bool,
+    }
+
+    impl PureStaticComponent for MenuItemIdentifierStaticInner {
+        fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+            if self.is_selected {
+                self.selected.render(ctx, fb);
+            } else {
+                self.deselected.render(ctx, fb);
             }
         }
     }
-    fn update(&mut self, _: &mut S, ctx: Ctx, event: Event) -> Self::Output {
-        event.input().and_then(|i| self.choose(ctx, i))
+
+    pub type MenuItemIdentifierStatic =
+        convert::PureStaticComponentT<MenuItemIdentifierStaticInner>;
+
+    impl MenuItemIdentifier for MenuItemIdentifierStatic {
+        fn set_selection(&mut self, selection: bool) {
+            self.0.is_selected = selection;
+        }
+        fn init_selection(&mut self, selection: bool) {
+            self.0.is_selected = selection;
+        }
+    }
+
+    pub fn static_(selected: StyledString, deselected: StyledString) -> MenuItemIdentifierBoxed {
+        Box::new(
+            MenuItemIdentifierStaticInner {
+                selected,
+                deselected,
+                is_selected: false,
+            }
+            .component(),
+        )
+    }
+
+    pub struct MenuItemIdentifierDynamicCtx<'a> {
+        pub component: &'a mut StyledString,
+        pub since_change: Duration,
+        pub is_selected: bool,
+    }
+
+    pub trait MenuItemIdentifierDynamicUpdate {
+        fn update(&mut self, ctx: MenuItemIdentifierDynamicCtx);
+    }
+
+    impl<F: FnMut(MenuItemIdentifierDynamicCtx)> MenuItemIdentifierDynamicUpdate for F {
+        fn update(&mut self, ctx: MenuItemIdentifierDynamicCtx) {
+            (self)(ctx);
+        }
+    }
+
+    pub struct MenuItemIdentifierDynamicInner<U: MenuItemIdentifierDynamicUpdate> {
+        update: U,
+        component: StyledString,
+        since_change: Duration,
+        is_selected: bool,
+    }
+
+    impl<U: MenuItemIdentifierDynamicUpdate> PureComponent for MenuItemIdentifierDynamicInner<U> {
+        type Output = ();
+        fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+            self.component.render(ctx, fb);
+        }
+        fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
+            if let Some(duration) = event.tick() {
+                self.since_change += duration;
+                self.component.string.clear();
+                self.update.update(MenuItemIdentifierDynamicCtx {
+                    component: &mut self.component,
+                    since_change: self.since_change,
+                    is_selected: self.is_selected,
+                });
+            }
+        }
+    }
+
+    const LONG_DURATION: Duration = Duration::from_secs(31536000); // 1 year
+
+    pub type MenuItemIdentifierDynamic<U> =
+        convert::PureComponentT<MenuItemIdentifierDynamicInner<U>>;
+
+    impl<U: MenuItemIdentifierDynamicUpdate> MenuItemIdentifier for MenuItemIdentifierDynamic<U> {
+        fn init_selection(&mut self, selection: bool) {
+            self.0.is_selected = selection;
+            self.0.since_change = Duration::from_secs(31536000);
+        }
+        fn set_selection(&mut self, selection: bool) {
+            self.0.is_selected = selection;
+            self.0.since_change = LONG_DURATION;
+        }
+    }
+
+    pub fn dynamic<U: 'static + MenuItemIdentifierDynamicUpdate>(
+        update: U,
+    ) -> MenuItemIdentifierBoxed {
+        Box::new(
+            MenuItemIdentifierDynamicInner {
+                update,
+                component: StyledString {
+                    string: String::new(),
+                    style: Style::default(),
+                },
+                since_change: LONG_DURATION,
+                is_selected: false,
+            }
+            .component(),
+        )
+    }
+
+    pub fn dynamic_fn<F: 'static + FnMut(MenuItemIdentifierDynamicCtx)>(
+        f: F,
+    ) -> MenuItemIdentifierBoxed {
+        dynamic(f)
     }
 }
 
 pub mod builder {
     use super::*;
-    use crate::text::StyledString;
 
+    pub use super::identifier;
+    pub use crate::text::StyledString;
     pub use chargrid_component::Rgba32;
-    #[cfg(feature = "gamepad")]
-    pub use input::GamepadButton;
     pub use input::KeyboardInput;
+    pub use std::fmt::Write;
 
-    pub struct MenuBuilderAddChoice<T: Clone, S = ()> {
+    pub struct MenuBuilderAddItem<T: Clone, S = ()> {
         pub value: T,
-        pub identifiers: MenuItemChoiceIdentifiers<S>,
+        pub identifier: MenuItemIdentifierBoxed<S>,
         pub hotkeys: Vec<input::KeyboardInput>,
-        #[cfg(feature = "gamepad")]
-        pub gamepad_hotkeys: Vec<input::GamepadButton>,
     }
 
-    impl<T: Clone, S> MenuBuilderAddChoice<T, S> {
-        pub fn new(value: T, identifiers: MenuItemChoiceIdentifiers<S>) -> Self {
+    impl<T: Clone, S> MenuBuilderAddItem<T, S> {
+        pub fn new(value: T, identifier: MenuItemIdentifierBoxed<S>) -> Self {
             Self {
                 value,
-                identifiers,
+                identifier,
                 hotkeys: Vec::new(),
-                #[cfg(feature = "gamepad")]
-                gamepad_hotkeys: Vec::new(),
             }
         }
 
@@ -183,9 +308,8 @@ pub mod builder {
             self
         }
 
-        #[cfg(feature = "gamepad")]
-        pub fn add_gamepad_hotkey(mut self, input: input::GamepadButton) -> Self {
-            self.gamepad_hotkeys.push(input);
+        pub fn add_hotkey_char(mut self, c: char) -> Self {
+            self.hotkeys.push(KeyboardInput::Char(c));
             self
         }
     }
@@ -193,8 +317,6 @@ pub mod builder {
     pub struct MenuBuilder<T: Clone, S = ()> {
         pub items: Vec<MenuItem<T, S>>,
         pub hotkeys: HashMap<input::KeyboardInput, T>,
-        #[cfg(feature = "gamepad")]
-        pub gamepad_hotkeys: HashMap<input::GamepadButton, T>,
     }
 
     impl<T: Clone, S> Default for MenuBuilder<T, S> {
@@ -202,53 +324,43 @@ pub mod builder {
             Self {
                 items: Vec::new(),
                 hotkeys: HashMap::new(),
-                #[cfg(feature = "gamepad")]
-                gamepad_hotkeys: HashMap::new(),
             }
         }
     }
 
     impl<T: Clone, S> MenuBuilder<T, S> {
-        pub fn add_choice(mut self, add_choice: MenuBuilderAddChoice<T, S>) -> Self {
-            for hotkey in add_choice.hotkeys {
+        pub fn add_item(mut self, add_item: MenuBuilderAddItem<T, S>) -> Self {
+            for hotkey in add_item.hotkeys {
                 if self
                     .hotkeys
-                    .insert(hotkey, add_choice.value.clone())
+                    .insert(hotkey, add_item.value.clone())
                     .is_some()
                 {
                     panic!("Duplicate hotkey: {:?}", hotkey);
                 }
             }
-            #[cfg(feature = "gamepad")]
-            for hotkey in add_choice.gamepad_hotkeys {
-                if self
-                    .gamepad_hotkeys
-                    .insert(hotkey, add_choice.value.clone())
-                    .is_some()
-                {
-                    panic!("Duplicate hotkey: {:?}", hotkey);
-                }
-            }
-            self.items.push(MenuItem::Choice(MenuItemChoice {
-                identifiers: add_choice.identifiers,
-                value: add_choice.value,
-            }));
+            self.items.push(MenuItem {
+                identifier: add_item.identifier,
+                value: add_item.value,
+            });
             self
         }
 
         pub fn build(self) -> Menu<T, S> {
-            let Self {
-                items,
-                hotkeys,
-                #[cfg(feature = "gamepad")]
-                gamepad_hotkeys,
-            } = self;
+            let Self { mut items, hotkeys } = self;
+            let selected_index = 0;
+            for (i, item) in items.iter_mut().enumerate() {
+                if i == selected_index {
+                    item.identifier.init_selection(true);
+                } else {
+                    item.identifier.init_selection(false);
+                }
+            }
             Menu {
                 items,
-                selected_index: 0,
+                selected_index,
                 hotkeys,
-                #[cfg(feature = "gamepad")]
-                gamepad_hotkeys,
+                since_epoch: Duration::from_millis(0),
             }
         }
     }
@@ -257,55 +369,10 @@ pub mod builder {
         MenuBuilder::default()
     }
 
-    pub fn choice<T: Clone, S>(
+    pub fn item<T: Clone, S>(
         value: T,
-        identifiers: MenuItemChoiceIdentifiers<S>,
-    ) -> MenuBuilderAddChoice<T, S> {
-        MenuBuilderAddChoice::new(value, identifiers)
-    }
-
-    pub fn identifiers<S>(
-        selected: Box<dyn Component<State = S, Output = ()>>,
-        deselected: Box<dyn Component<State = S, Output = ()>>,
-    ) -> MenuItemChoiceIdentifiers<S> {
-        MenuItemChoiceIdentifiers {
-            selected,
-            deselected,
-        }
-    }
-
-    pub fn identifiers_styled_strings<S: AsRef<str>, D: AsRef<str>>(
-        selected_string: S,
-        deselected_string: D,
-        selected_style: Style,
-        deselected_style: Style,
-    ) -> MenuItemChoiceIdentifiers<()> {
-        let selected = StyledString {
-            string: selected_string.as_ref().to_string(),
-            style: selected_style,
-        };
-        let deselected = StyledString {
-            string: deselected_string.as_ref().to_string(),
-            style: deselected_style,
-        };
-        identifiers(
-            Box::new(selected.component()),
-            Box::new(deselected.component()),
-        )
-    }
-
-    pub fn identifiers_bold_selected<S: AsRef<str>>(string: S) -> MenuItemChoiceIdentifiers<()> {
-        identifiers_styled_strings(
-            string.as_ref(),
-            string.as_ref(),
-            Style {
-                bold: Some(true),
-                ..Style::default()
-            },
-            Style {
-                bold: Some(false),
-                ..Style::default()
-            },
-        )
+        identifier: MenuItemIdentifierBoxed<S>,
+    ) -> MenuBuilderAddItem<T, S> {
+        MenuBuilderAddItem::new(value, identifier)
     }
 }
