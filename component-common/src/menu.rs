@@ -202,6 +202,7 @@ pub mod identifier {
         pub component: &'a mut StyledString,
         pub since_change: Duration,
         pub is_selected: bool,
+        pub style_prev: Style,
     }
 
     pub trait MenuItemIdentifierDynamicUpdate {
@@ -219,6 +220,7 @@ pub mod identifier {
         component: StyledString,
         since_change: Duration,
         is_selected: bool,
+        style_prev: Style,
     }
 
     impl<U: MenuItemIdentifierDynamicUpdate> PureComponent for MenuItemIdentifierDynamicInner<U> {
@@ -234,6 +236,7 @@ pub mod identifier {
                     component: &mut self.component,
                     since_change: self.since_change,
                     is_selected: self.is_selected,
+                    style_prev: self.style_prev,
                 });
             }
         }
@@ -247,11 +250,12 @@ pub mod identifier {
     impl<U: MenuItemIdentifierDynamicUpdate> MenuItemIdentifier for MenuItemIdentifierDynamic<U> {
         fn init_selection(&mut self, selection: bool) {
             self.0.is_selected = selection;
-            self.0.since_change = Duration::from_secs(31536000);
+            self.0.since_change = LONG_DURATION;
         }
         fn set_selection(&mut self, selection: bool) {
             self.0.is_selected = selection;
-            self.0.since_change = LONG_DURATION;
+            self.0.since_change = Duration::from_secs(0);
+            self.0.style_prev = self.0.component.style;
         }
     }
 
@@ -267,6 +271,7 @@ pub mod identifier {
                 },
                 since_change: LONG_DURATION,
                 is_selected: false,
+                style_prev: Style::default(),
             }
             .component(),
         )
