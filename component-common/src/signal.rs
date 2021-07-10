@@ -61,3 +61,38 @@ impl<S: SignalU8> SignalU8 for Min<S> {
         self.signal.eval(after).min(self.min)
     }
 }
+
+pub struct SmoothSquareWave {
+    constant: Duration,
+    transition: Duration,
+}
+
+impl SmoothSquareWave {
+    pub fn new(constant: Duration, transition: Duration) -> Self {
+        Self {
+            constant,
+            transition,
+        }
+    }
+}
+
+impl SignalU8 for SmoothSquareWave {
+    fn eval(&self, after: Duration) -> u8 {
+        let constant = self.constant.as_millis();
+        let transition = self.transition.as_millis();
+        let mut remain_within_cycle = after.as_millis() % (2 * (constant + transition));
+        if remain_within_cycle < constant {
+            return 0;
+        }
+        remain_within_cycle -= constant;
+        if remain_within_cycle < transition {
+            return ((remain_within_cycle * 255) / transition) as u8;
+        }
+        remain_within_cycle -= transition;
+        if remain_within_cycle < constant {
+            return 255;
+        }
+        remain_within_cycle -= constant;
+        return 255 - ((remain_within_cycle * 255) / transition) as u8;
+    }
+}

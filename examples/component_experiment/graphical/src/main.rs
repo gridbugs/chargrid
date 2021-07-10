@@ -30,16 +30,26 @@ impl HelloWorld {
             menu: {
                 use menu::builder::*;
                 use signal::*;
-                let _make_identifier = |s: &str| {
+                let make_identifier_static = |s: &str| {
                     identifier::static_(
-                        StyledString {
-                            string: format!("> {}", s),
-                            style: Style {
-                                bold: Some(true),
-                                foreground: Some(rgba32_grey(255)),
-                                ..Style::default()
+                        vec![
+                            StyledString {
+                                string: ">".to_string(),
+                                style: Style {
+                                    bold: Some(true),
+                                    foreground: Some(rgba32_rgb(255, 0, 0)),
+                                    ..Style::default()
+                                },
                             },
-                        },
+                            StyledString {
+                                string: format!(" {}", s),
+                                style: Style {
+                                    bold: Some(true),
+                                    foreground: Some(rgba32_grey(255)),
+                                    ..Style::default()
+                                },
+                            },
+                        ],
                         StyledString {
                             string: format!("  {}", s),
                             style: Style {
@@ -50,38 +60,60 @@ impl HelloWorld {
                         },
                     )
                 };
-                let make_identifier = |s: &str| {
+                let make_identifier = |s: &str, c: Rgba32| {
                     let string = s.to_string();
-                    let fade_fg =
-                        fade::linear(rgba32_grey(100), rgba32_grey(0), Duration::from_millis(100));
+                    let fade_fg = fade::linear(rgba32_grey(100), c, Duration::from_millis(100));
                     let fade_bg = fade::linear(
                         rgba32_grey(255),
                         rgba32_grey(200),
                         Duration::from_millis(200),
                     );
                     let dots = Linear::with_step_duration(Duration::from_millis(50)).min(3);
-                    let blink = SquareWave01::with_half_period(Duration::from_millis(250));
-                    identifier::dynamic_fn(move |ctx| {
+                    let blink = SmoothSquareWave::new(
+                        Duration::from_millis(200),
+                        Duration::from_millis(100),
+                    );
+                    let rainbow = vec![
+                        rgba32_rgb(255, 0, 0),
+                        rgba32_rgb(255, 255, 0),
+                        rgba32_rgb(0, 255, 0),
+                        rgba32_rgb(0, 255, 255),
+                        rgba32_rgb(0, 0, 255),
+                        rgba32_rgb(255, 0, 255),
+                    ];
+                    let mut count = 0;
+                    identifier::dynamic_fn(4, move |ctx| {
                         if ctx.is_selected {
-                            write!(&mut ctx.component.string, "> {}", string).unwrap();
-                            for _ in 0..dots.eval(ctx.since_change) {
-                                write!(&mut ctx.component.string, ".").unwrap();
-                            }
-                            if blink.eval_bool(ctx.since_change) {
-                                write!(&mut ctx.component.string, "_").unwrap();
-                            }
-                            ctx.component.style = Style {
+                            write!(&mut ctx.component.parts[0].string, "> ").unwrap();
+                            ctx.component.parts[0].style = Style {
+                                bold: Some(true),
+                                foreground: Some(rainbow[(count / 10) % rainbow.len()]),
+                                ..Style::default()
+                            };
+                            count += 1;
+                            write!(&mut ctx.component.parts[1].string, "{}", string).unwrap();
+                            ctx.component.parts[1].style = Style {
                                 bold: Some(true),
                                 foreground: Some(fade_fg.eval(ctx.since_change)),
                                 background: Some(fade_bg.eval(ctx.since_change)),
                                 ..Style::default()
                             };
+                            for _ in 0..dots.eval(ctx.since_change) {
+                                write!(&mut ctx.component.parts[2].string, ".").unwrap();
+                            }
+                            write!(&mut ctx.component.parts[3].string, " ").unwrap();
+                            ctx.component.parts[3].style = Style {
+                                bold: Some(false),
+                                background: Some(rgba32_grey(255 - blink.eval(ctx.since_change))),
+                                ..Style::default()
+                            };
                         } else {
-                            write!(&mut ctx.component.string, "  {}", string).unwrap();
-                            ctx.component.style = Style {
+                            write!(&mut ctx.component.parts[0].string, "  ").unwrap();
+                            write!(&mut ctx.component.parts[1].string, "{}", string).unwrap();
+                            ctx.component.parts[1].style = Style {
                                 bold: Some(false),
                                 foreground: Some(rgba32_grey(127)),
-                                background: ctx.style_prev.background.map(|bg| {
+                                background: ctx.styles_prev[1].background.map(|bg| {
                                     fade::linear(bg, rgba32_grey(0), Duration::from_millis(150))
                                         .eval(ctx.since_change)
                                 }),
@@ -94,18 +126,20 @@ impl HelloWorld {
                     .add_item(
                         item(
                             MenuItem::String("foo".to_string()),
-                            make_identifier("[F]oo"),
+                            make_identifier("[F]oo", rgba32_rgb(255, 0, 0)),
                         )
                         .add_hotkey_char('f'),
                     )
                     .add_item(
                         item(
                             MenuItem::String("bar".to_string()),
-                            make_identifier("[B]ar"),
+                            make_identifier("[B]ar", rgba32_rgb(0, 0, 255)),
                         )
                         .add_hotkey_char('b'),
                     )
-                    .add_item(item(MenuItem::Quit, make_identifier("[Q]uit")).add_hotkey_char('q'))
+                    .add_item(
+                        item(MenuItem::Quit, make_identifier_static("[Q]uit")).add_hotkey_char('q'),
+                    )
                     .build()
                     .pure()
             },

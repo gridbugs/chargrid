@@ -157,11 +157,11 @@ impl<T: Clone, S> Component for Menu<T, S> {
 
 pub mod identifier {
     use super::*;
-    use crate::text::StyledString;
+    use crate::text::{StyledString, Text};
 
     pub struct MenuItemIdentifierStaticInner {
-        selected: StyledString,
-        deselected: StyledString,
+        selected: Text,
+        deselected: Text,
         is_selected: bool,
     }
 
@@ -187,11 +187,14 @@ pub mod identifier {
         }
     }
 
-    pub fn static_(selected: StyledString, deselected: StyledString) -> MenuItemIdentifierBoxed {
+    pub fn static_<S: Into<Text>, D: Into<Text>>(
+        selected: S,
+        deselected: D,
+    ) -> MenuItemIdentifierBoxed {
         Box::new(
             MenuItemIdentifierStaticInner {
-                selected,
-                deselected,
+                selected: selected.into(),
+                deselected: deselected.into(),
                 is_selected: false,
             }
             .component(),
@@ -199,10 +202,10 @@ pub mod identifier {
     }
 
     pub struct MenuItemIdentifierDynamicCtx<'a> {
-        pub component: &'a mut StyledString,
+        pub component: &'a mut Text,
         pub since_change: Duration,
         pub is_selected: bool,
-        pub style_prev: Style,
+        pub styles_prev: &'a [Style],
     }
 
     pub trait MenuItemIdentifierDynamicUpdate {
@@ -217,10 +220,10 @@ pub mod identifier {
 
     pub struct MenuItemIdentifierDynamicInner<U: MenuItemIdentifierDynamicUpdate> {
         update: U,
-        component: StyledString,
+        component: Text,
         since_change: Duration,
         is_selected: bool,
-        style_prev: Style,
+        styles_prev: Vec<Style>,
     }
 
     impl<U: MenuItemIdentifierDynamicUpdate> PureComponent for MenuItemIdentifierDynamicInner<U> {
@@ -231,12 +234,14 @@ pub mod identifier {
         fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
             if let Some(duration) = event.tick() {
                 self.since_change += duration;
-                self.component.string.clear();
+                for part in self.component.parts.iter_mut() {
+                    part.string.clear();
+                }
                 self.update.update(MenuItemIdentifierDynamicCtx {
                     component: &mut self.component,
                     since_change: self.since_change,
                     is_selected: self.is_selected,
-                    style_prev: self.style_prev,
+                    styles_prev: &self.styles_prev,
                 });
             }
         }
@@ -255,32 +260,41 @@ pub mod identifier {
         fn set_selection(&mut self, selection: bool) {
             self.0.is_selected = selection;
             self.0.since_change = Duration::from_secs(0);
-            self.0.style_prev = self.0.component.style;
+            self.0.styles_prev = self.0.component.parts.iter().map(|p| p.style).collect();
         }
     }
 
     pub fn dynamic<U: 'static + MenuItemIdentifierDynamicUpdate>(
+        initial_num_parts: usize,
         update: U,
     ) -> MenuItemIdentifierBoxed {
+        let mut parts = Vec::new();
+        let mut styles_prev = Vec::new();
+        for _ in 0..initial_num_parts {
+            parts.push(StyledString {
+                string: String::new(),
+                style: Style::default(),
+            });
+            styles_prev.push(Style::default());
+        }
+        let component = Text::new(parts);
         Box::new(
             MenuItemIdentifierDynamicInner {
                 update,
-                component: StyledString {
-                    string: String::new(),
-                    style: Style::default(),
-                },
+                component,
                 since_change: LONG_DURATION,
                 is_selected: false,
-                style_prev: Style::default(),
+                styles_prev,
             }
             .component(),
         )
     }
 
     pub fn dynamic_fn<F: 'static + FnMut(MenuItemIdentifierDynamicCtx)>(
+        initial_num_parts: usize,
         f: F,
     ) -> MenuItemIdentifierBoxed {
-        dynamic(f)
+        dynamic(initial_num_parts, f)
     }
 }
 
