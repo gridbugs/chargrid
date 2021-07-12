@@ -16,6 +16,7 @@ pub struct MenuItem<T: Clone, S = ()> {
 
 pub struct Menu<T: Clone, S = ()> {
     items: Vec<MenuItem<T, S>>,
+    offset_to_item_index: Vec<Option<usize>>,
     selected_index: usize,
     hotkeys: HashMap<input::KeyboardInput, T>,
     since_epoch: Duration,
@@ -70,8 +71,8 @@ impl<T: Clone, S> Menu<T, S> {
     fn menu_index_from_screen_coord(&self, ctx: Ctx, coord: Coord) -> Option<usize> {
         if let Some(relative_coord) = ctx.bounding_box.coord_absolute_to_relative(coord) {
             let index = relative_coord.y as usize;
-            if index < self.items.len() {
-                Some(index)
+            if let Some(&Some(item_index)) = self.offset_to_item_index.get(index) {
+                Some(item_index)
             } else {
                 None
             }
@@ -131,13 +132,15 @@ impl<T: Clone, S> Component for Menu<T, S> {
     type State = S;
     type Output = Option<T>;
     fn render(&self, state: &S, ctx: Ctx, fb: &mut FrameBuffer) {
-        for (i, item) in self.items.iter().enumerate() {
-            item.identifier.render(
-                state,
-                ctx.add_offset(Coord::new(0, i as i32))
-                    .set_size(Size::new(ctx.bounding_box.size().width(), 1)),
-                fb,
-            );
+        for (offset, &item_index) in self.offset_to_item_index.iter().enumerate() {
+            if let Some(item_index) = item_index {
+                self.items[item_index].identifier.render(
+                    state,
+                    ctx.add_offset(Coord::new(0, offset as i32))
+                        .set_size(Size::new(ctx.bounding_box.size().width(), 1)),
+                    fb,
+                );
+            }
         }
     }
     fn update(&mut self, state: &mut S, ctx: Ctx, event: Event) -> Self::Output {
@@ -334,14 +337,16 @@ pub mod builder {
     }
 
     pub struct MenuBuilder<T: Clone, S = ()> {
-        pub items: Vec<MenuItem<T, S>>,
-        pub hotkeys: HashMap<input::KeyboardInput, T>,
+        items: Vec<MenuItem<T, S>>,
+        hotkeys: HashMap<input::KeyboardInput, T>,
+        offset_to_item_index: Vec<Option<usize>>,
     }
 
     impl<T: Clone, S> Default for MenuBuilder<T, S> {
         fn default() -> Self {
             Self {
                 items: Vec::new(),
+                offset_to_item_index: Vec::new(),
                 hotkeys: HashMap::new(),
             }
         }
@@ -358,6 +363,7 @@ pub mod builder {
                     panic!("Duplicate hotkey: {:?}", hotkey);
                 }
             }
+            self.offset_to_item_index.push(Some(self.items.len()));
             self.items.push(MenuItem {
                 identifier: add_item.identifier,
                 value: add_item.value,
@@ -366,11 +372,16 @@ pub mod builder {
         }
 
         pub fn add_space(mut self) -> Self {
+            self.offset_to_item_index.push(None);
             self
         }
 
         pub fn build(self) -> Menu<T, S> {
-            let Self { mut items, hotkeys } = self;
+            let Self {
+                mut items,
+                hotkeys,
+                offset_to_item_index,
+            } = self;
             let selected_index = 0;
             for (i, item) in items.iter_mut().enumerate() {
                 if i == selected_index {
@@ -382,6 +393,7 @@ pub mod builder {
             Menu {
                 items,
                 selected_index,
+                offset_to_item_index,
                 hotkeys,
                 since_epoch: Duration::from_millis(0),
             }
