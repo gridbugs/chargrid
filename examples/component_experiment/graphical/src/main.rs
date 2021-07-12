@@ -137,6 +137,7 @@ impl HelloWorld {
                         )
                         .add_hotkey_char('b'),
                     )
+                    .add_space()
                     .add_item(
                         item(MenuItem::Quit, make_identifier_static("[Q]uit")).add_hotkey_char('q'),
                     )

@@ -32,16 +32,16 @@ impl<T: Clone> Menu<T, ()> {
 impl<T: Clone, S> Menu<T, S> {
     pub fn up(&mut self) {
         match self.selected_index.checked_sub(1) {
-            Some(index) => self.selected_index = index,
-            None => self.selected_index = self.items.len() - 1,
+            Some(index) => self.set_index(index),
+            None => self.set_index(self.items.len() - 1),
         }
     }
 
     pub fn down(&mut self) {
         if self.selected_index < self.items.len() - 1 {
-            self.selected_index += 1;
+            self.set_index(self.selected_index + 1);
         } else {
-            self.selected_index = 0;
+            self.set_index(0);
         }
     }
 
@@ -362,6 +362,10 @@ pub mod builder {
                 identifier: add_item.identifier,
                 value: add_item.value,
             });
+            self
+        }
+
+        pub fn add_space(mut self) -> Self {
             self
         }
 
