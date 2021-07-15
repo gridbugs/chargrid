@@ -13,4 +13,4 @@ ggez = ["chargrid_graphical/ggez"]
 chargrid_graphical = { path = "../../../graphical", default-features = false }
 tetris_app = { path = "../app" }
 rand = "0.8"
-env_logger = "0.8"
+env_logger = "0.9"
