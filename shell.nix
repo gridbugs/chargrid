@@ -14,6 +14,7 @@ in
       rustup
       ruststable
       pkg-config
+      alsaLib
       udev
       xorg.libX11
       xorg.libXcursor
