@@ -13,4 +13,4 @@ ggez = ["chargrid_graphical/ggez", "chargrid_graphical/ggez_gamepad"]
 chargrid_graphical = { path = "../../../graphical", default-features = false }
 soundboard_app = { path = "../app" }
 general_audio_native = { version = "0.3", features = ["vorbis"] }
-env_logger = "0.8"
+env_logger = "0.9"
