@@ -10,7 +10,11 @@
 #   ^^^ This error goes away if the `LD_LIBRARY_PATH = ...` line is removed (but that line is necessary for graphical frontends to work)
 
 let
-  moz_overlay = import (builtins.fetchTarball https://github.com/stevebob/nixpkgs-mozilla/archive/with-stdenv.lib-fix.tar.gz);
+  # This overlay is mozilla/nixpkgs-mozilla with the patch applied from this PR:
+  # https://github.com/mozilla/nixpkgs-mozilla/pull/250
+  # ...which replaces deprecated usage of stdenv.lib with lib.
+  moz_overlay_url = "https://github.com/stevebob/nixpkgs-mozilla/archive/with-stdenv.lib-fix.tar.gz";
+  moz_overlay = import (builtins.fetchTarball moz_overlay_url);
   nixpkgs = import <nixpkgs> {
     overlays = [ moz_overlay ];
   };
