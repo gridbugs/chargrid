@@ -156,6 +156,24 @@ impl<T: Clone, S> Component for Menu<T, S> {
             _ => None,
         }
     }
+
+    fn size(&self, state: &S, ctx: Ctx) -> Size {
+        let mut max_coord = Coord::new(0, 0);
+        for (offset, &item_index) in self.offset_to_item_index.iter().enumerate() {
+            if let Some(item_index) = item_index {
+                let offset = Coord::new(0, offset as i32);
+                let identifier_size = self.items[item_index].identifier.size(
+                    state,
+                    ctx.add_offset(offset)
+                        .set_size(Size::new(ctx.bounding_box.size().width(), 1)),
+                );
+                let bottom_right = offset + identifier_size.to_coord().unwrap();
+                max_coord.x = max_coord.x.max(bottom_right.x);
+                max_coord.y = max_coord.y.max(bottom_right.y);
+            }
+        }
+        max_coord.to_size().unwrap()
+    }
 }
 
 pub mod identifier {
@@ -174,6 +192,13 @@ pub mod identifier {
                 self.selected.render(ctx, fb);
             } else {
                 self.deselected.render(ctx, fb);
+            }
+        }
+        fn size(&self, ctx: Ctx) -> Size {
+            if self.is_selected {
+                self.selected.size(ctx)
+            } else {
+                self.deselected.size(ctx)
             }
         }
     }
@@ -247,6 +272,9 @@ pub mod identifier {
                     styles_prev: &self.styles_prev,
                 });
             }
+        }
+        fn size(&self, ctx: Ctx) -> Size {
+            self.component.size(ctx)
         }
     }
 

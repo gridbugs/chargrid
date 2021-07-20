@@ -181,6 +181,10 @@ impl PureComponent for HelloWorld {
             }
         }
     }
+
+    fn size(&self, ctx: Ctx) -> Size {
+        ctx.bounding_box.size()
+    }
 }
 
 fn main() {

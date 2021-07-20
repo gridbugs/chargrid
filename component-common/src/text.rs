@@ -6,13 +6,62 @@ pub struct StyledString {
     pub style: Style,
 }
 
+/// Abstract over things that look like `FrameBuffer` but might not be.
+/// This will allow us to measure the dimensions of a possibly-wrapped
+/// piece of text by pretending to render it.
+trait Target {
+    fn set_cell_relative_to_ctx<'a>(
+        &mut self,
+        ctx: Ctx<'a>,
+        coord: Coord,
+        depth: i8,
+        render_cell: RenderCell,
+    );
+}
+
+impl Target for FrameBuffer {
+    fn set_cell_relative_to_ctx<'a>(
+        &mut self,
+        ctx: Ctx<'a>,
+        coord: Coord,
+        depth: i8,
+        render_cell: RenderCell,
+    ) {
+        self.set_cell_relative_to_ctx(ctx, coord, depth, render_cell);
+    }
+}
+
+#[derive(Default, Clone, Copy)]
+struct MeasureBounds {
+    max_coord: Coord,
+}
+
+impl MeasureBounds {
+    fn to_size(self) -> Size {
+        self.max_coord.to_size().unwrap()
+    }
+}
+
+impl Target for MeasureBounds {
+    fn set_cell_relative_to_ctx<'a>(
+        &mut self,
+        _ctx: Ctx<'a>,
+        coord: Coord,
+        _depth: i8,
+        _render_cell: RenderCell,
+    ) {
+        self.max_coord.x = self.max_coord.x.max(coord.x);
+        self.max_coord.y = self.max_coord.y.max(coord.y);
+    }
+}
+
 impl StyledString {
-    fn process_character(
+    fn process_character<T: Target>(
         mut cursor: Coord,
         character: char,
         style: Style,
         ctx: Ctx,
-        frame: &mut FrameBuffer,
+        fb: &mut T,
     ) -> Coord {
         match character {
             '\n' => {
@@ -25,14 +74,14 @@ impl StyledString {
                     character: Some(other),
                     style,
                 };
-                frame.set_cell_relative_to_ctx(ctx, cursor, 0, render_cell);
+                fb.set_cell_relative_to_ctx(ctx, cursor, 0, render_cell);
                 cursor += Coord::new(1, 0);
             }
         }
         cursor
     }
 
-    fn process(&self, mut cursor: Coord, ctx: Ctx, fb: &mut FrameBuffer) -> Coord {
+    fn process<T: Target>(&self, mut cursor: Coord, ctx: Ctx, fb: &mut T) -> Coord {
         for character in self.string.chars() {
             cursor = Self::process_character(cursor, character, self.style, ctx, fb);
         }
@@ -57,6 +106,12 @@ impl PureStaticComponent for StyledString {
     fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
         self.process(Coord::new(0, 0), ctx, fb);
     }
+
+    fn size(&self, ctx: Ctx) -> Size {
+        let mut measure_bounds = MeasureBounds::default();
+        self.process(Coord::new(0, 0), ctx, &mut measure_bounds);
+        measure_bounds.to_size()
+    }
 }
 
 pub struct StyledStringCharWrapped {
@@ -64,12 +119,12 @@ pub struct StyledStringCharWrapped {
 }
 
 impl StyledStringCharWrapped {
-    fn process_character(
+    fn process_character<T: Target>(
         mut cursor: Coord,
         character: char,
         style: Style,
         ctx: Ctx,
-        frame: &mut FrameBuffer,
+        fb: &mut T,
     ) -> Coord {
         match character {
             '\n' => {
@@ -82,7 +137,7 @@ impl StyledStringCharWrapped {
                     character: Some(other),
                     style,
                 };
-                frame.set_cell_relative_to_ctx(ctx, cursor, 0, render_cell);
+                fb.set_cell_relative_to_ctx(ctx, cursor, 0, render_cell);
                 cursor += Coord::new(1, 0);
                 if cursor.x >= ctx.bounding_box.size().width() as i32 {
                     cursor.x = 0;
@@ -93,11 +148,11 @@ impl StyledStringCharWrapped {
         cursor
     }
 
-    fn process_styled_string(
+    fn process_styled_string<T: Target>(
         styled_string: &StyledString,
         mut cursor: Coord,
         ctx: Ctx,
-        fb: &mut FrameBuffer,
+        fb: &mut T,
     ) -> Coord {
         for character in styled_string.string.chars() {
             cursor = Self::process_character(cursor, character, styled_string.style, ctx, fb);
@@ -109,6 +164,17 @@ impl StyledStringCharWrapped {
 impl PureStaticComponent for StyledStringCharWrapped {
     fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
         Self::process_styled_string(&self.styled_string, Coord::new(0, 0), ctx, fb);
+    }
+
+    fn size(&self, ctx: Ctx) -> Size {
+        let mut measure_bounds = MeasureBounds::default();
+        Self::process_styled_string(
+            &self.styled_string,
+            Coord::new(0, 0),
+            ctx,
+            &mut measure_bounds,
+        );
+        measure_bounds.to_size()
     }
 }
 
@@ -124,6 +190,15 @@ impl PureStaticComponent for StyledStringWordWrapped {
         state.process_styled_string(&self.styled_string, ctx, fb);
         state.flush(ctx, fb);
     }
+
+    fn size(&self, ctx: Ctx) -> Size {
+        let mut measure_bounds = MeasureBounds::default();
+        let mut state = self.state.borrow_mut();
+        state.clear();
+        state.process_styled_string(&self.styled_string, ctx, &mut measure_bounds);
+        state.flush(ctx, &mut measure_bounds);
+        measure_bounds.to_size()
+    }
 }
 
 #[derive(Default)]
@@ -138,7 +213,13 @@ impl WordWrapState {
         self.current_word_buffer.clear();
     }
 
-    fn process_character(&mut self, character: char, style: Style, ctx: Ctx, fb: &mut FrameBuffer) {
+    fn process_character<T: Target>(
+        &mut self,
+        character: char,
+        style: Style,
+        ctx: Ctx,
+        fb: &mut T,
+    ) {
         if ctx.bounding_box.size().width() == 0 {
             return;
         }
@@ -192,7 +273,7 @@ impl WordWrapState {
         }
     }
 
-    fn flush(&mut self, ctx: Ctx, fb: &mut FrameBuffer) {
+    fn flush<T: Target>(&mut self, ctx: Ctx, fb: &mut T) {
         if ctx.bounding_box.size().width() == 0 {
             self.current_word_buffer.clear();
             return;
@@ -208,11 +289,11 @@ impl WordWrapState {
         }
     }
 
-    fn process_styled_string(
+    fn process_styled_string<T: Target>(
         &mut self,
         styled_string: &StyledString,
         ctx: Ctx,
-        fb: &mut FrameBuffer,
+        fb: &mut T,
     ) {
         for character in styled_string.string.chars() {
             self.process_character(character, styled_string.style, ctx, fb);
@@ -248,6 +329,15 @@ impl PureStaticComponent for Text {
             cursor = part.process(cursor, ctx, fb);
         }
     }
+
+    fn size(&self, ctx: Ctx) -> Size {
+        let mut measure_bounds = MeasureBounds::default();
+        let mut cursor = Coord::new(0, 0);
+        for part in self.parts.iter() {
+            cursor = part.process(cursor, ctx, &mut measure_bounds);
+        }
+        measure_bounds.to_size()
+    }
 }
 
 pub struct TextCharWrapped {
@@ -260,6 +350,20 @@ impl PureStaticComponent for TextCharWrapped {
         for part in self.text.parts.iter() {
             cursor = StyledStringCharWrapped::process_styled_string(part, cursor, ctx, fb);
         }
+    }
+
+    fn size(&self, ctx: Ctx) -> Size {
+        let mut measure_bounds = MeasureBounds::default();
+        let mut cursor = Coord::new(0, 0);
+        for part in self.text.parts.iter() {
+            cursor = StyledStringCharWrapped::process_styled_string(
+                part,
+                cursor,
+                ctx,
+                &mut measure_bounds,
+            );
+        }
+        measure_bounds.to_size()
     }
 }
 
@@ -275,6 +379,17 @@ impl PureStaticComponent for TextWordWrapped {
             state.process_styled_string(part, ctx, fb);
         }
         state.flush(ctx, fb);
+    }
+
+    fn size(&self, ctx: Ctx) -> Size {
+        let mut measure_bounds = MeasureBounds::default();
+        let mut state = self.state.borrow_mut();
+        state.clear();
+        for part in self.text.parts.iter() {
+            state.process_styled_string(part, ctx, &mut measure_bounds);
+        }
+        state.flush(ctx, &mut measure_bounds);
+        measure_bounds.to_size()
     }
 }
 
