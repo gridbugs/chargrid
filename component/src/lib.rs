@@ -67,7 +67,7 @@ impl BoundingBox {
 
     pub fn set_size(self, size: Size) -> Self {
         Self {
-            bottom_right: self.bottom_right + size.to_coord().unwrap(),
+            bottom_right: self.top_left + size.to_coord().unwrap(),
             ..self
         }
     }

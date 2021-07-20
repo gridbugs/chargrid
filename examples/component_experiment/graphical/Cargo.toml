@@ -4,6 +4,5 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
+component_experiment_app = { path = "../app" }
 chargrid_graphical = { path = "../../../graphical", features = ["gamepad"] }
-chargrid_component = { path = "../../../component", features = ["gamepad"] }
-chargrid_component_common = { path = "../../../component-common", features = ["gamepad"] }

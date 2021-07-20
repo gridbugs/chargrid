@@ -51,7 +51,9 @@ members = [
     "examples/soundboard/ansi-terminal",
     "examples/soundboard/web",
 
+    "examples/component_experiment/app",
     "examples/component_experiment/graphical",
+    "examples/component_experiment/ansi-terminal",
 ]
 
 [profile.release]

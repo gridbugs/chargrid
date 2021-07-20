@@ -38,7 +38,7 @@ struct MeasureBounds {
 
 impl MeasureBounds {
     fn to_size(self) -> Size {
-        self.max_coord.to_size().unwrap()
+        (self.max_coord + Coord::new(1, 1)).to_size().unwrap()
     }
 }
 

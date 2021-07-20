@@ -1,0 +1,8 @@
+[package]
+name = "component_experiment_ansi_terminal"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+component_experiment_app = { path = "../app" }
+chargrid_ansi_terminal = { path = "../../../ansi-terminal", features = ["gamepad"] }
