@@ -149,6 +149,15 @@ impl FrameBuffer {
         self.grid = Grid::new_copy(size, FrameBufferCell::BLANK);
     }
 
+    pub fn clear_with_background(&mut self, background: Rgba32) {
+        for cell in self.grid.iter_mut() {
+            *cell = FrameBufferCell {
+                background,
+                ..FrameBufferCell::BLANK
+            };
+        }
+    }
+
     pub fn clear(&mut self) {
         for cell in self.grid.iter_mut() {
             *cell = FrameBufferCell::BLANK;
@@ -180,10 +189,12 @@ impl FrameBuffer {
                     cell.set_underline(underline, depth);
                 }
                 if let Some(foreground) = render_cell.style.foreground {
-                    cell.set_foreground(foreground, depth);
+                    let foreground_blended = foreground.alpha_composite(cell.background);
+                    cell.set_foreground(foreground_blended, depth);
                 }
                 if let Some(background) = render_cell.style.background {
-                    cell.set_background(background, depth);
+                    let background_blended = background.alpha_composite(cell.background);
+                    cell.set_background(background_blended, depth);
                 }
             }
         }
@@ -466,7 +477,6 @@ where
         F: chargrid_app::Frame,
         CM: chargrid_app::ColModify,
     {
-        self.frame_buffer.clear();
         self.component
             .render(&(), self.frame_buffer.default_ctx(), &mut self.frame_buffer);
         for (coord, cell) in self.frame_buffer.enumerate() {

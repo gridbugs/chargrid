@@ -104,7 +104,9 @@ impl HelloWorld {
                             write!(&mut ctx.component.parts[3].string, " ").unwrap();
                             ctx.component.parts[3].style = Style {
                                 bold: Some(false),
-                                background: Some(rgba32_grey(255 - blink.eval(ctx.since_change))),
+                                background: Some(
+                                    rgba32_grey(255).with_a(255 - blink.eval(ctx.since_change)),
+                                ),
                                 ..Style::default()
                             };
                         } else {
@@ -114,7 +116,7 @@ impl HelloWorld {
                                 bold: Some(false),
                                 foreground: Some(rgba32_grey(127)),
                                 background: ctx.styles_prev[1].background.map(|bg| {
-                                    fade::linear(bg, rgba32_grey(0), Duration::from_millis(150))
+                                    fade::linear(bg, rgba32(0, 0, 0, 0), Duration::from_millis(150))
                                         .eval(ctx.since_change)
                                 }),
                                 ..Style::default()
@@ -152,6 +154,7 @@ impl PureComponent for HelloWorld {
     type Output = Option<ControlFlow>;
 
     fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+        fb.clear_with_background(rgba32_rgb(0, 0, 100));
         self.title.render(
             ctx.add_offset(Coord::new(2, 3))
                 .constrain_size_by(Coord::new(8, 5)),
