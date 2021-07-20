@@ -213,7 +213,11 @@ impl FrameBuffer {
     ) {
         if let Some(absolute_coord) = ctx.bounding_box.coord_relative_to_absolute(coord) {
             let absolute_depth = depth + ctx.depth;
-            self.set_cell(absolute_coord, absolute_depth, render_cell);
+            self.set_cell(
+                absolute_coord,
+                absolute_depth,
+                render_cell.apply_tint(ctx.tint),
+            );
         }
     }
 }
@@ -233,6 +237,14 @@ impl Style {
         foreground: None,
         background: None,
     };
+
+    fn apply_tint(self, tint: &dyn Tint) -> Self {
+        Self {
+            foreground: self.foreground.map(|r| tint.tint(r)),
+            background: self.background.map(|r| tint.tint(r)),
+            ..self
+        }
+    }
 }
 
 impl Default for Style {
@@ -252,6 +264,13 @@ impl RenderCell {
         character: None,
         style: Style::DEFAULT,
     };
+
+    fn apply_tint(self, tint: &dyn Tint) -> Self {
+        Self {
+            style: self.style.apply_tint(tint),
+            ..self
+        }
+    }
 }
 
 impl Default for RenderCell {
