@@ -13,7 +13,7 @@ let
   # This overlay is mozilla/nixpkgs-mozilla with the patch applied from this PR:
   # https://github.com/mozilla/nixpkgs-mozilla/pull/250
   # ...which replaces deprecated usage of stdenv.lib with lib.
-  moz_overlay_url = "https://github.com/stevebob/nixpkgs-mozilla/archive/with-stdenv.lib-fix.tar.gz";
+  moz_overlay_url = "https://github.com/gridbugs/nixpkgs-mozilla/archive/with-stdenv.lib-fix.tar.gz";
   moz_overlay = import (builtins.fetchTarball moz_overlay_url);
   nixpkgs = import <nixpkgs> {
     overlays = [ moz_overlay ];
