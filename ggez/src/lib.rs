@@ -1,7 +1,8 @@
-use chargrid_app::{App, ControlFlow};
+use chargrid_component_runtime::{
+    on_frame, on_input, Component, ControlFlow, Coord, FrameBuffer, Rgba32, Size,
+};
 pub use chargrid_graphical_common::*;
 use chargrid_input::{keys, Input, KeyboardInput, MouseButton, MouseInput, ScrollDirection};
-use chargrid_render::{Buffer, Coord, Rgb24, Size, ViewContext};
 use std::time::Instant;
 
 pub struct Context {
@@ -13,10 +14,13 @@ struct Fonts {
     bold: ggez::graphics::Font,
 }
 
-struct GgezApp<A: App + 'static> {
+struct GgezApp<C>
+where
+    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+{
     fonts: Fonts,
-    chargrid_app: A,
-    buffer: Buffer,
+    chargrid_component: C,
+    chargrid_frame_buffer: FrameBuffer,
     last_frame: Instant,
     font_scale: ggez::graphics::PxScale,
     underline_mesh: ggez::graphics::Mesh,
@@ -29,7 +33,10 @@ struct GgezApp<A: App + 'static> {
     gamepad_id_to_integer_id: hashbrown::HashMap<ggez::event::GamepadId, u64>,
 }
 
-impl<A: App + 'static> GgezApp<A> {
+impl<C> GgezApp<C>
+where
+    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+{
     fn convert_mouse_position(&self, x: f32, y: f32) -> Coord {
         Coord {
             x: (x / self.cell_width) as i32,
@@ -47,26 +54,29 @@ impl<A: App + 'static> GgezApp<A> {
     }
 }
 
-impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A> {
+impl<C> ggez::event::EventHandler<ggez::GameError> for GgezApp<C>
+where
+    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+{
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         const DESIRED_FPS: u32 = 60;
         while ggez::timer::check_update_time(ctx, DESIRED_FPS) {}
         let now = Instant::now();
-        self.buffer.clear();
-        let view_context = ViewContext::default_with_size(self.buffer.size());
-        if let Some(ControlFlow::Exit) =
-            self.chargrid_app
-                .on_frame(now - self.last_frame, view_context, &mut self.buffer)
-        {
+        if let Some(ControlFlow::Exit) = on_frame(
+            &mut self.chargrid_component,
+            now - self.last_frame,
+            &mut self.chargrid_frame_buffer,
+        ) {
             ggez::event::quit(ctx);
         }
+
         self.last_frame = now;
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         ggez::graphics::clear(ctx, [0., 0., 0., 1.0].into());
-        for (coord, cell) in self.buffer.enumerate() {
+        for (coord, cell) in self.chargrid_frame_buffer.enumerate() {
             if cell.character != ' ' {
                 let mut text = ggez::graphics::Text::new(cell.character);
                 let font = if cell.bold {
@@ -82,10 +92,10 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
                         x: coord.x as f32 * self.cell_width,
                         y: coord.y as f32 * self.cell_height,
                     },
-                    Some(cell.foreground_colour.to_f32_rgba(1.).into()),
+                    Some(cell.foreground.to_f32_array_01().into()),
                 );
             }
-            if cell.background_colour != Rgb24::new(0, 0, 0) {
+            if cell.background != Rgba32::new(0, 0, 0, 255) {
                 ggez::graphics::draw(
                     ctx,
                     &self.background_mesh,
@@ -94,7 +104,7 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
                             x: coord.x as f32 * self.cell_width,
                             y: coord.y as f32 * self.cell_height,
                         })
-                        .color(cell.background_colour.to_f32_rgba(1.).into()),
+                        .color(cell.background.to_f32_array_01().into()),
                 )
                 .expect("failed to draw background");
             }
@@ -107,7 +117,7 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
                             x: coord.x as f32 * self.cell_width,
                             y: coord.y as f32 * self.cell_height,
                         })
-                        .color(cell.foreground_colour.to_f32_rgba(1.).into()),
+                        .color(cell.foreground.to_f32_array_01().into()),
                 )
                 .expect("failed to draw underline");
             }
@@ -247,7 +257,11 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
                 return;
             }
         };
-        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Keyboard(input)) {
+        if let Some(ControlFlow::Exit) = on_input(
+            &mut self.chargrid_component,
+            Input::Keyboard(input),
+            &self.chargrid_frame_buffer,
+        ) {
             ggez::event::quit(ctx);
         }
     }
@@ -264,7 +278,11 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
             let coord = self.convert_mouse_position(x, y);
             self.current_mouse_position = coord;
             let input = MouseInput::MousePress { button, coord };
-            if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Mouse(input)) {
+            if let Some(ControlFlow::Exit) = on_input(
+                &mut self.chargrid_component,
+                Input::Mouse(input),
+                &self.chargrid_frame_buffer,
+            ) {
                 ggez::event::quit(ctx);
             }
         }
@@ -285,7 +303,11 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
                 button: Ok(button),
                 coord,
             };
-            if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Mouse(input)) {
+            if let Some(ControlFlow::Exit) = on_input(
+                &mut self.chargrid_component,
+                Input::Mouse(input),
+                &self.chargrid_frame_buffer,
+            ) {
                 ggez::event::quit(ctx);
             }
         }
@@ -298,7 +320,11 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
             coord,
             button: self.current_mouse_button,
         };
-        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Mouse(input)) {
+        if let Some(ControlFlow::Exit) = on_input(
+            &mut self.chargrid_component,
+            Input::Mouse(input),
+            &self.chargrid_frame_buffer,
+        ) {
             ggez::event::quit(ctx);
         }
     }
@@ -307,7 +333,11 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
         let mut handle = |direction| {
             let coord = self.current_mouse_position;
             let input = MouseInput::MouseScroll { direction, coord };
-            if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Mouse(input)) {
+            if let Some(ControlFlow::Exit) = on_input(
+                &mut self.chargrid_component,
+                Input::Mouse(input),
+                &self.chargrid_frame_buffer,
+            ) {
                 ggez::event::quit(ctx);
             }
         };
@@ -326,7 +356,11 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
     }
 
     fn quit_event(&mut self, _ctx: &mut ggez::Context) -> bool {
-        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Keyboard(keys::ETX)) {
+        if let Some(ControlFlow::Exit) = on_input(
+            &mut self.chargrid_component,
+            Input::Keyboard(keys::ETX),
+            &self.chargrid_frame_buffer,
+        ) {
             false
         } else {
             true
@@ -368,7 +402,11 @@ impl<A: App + 'static> ggez::event::EventHandler<ggez::GameError> for GgezApp<A>
             button,
             id: integer_id,
         };
-        if let Some(ControlFlow::Exit) = self.chargrid_app.on_input(Input::Gamepad(input)) {
+        if let Some(ControlFlow::Exit) = on_input(
+            &mut self.chargrid_component,
+            Input::Gamepad(input),
+            &self.chargrid_frame_buffer,
+        ) {
             ggez::event::quit(ctx);
         }
     }
@@ -394,16 +432,16 @@ impl Context {
         WindowHandle {}
     }
 
-    pub fn run_app<A>(self, app: A) -> !
+    pub fn run_component<C>(self, component: C) -> !
     where
-        A: App + 'static,
+        C: 'static + Component<State = (), Output = Option<ControlFlow>>,
     {
         let Self { config } = self;
         let grid_size = Size::new(
             (config.window_dimensions_px.width as f64 / config.cell_dimensions_px.width) as u32,
             (config.window_dimensions_px.height as f64 / config.cell_dimensions_px.height) as u32,
         );
-        let buffer = Buffer::new(grid_size);
+        let chargrid_frame_buffer = FrameBuffer::new(grid_size);
         let (mut ctx, events_loop) =
             ggez::ContextBuilder::new(config.title.as_str(), "chargrid_ggez")
                 .window_setup(ggez::conf::WindowSetup::default().title(config.title.as_str()))
@@ -470,8 +508,8 @@ impl Context {
             events_loop,
             GgezApp {
                 fonts,
-                chargrid_app: app,
-                buffer,
+                chargrid_component: component,
+                chargrid_frame_buffer,
                 last_frame: Instant::now(),
                 font_scale: ggez::graphics::PxScale {
                     x: config.font_scale.width as f32,

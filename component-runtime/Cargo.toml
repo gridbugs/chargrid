@@ -1,0 +1,17 @@
+[package]
+name = "chargrid_component_runtime"
+description = "Helpers for implementing chargrid frontends that can execute components"
+version = "0.1.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/gridbugs/chargrid.git"
+repository = "https://github.com/gridbugs/chargrid.git"
+documentation = "https://docs.rs/chargrid_wgpu"
+edition = "2018"
+
+[features]
+gamepad = ["chargrid_component/gamepad"]
+
+[dependencies]
+chargrid_component = { path = "../component", version = "0.1" }

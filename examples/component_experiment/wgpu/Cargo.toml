@@ -1,0 +1,9 @@
+[package]
+name = "component_experiment_wgpu"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+component_experiment_app = { path = "../app" }
+chargrid_wgpu = { path = "../../../wgpu", features = ["gamepad"] }
+chargrid_component = { path = "../../../component" }

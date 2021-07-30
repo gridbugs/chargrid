@@ -1,8 +1,6 @@
 use crate::{input, Config, Dimensions, FontBytes};
-use chargrid_app::{App, ControlFlow};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
-use chargrid_render::ViewContext;
 use grid_2d::{Coord, Grid, Size};
 use std::sync::Arc;
 use std::thread;
@@ -84,7 +82,7 @@ struct WgpuContext {
     bind_group: wgpu::BindGroup,
     queue: wgpu::Queue,
     background_cell_instance_data: Grid<BackgroundCellInstance>,
-    render_buffer: chargrid_render::Buffer,
+    chargrid_frame_buffer: chargrid_component_runtime::FrameBuffer,
     glyph_brush: wgpu_glyph::GlyphBrush<(), ab_glyph::FontVec>,
     global_uniforms_buffer: wgpu::Buffer,
     window_size: winit::dpi::LogicalSize<f64>,
@@ -231,7 +229,7 @@ impl WgpuContext {
         use std::mem;
         let num_background_cell_instances = grid_size.count();
         let background_cell_instance_data = Grid::new_default(grid_size);
-        let render_buffer = chargrid_render::Buffer::new(grid_size);
+        let chargrid_frame_buffer = chargrid_component_runtime::FrameBuffer::new(grid_size);
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
@@ -360,7 +358,7 @@ impl WgpuContext {
             bind_group,
             queue,
             background_cell_instance_data,
-            render_buffer,
+            chargrid_frame_buffer,
             glyph_brush,
             global_uniforms_buffer,
             window_size,
@@ -370,20 +368,21 @@ impl WgpuContext {
     }
     fn render_background(&mut self) {
         for (buffer_cell, background_cell_instance) in self
-            .render_buffer
+            .chargrid_frame_buffer
             .iter()
             .zip(self.background_cell_instance_data.iter_mut())
         {
             background_cell_instance.background_colour =
-                rgb_to_srgb(buffer_cell.background_colour.to_f32_rgb());
+                rgb_to_srgb(buffer_cell.background.to_f32_array_rgb_01());
             background_cell_instance.foreground_colour =
-                rgb_to_srgb(buffer_cell.foreground_colour.to_f32_rgb());
+                rgb_to_srgb(buffer_cell.foreground.to_f32_array_rgb_01());
             background_cell_instance.underline = buffer_cell.underline as u32;
         }
+
         self.background_cell_instance_buffer = populate_and_finish_buffer(
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
-                size: self.render_buffer.size().count() as u64
+                size: self.chargrid_frame_buffer.size().count() as u64
                     * std::mem::size_of::<BackgroundCellInstance>() as u64,
                 usage: wgpu::BufferUsage::VERTEX,
                 mapped_at_creation: true,
@@ -402,7 +401,7 @@ impl WgpuContext {
         self.background_cell_instance_buffer = populate_and_finish_buffer(
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
-                size: self.render_buffer.size().count() as u64
+                size: self.chargrid_frame_buffer.size().count() as u64
                     * std::mem::size_of::<BackgroundCellInstance>() as u64,
                 usage: wgpu::BufferUsage::VERTEX,
                 mapped_at_creation: true,
@@ -620,9 +619,14 @@ impl Context {
             window: self.window.clone(),
         }
     }
-    pub fn run_app<A>(self, mut app: A) -> !
+
+    pub fn run_component<C>(self, mut component: C) -> !
     where
-        A: App + 'static,
+        C: 'static
+            + chargrid_component_runtime::Component<
+                State = (),
+                Output = Option<chargrid_component_runtime::ControlFlow>,
+            >,
     {
         let Self {
             window,
@@ -653,7 +657,12 @@ impl Context {
             };
             #[cfg(feature = "gamepad")]
             for input in gamepad.drain_input() {
-                if let Some(ControlFlow::Exit) = app.on_input(chargrid_input::Input::Gamepad(input))
+                if let Some(chargrid_component_runtime::ControlFlow::Exit) =
+                    chargrid_component_runtime::on_input(
+                        &mut component,
+                        chargrid_input::Input::Gamepad(input),
+                        &wgpu_context.chargrid_frame_buffer,
+                    )
                 {
                     exited = true;
                     return;
@@ -680,7 +689,13 @@ impl Context {
                         ) {
                             match event {
                                 input::Event::Input(input) => {
-                                    if let Some(ControlFlow::Exit) = app.on_input(input) {
+                                    if let Some(chargrid_component_runtime::ControlFlow::Exit) =
+                                        chargrid_component_runtime::on_input(
+                                            &mut component,
+                                            input,
+                                            &wgpu_context.chargrid_frame_buffer,
+                                        )
+                                    {
                                         exited = true;
                                         return;
                                     }
@@ -697,14 +712,13 @@ impl Context {
                 winit::event::Event::RedrawRequested(_) => {
                     let frame_duration = frame_instant.elapsed();
                     frame_instant = Instant::now();
-                    let view_context =
-                        ViewContext::default_with_size(wgpu_context.render_buffer.size());
-                    wgpu_context.render_buffer.clear();
-                    if let Some(ControlFlow::Exit) = app.on_frame(
-                        frame_duration,
-                        view_context,
-                        &mut wgpu_context.render_buffer,
-                    ) {
+                    if let Some(chargrid_component_runtime::ControlFlow::Exit) =
+                        chargrid_component_runtime::on_frame(
+                            &mut component,
+                            frame_duration,
+                            &mut wgpu_context.chargrid_frame_buffer,
+                        )
+                    {
                         exited = true;
                         return;
                     }
@@ -733,14 +747,16 @@ impl Context {
                                 0,
                                 wgpu_context.background_cell_instance_buffer.slice(..),
                             );
-                            render_pass
-                                .draw(0..6, 0..wgpu_context.render_buffer.size().count() as u32);
+                            render_pass.draw(
+                                0..6,
+                                0..wgpu_context.chargrid_frame_buffer.size().count() as u32,
+                            );
                         }
                         let offset_to_centre = size_context
                             .pixel_offset_to_centre_native_window(current_window_dimensions);
                         let font_scale = size_context.font_source_scale;
                         text_buffer.clear();
-                        for row in wgpu_context.render_buffer.rows() {
+                        for row in wgpu_context.chargrid_frame_buffer.rows() {
                             for cell in row {
                                 text_buffer.push(cell.character);
                             }
@@ -752,7 +768,7 @@ impl Context {
                         let mut char_start = 0;
                         for (ch, (coord, cell)) in text_buffer
                             .chars()
-                            .zip(wgpu_context.render_buffer.enumerate())
+                            .zip(wgpu_context.chargrid_frame_buffer.enumerate())
                         {
                             let char_end = char_start + ch.len_utf8();
                             let str_slice = &text_buffer[char_start..char_end];
@@ -765,12 +781,12 @@ impl Context {
                                 wgpu_glyph::Text::new(str_slice)
                                     .with_scale(font_scale)
                                     .with_font_id(font_id)
-                                    .with_color(rgba_to_srgb(
-                                        cell.foreground_colour.to_f32_rgba(1.),
-                                    )),
+                                    .with_color(rgba_to_srgb(cell.foreground.to_f32_array_01())),
                             );
                             char_start = char_end;
-                            if coord.x as u32 == wgpu_context.render_buffer.size().width() - 1 {
+                            if coord.x as u32
+                                == wgpu_context.chargrid_frame_buffer.size().width() - 1
+                            {
                                 section = section
                                     .add_text(wgpu_glyph::Text::new("\n").with_scale(font_scale));
                             }

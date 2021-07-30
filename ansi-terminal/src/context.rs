@@ -1,9 +1,8 @@
 use crate::error::*;
 use crate::terminal::*;
-use chargrid_app::{App, ControlFlow};
+use chargrid_component_runtime::{on_frame, on_input, Component, ControlFlow, FrameBuffer, Size};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
-use chargrid_render::*;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -12,7 +11,7 @@ const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 /// An interface to a terminal for rendering `View`s, and getting input.
 pub struct Context {
     terminal: Terminal,
-    buffer: Buffer,
+    chargrid_frame_buffer: FrameBuffer,
     #[cfg(feature = "gamepad")]
     gamepad: GamepadContext,
 }
@@ -25,56 +24,58 @@ impl Context {
 
     fn from_terminal(mut terminal: Terminal) -> Result<Self> {
         let size = terminal.resize_if_necessary()?;
-        let buffer = Buffer::new(size);
+        let chargrid_frame_buffer = FrameBuffer::new(size);
         Ok(Self {
             terminal,
-            buffer,
+            chargrid_frame_buffer,
             #[cfg(feature = "gamepad")]
             gamepad: GamepadContext::new(),
         })
     }
 
-    fn resize_if_necessary(&mut self) -> Result<()> {
-        let size = self.terminal.resize_if_necessary()?;
-        if size != self.buffer.size() {
-            self.buffer.resize(size);
-        }
-        Ok(())
-    }
-
-    fn drain_input(&mut self) -> Result<DrainInput> {
-        self.terminal.drain_input()
-    }
-
-    pub fn run_app<A, E>(mut self, mut app: A, col_encode: E)
+    pub fn run_component<C, E>(self, mut component: C, col_encode: E)
     where
-        A: App + 'static,
+        C: 'static + Component<State = (), Output = Option<ControlFlow>>,
         E: ColEncode,
     {
         let _ = col_encode;
+        let Self {
+            mut terminal,
+            mut chargrid_frame_buffer,
+            #[cfg(feature = "gamepad")]
+            mut gamepad,
+        } = self;
         loop {
             let frame_start = Instant::now();
-            for input in self.drain_input().unwrap() {
-                if let Some(ControlFlow::Exit) = app.on_input(input) {
-                    return;
-                }
-            }
-            #[cfg(feature = "gamepad")]
-            for input in self.gamepad.drain_input() {
-                if let Some(ControlFlow::Exit) = app.on_input(chargrid_input::Input::Gamepad(input))
+            for input in terminal.drain_input().unwrap() {
+                if let Some(ControlFlow::Exit) =
+                    on_input(&mut component, input, &chargrid_frame_buffer)
                 {
                     return;
                 }
             }
-            self.resize_if_necessary().unwrap();
-            self.buffer.clear();
-            let view_context = ViewContext::default_with_size(self.size().unwrap());
+            #[cfg(feature = "gamepad")]
+            for input in gamepad.drain_input() {
+                if let Some(ControlFlow::Exit) = on_input(
+                    &mut component,
+                    chargrid_input::Input::Gamepad(input),
+                    &chargrid_frame_buffer,
+                ) {
+                    return;
+                }
+            }
+            let terminal_size = terminal.resize_if_necessary().unwrap();
+            if terminal_size != chargrid_frame_buffer.size() {
+                chargrid_frame_buffer.resize(terminal_size);
+            }
             if let Some(ControlFlow::Exit) =
-                app.on_frame(FRAME_DURATION, view_context, &mut self.buffer)
+                on_frame(&mut component, FRAME_DURATION, &mut chargrid_frame_buffer)
             {
                 return;
             }
-            self.terminal.draw_frame::<E>(&mut self.buffer).unwrap();
+            terminal
+                .draw_frame::<E>(&mut chargrid_frame_buffer)
+                .unwrap();
             let since_frame_start = frame_start.elapsed();
             if let Some(until_next_frame) = FRAME_DURATION.checked_sub(since_frame_start) {
                 thread::sleep(until_next_frame);

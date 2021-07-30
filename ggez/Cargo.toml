@@ -11,14 +11,13 @@ documentation = "https://docs.rs/chargrid_ggez"
 edition = "2018"
 
 [features]
-serialize = ["chargrid_input/serialize", "chargrid_render/serialize"]
-gamepad = ["chargrid_input/gamepad", "hashbrown"]
+serialize = ["chargrid_input/serialize"]
+gamepad = ["chargrid_input/gamepad", "hashbrown", "chargrid_component_runtime/gamepad"]
 
 [dependencies]
-chargrid_graphical_common = { path = "../graphical-common", version = "0.2" }
-chargrid_render = { path = "../render", version = "0.2" }
 chargrid_input = { path = "../input", version = "0.2" }
-chargrid_app = { path = "../app", version = "0.2" }
+chargrid_graphical_common = { path = "../graphical-common", version = "0.2" }
+chargrid_component_runtime = { path = "../component-runtime", version = "0.1" }
 log = "0.4"
-ggez = "0.6.0-rc1"
+ggez = "0.6"
 hashbrown = { version = "0.11", optional = true }

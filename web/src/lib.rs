@@ -1,13 +1,11 @@
 mod input;
 
-use chargrid_app::App;
+use chargrid_component_runtime::{on_frame, on_input, Component, ControlFlow, FrameBuffer, Rgba32};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 pub use chargrid_input;
 pub use chargrid_input::{Input, MouseInput};
 use chargrid_input::{MouseButton, ScrollDirection};
-pub use chargrid_render;
-use chargrid_render::{Buffer, Rgb24, ViewContext};
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;
@@ -18,8 +16,8 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlElement, KeyboardEvent, MouseEvent, Node, WheelEvent};
 
-fn rgb24_to_web_colour(Rgb24 { r, g, b }: Rgb24) -> String {
-    format!("rgb({},{},{})", r, g, b)
+fn rgba32_to_web_colour(Rgba32 { r, g, b, a }: Rgba32) -> String {
+    format!("rgba({},{},{},{})", r, g, b, a as f64 / 255.0)
 }
 
 struct ElementCell {
@@ -27,8 +25,8 @@ struct ElementCell {
     character: char,
     bold: bool,
     underline: bool,
-    foreground_colour: Rgb24,
-    background_colour: Rgb24,
+    foreground: Rgba32,
+    background: Rgba32,
 }
 
 impl ElementCell {
@@ -46,8 +44,8 @@ impl ElementCell {
             character: ' ',
             bold: false,
             underline: false,
-            foreground_colour: Rgb24::new_grey(0),
-            background_colour: Rgb24::new_grey(0),
+            foreground: Rgba32::new_grey(0),
+            background: Rgba32::new_grey(0),
         }
     }
 }
@@ -70,7 +68,7 @@ impl ElementDisplayInfo {
 
 pub struct Context {
     element_grid: grid_2d::Grid<ElementCell>,
-    buffer: Buffer,
+    chargrid_frame_buffer: FrameBuffer,
     container_element: Element,
     #[cfg(feature = "gamepad")]
     gamepad: GamepadContext,
@@ -134,10 +132,10 @@ impl Context {
                 )
                 .unwrap();
         }
-        let buffer = Buffer::new(size);
+        let chargrid_frame_buffer = FrameBuffer::new(size);
         Self {
             element_grid,
-            buffer,
+            chargrid_frame_buffer,
             container_element: document.get_element_by_id(container).unwrap(),
             #[cfg(feature = "gamepad")]
             gamepad: GamepadContext::new(),
@@ -145,7 +143,11 @@ impl Context {
     }
 
     fn render_internal(&mut self) {
-        for (chargrid_cell, element_cell) in self.buffer.iter().zip(self.element_grid.iter_mut()) {
+        for (chargrid_cell, element_cell) in self
+            .chargrid_frame_buffer
+            .iter()
+            .zip(self.element_grid.iter_mut())
+        {
             if element_cell.character != chargrid_cell.character {
                 element_cell.character = chargrid_cell.character;
                 let string = match chargrid_cell.character {
@@ -155,21 +157,18 @@ impl Context {
                 element_cell.element.set_inner_html(&string);
             }
             let element_style = element_cell.element.style();
-            if element_cell.foreground_colour != chargrid_cell.foreground_colour {
-                element_cell.foreground_colour = chargrid_cell.foreground_colour;
+            if element_cell.foreground != chargrid_cell.foreground {
+                element_cell.foreground = chargrid_cell.foreground;
                 element_style
-                    .set_property(
-                        "color",
-                        &rgb24_to_web_colour(chargrid_cell.foreground_colour),
-                    )
+                    .set_property("color", &rgba32_to_web_colour(chargrid_cell.foreground))
                     .unwrap();
             }
-            if element_cell.background_colour != chargrid_cell.background_colour {
-                element_cell.background_colour = chargrid_cell.background_colour;
+            if element_cell.background != chargrid_cell.background {
+                element_cell.background = chargrid_cell.background;
                 element_style
                     .set_property(
                         "background-color",
-                        &rgb24_to_web_colour(chargrid_cell.background_colour),
+                        &rgba32_to_web_colour(chargrid_cell.background),
                     )
                     .unwrap();
             }
@@ -194,18 +193,21 @@ impl Context {
         }
     }
 
-    pub fn run_app<A>(self, app: A)
+    pub fn run_component<C>(self, component: C)
     where
-        A: App + 'static,
+        C: 'static + Component<State = (), Output = Option<ControlFlow>>,
     {
-        let app = Rc::new(RefCell::new(app));
+        let component = Rc::new(RefCell::new(component));
         let context = Rc::new(RefCell::new(self));
-        run_app_frame(app.clone(), context.clone());
-        run_app_input(app, context);
+        run_component_frame(component.clone(), context.clone());
+        run_component_input(component, context);
     }
 }
 
-fn run_app_frame<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Context>>) {
+fn run_component_frame<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
+where
+    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+{
     let window = web_sys::window().unwrap();
     let performance = window.performance().unwrap();
     let f: Rc<RefCell<Option<Closure<_>>>> = Rc::new(RefCell::new(None));
@@ -216,12 +218,10 @@ fn run_app_frame<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
         let since_last_frame = frame_time_stamp - last_frame_time_stamp;
         last_frame_time_stamp = frame_time_stamp;
         let mut context = context.borrow_mut();
-        context.buffer.clear();
-        let view_context = ViewContext::default_with_size(context.buffer.size());
-        app.borrow_mut().on_frame(
+        on_frame(
+            &mut *component.borrow_mut(),
             Duration::from_millis(since_last_frame as u64),
-            view_context,
-            &mut context.buffer,
+            &mut context.chargrid_frame_buffer,
         );
         context.render_internal();
         window
@@ -267,25 +267,33 @@ mod button {
     }
 }
 
-fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Context>>) {
+fn run_component_input<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
+where
+    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+{
     let window = web_sys::window().unwrap();
     let handle_keydown = {
-        let app = app.clone();
+        let component = component.clone();
+        let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
             let keyboard_event = event.unchecked_ref::<KeyboardEvent>();
             if let Some(input) = input::from_js_event_key_press(
                 keyboard_event.key_code() as u8,
                 keyboard_event.shift_key(),
             ) {
-                app.borrow_mut().on_input(input);
+                on_input(
+                    &mut *component.borrow_mut(),
+                    input,
+                    &context.borrow().chargrid_frame_buffer,
+                );
             }
         }) as Box<dyn FnMut(JsValue)>)
     };
     let handle_mouse_move = {
-        let app = app.clone();
+        let component = component.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let mut app = app.borrow_mut();
+            let mut component = component.borrow_mut();
             #[cfg(feature = "gamepad")]
             let mut context = context.borrow_mut();
             #[cfg(not(feature = "gamepad"))]
@@ -296,40 +304,60 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
                 element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let buttons = mouse_event.buttons();
             if buttons::has_none(buttons) {
-                app.on_input(Input::Mouse(MouseInput::MouseMove {
-                    button: None,
-                    coord,
-                }));
+                on_input(
+                    &mut *component,
+                    Input::Mouse(MouseInput::MouseMove {
+                        button: None,
+                        coord,
+                    }),
+                    &context.chargrid_frame_buffer,
+                );
             }
             if buttons::has_left(buttons) {
-                app.on_input(Input::Mouse(MouseInput::MouseMove {
-                    button: Some(MouseButton::Left),
-                    coord,
-                }));
+                on_input(
+                    &mut *component,
+                    Input::Mouse(MouseInput::MouseMove {
+                        button: Some(MouseButton::Left),
+                        coord,
+                    }),
+                    &context.chargrid_frame_buffer,
+                );
             }
             if buttons::has_right(buttons) {
-                app.on_input(Input::Mouse(MouseInput::MouseMove {
-                    button: Some(MouseButton::Right),
-                    coord,
-                }));
+                on_input(
+                    &mut *component,
+                    Input::Mouse(MouseInput::MouseMove {
+                        button: Some(MouseButton::Right),
+                        coord,
+                    }),
+                    &context.chargrid_frame_buffer,
+                );
             }
             if buttons::has_middle(buttons) {
-                app.on_input(Input::Mouse(MouseInput::MouseMove {
-                    button: Some(MouseButton::Middle),
-                    coord,
-                }));
+                on_input(
+                    &mut *component,
+                    Input::Mouse(MouseInput::MouseMove {
+                        button: Some(MouseButton::Middle),
+                        coord,
+                    }),
+                    &context.chargrid_frame_buffer,
+                );
             }
             #[cfg(feature = "gamepad")]
             for input in context.gamepad.drain_input() {
-                app.on_input(chargrid_input::Input::Gamepad(input));
+                on_input(
+                    &mut *component,
+                    chargrid_input::Input::Gamepad(input),
+                    &context.chargrid_frame_buffer,
+                );
             }
         }) as Box<dyn FnMut(JsValue)>)
     };
     let handle_mouse_down = {
-        let app = app.clone();
+        let component = component.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let mut app = app.borrow_mut();
+            let mut component = component.borrow_mut();
             let context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
@@ -337,15 +365,19 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
                 element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
             if let Some(button) = button::to_mouse_button(button) {
-                app.on_input(Input::Mouse(MouseInput::MousePress { button, coord }));
+                on_input(
+                    &mut *component,
+                    Input::Mouse(MouseInput::MousePress { button, coord }),
+                    &context.chargrid_frame_buffer,
+                );
             }
         }) as Box<dyn FnMut(JsValue)>)
     };
     let handle_mouse_up = {
-        let app = app.clone();
+        let component = component.clone();
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
-            let mut app = app.borrow_mut();
+            let mut component = component.borrow_mut();
             let context = context.borrow_mut();
             let element_display_info = context.element_display_info();
             let mouse_event = event.unchecked_ref::<MouseEvent>();
@@ -353,41 +385,61 @@ fn run_app_input<A: App + 'static>(app: Rc<RefCell<A>>, context: Rc<RefCell<Cont
                 element_display_info.mouse_coord(mouse_event.client_x(), mouse_event.client_y());
             let button = mouse_event.button();
             if let Some(button) = button::to_mouse_button(button) {
-                app.on_input(Input::Mouse(MouseInput::MouseRelease {
-                    button: Ok(button),
-                    coord,
-                }));
+                on_input(
+                    &mut *component,
+                    Input::Mouse(MouseInput::MouseRelease {
+                        button: Ok(button),
+                        coord,
+                    }),
+                    &context.chargrid_frame_buffer,
+                );
             }
         }) as Box<dyn FnMut(JsValue)>)
     };
     let handle_wheel = Closure::wrap(Box::new(move |event: JsValue| {
         let context = context.borrow_mut();
-        let mut app = app.borrow_mut();
+        let mut component = component.borrow_mut();
         let element_display_info = context.element_display_info();
         let wheel_event = event.unchecked_ref::<WheelEvent>();
         let coord =
             element_display_info.mouse_coord(wheel_event.client_x(), wheel_event.client_y());
         if wheel_event.delta_x() < 0. {
-            app.on_input(Input::Mouse(MouseInput::MouseScroll {
-                direction: ScrollDirection::Left,
-                coord,
-            }));
+            on_input(
+                &mut *component,
+                Input::Mouse(MouseInput::MouseScroll {
+                    direction: ScrollDirection::Left,
+                    coord,
+                }),
+                &context.chargrid_frame_buffer,
+            );
         } else if wheel_event.delta_x() > 0. {
-            app.on_input(Input::Mouse(MouseInput::MouseScroll {
-                direction: ScrollDirection::Right,
-                coord,
-            }));
+            on_input(
+                &mut *component,
+                Input::Mouse(MouseInput::MouseScroll {
+                    direction: ScrollDirection::Right,
+                    coord,
+                }),
+                &context.chargrid_frame_buffer,
+            );
         }
         if wheel_event.delta_y() < 0. {
-            app.on_input(Input::Mouse(MouseInput::MouseScroll {
-                direction: ScrollDirection::Up,
-                coord,
-            }));
+            on_input(
+                &mut *component,
+                Input::Mouse(MouseInput::MouseScroll {
+                    direction: ScrollDirection::Up,
+                    coord,
+                }),
+                &context.chargrid_frame_buffer,
+            );
         } else if wheel_event.delta_y() > 0. {
-            app.on_input(Input::Mouse(MouseInput::MouseScroll {
-                direction: ScrollDirection::Down,
-                coord,
-            }));
+            on_input(
+                &mut *component,
+                Input::Mouse(MouseInput::MouseScroll {
+                    direction: ScrollDirection::Down,
+                    coord,
+                }),
+                &context.chargrid_frame_buffer,
+            );
         }
     }) as Box<dyn FnMut(JsValue)>);
     window

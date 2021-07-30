@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use chargrid_render::*;
+use chargrid_component_runtime::Size;
 use libc;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};

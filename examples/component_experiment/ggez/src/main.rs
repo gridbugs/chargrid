@@ -1,4 +1,4 @@
-use chargrid_graphical::*;
+use chargrid_ggez::*;
 use component_experiment_app::app;
 
 fn main() {
@@ -7,7 +7,7 @@ fn main() {
             normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
             bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
         },
-        title: "Tetris".to_string(),
+        title: "Component Experiment".to_string(),
         window_dimensions_px: Dimensions {
             width: 640.,
             height: 480.,
@@ -24,6 +24,5 @@ fn main() {
         underline_top_offset_cell_ratio: 0.8,
         resizable: false,
     });
-    let grid_size = context.grid_size();
-    context.run_app(app(grid_size));
+    context.run_component(app());
 }

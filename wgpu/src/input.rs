@@ -1,9 +1,8 @@
 use crate::Dimensions;
 use chargrid_input::{
-    keys, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput,
+    keys, Coord, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput,
     ScrollDirection,
 };
-use chargrid_render::Coord;
 use winit::dpi::{LogicalPosition, PhysicalSize};
 use winit::event::{
     ElementState, ModifiersState, MouseButton as GlutinMouseButton, MouseScrollDelta,

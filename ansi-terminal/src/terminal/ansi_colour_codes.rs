@@ -1,4 +1,4 @@
-use chargrid_render::Rgb24;
+use rgb24::Rgb24;
 
 const RGB_START: u8 = 16;
 const RGB_MAX_FIELD: u8 = 5;
@@ -83,7 +83,7 @@ pub fn nearest_ansi_code(Rgb24 { r, g, b }: Rgb24) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use chargrid_render::Rgb24;
+    use rgb24::Rgb24;
 
     #[test]
     fn nearest_palette_code_all_cases() {

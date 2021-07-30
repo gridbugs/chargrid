@@ -204,9 +204,6 @@ impl PureComponent for HelloWorld {
     }
 }
 
-pub fn app(size: Size) -> AppWrapper<convert::PureComponentT<HelloWorld>> {
-    AppWrapper {
-        component: HelloWorld::new().component(),
-        frame_buffer: FrameBuffer::new(size),
-    }
+pub fn app() -> impl Component<State = (), Output = Option<ControlFlow>> {
+    HelloWorld::new().component()
 }

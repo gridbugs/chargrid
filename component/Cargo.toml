@@ -10,5 +10,3 @@ gamepad = ["chargrid_input/gamepad"]
 rgba32 = "0.1"
 grid_2d = "0.15"
 chargrid_input = { path = "../input", version = "0.2" }
-chargrid_app = { path = "../app", version = "0.2" }
-chargrid_render = { path = "../render", version = "0.2" }

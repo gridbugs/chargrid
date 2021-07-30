@@ -1,6 +1,7 @@
 use crate::error::Result;
+use chargrid_component_runtime::{FrameBuffer, FrameBufferCell, Rgba32, Size};
 use chargrid_input::*;
-use chargrid_render::*;
+use rgb24::Rgb24;
 
 mod ansi_colour_codes;
 mod ansi_terminal;
@@ -10,30 +11,34 @@ mod term_info_cache;
 
 pub use self::ansi_terminal::{col_encode, AnsiTerminal, ColEncode, DrainInput};
 
+fn rgba32_to_rgb24(Rgba32 { r, g, b, a: _ }: Rgba32) -> Rgb24 {
+    Rgb24 { r, g, b }
+}
+
 #[derive(Debug, Clone)]
 struct OutputCell {
     dirty: bool,
     ch: char,
-    fg: Rgb24,
-    bg: Rgb24,
+    fg: Rgba32,
+    bg: Rgba32,
     bold: bool,
     underline: bool,
 }
 
 impl OutputCell {
-    fn matches(&self, cell: &BufferCell) -> bool {
+    fn matches(&self, cell: &FrameBufferCell) -> bool {
         !self.dirty
             && self.ch == cell.character
-            && self.fg == cell.foreground_colour
-            && self.bg == cell.background_colour
+            && self.fg == cell.foreground
+            && self.bg == cell.background
             && self.bold == cell.bold
             && self.underline == cell.underline
     }
-    fn copy_fields(&mut self, cell: &BufferCell) {
+    fn copy_fields(&mut self, cell: &FrameBufferCell) {
         self.dirty = false;
         self.ch = cell.character;
-        self.fg = cell.foreground_colour;
-        self.bg = cell.background_colour;
+        self.fg = cell.foreground;
+        self.bg = cell.background;
         self.bold = cell.bold;
         self.underline = cell.underline;
     }
@@ -41,8 +46,8 @@ impl OutputCell {
         Self {
             dirty: true,
             ch: ' ',
-            fg: Rgb24::new_grey(0),
-            bg: Rgb24::new_grey(0),
+            fg: Rgba32::new_grey(0),
+            bg: Rgba32::new_grey(0),
             bold: false,
             underline: false,
         }
@@ -74,19 +79,19 @@ impl Terminal {
         self.ansi.size()
     }
 
-    pub fn draw_frame<E>(&mut self, frame: &mut Buffer) -> Result<()>
+    pub fn draw_frame<E>(&mut self, frame: &mut FrameBuffer) -> Result<()>
     where
         E: ColEncode,
     {
         self.ansi.set_cursor(Coord::new(0, 0))?;
         let mut bold = false;
         let mut underline = false;
-        let mut fg = Rgb24::new_grey(0);
-        let mut bg = Rgb24::new_grey(0);
+        let mut fg = Rgba32::new_grey(0);
+        let mut bg = Rgba32::new_grey(0);
         self.ansi.reset();
         self.ansi.clear_underline();
-        self.ansi.set_foreground_colour::<E>(fg);
-        self.ansi.set_background_colour::<E>(bg);
+        self.ansi.set_foreground_colour::<E>(rgba32_to_rgb24(fg));
+        self.ansi.set_background_colour::<E>(rgba32_to_rgb24(bg));
         let mut must_move_cursor = false;
         for ((coord, cell), output_cell) in frame.enumerate().zip(self.output_frame.iter_mut()) {
             if output_cell.matches(cell) {
@@ -106,13 +111,15 @@ impl Terminal {
             } else {
                 false
             };
-            if reset || cell.foreground_colour != fg {
-                self.ansi.set_foreground_colour::<E>(cell.foreground_colour);
-                fg = cell.foreground_colour;
+            if reset || cell.foreground != fg {
+                self.ansi
+                    .set_foreground_colour::<E>(rgba32_to_rgb24(cell.foreground));
+                fg = cell.foreground;
             }
-            if reset || cell.background_colour != bg {
-                self.ansi.set_background_colour::<E>(cell.background_colour);
-                bg = cell.background_colour;
+            if reset || cell.background != bg {
+                self.ansi
+                    .set_background_colour::<E>(rgba32_to_rgb24(cell.background));
+                bg = cell.background;
             }
             if reset || (cell.underline != underline) {
                 if cell.underline {

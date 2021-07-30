@@ -2,8 +2,9 @@ use super::byte_prefix_tree::{BytePrefixTree, Found};
 use super::low_level::LowLevel;
 use super::term_info_cache::{MousePrefix, TermInfoCache, TerminalInput};
 use crate::error::Result;
-use chargrid_input::*;
-use chargrid_render::*;
+use chargrid_component_runtime::{Coord, Size};
+use chargrid_input::{Input, KeyboardInput, MouseInput, NotSupported};
+use rgb24::Rgb24;
 use std::collections::{vec_deque, VecDeque};
 use term::terminfo::parm::{self, Param};
 
@@ -26,7 +27,7 @@ pub mod col_encode {
         nearest_ansi_code, nearest_mean_greyscale_code, nearest_palette_code,
     };
     use crate::terminal::term_info_cache::TermInfoCache;
-    use chargrid_render::Rgb24;
+    use rgb24::Rgb24;
 
     pub trait Trait: Clone {
         fn encode_foreground(buffer: &mut String, rgb24: Rgb24, term_info_cache: &TermInfoCache);

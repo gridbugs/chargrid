@@ -489,70 +489,7 @@ pub enum ControlFlow {
     Exit,
 }
 
-/// Temporary wrapper to convert a Component into an App
-pub struct AppWrapper<C: Component<State = (), Output = Option<ControlFlow>>> {
-    pub component: C,
-    pub frame_buffer: FrameBuffer,
-}
-
-impl<C> chargrid_app::App for AppWrapper<C>
-where
-    C: Component<State = (), Output = Option<ControlFlow>>,
-{
-    fn on_input(&mut self, input: Input) -> Option<chargrid_app::ControlFlow> {
-        self.component
-            .update(
-                &mut (),
-                self.frame_buffer.default_ctx(),
-                Event::Input(input),
-            )
-            .map(|cf| match cf {
-                ControlFlow::Exit => chargrid_app::ControlFlow::Exit,
-            })
-    }
-    fn on_frame<F, CM>(
-        &mut self,
-        since_last_frame: Duration,
-        _view_context: chargrid_app::ViewContext<CM>,
-        frame: &mut F,
-    ) -> Option<chargrid_app::ControlFlow>
-    where
-        F: chargrid_app::Frame,
-        CM: chargrid_app::ColModify,
-    {
-        self.component
-            .render(&(), self.frame_buffer.default_ctx(), &mut self.frame_buffer);
-        for (coord, cell) in self.frame_buffer.enumerate() {
-            frame.set_cell_absolute(
-                coord,
-                1,
-                chargrid_render::ViewCell {
-                    character: Some(cell.character),
-                    style: chargrid_render::Style {
-                        bold: Some(cell.bold),
-                        underline: Some(cell.underline),
-                        foreground: Some(chargrid_render::Rgb24::new(
-                            cell.foreground.r,
-                            cell.foreground.g,
-                            cell.foreground.b,
-                        )),
-                        background: Some(chargrid_render::Rgb24::new(
-                            cell.background.r,
-                            cell.background.g,
-                            cell.background.b,
-                        )),
-                    },
-                },
-            );
-        }
-        self.component
-            .update(
-                &mut (),
-                self.frame_buffer.default_ctx(),
-                Event::Tick(since_last_frame),
-            )
-            .map(|cf| match cf {
-                ControlFlow::Exit => chargrid_app::ControlFlow::Exit,
-            })
-    }
+pub mod prelude {
+    pub use super::{Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size};
+    pub use std::time::Duration;
 }
