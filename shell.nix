@@ -41,6 +41,8 @@ stdenv.mkDerivation rec {
     xorg.libXi
     vulkan-loader
     vulkan-tools
+    libGL
+    nodejs-16_x
   ];
 
   # Enable backtraces on panics
