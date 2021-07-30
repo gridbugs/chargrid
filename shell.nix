@@ -20,6 +20,7 @@ let
   };
   ruststable = (nixpkgs.latest.rustChannels.stable.rust.override {
     extensions = [ "rust-src" "rust-analysis" ];
+    targets = [ "wasm32-unknown-unknown" ];
   });
 in
 with nixpkgs;
@@ -43,6 +44,7 @@ stdenv.mkDerivation rec {
     vulkan-tools
     libGL
     nodejs-16_x
+    wasm-pack
   ];
 
   # Enable backtraces on panics
