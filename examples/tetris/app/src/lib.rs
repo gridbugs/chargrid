@@ -17,12 +17,12 @@ fn piece_colour(typ: PieceType) -> Rgba32 {
     use tetris::PieceType::*;
     match typ {
         L => Rgba32::new_rgb(187, 0, 0),
-        ReverseL => Rgba32::new_rgb(0, 187, 0),
+        J => Rgba32::new_rgb(0, 187, 0),
         S => Rgba32::new_rgb(0, 0, 187),
         Z => Rgba32::new_rgb(187, 187, 0),
         T => Rgba32::new_rgb(187, 0, 187),
-        Square => Rgba32::new_rgb(0, 187, 187),
-        Line => Rgba32::new_rgb(85, 85, 255),
+        O => Rgba32::new_rgb(0, 187, 187),
+        I => Rgba32::new_rgb(85, 85, 255),
     }
 }
 

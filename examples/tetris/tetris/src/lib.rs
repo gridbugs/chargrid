@@ -11,12 +11,12 @@ const HEIGHT: u32 = 12;
 #[derive(Clone, Copy)]
 pub enum PieceType {
     L,
-    ReverseL,
+    J,
     S,
     Z,
     T,
-    Square,
-    Line,
+    O,
+    I,
 }
 
 #[derive(Clone)]
@@ -52,7 +52,7 @@ impl Piece {
         use self::PieceType::*;
         let offset = match self.typ {
             // don't rotate squares
-            Square => return self.clone(),
+            O => return self.clone(),
             _ => self.coords[2],
         };
 
@@ -82,24 +82,24 @@ impl PieceType {
         use self::PieceType::*;
         match self {
             L => Piece::new([(0, 0), (0, 1), (0, 2), (1, 2)], self),
-            ReverseL => Piece::new([(1, 0), (1, 1), (1, 2), (0, 2)], self),
+            J => Piece::new([(1, 0), (1, 1), (1, 2), (0, 2)], self),
             S => Piece::new([(2, 0), (1, 0), (1, 1), (0, 1)], self),
             Z => Piece::new([(0, 0), (1, 0), (1, 1), (2, 1)], self),
             T => Piece::new([(1, 0), (0, 1), (1, 1), (2, 1)], self),
-            Square => Piece::new([(0, 0), (0, 1), (1, 0), (1, 1)], self),
-            Line => Piece::new([(0, 0), (0, 1), (0, 2), (0, 3)], self),
+            O => Piece::new([(0, 0), (0, 1), (1, 0), (1, 1)], self),
+            I => Piece::new([(0, 0), (0, 1), (0, 2), (0, 3)], self),
         }
     }
 }
 
 const PIECE_TYPES: &[PieceType] = &[
     PieceType::L,
-    PieceType::ReverseL,
+    PieceType::J,
     PieceType::S,
     PieceType::Z,
     PieceType::T,
-    PieceType::Square,
-    PieceType::Line,
+    PieceType::O,
+    PieceType::I,
 ];
 
 fn random_piece_type<R: Rng>(rng: &mut R) -> PieceType {
