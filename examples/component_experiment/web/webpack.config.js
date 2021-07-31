@@ -9,7 +9,6 @@ const exec = util.promisify(require('child_process').exec);
 module.exports = async (env, argv) => {
   const revision = (await exec('git rev-parse HEAD')).stdout.trim();
   return {
-    mode: 'development',
     entry: {
       main: './index.js',
     },
