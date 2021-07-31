@@ -46,6 +46,7 @@ stdenv.mkDerivation rec {
     libGL
     nodejs-16_x
     wasm-pack
+    cargo-watch
   ];
 
   # Enable backtraces on panics
