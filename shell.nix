@@ -28,6 +28,7 @@ stdenv.mkDerivation rec {
   name = "moz_overlay_shell";
   buildInputs = [
     ruststable
+    rust-analyzer
 
     # project-specific dependencies
     pkg-config
