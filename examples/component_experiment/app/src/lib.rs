@@ -1,5 +1,6 @@
 use chargrid_component::*;
 use chargrid_component_common::{border, fade, menu, pad_to, signal, text};
+use rgba32::*;
 use std::time::Duration;
 
 #[derive(Clone)]

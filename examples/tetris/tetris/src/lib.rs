@@ -333,24 +333,16 @@ impl Tetris {
         }
     }
 
-    pub fn size(&self) -> Size {
-        Size::new(WIDTH, HEIGHT)
+    pub fn input(&mut self, input: Input) {
+        match input {
+            Input::Left => self.game_state.try_move(Coord::new(-1, 0)),
+            Input::Right => self.game_state.try_move(Coord::new(1, 0)),
+            Input::Up => self.game_state.try_rotate(),
+            Input::Down => self.game_state.try_move(Coord::new(0, 1)),
+        }
     }
 
-    pub fn tick<I: IntoIterator<Item = Input>, R: Rng>(
-        &mut self,
-        inputs: I,
-        period: Duration,
-        rng: &mut R,
-    ) -> Option<Meta> {
-        for input in inputs {
-            match input {
-                Input::Left => self.game_state.try_move(Coord::new(-1, 0)),
-                Input::Right => self.game_state.try_move(Coord::new(1, 0)),
-                Input::Up => self.game_state.try_rotate(),
-                Input::Down => self.game_state.try_move(Coord::new(0, 1)),
-            }
-        }
+    pub fn tick<R: Rng>(&mut self, period: Duration, rng: &mut R) -> Option<Meta> {
         if self.step.reduce(period) {
             match self.game_state.step(rng) {
                 StepResolution::Continue => (),

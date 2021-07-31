@@ -1,5 +1,5 @@
-use chargrid_graphical::*;
-use tetris_app::TetrisApp;
+use chargrid_ggez::*;
+use tetris_app::app;
 
 fn main() {
     env_logger::init();
@@ -25,6 +25,5 @@ fn main() {
         underline_top_offset_cell_ratio: 0.8,
         resizable: false,
     });
-    let app = TetrisApp::new(rand::thread_rng());
-    context.run_app(app);
+    context.run_component(app(rand::thread_rng()));
 }

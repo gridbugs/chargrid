@@ -1,17 +1,11 @@
-use chargrid::app;
-use chargrid::decorator::*;
-use chargrid::input::{keys, Input, KeyboardInput};
-use chargrid::menu::*;
-use chargrid::render::*;
-use chargrid::text::*;
+use chargrid_component::prelude::*;
+use chargrid_component_common::border::{Border, BorderStyle};
 use rand::Rng;
-use std::collections::VecDeque;
-use std::time::Duration;
-use tetris::{Input as TetrisInput, Meta, PieceType, Tetris};
+use tetris::{GameState, Input as TetrisInput, Meta, Piece, PieceType, Tetris};
 
-const BLANK_FOREGROUND_COLOUR: Rgb24 = Rgb24::new(24, 24, 24);
-const FOREGROUND_COLOUR: Rgb24 = Rgb24::new_grey(255);
-const BACKGROUND_COLOUR: Rgb24 = Rgb24::new_grey(0);
+const BLANK_FOREGROUND_COLOUR: Rgba32 = Rgba32::new_rgb(24, 24, 24);
+const FOREGROUND_COLOUR: Rgba32 = Rgba32::new_grey(255);
+const BACKGROUND_COLOUR: Rgba32 = Rgba32::new_grey(0);
 const BLOCK_CHAR: char = '+';
 const BLANK_CHAR: char = '-';
 
@@ -19,31 +13,102 @@ const NEXT_PIECE_SIZE: [u32; 2] = [6, 4];
 const DEATH_ANIMATION_MILLIS: u64 = 500;
 const INPUT_BUFFER_SIZE: usize = 8;
 
+fn piece_colour(typ: PieceType) -> Rgba32 {
+    use tetris::PieceType::*;
+    match typ {
+        L => Rgba32::new_rgb(187, 0, 0),
+        ReverseL => Rgba32::new_rgb(0, 187, 0),
+        S => Rgba32::new_rgb(0, 0, 187),
+        Z => Rgba32::new_rgb(187, 187, 0),
+        T => Rgba32::new_rgb(187, 0, 187),
+        Square => Rgba32::new_rgb(0, 187, 187),
+        Line => Rgba32::new_rgb(85, 85, 255),
+    }
+}
+
+struct TetrisComponent<R: Rng> {
+    tetris: Tetris,
+    rng: R,
+    board_view: Border<convert::StaticComponentT<TetrisBoardView>>,
+    next_piece_view: Border<convert::StaticComponentT<TetrisNextPieceView>>,
+}
+
+impl<R: Rng> TetrisComponent<R> {
+    fn new(mut rng: R) -> Self {
+        let BorderStyles { common, next_piece } = BorderStyles::new();
+        Self {
+            tetris: Tetris::new(&mut rng),
+            rng,
+            board_view: Border {
+                component: TetrisBoardView.component(),
+                style: common,
+            },
+            next_piece_view: Border {
+                component: TetrisNextPieceView.component(),
+                style: next_piece,
+            },
+        }
+    }
+}
+
+enum TetrisOutput {
+    Exit,
+    Pause,
+    GameOver,
+}
+
+impl<R: Rng> PureComponent for TetrisComponent<R> {
+    type Output = Option<TetrisOutput>;
+    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.board_view.render(&self.tetris.game_state, ctx, fb);
+        self.next_piece_view.render(
+            &self.tetris.game_state.next_piece,
+            ctx.add_offset(Coord::new(
+                self.board_view.size(&self.tetris.game_state, ctx).width() as i32,
+                0,
+            )),
+            fb,
+        );
+    }
+    fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
+        use input::*;
+        match event {
+            Event::Peek => (),
+            Event::Input(input) => match input {
+                Input::Keyboard(keys::ETX) => return Some(TetrisOutput::Exit),
+                Input::Keyboard(keys::ESCAPE) => return Some(TetrisOutput::Pause),
+                Input::Keyboard(KeyboardInput::Up) => self.tetris.input(TetrisInput::Up),
+                Input::Keyboard(KeyboardInput::Down) => self.tetris.input(TetrisInput::Down),
+                Input::Keyboard(KeyboardInput::Left) => self.tetris.input(TetrisInput::Left),
+                Input::Keyboard(KeyboardInput::Right) => self.tetris.input(TetrisInput::Right),
+                _ => (),
+            },
+            Event::Tick(duration) => {
+                if let Some(meta) = self.tetris.tick(duration, &mut self.rng) {
+                    match meta {
+                        Meta::GameOver => return Some(TetrisOutput::GameOver),
+                    }
+                }
+            }
+        }
+        None
+    }
+    fn size(&self, ctx: Ctx) -> Size {
+        let board_size = TetrisBoardView.size(&self.tetris.game_state, ctx);
+        let next_piece_size = TetrisNextPieceView.size(&self.tetris.game_state.next_piece, ctx);
+        board_size.set_width(board_size.width() + next_piece_size.width())
+    }
+}
+
 struct TetrisBoardView;
 struct TetrisNextPieceView;
 
-fn piece_colour(typ: PieceType) -> Rgb24 {
-    use tetris::PieceType::*;
-    match typ {
-        L => Rgb24::new(187, 0, 0),
-        ReverseL => Rgb24::new(0, 187, 0),
-        S => Rgb24::new(0, 0, 187),
-        Z => Rgb24::new(187, 187, 0),
-        T => Rgb24::new(187, 0, 187),
-        Square => Rgb24::new(0, 187, 187),
-        Line => Rgb24::new(85, 85, 255),
-    }
-}
-impl<'a> View<&'a Tetris> for TetrisBoardView {
-    fn view<F: Frame, C: ColModify>(
-        &mut self,
-        tetris: &'a Tetris,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) {
-        for (i, row) in tetris.game_state.board.rows.iter().enumerate() {
+impl StaticComponent for TetrisBoardView {
+    type State = GameState;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        for (i, row) in state.board.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
-                let mut cell_info = ViewCell::new().with_bold(true);
+                let mut cell_info = RenderCell::default().with_bold(true);
                 if let Some(typ) = cell.typ {
                     cell_info.character = Some(BLOCK_CHAR);
                     cell_info.style.foreground = Some(FOREGROUND_COLOUR);
@@ -53,49 +118,45 @@ impl<'a> View<&'a Tetris> for TetrisBoardView {
                     cell_info.style.foreground = Some(BLANK_FOREGROUND_COLOUR);
                     cell_info.style.background = Some(BACKGROUND_COLOUR);
                 }
-                frame.set_cell_relative(Coord::new(j as i32, i as i32), 0, cell_info, context);
+                fb.set_cell_relative_to_ctx(ctx, Coord::new(j as i32, i as i32), 0, cell_info);
             }
         }
-        for coord in tetris.game_state.piece.coords.iter().cloned() {
-            let cell_info = ViewCell {
+        for coord in state.piece.coords.iter().cloned() {
+            let cell_info = RenderCell {
                 character: Some(BLOCK_CHAR),
                 style: Style {
                     bold: Some(true),
                     underline: Some(false),
                     foreground: Some(FOREGROUND_COLOUR),
-                    background: Some(piece_colour(tetris.game_state.piece.typ)),
+                    background: Some(piece_colour(state.piece.typ)),
                 },
             };
-            frame.set_cell_relative(coord, 0, cell_info, context);
+            fb.set_cell_relative_to_ctx(ctx, coord, 0, cell_info);
         }
     }
-    fn size<C: ColModify>(&mut self, tetris: &'a Tetris, _context: ViewContext<C>) -> Size {
-        tetris.size()
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        state.board.size
     }
 }
 
-impl<'a> View<&'a Tetris> for TetrisNextPieceView {
-    fn view<F: Frame, C: ColModify>(
-        &mut self,
-        tetris: &'a Tetris,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) {
+impl StaticComponent for TetrisNextPieceView {
+    type State = Piece;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         let offset = Coord::new(1, 0);
-        for coord in tetris.game_state.next_piece.coords.iter().cloned() {
-            let cell_info = ViewCell {
+        for coord in state.coords.iter().cloned() {
+            let cell_info = RenderCell {
                 character: Some(BLOCK_CHAR),
                 style: Style {
                     bold: Some(true),
                     underline: Some(false),
                     foreground: Some(FOREGROUND_COLOUR),
-                    background: Some(piece_colour(tetris.game_state.next_piece.typ)),
+                    background: Some(piece_colour(state.typ)),
                 },
             };
-            frame.set_cell_relative(offset + coord, 0, cell_info, context);
+            fb.set_cell_relative_to_ctx(ctx, offset + coord, 0, cell_info);
         }
     }
-    fn size<C: ColModify>(&mut self, _data: &'a Tetris, _context: ViewContext<C>) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         NEXT_PIECE_SIZE.into()
     }
 }
@@ -108,13 +169,14 @@ struct BorderStyles {
 impl BorderStyles {
     fn new() -> Self {
         let next_piece = BorderStyle {
-            title_style: Style::new().with_foreground(Rgb24::new_grey(255)),
-            background: Some(Rgb24::new_grey(127)),
-            ..BorderStyle::new_with_title("next")
+            title: Some("next".to_string()),
+            title_style: Style::default().with_foreground(Rgba32::new_grey(255)),
+            background: Some(Rgba32::new_grey(127)),
+            ..Default::default()
         };
         let common = BorderStyle {
-            background: Some(Rgb24::new_grey(127)),
-            ..BorderStyle::new()
+            background: Some(Rgba32::new_grey(127)),
+            ..Default::default()
         };
         Self { common, next_piece }
     }
@@ -157,282 +219,33 @@ impl Timeout {
     }
 }
 
-struct AppData {
-    main_menu: MenuInstance<MainMenuChoice>,
-    state: AppState,
-    timeout: Timeout,
-    tetris: Tetris,
-    end_text: RichTextPartOwned,
-    input_buffer: VecDeque<TetrisInput>,
-    border_styles: BorderStyles,
+pub struct TetrisAppComponent<R: Rng> {
+    tetris_component: TetrisComponent<R>,
 }
 
-impl AppData {
-    fn new<R: Rng>(rng: &mut R) -> Self {
-        let main_menu = vec![MainMenuChoice::Play, MainMenuChoice::Quit];
-        let main_menu = MenuInstance::new(main_menu).unwrap();
-        let end_text_style = Style::new()
-            .with_bold(true)
-            .with_foreground(Rgb24::new(187, 0, 0));
-        let end_text = RichTextPartOwned::new("YOU DIED".to_string(), end_text_style);
-        Self {
-            main_menu,
-            state: AppState::Menu,
-            timeout: Timeout::zero(),
-            tetris: Tetris::new(rng),
-            end_text,
-            input_buffer: VecDeque::with_capacity(INPUT_BUFFER_SIZE),
-            border_styles: BorderStyles::new(),
-        }
+impl<R: Rng> PureComponent for TetrisAppComponent<R> {
+    type Output = Option<ControlFlow>;
+    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+        fb.clear();
+        self.tetris_component.render(ctx, fb);
     }
-
-    fn tick<I, R>(
-        &mut self,
-        inputs: I,
-        period: Duration,
-        view: &AppView,
-        rng: &mut R,
-    ) -> Option<app::ControlFlow>
-    where
-        I: IntoIterator<Item = Input>,
-        R: Rng,
-    {
-        match self.state {
-            AppState::Menu => {
-                for input in inputs {
-                    if let Some(menu_output) = self
-                        .main_menu
-                        .choose_or_quit(&view.menu_instance_view, input)
-                    {
-                        match menu_output {
-                            Err(Quit) => return Some(app::ControlFlow::Exit),
-                            Ok(selection) => match selection {
-                                MainMenuChoice::Quit => return Some(app::ControlFlow::Exit),
-                                MainMenuChoice::Play => {
-                                    self.state = AppState::Game;
-                                }
-                            },
-                        }
-                    }
-                }
-            }
-            AppState::Game => {
-                for input in inputs {
-                    match input {
-                        Input::Keyboard(keys::ETX) => return Some(app::ControlFlow::Exit),
-                        Input::Keyboard(keys::ESCAPE) => {
-                            self.state = AppState::Menu;
-                        }
-                        Input::Keyboard(KeyboardInput::Up) => {
-                            self.input_buffer.push_back(TetrisInput::Up)
-                        }
-                        Input::Keyboard(KeyboardInput::Down) => {
-                            self.input_buffer.push_back(TetrisInput::Down)
-                        }
-                        Input::Keyboard(KeyboardInput::Left) => {
-                            self.input_buffer.push_back(TetrisInput::Left)
-                        }
-                        Input::Keyboard(KeyboardInput::Right) => {
-                            self.input_buffer.push_back(TetrisInput::Right)
-                        }
-                        _ => (),
-                    }
-                }
-                if let Some(meta) = self.tetris.tick(self.input_buffer.drain(..), period, rng) {
-                    match meta {
-                        Meta::GameOver => {
-                            self.timeout = Timeout::from_millis(DEATH_ANIMATION_MILLIS);
-                            self.state = AppState::GameOver;
-                        }
-                    }
-                }
-            }
-            AppState::GameOver => {
-                if self.timeout.reduce(period) {
-                    self.timeout = Timeout::from_millis(DEATH_ANIMATION_MILLIS);
-                    self.state = AppState::EndText;
-                }
-            }
-            AppState::EndText => {
-                if self.timeout.reduce(period) {
-                    self.tetris = Tetris::new(rng);
-                    self.state = AppState::Menu;
-                }
+    fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output {
+        if let Some(output) = self.tetris_component.update(ctx, event) {
+            match output {
+                TetrisOutput::Exit => return Some(ControlFlow::Exit),
+                _ => (),
             }
         }
         None
     }
-}
-
-struct AppView {
-    menu_instance_view: MenuInstanceView,
-    board: TetrisBoardView,
-    next_piece: TetrisNextPieceView,
-}
-
-impl Default for AppView {
-    fn default() -> Self {
-        Self {
-            menu_instance_view: MenuInstanceView {
-                mouse_tracker: Default::default(),
-            },
-            board: TetrisBoardView,
-            next_piece: TetrisNextPieceView,
-        }
+    fn size(&self, ctx: Ctx) -> Size {
+        self.tetris_component.size(ctx)
     }
 }
 
-struct MenuInstanceView {
-    mouse_tracker: MenuInstanceMouseTracker,
-}
-
-impl MenuIndexFromScreenCoord for MenuInstanceView {
-    fn menu_index_from_screen_coord(&self, len: usize, coord: Coord) -> Option<usize> {
-        self.mouse_tracker.menu_index_from_screen_coord(len, coord)
+pub fn app<R: Rng>(rng: R) -> impl Component<State = (), Output = Option<ControlFlow>> {
+    TetrisAppComponent {
+        tetris_component: TetrisComponent::new(rng),
     }
-}
-
-impl<'a> View<&'a MenuInstance<MainMenuChoice>> for MenuInstanceView {
-    fn view<F: Frame, C: ColModify>(
-        &mut self,
-        menu_instance: &'a MenuInstance<MainMenuChoice>,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) {
-        self.mouse_tracker.new_frame(context.offset);
-        for (i, entry, maybe_selected) in menu_instance.enumerate() {
-            let size = if let Some(Selected) = maybe_selected {
-                let base_style = Style::new().with_bold(true).with_underline(true);
-                let rich_text = match entry {
-                    MainMenuChoice::Play => vec![
-                        ("> ", base_style.with_foreground(Rgb24::new(187, 0, 0))),
-                        ("P", base_style.with_foreground(Rgb24::new(187, 187, 0))),
-                        ("l", base_style.with_foreground(Rgb24::new(0, 187, 0))),
-                        ("a", base_style.with_foreground(Rgb24::new(0, 187, 187))),
-                        ("y", base_style.with_foreground(Rgb24::new(0, 0, 187))),
-                        ("!", base_style.with_foreground(Rgb24::new(187, 0, 187))),
-                    ],
-                    MainMenuChoice::Quit => {
-                        vec![("> Quit", base_style.with_foreground(Rgb24::new_grey(255)))]
-                    }
-                };
-                RichTextViewSingleLine::new().view_size(
-                    rich_text
-                        .iter()
-                        .map(|(string, style)| RichTextPart::new(string, *style)),
-                    context.add_offset(Coord::new(0, i as i32)),
-                    frame,
-                )
-            } else {
-                let string = match entry {
-                    MainMenuChoice::Play => "  Play",
-                    MainMenuChoice::Quit => "  Quit",
-                };
-                StringViewSingleLine::new(Style::new().with_foreground(Rgb24::new_grey(127)))
-                    .view_size(string, context.add_offset(Coord::new(0, i as i32)), frame)
-            };
-            self.mouse_tracker.on_entry_view_size(size);
-        }
-    }
-}
-
-impl<'a> View<&'a AppData> for AppView {
-    fn view<F: Frame, C: ColModify>(
-        &mut self,
-        app: &'a AppData,
-        context: ViewContext<C>,
-        frame: &mut F,
-    ) {
-        match app.state {
-            AppState::Game | AppState::GameOver => {
-                let mut view = BorderView {
-                    style: &app.border_styles.common,
-                    view: &mut self.board,
-                };
-                let next_piece_offset_x = view.view_size(&app.tetris, context, frame).x() as i32;
-                ColModifyView {
-                    col_modify: ColModifyMap(|rgb24: Rgb24| rgb24.normalised_scalar_mul(255)),
-                    view: BorderView {
-                        style: &app.border_styles.next_piece,
-                        view: BoundView {
-                            size: Size::new(6, 4),
-                            view: &mut self.next_piece,
-                        },
-                    },
-                }
-                .view(
-                    &app.tetris,
-                    context.add_offset(Coord::new(next_piece_offset_x, 0)),
-                    frame,
-                );
-            }
-            AppState::Menu => {
-                let mut v = BorderView {
-                    style: &app.border_styles.common,
-                    view: BoundView {
-                        size: Size::new_u16(8, 2),
-                        view: &mut self.menu_instance_view,
-                    },
-                };
-                v.view(&app.main_menu, context, frame);
-            }
-            AppState::EndText => {
-                AlignView {
-                    alignment: Alignment::centre(),
-                    view: RichStringViewSingleLine,
-                }
-                .view(app.end_text.as_rich_text_part(), context, frame);
-            }
-        }
-    }
-}
-
-pub struct TetrisApp<R: Rng> {
-    data: AppData,
-    view: AppView,
-    input_buffer: Vec<app::Input>,
-    rng: R,
-}
-
-impl<R: Rng> TetrisApp<R> {
-    pub fn new(mut rng: R) -> Self {
-        let data = AppData::new(&mut rng);
-        let view = AppView::default();
-        let input_buffer = Vec::new();
-        Self {
-            data,
-            view,
-            input_buffer,
-            rng,
-        }
-    }
-}
-
-impl<R: Rng> app::App for TetrisApp<R> {
-    fn on_input(&mut self, input: app::Input) -> Option<app::ControlFlow> {
-        self.input_buffer.push(input);
-        None
-    }
-    fn on_frame<F, C>(
-        &mut self,
-        since_last_frame: app::Duration,
-        view_context: app::ViewContext<C>,
-        frame: &mut F,
-    ) -> Option<app::ControlFlow>
-    where
-        F: app::Frame,
-        C: app::ColModify,
-    {
-        if let Some(control_flow) = self.data.tick(
-            self.input_buffer.drain(..),
-            since_last_frame,
-            &self.view,
-            &mut self.rng,
-        ) {
-            Some(control_flow)
-        } else {
-            self.view.view(&self.data, view_context, frame);
-            None
-        }
-    }
+    .component()
 }

@@ -12,11 +12,12 @@ members = [
     "component-common",
     "component-runtime",
 
-#    "examples/tetris/tetris",
-#    "examples/tetris/app",
-#    "examples/tetris/graphical",
-#    "examples/tetris/ansi-terminal",
-#    "examples/tetris/web",
+    "examples/tetris/tetris",
+    "examples/tetris/app",
+    "examples/tetris/wgpu",
+    "examples/tetris/ggez",
+    "examples/tetris/ansi-terminal",
+    "examples/tetris/web",
 #
 #    "examples/drag/app",
 #    "examples/drag/ansi-terminal",

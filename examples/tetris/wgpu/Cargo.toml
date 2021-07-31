@@ -1,0 +1,11 @@
+[package]
+name = "tetris_wgpu"
+version = "0.1.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+edition = "2018"
+
+[dependencies]
+chargrid_wgpu = { path = "../../../wgpu" }
+tetris_app = { path = "../app" }
+rand = "0.8"
+env_logger = "0.9"
