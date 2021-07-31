@@ -1,6 +1,6 @@
 mod input;
 
-use chargrid_component_runtime::{on_frame, on_input, Component, ControlFlow, FrameBuffer, Rgba32};
+use chargrid_component_runtime::{app, on_frame, on_input, Component, FrameBuffer, Rgba32};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 pub use chargrid_input;
@@ -195,7 +195,7 @@ impl Context {
 
     pub fn run_component<C>(self, component: C)
     where
-        C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+        C: 'static + Component<State = (), Output = app::Output>,
     {
         let component = Rc::new(RefCell::new(component));
         let context = Rc::new(RefCell::new(self));
@@ -206,7 +206,7 @@ impl Context {
 
 fn run_component_frame<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
 where
-    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+    C: 'static + Component<State = (), Output = app::Output>,
 {
     let window = web_sys::window().unwrap();
     let performance = window.performance().unwrap();
@@ -269,7 +269,7 @@ mod button {
 
 fn run_component_input<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
 where
-    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+    C: 'static + Component<State = (), Output = app::Output>,
 {
     let window = web_sys::window().unwrap();
     let handle_keydown = {

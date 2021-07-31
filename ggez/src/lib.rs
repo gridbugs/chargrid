@@ -1,5 +1,5 @@
 use chargrid_component_runtime::{
-    on_frame, on_input, Component, ControlFlow, Coord, FrameBuffer, Rgba32, Size,
+    app, on_frame, on_input, Component, Coord, FrameBuffer, Rgba32, Size,
 };
 pub use chargrid_graphical_common::*;
 use chargrid_input::{keys, Input, KeyboardInput, MouseButton, MouseInput, ScrollDirection};
@@ -16,7 +16,7 @@ struct Fonts {
 
 struct GgezApp<C>
 where
-    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+    C: 'static + Component<State = (), Output = app::Output>,
 {
     fonts: Fonts,
     chargrid_component: C,
@@ -35,7 +35,7 @@ where
 
 impl<C> GgezApp<C>
 where
-    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+    C: 'static + Component<State = (), Output = app::Output>,
 {
     fn convert_mouse_position(&self, x: f32, y: f32) -> Coord {
         Coord {
@@ -56,13 +56,13 @@ where
 
 impl<C> ggez::event::EventHandler<ggez::GameError> for GgezApp<C>
 where
-    C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+    C: 'static + Component<State = (), Output = app::Output>,
 {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         const DESIRED_FPS: u32 = 60;
         while ggez::timer::check_update_time(ctx, DESIRED_FPS) {}
         let now = Instant::now();
-        if let Some(ControlFlow::Exit) = on_frame(
+        if let Some(app::Exit) = on_frame(
             &mut self.chargrid_component,
             now - self.last_frame,
             &mut self.chargrid_frame_buffer,
@@ -257,7 +257,7 @@ where
                 return;
             }
         };
-        if let Some(ControlFlow::Exit) = on_input(
+        if let Some(app::Exit) = on_input(
             &mut self.chargrid_component,
             Input::Keyboard(input),
             &self.chargrid_frame_buffer,
@@ -278,7 +278,7 @@ where
             let coord = self.convert_mouse_position(x, y);
             self.current_mouse_position = coord;
             let input = MouseInput::MousePress { button, coord };
-            if let Some(ControlFlow::Exit) = on_input(
+            if let Some(app::Exit) = on_input(
                 &mut self.chargrid_component,
                 Input::Mouse(input),
                 &self.chargrid_frame_buffer,
@@ -303,7 +303,7 @@ where
                 button: Ok(button),
                 coord,
             };
-            if let Some(ControlFlow::Exit) = on_input(
+            if let Some(app::Exit) = on_input(
                 &mut self.chargrid_component,
                 Input::Mouse(input),
                 &self.chargrid_frame_buffer,
@@ -320,7 +320,7 @@ where
             coord,
             button: self.current_mouse_button,
         };
-        if let Some(ControlFlow::Exit) = on_input(
+        if let Some(app::Exit) = on_input(
             &mut self.chargrid_component,
             Input::Mouse(input),
             &self.chargrid_frame_buffer,
@@ -333,7 +333,7 @@ where
         let mut handle = |direction| {
             let coord = self.current_mouse_position;
             let input = MouseInput::MouseScroll { direction, coord };
-            if let Some(ControlFlow::Exit) = on_input(
+            if let Some(app::Exit) = on_input(
                 &mut self.chargrid_component,
                 Input::Mouse(input),
                 &self.chargrid_frame_buffer,
@@ -356,7 +356,7 @@ where
     }
 
     fn quit_event(&mut self, _ctx: &mut ggez::Context) -> bool {
-        if let Some(ControlFlow::Exit) = on_input(
+        if let Some(app::Exit) = on_input(
             &mut self.chargrid_component,
             Input::Keyboard(keys::ETX),
             &self.chargrid_frame_buffer,
@@ -402,7 +402,7 @@ where
             button,
             id: integer_id,
         };
-        if let Some(ControlFlow::Exit) = on_input(
+        if let Some(app::Exit) = on_input(
             &mut self.chargrid_component,
             Input::Gamepad(input),
             &self.chargrid_frame_buffer,
@@ -434,7 +434,7 @@ impl Context {
 
     pub fn run_component<C>(self, component: C) -> !
     where
-        C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+        C: 'static + Component<State = (), Output = app::Output>,
     {
         let Self { config } = self;
         let grid_size = Size::new(

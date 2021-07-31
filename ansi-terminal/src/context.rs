@@ -1,6 +1,6 @@
 use crate::error::*;
 use crate::terminal::*;
-use chargrid_component_runtime::{on_frame, on_input, Component, ControlFlow, FrameBuffer, Size};
+use chargrid_component_runtime::{app, on_frame, on_input, Component, FrameBuffer, Size};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 use std::thread;
@@ -35,7 +35,7 @@ impl Context {
 
     pub fn run_component<C, E>(self, mut component: C, col_encode: E)
     where
-        C: 'static + Component<State = (), Output = Option<ControlFlow>>,
+        C: 'static + Component<State = (), Output = app::Output>,
         E: ColEncode,
     {
         let _ = col_encode;
@@ -48,15 +48,13 @@ impl Context {
         loop {
             let frame_start = Instant::now();
             for input in terminal.drain_input().unwrap() {
-                if let Some(ControlFlow::Exit) =
-                    on_input(&mut component, input, &chargrid_frame_buffer)
-                {
+                if let Some(app::Exit) = on_input(&mut component, input, &chargrid_frame_buffer) {
                     return;
                 }
             }
             #[cfg(feature = "gamepad")]
             for input in gamepad.drain_input() {
-                if let Some(ControlFlow::Exit) = on_input(
+                if let Some(app::Exit) = on_input(
                     &mut component,
                     chargrid_input::Input::Gamepad(input),
                     &chargrid_frame_buffer,
@@ -68,7 +66,7 @@ impl Context {
             if terminal_size != chargrid_frame_buffer.size() {
                 chargrid_frame_buffer.resize(terminal_size);
             }
-            if let Some(ControlFlow::Exit) =
+            if let Some(app::Exit) =
                 on_frame(&mut component, FRAME_DURATION, &mut chargrid_frame_buffer)
             {
                 return;

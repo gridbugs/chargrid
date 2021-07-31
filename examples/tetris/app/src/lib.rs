@@ -1,5 +1,8 @@
 use chargrid_component::prelude::*;
-use chargrid_component_common::border::{Border, BorderStyle};
+use chargrid_component_common::{
+    border::{Border, BorderStyle},
+    menu,
+};
 use rand::Rng;
 use tetris::{GameState, Input as TetrisInput, Meta, Piece, PieceType, Tetris};
 
@@ -10,8 +13,6 @@ const BLOCK_CHAR: char = '+';
 const BLANK_CHAR: char = '-';
 
 const NEXT_PIECE_SIZE: [u32; 2] = [6, 4];
-const DEATH_ANIMATION_MILLIS: u64 = 500;
-const INPUT_BUFFER_SIZE: usize = 8;
 
 fn piece_colour(typ: PieceType) -> Rgba32 {
     use tetris::PieceType::*;
@@ -23,6 +24,27 @@ fn piece_colour(typ: PieceType) -> Rgba32 {
         T => Rgba32::new_rgb(187, 0, 187),
         O => Rgba32::new_rgb(0, 187, 187),
         I => Rgba32::new_rgb(85, 85, 255),
+    }
+}
+
+struct BorderStyles {
+    common: BorderStyle,
+    next_piece: BorderStyle,
+}
+
+impl BorderStyles {
+    fn new() -> Self {
+        let next_piece = BorderStyle {
+            title: Some("next".to_string()),
+            title_style: Style::default().with_foreground(Rgba32::new_grey(255)),
+            background: Some(Rgba32::new_grey(127)),
+            ..Default::default()
+        };
+        let common = BorderStyle {
+            background: Some(Rgba32::new_grey(127)),
+            ..Default::default()
+        };
+        Self { common, next_piece }
     }
 }
 
@@ -134,7 +156,7 @@ impl StaticComponent for TetrisBoardView {
             fb.set_cell_relative_to_ctx(ctx, coord, 0, cell_info);
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, _ctx: Ctx) -> Size {
         state.board.size
     }
 }
@@ -156,67 +178,41 @@ impl StaticComponent for TetrisNextPieceView {
             fb.set_cell_relative_to_ctx(ctx, offset + coord, 0, cell_info);
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
         NEXT_PIECE_SIZE.into()
     }
 }
 
-struct BorderStyles {
-    common: BorderStyle,
-    next_piece: BorderStyle,
-}
-
-impl BorderStyles {
-    fn new() -> Self {
-        let next_piece = BorderStyle {
-            title: Some("next".to_string()),
-            title_style: Style::default().with_foreground(Rgba32::new_grey(255)),
-            background: Some(Rgba32::new_grey(127)),
-            ..Default::default()
-        };
-        let common = BorderStyle {
-            background: Some(Rgba32::new_grey(127)),
-            ..Default::default()
-        };
-        Self { common, next_piece }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone)]
 enum MainMenuChoice {
     Play,
     Quit,
 }
 
-enum AppState {
-    Menu,
-    Game,
-    GameOver,
-    EndText,
-}
-struct Timeout {
-    remaining: Duration,
-}
-
-impl Timeout {
-    fn from_millis(millis: u64) -> Self {
-        Self::new(Duration::from_millis(millis))
-    }
-    fn zero() -> Self {
-        Self::from_millis(0)
-    }
-    fn new(remaining: Duration) -> Self {
-        Self { remaining }
-    }
-    fn reduce(&mut self, duration: Duration) -> bool {
-        if let Some(remaining) = self.remaining.checked_sub(duration) {
-            self.remaining = remaining;
-            false
-        } else {
-            self.remaining = Duration::from_millis(0);
-            true
-        }
-    }
+fn main_menu() -> menu::Menu<MainMenuChoice> {
+    use menu::builder::*;
+    let make_identifier = |s: &str| {
+        identifier::static_(
+            StyledString {
+                string: s.to_string(),
+                style: Style {
+                    bold: Some(true),
+                    ..Default::default()
+                },
+            },
+            StyledString {
+                string: s.to_string(),
+                style: Style {
+                    bold: Some(false),
+                    ..Default::default()
+                },
+            },
+        )
+    };
+    menu_builder()
+        .add_item(item(MainMenuChoice::Play, make_identifier("Play!")))
+        .add_item(item(MainMenuChoice::Quit, make_identifier("Quit")))
+        .build()
 }
 
 pub struct TetrisAppComponent<R: Rng> {
@@ -224,7 +220,7 @@ pub struct TetrisAppComponent<R: Rng> {
 }
 
 impl<R: Rng> PureComponent for TetrisAppComponent<R> {
-    type Output = Option<ControlFlow>;
+    type Output = app::Output;
     fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
         fb.clear();
         self.tetris_component.render(ctx, fb);
@@ -232,7 +228,7 @@ impl<R: Rng> PureComponent for TetrisAppComponent<R> {
     fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output {
         if let Some(output) = self.tetris_component.update(ctx, event) {
             match output {
-                TetrisOutput::Exit => return Some(ControlFlow::Exit),
+                TetrisOutput::Exit => return Some(app::Exit),
                 _ => (),
             }
         }
@@ -243,9 +239,15 @@ impl<R: Rng> PureComponent for TetrisAppComponent<R> {
     }
 }
 
-pub fn app<R: Rng>(rng: R) -> impl Component<State = (), Output = Option<ControlFlow>> {
-    TetrisAppComponent {
+pub fn app<R: Rng>(rng: R) -> impl Component<Output = app::Output, State = ()> {
+    use control_flow::*;
+    let tetris = TetrisAppComponent {
         tetris_component: TetrisComponent::new(rng),
     }
-    .component()
+    .component();
+    mkeither!(Ei = A | B);
+    CF(main_menu()).and_then(|choice| match choice {
+        MainMenuChoice::Play => Ei::A(tetris),
+        MainMenuChoice::Quit => Ei::B(Val(app::Exit)),
+    })
 }

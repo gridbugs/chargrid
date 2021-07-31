@@ -173,7 +173,7 @@ fn menu_ctx<'a>(ctx: Ctx<'a>) -> Ctx<'a> {
 }
 
 impl PureComponent for HelloWorld {
-    type Output = Option<ControlFlow>;
+    type Output = app::Output;
 
     fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
         fb.clear_with_background(rgba32_rgb(0, 0, 100));
@@ -183,7 +183,7 @@ impl PureComponent for HelloWorld {
 
     fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output {
         match event {
-            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(ControlFlow::Exit),
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(app::Exit),
             _ => {
                 if let Some(item) = self.menu.update(menu_ctx(ctx), event) {
                     match item {
@@ -191,7 +191,7 @@ impl PureComponent for HelloWorld {
                             self.title.styled_string.string = s;
                             None
                         }
-                        MenuItem::Quit => Some(ControlFlow::Exit),
+                        MenuItem::Quit => Some(app::Exit),
                     }
                 } else {
                     None
@@ -205,6 +205,6 @@ impl PureComponent for HelloWorld {
     }
 }
 
-pub fn app() -> impl Component<State = (), Output = Option<ControlFlow>> {
+pub fn app() -> impl Component<State = (), Output = app::Output> {
     HelloWorld::new().component()
 }

@@ -1,4 +1,5 @@
 use crate::{input, Config, Dimensions, FontBytes};
+use chargrid_component_runtime::{app, on_frame, on_input, Component, FrameBuffer};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 use grid_2d::{Coord, Grid, Size};
@@ -82,7 +83,7 @@ struct WgpuContext {
     bind_group: wgpu::BindGroup,
     queue: wgpu::Queue,
     background_cell_instance_data: Grid<BackgroundCellInstance>,
-    chargrid_frame_buffer: chargrid_component_runtime::FrameBuffer,
+    chargrid_frame_buffer: FrameBuffer,
     glyph_brush: wgpu_glyph::GlyphBrush<(), ab_glyph::FontVec>,
     global_uniforms_buffer: wgpu::Buffer,
     window_size: winit::dpi::LogicalSize<f64>,
@@ -229,7 +230,7 @@ impl WgpuContext {
         use std::mem;
         let num_background_cell_instances = grid_size.count();
         let background_cell_instance_data = Grid::new_default(grid_size);
-        let chargrid_frame_buffer = chargrid_component_runtime::FrameBuffer::new(grid_size);
+        let chargrid_frame_buffer = FrameBuffer::new(grid_size);
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
@@ -622,11 +623,7 @@ impl Context {
 
     pub fn run_component<C>(self, mut component: C) -> !
     where
-        C: 'static
-            + chargrid_component_runtime::Component<
-                State = (),
-                Output = Option<chargrid_component_runtime::ControlFlow>,
-            >,
+        C: 'static + Component<State = (), Output = app::Output>,
     {
         let Self {
             window,
@@ -657,13 +654,11 @@ impl Context {
             };
             #[cfg(feature = "gamepad")]
             for input in gamepad.drain_input() {
-                if let Some(chargrid_component_runtime::ControlFlow::Exit) =
-                    chargrid_component_runtime::on_input(
-                        &mut component,
-                        chargrid_input::Input::Gamepad(input),
-                        &wgpu_context.chargrid_frame_buffer,
-                    )
-                {
+                if let Some(app::Exit) = on_input(
+                    &mut component,
+                    chargrid_input::Input::Gamepad(input),
+                    &wgpu_context.chargrid_frame_buffer,
+                ) {
                     exited = true;
                     return;
                 }
@@ -689,13 +684,11 @@ impl Context {
                         ) {
                             match event {
                                 input::Event::Input(input) => {
-                                    if let Some(chargrid_component_runtime::ControlFlow::Exit) =
-                                        chargrid_component_runtime::on_input(
-                                            &mut component,
-                                            input,
-                                            &wgpu_context.chargrid_frame_buffer,
-                                        )
-                                    {
+                                    if let Some(app::Exit) = on_input(
+                                        &mut component,
+                                        input,
+                                        &wgpu_context.chargrid_frame_buffer,
+                                    ) {
                                         exited = true;
                                         return;
                                     }
@@ -712,13 +705,11 @@ impl Context {
                 winit::event::Event::RedrawRequested(_) => {
                     let frame_duration = frame_instant.elapsed();
                     frame_instant = Instant::now();
-                    if let Some(chargrid_component_runtime::ControlFlow::Exit) =
-                        chargrid_component_runtime::on_frame(
-                            &mut component,
-                            frame_duration,
-                            &mut wgpu_context.chargrid_frame_buffer,
-                        )
-                    {
+                    if let Some(app::Exit) = on_frame(
+                        &mut component,
+                        frame_duration,
+                        &mut wgpu_context.chargrid_frame_buffer,
+                    ) {
                         exited = true;
                         return;
                     }
