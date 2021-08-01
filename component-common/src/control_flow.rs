@@ -44,6 +44,9 @@ impl<C: Component<Output = ()>> CF<C> {
             remaining: duration,
         })
     }
+    pub fn press_any_key(self) -> CF<PressAnyKey<C>> {
+        cf(PressAnyKey(self.0))
+    }
 }
 
 impl<T, C: Component<Output = Option<T>>> CF<C> {
@@ -276,6 +279,27 @@ where
     }
 }
 
+pub struct Render<F: Fn(Ctx, &mut FrameBuffer)> {
+    f: F,
+}
+pub fn render<F: Fn(Ctx, &mut FrameBuffer)>(f: F) -> CF<Render<F>> {
+    cf(Render { f })
+}
+impl<F> Component for Render<F>
+where
+    F: Fn(Ctx, &mut FrameBuffer),
+{
+    type Output = ();
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        (self.f)(ctx, fb);
+    }
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+        ctx.bounding_box.size()
+    }
+}
+
 pub struct IgnoreState<S, C: Component<State = ()>> {
     state: PhantomData<S>,
     component: C,
@@ -468,6 +492,29 @@ where
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.component.size(state, ctx)
+    }
+}
+
+pub struct PressAnyKey<C: Component<Output = ()>>(C);
+impl<C> Component for PressAnyKey<C>
+where
+    C: Component<Output = ()>,
+{
+    type Output = Option<()>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.0.update(state, ctx, event);
+        if let Event::Input(input::Input::Keyboard(_)) = event {
+            Some(())
+        } else {
+            None
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
     }
 }
 

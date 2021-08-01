@@ -1,4 +1,4 @@
-use chargrid_graphical::*;
+use chargrid_ggez::*;
 use colour_grid_app::app;
 
 fn main() {
@@ -24,5 +24,5 @@ fn main() {
         underline_top_offset_cell_ratio: 0.8,
         resizable: false,
     });
-    context.run_app(app());
+    context.run_component(app());
 }

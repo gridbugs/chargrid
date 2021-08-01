@@ -34,10 +34,11 @@ members = [
 #    "examples/colour_picker/ansi-terminal",
 #    "examples/colour_picker/web",
 #
-#    "examples/colour_grid/app",
-#    "examples/colour_grid/graphical",
-#    "examples/colour_grid/ansi-terminal",
-#    "examples/colour_grid/web",
+    "examples/colour_grid/app",
+    "examples/colour_grid/wgpu",
+    "examples/colour_grid/ggez",
+    "examples/colour_grid/ansi-terminal",
+    "examples/colour_grid/web",
 #
 #    "examples/soundboard/app",
 #    "examples/soundboard/graphical",

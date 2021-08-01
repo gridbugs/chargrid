@@ -1,1 +1,1 @@
-import('./pkg/colour_grid_web').catch(console.error)
+import('./pkg/index').catch(console.error)
