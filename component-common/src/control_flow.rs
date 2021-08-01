@@ -24,14 +24,28 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         D: Component<Output = Option<U>, State = C::State>,
         F: FnOnce(T) -> D,
     {
-        CF(AndThen::First {
+        cf(AndThen::First {
             component: self,
             f: Some(f),
         })
     }
+
+    pub fn map<U, F>(self, f: F) -> CF<Map<Self, F>>
+    where
+        F: FnMut(T) -> U,
+    {
+        cf(Map { component: self, f })
+    }
+
+    pub fn clear_each_frame(self) -> CF<ClearEachFrame<Self>> {
+        cf(ClearEachFrame { component: self })
+    }
 }
 
-pub struct Val<T: Clone>(pub T);
+pub struct Val<T: Clone>(T);
+pub fn val<T: Clone>(t: T) -> CF<Val<T>> {
+    cf(Val(t))
+}
 impl<T: Clone> Component for Val<T> {
     type Output = Option<T>;
     type State = ();
@@ -113,6 +127,28 @@ where
             None => None,
             Some(t) => Some((self.f)(t)),
         }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
+    }
+}
+
+pub struct ClearEachFrame<C: Component> {
+    component: C,
+}
+
+impl<C> Component for ClearEachFrame<C>
+where
+    C: Component,
+{
+    type Output = C::Output;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        fb.clear();
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.component.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.component.size(state, ctx)

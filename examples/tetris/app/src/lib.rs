@@ -202,39 +202,17 @@ fn main_menu() -> menu::Menu<MainMenuChoice> {
         .build()
 }
 
-pub struct TetrisAppComponent<R: Rng> {
-    tetris_component: TetrisComponent<R>,
-}
-
-impl<R: Rng> Component for TetrisAppComponent<R> {
-    type Output = app::Output;
-    type State = ();
-    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        fb.clear();
-        self.tetris_component.render(state, ctx, fb);
-    }
-    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-        if let Some(output) = self.tetris_component.update(state, ctx, event) {
-            match output {
-                TetrisOutput::Exit => return Some(app::Exit),
-                _ => (),
-            }
-        }
-        None
-    }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        self.tetris_component.size(state, ctx)
-    }
-}
-
 pub fn app<R: Rng>(rng: R) -> impl Component<Output = app::Output, State = ()> {
     use chargrid_component_common::control_flow::*;
-    let tetris = TetrisAppComponent {
-        tetris_component: TetrisComponent::new(rng),
-    };
     mkeither!(Ei = A | B);
-    cf(main_menu()).and_then(|choice| match choice {
-        MainMenuChoice::Play => Ei::A(tetris),
-        MainMenuChoice::Quit => Ei::B(Val(app::Exit)),
-    })
+    cf(main_menu())
+        .and_then(|choice| match choice {
+            MainMenuChoice::Play => {
+                Ei::A(cf(TetrisComponent::new(rng)).map(|output| match output {
+                    _ => app::Exit,
+                }))
+            }
+            MainMenuChoice::Quit => Ei::B(val(app::Exit)),
+        })
+        .clear_each_frame()
 }
