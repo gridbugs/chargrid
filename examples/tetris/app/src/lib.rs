@@ -191,27 +191,9 @@ enum MainMenuChoice {
 
 fn main_menu() -> menu::Menu<MainMenuChoice> {
     use menu::builder::*;
-    let make_identifier = |s: &str| {
-        identifier::static_(
-            StyledString {
-                string: s.to_string(),
-                style: Style {
-                    bold: Some(true),
-                    ..Default::default()
-                },
-            },
-            StyledString {
-                string: s.to_string(),
-                style: Style {
-                    bold: Some(false),
-                    ..Default::default()
-                },
-            },
-        )
-    };
     menu_builder()
-        .add_item(item(MainMenuChoice::Play, make_identifier("Play!")))
-        .add_item(item(MainMenuChoice::Quit, make_identifier("Quit")))
+        .add_item(item(MainMenuChoice::Play, identifier::simple("Play!")))
+        .add_item(item(MainMenuChoice::Quit, identifier::simple("Quit")))
         .build()
 }
 

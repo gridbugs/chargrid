@@ -327,6 +327,25 @@ pub mod identifier {
     ) -> MenuItemIdentifierBoxed {
         dynamic(initial_num_parts, f)
     }
+
+    pub fn simple(s: &str) -> MenuItemIdentifierBoxed {
+        static_(
+            StyledString {
+                string: s.to_string(),
+                style: Style {
+                    bold: Some(true),
+                    ..Default::default()
+                },
+            },
+            StyledString {
+                string: s.to_string(),
+                style: Style {
+                    bold: Some(false),
+                    ..Default::default()
+                },
+            },
+        )
+    }
 }
 
 pub mod builder {
