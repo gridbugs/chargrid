@@ -18,32 +18,12 @@ members = [
     "examples/tetris/ggez",
     "examples/tetris/ansi-terminal",
     "examples/tetris/web",
-#
-#    "examples/drag/app",
-#    "examples/drag/ansi-terminal",
-#    "examples/drag/graphical",
-#    "examples/drag/web",
-#
-#    "examples/pager/app",
-#    "examples/pager/ansi-terminal",
-#    "examples/pager/graphical",
-#    "examples/pager/web",
-#
-#    "examples/colour_picker/app",
-#    "examples/colour_picker/graphical",
-#    "examples/colour_picker/ansi-terminal",
-#    "examples/colour_picker/web",
-#
+
     "examples/colour_grid/app",
     "examples/colour_grid/wgpu",
     "examples/colour_grid/ggez",
     "examples/colour_grid/ansi-terminal",
     "examples/colour_grid/web",
-#
-#    "examples/soundboard/app",
-#    "examples/soundboard/graphical",
-#    "examples/soundboard/ansi-terminal",
-#    "examples/soundboard/web",
 
     "examples/component_experiment/app",
     "examples/component_experiment/wgpu",

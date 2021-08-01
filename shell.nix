@@ -32,11 +32,6 @@ stdenv.mkDerivation rec {
 
     # project-specific dependencies
     pkg-config
-    alsaLib
-    libao
-    openal
-    libpulseaudio
-    udev
     xorg.libX11
     xorg.libXcursor
     xorg.libXrandr
