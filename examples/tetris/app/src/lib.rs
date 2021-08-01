@@ -1,9 +1,11 @@
 use chargrid_component::prelude::*;
+use chargrid_component_common::control_flow::*;
 use chargrid_component_common::{
     border::{Border, BorderStyle},
     menu,
 };
-use rand::Rng;
+use rand::{Rng, SeedableRng};
+use rand_isaac::Isaac64Rng;
 use tetris::{GameState, Input as TetrisInput, Meta, Piece, PieceType, Tetris};
 
 const BLANK_FOREGROUND_COLOUR: Rgba32 = Rgba32::new_rgb(24, 24, 24);
@@ -48,19 +50,19 @@ impl BorderStyles {
     }
 }
 
-struct TetrisComponent<R: Rng> {
+struct TetrisComponent {
     tetris: Tetris,
-    rng: R,
+    rng: Isaac64Rng,
     board_view: Border<TetrisBoardView>,
     next_piece_view: Border<TetrisNextPieceView>,
 }
 
-impl<R: Rng> TetrisComponent<R> {
-    fn new(mut rng: R) -> Self {
+impl TetrisComponent {
+    fn new<R: Rng>(rng: &mut R) -> Self {
         let BorderStyles { common, next_piece } = BorderStyles::new();
         Self {
-            tetris: Tetris::new(&mut rng),
-            rng,
+            tetris: Tetris::new(rng),
+            rng: Isaac64Rng::from_rng(rng).unwrap(),
             board_view: Border {
                 component: TetrisBoardView,
                 style: common,
@@ -79,7 +81,7 @@ enum TetrisOutput {
     GameOver,
 }
 
-impl<R: Rng> Component for TetrisComponent<R> {
+impl Component for TetrisComponent {
     type Output = Option<TetrisOutput>;
     type State = ();
     fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
@@ -188,30 +190,31 @@ impl Component for TetrisNextPieceView {
     }
 }
 
+fn tetris<R: Rng>(rng: &mut R) -> CF<TetrisComponent> {
+    cf(TetrisComponent::new(rng))
+}
+
 #[derive(Clone)]
 enum MainMenuChoice {
     Play,
     Quit,
 }
 
-fn main_menu() -> menu::Menu<MainMenuChoice> {
+fn main_menu() -> CF<menu::Menu<MainMenuChoice>> {
     use menu::builder::*;
-    menu_builder()
+    cf(menu_builder()
         .add_item(item(MainMenuChoice::Play, identifier::simple("Play!")))
         .add_item(item(MainMenuChoice::Quit, identifier::simple("Quit")))
-        .build()
+        .build())
 }
 
-pub fn app<R: Rng>(rng: R) -> impl Component<Output = app::Output, State = ()> {
-    use chargrid_component_common::control_flow::*;
+pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = ()> {
     mkeither!(Ei = A | B);
-    cf(main_menu())
-        .and_then(|choice| match choice {
-            MainMenuChoice::Play => {
-                Ei::A(cf(TetrisComponent::new(rng)).map(|output| match output {
-                    _ => app::Exit,
-                }))
-            }
+    main_menu()
+        .and_then(move |choice| match choice {
+            MainMenuChoice::Play => Ei::A(tetris(&mut rng).map(|output| match output {
+                _ => app::Exit,
+            })),
             MainMenuChoice::Quit => Ei::B(val(app::Exit)),
         })
         .clear_each_frame()

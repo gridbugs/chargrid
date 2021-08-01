@@ -9,3 +9,4 @@ tetris = { path = "../tetris" }
 chargrid_component = { path = "../../../component" }
 chargrid_component_common = { path = "../../../component-common" }
 rand = "0.8"
+rand_isaac = "0.3"
