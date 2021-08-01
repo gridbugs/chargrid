@@ -223,11 +223,3 @@ impl<C: Component> Component for Border<C> {
             + self.style.child_constrain_size_by().to_size().unwrap()
     }
 }
-
-pub type PureBorder<C> = convert::ComponentPureT<Border<C>>;
-
-impl<C: Component<State = ()>> Border<C> {
-    pub fn pure(self) -> PureBorder<C> {
-        convert::ComponentPureT(self)
-    }
-}

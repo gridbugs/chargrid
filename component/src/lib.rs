@@ -513,106 +513,6 @@ pub trait Component {
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size;
 }
 
-/// A component which has no external state
-pub trait PureComponent: Sized {
-    type Output;
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer);
-    fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output;
-    fn size(&self, ctx: Ctx) -> Size;
-    fn component(self) -> convert::PureComponentT<Self> {
-        convert::PureComponentT(self)
-    }
-}
-
-/// A component which does not respond to events
-pub trait StaticComponent: Sized {
-    type State;
-    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer);
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size;
-    fn component(self) -> convert::StaticComponentT<Self> {
-        convert::StaticComponentT(self)
-    }
-}
-
-/// A component with no external state which does not respond to events
-pub trait PureStaticComponent: Sized {
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer);
-    fn size(&self, ctx: Ctx) -> Size;
-    fn component(self) -> convert::PureStaticComponentT<Self> {
-        convert::PureStaticComponentT(self)
-    }
-}
-
-pub mod convert {
-    use super::{
-        Component, Ctx, Event, FrameBuffer, PureComponent, PureStaticComponent, Size,
-        StaticComponent,
-    };
-
-    /// Wrapper for `PureComponent` which implements `Component`
-    pub struct PureComponentT<T: PureComponent>(pub T);
-
-    impl<T: PureComponent> Component for PureComponentT<T> {
-        type State = ();
-        type Output = T::Output;
-        fn render(&self, _: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-            self.0.render(ctx, fb);
-        }
-        fn update(&mut self, _: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-            self.0.update(ctx, event)
-        }
-        fn size(&self, _: &Self::State, ctx: Ctx) -> Size {
-            self.0.size(ctx)
-        }
-    }
-
-    /// Wrapper for `StaticComponent` which implements `Component`
-    pub struct StaticComponentT<T: StaticComponent>(pub T);
-
-    impl<T: StaticComponent> Component for StaticComponentT<T> {
-        type State = T::State;
-        type Output = ();
-        fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-            self.0.render(state, ctx, fb);
-        }
-        fn update(&mut self, _: &mut Self::State, _: Ctx, _: Event) -> Self::Output {}
-        fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-            self.0.size(state, ctx)
-        }
-    }
-
-    /// Wrapper for `PureStaticComponent` which implements `Component`
-    pub struct PureStaticComponentT<T: PureStaticComponent>(pub T);
-
-    impl<T: PureStaticComponent> Component for PureStaticComponentT<T> {
-        type State = ();
-        type Output = ();
-        fn render(&self, _: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-            self.0.render(ctx, fb);
-        }
-        fn update(&mut self, _: &mut Self::State, _: Ctx, _: Event) -> Self::Output {}
-        fn size(&self, _: &Self::State, ctx: Ctx) -> Size {
-            self.0.size(ctx)
-        }
-    }
-
-    /// Wrapper for `Component<State = ()>` which implements `PureComponent`
-    pub struct ComponentPureT<C: Component<State = ()>>(pub C);
-
-    impl<C: Component<State = ()>> PureComponent for ComponentPureT<C> {
-        type Output = C::Output;
-        fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
-            self.0.render(&(), ctx, fb);
-        }
-        fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output {
-            self.0.update(&mut (), ctx, event)
-        }
-        fn size(&self, ctx: Ctx) -> Size {
-            self.0.size(&(), ctx)
-        }
-    }
-}
-
 pub mod control_flow {
     pub use super::mkeither;
     use super::{Component, Ctx, Event, FrameBuffer, Size};
@@ -743,8 +643,8 @@ pub mod app {
 /// types/traits/modules useful for implementing `Component` and friends
 pub mod prelude {
     pub use super::{
-        app, control_flow, convert, input, rgba32, Component, Coord, Ctx, Event, FrameBuffer,
-        PureComponent, PureStaticComponent, RenderCell, Rgba32, Size, StaticComponent, Style,
+        app, control_flow, input, rgba32, Component, Coord, Ctx, Event, FrameBuffer, RenderCell,
+        Rgba32, Size, Style,
     };
     pub use std::time::Duration;
 }

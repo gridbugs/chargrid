@@ -22,14 +22,6 @@ pub struct Menu<T: Clone, S = ()> {
     since_epoch: Duration,
 }
 
-pub type PureMenu<T> = convert::ComponentPureT<Menu<T, ()>>;
-
-impl<T: Clone> Menu<T, ()> {
-    pub fn pure(self) -> PureMenu<T> {
-        convert::ComponentPureT(self)
-    }
-}
-
 impl<T: Clone, S> Menu<T, S> {
     pub fn up(&mut self) {
         match self.selected_index.checked_sub(1) {
@@ -180,38 +172,38 @@ pub mod identifier {
     use super::*;
     use crate::text::{StyledString, Text};
 
-    pub struct MenuItemIdentifierStaticInner {
+    pub struct MenuItemIdentifierStatic {
         selected: Text,
         deselected: Text,
         is_selected: bool,
     }
 
-    impl PureStaticComponent for MenuItemIdentifierStaticInner {
-        fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+    impl Component for MenuItemIdentifierStatic {
+        type Output = ();
+        type State = ();
+        fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
             if self.is_selected {
-                self.selected.render(ctx, fb);
+                self.selected.render(state, ctx, fb);
             } else {
-                self.deselected.render(ctx, fb);
+                self.deselected.render(state, ctx, fb);
             }
         }
-        fn size(&self, ctx: Ctx) -> Size {
+        fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+        fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
             if self.is_selected {
-                self.selected.size(ctx)
+                self.selected.size(state, ctx)
             } else {
-                self.deselected.size(ctx)
+                self.deselected.size(state, ctx)
             }
         }
     }
 
-    pub type MenuItemIdentifierStatic =
-        convert::PureStaticComponentT<MenuItemIdentifierStaticInner>;
-
     impl MenuItemIdentifier for MenuItemIdentifierStatic {
         fn set_selection(&mut self, selection: bool) {
-            self.0.is_selected = selection;
+            self.is_selected = selection;
         }
         fn init_selection(&mut self, selection: bool) {
-            self.0.is_selected = selection;
+            self.is_selected = selection;
         }
     }
 
@@ -219,14 +211,11 @@ pub mod identifier {
         selected: S,
         deselected: D,
     ) -> MenuItemIdentifierBoxed {
-        Box::new(
-            MenuItemIdentifierStaticInner {
-                selected: selected.into(),
-                deselected: deselected.into(),
-                is_selected: false,
-            }
-            .component(),
-        )
+        Box::new(MenuItemIdentifierStatic {
+            selected: selected.into(),
+            deselected: deselected.into(),
+            is_selected: false,
+        })
     }
 
     pub struct MenuItemIdentifierDynamicCtx<'a> {
@@ -246,7 +235,7 @@ pub mod identifier {
         }
     }
 
-    pub struct MenuItemIdentifierDynamicInner<U: MenuItemIdentifierDynamicUpdate> {
+    pub struct MenuItemIdentifierDynamic<U: MenuItemIdentifierDynamicUpdate> {
         update: U,
         component: Text,
         since_change: Duration,
@@ -254,12 +243,13 @@ pub mod identifier {
         styles_prev: Vec<Style>,
     }
 
-    impl<U: MenuItemIdentifierDynamicUpdate> PureComponent for MenuItemIdentifierDynamicInner<U> {
+    impl<U: MenuItemIdentifierDynamicUpdate> Component for MenuItemIdentifierDynamic<U> {
         type Output = ();
-        fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
-            self.component.render(ctx, fb);
+        type State = ();
+        fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+            self.component.render(state, ctx, fb);
         }
-        fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
+        fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
             if let Some(duration) = event.tick() {
                 self.since_change += duration;
                 for part in self.component.parts.iter_mut() {
@@ -273,25 +263,22 @@ pub mod identifier {
                 });
             }
         }
-        fn size(&self, ctx: Ctx) -> Size {
-            self.component.size(ctx)
+        fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+            self.component.size(state, ctx)
         }
     }
 
     const LONG_DURATION: Duration = Duration::from_secs(31536000); // 1 year
 
-    pub type MenuItemIdentifierDynamic<U> =
-        convert::PureComponentT<MenuItemIdentifierDynamicInner<U>>;
-
     impl<U: MenuItemIdentifierDynamicUpdate> MenuItemIdentifier for MenuItemIdentifierDynamic<U> {
         fn init_selection(&mut self, selection: bool) {
-            self.0.is_selected = selection;
-            self.0.since_change = LONG_DURATION;
+            self.is_selected = selection;
+            self.since_change = LONG_DURATION;
         }
         fn set_selection(&mut self, selection: bool) {
-            self.0.is_selected = selection;
-            self.0.since_change = Duration::from_secs(0);
-            self.0.styles_prev = self.0.component.parts.iter().map(|p| p.style).collect();
+            self.is_selected = selection;
+            self.since_change = Duration::from_secs(0);
+            self.styles_prev = self.component.parts.iter().map(|p| p.style).collect();
         }
     }
 
@@ -309,16 +296,13 @@ pub mod identifier {
             styles_prev.push(Style::default());
         }
         let component = Text::new(parts);
-        Box::new(
-            MenuItemIdentifierDynamicInner {
-                update,
-                component,
-                since_change: LONG_DURATION,
-                is_selected: false,
-                styles_prev,
-            }
-            .component(),
-        )
+        Box::new(MenuItemIdentifierDynamic {
+            update,
+            component,
+            since_change: LONG_DURATION,
+            is_selected: false,
+            styles_prev,
+        })
     }
 
     pub fn dynamic_fn<F: 'static + FnMut(MenuItemIdentifierDynamicCtx)>(

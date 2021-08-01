@@ -18,11 +18,3 @@ impl<C: Component> Component for PadTo<C> {
         self.component.size(state, ctx).pairwise_max(self.size)
     }
 }
-
-pub type PurePadTo<C> = convert::ComponentPureT<PadTo<C>>;
-
-impl<C: Component<State = ()>> PadTo<C> {
-    pub fn pure(self) -> PurePadTo<C> {
-        convert::ComponentPureT(self)
-    }
-}

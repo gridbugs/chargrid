@@ -11,7 +11,7 @@ enum MenuItem {
 
 pub struct HelloWorld {
     title: text::StyledStringWordWrapped,
-    menu: convert::ComponentPureT<border::Border<pad_to::PadTo<menu::Menu<MenuItem>>>>,
+    menu: border::Border<pad_to::PadTo<menu::Menu<MenuItem>>>,
 }
 
 impl HelloWorld {
@@ -158,7 +158,6 @@ impl HelloWorld {
                         ..Default::default()
                     },
                 }
-                .pure()
             },
         }
     }
@@ -172,20 +171,21 @@ fn menu_ctx<'a>(ctx: Ctx<'a>) -> Ctx<'a> {
     ctx.add_offset(Coord::new(1, 4))
 }
 
-impl PureComponent for HelloWorld {
+impl Component for HelloWorld {
     type Output = app::Output;
+    type State = ();
 
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         fb.clear_with_background(rgba32_rgb(0, 0, 100));
-        self.title.render(title_ctx(ctx), fb);
-        self.menu.render(menu_ctx(ctx), fb);
+        self.title.render(state, title_ctx(ctx), fb);
+        self.menu.render(state, menu_ctx(ctx), fb);
     }
 
-    fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output {
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         match event {
             Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(app::Exit),
             _ => {
-                if let Some(item) = self.menu.update(menu_ctx(ctx), event) {
+                if let Some(item) = self.menu.update(state, menu_ctx(ctx), event) {
                     match item {
                         MenuItem::String(s) => {
                             self.title.styled_string.string = s;
@@ -200,11 +200,11 @@ impl PureComponent for HelloWorld {
         }
     }
 
-    fn size(&self, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         ctx.bounding_box.size()
     }
 }
 
 pub fn app() -> impl Component<State = (), Output = app::Output> {
-    HelloWorld::new().component()
+    HelloWorld::new()
 }

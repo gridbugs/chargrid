@@ -51,8 +51,8 @@ impl BorderStyles {
 struct TetrisComponent<R: Rng> {
     tetris: Tetris,
     rng: R,
-    board_view: Border<convert::StaticComponentT<TetrisBoardView>>,
-    next_piece_view: Border<convert::StaticComponentT<TetrisNextPieceView>>,
+    board_view: Border<TetrisBoardView>,
+    next_piece_view: Border<TetrisNextPieceView>,
 }
 
 impl<R: Rng> TetrisComponent<R> {
@@ -62,11 +62,11 @@ impl<R: Rng> TetrisComponent<R> {
             tetris: Tetris::new(&mut rng),
             rng,
             board_view: Border {
-                component: TetrisBoardView.component(),
+                component: TetrisBoardView,
                 style: common,
             },
             next_piece_view: Border {
-                component: TetrisNextPieceView.component(),
+                component: TetrisNextPieceView,
                 style: next_piece,
             },
         }
@@ -79,9 +79,10 @@ enum TetrisOutput {
     GameOver,
 }
 
-impl<R: Rng> PureComponent for TetrisComponent<R> {
+impl<R: Rng> Component for TetrisComponent<R> {
     type Output = Option<TetrisOutput>;
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         self.board_view.render(&self.tetris.game_state, ctx, fb);
         self.next_piece_view.render(
             &self.tetris.game_state.next_piece,
@@ -92,7 +93,7 @@ impl<R: Rng> PureComponent for TetrisComponent<R> {
             fb,
         );
     }
-    fn update(&mut self, _ctx: Ctx, event: Event) -> Self::Output {
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
         use input::*;
         match event {
             Event::Peek => (),
@@ -115,7 +116,7 @@ impl<R: Rng> PureComponent for TetrisComponent<R> {
         }
         None
     }
-    fn size(&self, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         let board_size = TetrisBoardView.size(&self.tetris.game_state, ctx);
         let next_piece_size = TetrisNextPieceView.size(&self.tetris.game_state.next_piece, ctx);
         board_size.set_width(board_size.width() + next_piece_size.width())
@@ -125,7 +126,8 @@ impl<R: Rng> PureComponent for TetrisComponent<R> {
 struct TetrisBoardView;
 struct TetrisNextPieceView;
 
-impl StaticComponent for TetrisBoardView {
+impl Component for TetrisBoardView {
+    type Output = ();
     type State = GameState;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         for (i, row) in state.board.rows.iter().enumerate() {
@@ -156,12 +158,14 @@ impl StaticComponent for TetrisBoardView {
             fb.set_cell_relative_to_ctx(ctx, coord, 0, cell_info);
         }
     }
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
     fn size(&self, state: &Self::State, _ctx: Ctx) -> Size {
         state.board.size
     }
 }
 
-impl StaticComponent for TetrisNextPieceView {
+impl Component for TetrisNextPieceView {
+    type Output = ();
     type State = Piece;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         let offset = Coord::new(1, 0);
@@ -178,6 +182,7 @@ impl StaticComponent for TetrisNextPieceView {
             fb.set_cell_relative_to_ctx(ctx, offset + coord, 0, cell_info);
         }
     }
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
     fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
         NEXT_PIECE_SIZE.into()
     }
@@ -201,14 +206,15 @@ pub struct TetrisAppComponent<R: Rng> {
     tetris_component: TetrisComponent<R>,
 }
 
-impl<R: Rng> PureComponent for TetrisAppComponent<R> {
+impl<R: Rng> Component for TetrisAppComponent<R> {
     type Output = app::Output;
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+    type State = ();
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         fb.clear();
-        self.tetris_component.render(ctx, fb);
+        self.tetris_component.render(state, ctx, fb);
     }
-    fn update(&mut self, ctx: Ctx, event: Event) -> Self::Output {
-        if let Some(output) = self.tetris_component.update(ctx, event) {
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        if let Some(output) = self.tetris_component.update(state, ctx, event) {
             match output {
                 TetrisOutput::Exit => return Some(app::Exit),
                 _ => (),
@@ -216,8 +222,8 @@ impl<R: Rng> PureComponent for TetrisAppComponent<R> {
         }
         None
     }
-    fn size(&self, ctx: Ctx) -> Size {
-        self.tetris_component.size(ctx)
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.tetris_component.size(state, ctx)
     }
 }
 
@@ -225,8 +231,7 @@ pub fn app<R: Rng>(rng: R) -> impl Component<Output = app::Output, State = ()> {
     use control_flow::*;
     let tetris = TetrisAppComponent {
         tetris_component: TetrisComponent::new(rng),
-    }
-    .component();
+    };
     mkeither!(Ei = A | B);
     CF(main_menu()).and_then(|choice| match choice {
         MainMenuChoice::Play => Ei::A(tetris),

@@ -102,12 +102,14 @@ impl StyledString {
     }
 }
 
-impl PureStaticComponent for StyledString {
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+impl Component for StyledString {
+    type Output = ();
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         self.process(Coord::new(0, 0), ctx, fb);
     }
-
-    fn size(&self, ctx: Ctx) -> Size {
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         let mut measure_bounds = MeasureBounds::default();
         self.process(Coord::new(0, 0), ctx, &mut measure_bounds);
         measure_bounds.to_size()
@@ -161,12 +163,14 @@ impl StyledStringCharWrapped {
     }
 }
 
-impl PureStaticComponent for StyledStringCharWrapped {
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+impl Component for StyledStringCharWrapped {
+    type Output = ();
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         Self::process_styled_string(&self.styled_string, Coord::new(0, 0), ctx, fb);
     }
-
-    fn size(&self, ctx: Ctx) -> Size {
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         let mut measure_bounds = MeasureBounds::default();
         Self::process_styled_string(
             &self.styled_string,
@@ -183,15 +187,17 @@ pub struct StyledStringWordWrapped {
     state: RefCell<WordWrapState>,
 }
 
-impl PureStaticComponent for StyledStringWordWrapped {
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+impl Component for StyledStringWordWrapped {
+    type Output = ();
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         let mut state = self.state.borrow_mut();
         state.clear();
         state.process_styled_string(&self.styled_string, ctx, fb);
         state.flush(ctx, fb);
     }
-
-    fn size(&self, ctx: Ctx) -> Size {
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         let mut measure_bounds = MeasureBounds::default();
         let mut state = self.state.borrow_mut();
         state.clear();
@@ -322,15 +328,17 @@ impl Text {
     }
 }
 
-impl PureStaticComponent for Text {
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+impl Component for Text {
+    type Output = ();
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         let mut cursor = Coord::new(0, 0);
         for part in self.parts.iter() {
             cursor = part.process(cursor, ctx, fb);
         }
     }
-
-    fn size(&self, ctx: Ctx) -> Size {
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         let mut measure_bounds = MeasureBounds::default();
         let mut cursor = Coord::new(0, 0);
         for part in self.parts.iter() {
@@ -344,15 +352,17 @@ pub struct TextCharWrapped {
     pub text: Text,
 }
 
-impl PureStaticComponent for TextCharWrapped {
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+impl Component for TextCharWrapped {
+    type Output = ();
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         let mut cursor = Coord::new(0, 0);
         for part in self.text.parts.iter() {
             cursor = StyledStringCharWrapped::process_styled_string(part, cursor, ctx, fb);
         }
     }
-
-    fn size(&self, ctx: Ctx) -> Size {
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         let mut measure_bounds = MeasureBounds::default();
         let mut cursor = Coord::new(0, 0);
         for part in self.text.parts.iter() {
@@ -371,8 +381,10 @@ pub struct TextWordWrapped {
     pub text: Text,
     state: RefCell<WordWrapState>,
 }
-impl PureStaticComponent for TextWordWrapped {
-    fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+impl Component for TextWordWrapped {
+    type Output = ();
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         let mut state = self.state.borrow_mut();
         state.clear();
         for part in self.text.parts.iter() {
@@ -380,8 +392,8 @@ impl PureStaticComponent for TextWordWrapped {
         }
         state.flush(ctx, fb);
     }
-
-    fn size(&self, ctx: Ctx) -> Size {
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         let mut measure_bounds = MeasureBounds::default();
         let mut state = self.state.borrow_mut();
         state.clear();
