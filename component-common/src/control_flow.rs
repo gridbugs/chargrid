@@ -1,12 +1,13 @@
 use chargrid_component::{app, input, Component, Ctx, Event, FrameBuffer, Size};
 use std::marker::PhantomData;
+use std::time::Duration;
 
 pub struct CF<C: Component>(C);
 pub fn cf<C: Component>(component: C) -> CF<C> {
     CF(component)
 }
 
-impl<T, C: Component<Output = Option<T>>> Component for CF<C> {
+impl<C: Component> Component for CF<C> {
     type Output = C::Output;
     type State = C::State;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
@@ -20,47 +21,63 @@ impl<T, C: Component<Output = Option<T>>> Component for CF<C> {
     }
 }
 
+impl<C: Component<Output = ()>> CF<C> {
+    pub fn delay(self, duration: Duration) -> CF<Delay<C>> {
+        cf(Delay {
+            component: self.0,
+            remaining: duration,
+        })
+    }
+}
+
 impl<T, C: Component<Output = Option<T>>> CF<C> {
-    pub fn and_then<U, D, F>(self, f: F) -> CF<AndThen<Self, D, F>>
+    pub fn and_then<U, D, F>(self, f: F) -> CF<AndThen<C, D, F>>
     where
         D: Component<Output = Option<U>, State = C::State>,
         F: FnOnce(T) -> D,
     {
         cf(AndThen::First {
-            component: self,
+            component: self.0,
             f: Some(f),
         })
     }
 
-    pub fn map<U, F>(self, f: F) -> CF<Map<Self, F>>
+    pub fn map<U, F>(self, f: F) -> CF<Map<C, F>>
     where
         F: FnMut(T) -> U,
     {
-        cf(Map { component: self, f })
+        cf(Map {
+            component: self.0,
+            f,
+        })
     }
 
-    pub fn clear_each_frame(self) -> CF<ClearEachFrame<Self>> {
-        cf(ClearEachFrame(self))
+    pub fn clear_each_frame(self) -> CF<ClearEachFrame<C>> {
+        cf(ClearEachFrame(self.0))
+    }
+
+    pub fn catch_escape(self) -> CF<CatchEscape<C>> {
+        cf(CatchEscape(self.0))
     }
 }
 
-impl<T, C: Component<Output = Option<T>, State = ()>> CF<C> {
-    pub fn ignore_state<S>(self) -> CF<IgnoreState<S, Self>> {
+impl<C: Component<State = ()>> CF<C> {
+    pub fn ignore_state<S>(self) -> CF<IgnoreState<S, C>> {
         cf(IgnoreState {
             state: PhantomData,
-            component: self,
+            component: self.0,
         })
     }
 }
 
 impl<C: Component<Output = app::Output>> CF<C> {
-    pub fn exit_on_close(self) -> CF<ExitOnClose<Self>> {
-        cf(ExitOnClose(self))
+    pub fn exit_on_close(self) -> CF<ExitOnClose<C>> {
+        cf(ExitOnClose(self.0))
     }
 }
 
 pub struct Val<T: Clone>(pub T);
-pub fn val<S, T: Clone>(t: T) -> CF<IgnoreState<S, CF<Val<T>>>> {
+pub fn val<S, T: Clone>(t: T) -> CF<IgnoreState<S, Val<T>>> {
     cf(Val(t)).ignore_state()
 }
 impl<T: Clone> Component for Val<T> {
@@ -162,18 +179,56 @@ where
     }
 }
 
-pub enum WithState<C: Component, F> {
+pub struct WithState<S, T, F> {
+    state: PhantomData<S>,
+    output: PhantomData<T>,
+    f: Option<F>,
+}
+pub fn with_state<S, T, F>(f: F) -> CF<WithState<S, T, F>>
+where
+    F: FnOnce(&mut S) -> T,
+{
+    cf(WithState {
+        state: PhantomData,
+        output: PhantomData,
+        f: Some(f),
+    })
+}
+impl<S, T, F> Component for WithState<S, T, F>
+where
+    F: FnOnce(&mut S) -> T,
+{
+    type Output = Option<T>;
+    type State = S;
+
+    fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {
+        panic!("this component should not live long enough to be rendered");
+    }
+    fn update(&mut self, state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
+        Some((self
+            .f
+            .take()
+            .expect("this component should only be updated once"))(
+            state
+        ))
+    }
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
+        panic!("nothing should be checking the size of this component")
+    }
+}
+
+pub enum WithStateThen<C: Component, F> {
     Component(C),
     F(Option<F>),
 }
-pub fn with_state<C, F>(f: F) -> CF<WithState<C, F>>
+pub fn with_state_then<C, F>(f: F) -> CF<WithStateThen<C, F>>
 where
     C: Component,
     F: FnOnce(&mut C::State) -> C,
 {
-    cf(WithState::F(Some(f)))
+    cf(WithStateThen::F(Some(f)))
 }
-impl<C, F> Component for WithState<C, F>
+impl<C, F> Component for WithStateThen<C, F>
 where
     C: Component,
     F: FnOnce(&mut C::State) -> C,
@@ -339,6 +394,64 @@ where
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.0.size(state, ctx)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum OrEscape<T> {
+    Escape,
+    Value(T),
+}
+
+pub struct CatchEscape<C: Component>(pub C);
+
+impl<T, C> Component for CatchEscape<C>
+where
+    C: Component<Output = Option<T>>,
+{
+    type Output = Option<OrEscape<T>>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        if let Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) = event {
+            return Some(OrEscape::Escape);
+        }
+        self.0.update(state, ctx, event).map(OrEscape::Value)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
+pub struct Delay<C: Component<Output = ()>> {
+    component: C,
+    remaining: Duration,
+}
+impl<C> Component for Delay<C>
+where
+    C: Component<Output = ()>,
+{
+    type Output = Option<()>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.component.update(state, ctx, event);
+        if let Event::Tick(duration) = event {
+            if let Some(remaining) = self.remaining.checked_sub(duration) {
+                self.remaining = remaining;
+            } else {
+                self.remaining = Duration::from_millis(0);
+                return Some(());
+            }
+        }
+        None
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
     }
 }
 

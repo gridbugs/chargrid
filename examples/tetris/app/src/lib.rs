@@ -2,10 +2,11 @@ use chargrid_component::prelude::*;
 use chargrid_component_common::control_flow::*;
 use chargrid_component_common::{
     border::{Border, BorderStyle},
-    menu,
+    menu, text,
 };
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
+use std::time::Duration;
 use tetris::{GameState, Input as TetrisInput, Meta, Piece, PieceType, Tetris};
 
 const BLANK_FOREGROUND_COLOUR: Rgba32 = Rgba32::new_rgb(24, 24, 24);
@@ -52,19 +53,18 @@ impl BorderStyles {
 
 struct TetrisState {
     rng: Isaac64Rng,
+    tetris: Tetris,
 }
 
 struct TetrisComponent {
-    tetris: Tetris,
     board_view: Border<TetrisBoardView>,
     next_piece_view: Border<TetrisNextPieceView>,
 }
 
 impl TetrisComponent {
-    fn new<R: Rng>(rng: &mut R) -> Self {
+    fn new() -> Self {
         let BorderStyles { common, next_piece } = BorderStyles::new();
         Self {
-            tetris: Tetris::new(rng),
             board_view: Border {
                 component: TetrisBoardView,
                 style: common,
@@ -78,19 +78,18 @@ impl TetrisComponent {
 }
 
 enum TetrisOutput {
-    Pause,
     GameOver,
 }
 
 impl Component for TetrisComponent {
     type Output = Option<TetrisOutput>;
     type State = TetrisState;
-    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        self.board_view.render(&self.tetris.game_state, ctx, fb);
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.board_view.render(&state.tetris.game_state, ctx, fb);
         self.next_piece_view.render(
-            &self.tetris.game_state.next_piece,
+            &state.tetris.game_state.next_piece,
             ctx.add_offset(Coord::new(
-                self.board_view.size(&self.tetris.game_state, ctx).width() as i32,
+                self.board_view.size(&state.tetris.game_state, ctx).width() as i32,
                 0,
             )),
             fb,
@@ -101,15 +100,14 @@ impl Component for TetrisComponent {
         match event {
             Event::Peek => (),
             Event::Input(input) => match input {
-                Input::Keyboard(keys::ESCAPE) => return Some(TetrisOutput::Pause),
-                Input::Keyboard(KeyboardInput::Up) => self.tetris.input(TetrisInput::Up),
-                Input::Keyboard(KeyboardInput::Down) => self.tetris.input(TetrisInput::Down),
-                Input::Keyboard(KeyboardInput::Left) => self.tetris.input(TetrisInput::Left),
-                Input::Keyboard(KeyboardInput::Right) => self.tetris.input(TetrisInput::Right),
+                Input::Keyboard(KeyboardInput::Up) => state.tetris.input(TetrisInput::Up),
+                Input::Keyboard(KeyboardInput::Down) => state.tetris.input(TetrisInput::Down),
+                Input::Keyboard(KeyboardInput::Left) => state.tetris.input(TetrisInput::Left),
+                Input::Keyboard(KeyboardInput::Right) => state.tetris.input(TetrisInput::Right),
                 _ => (),
             },
             Event::Tick(duration) => {
-                if let Some(meta) = self.tetris.tick(duration, &mut state.rng) {
+                if let Some(meta) = state.tetris.tick(duration, &mut state.rng) {
                     match meta {
                         Meta::GameOver => return Some(TetrisOutput::GameOver),
                     }
@@ -118,9 +116,9 @@ impl Component for TetrisComponent {
         }
         None
     }
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
-        let board_size = TetrisBoardView.size(&self.tetris.game_state, ctx);
-        let next_piece_size = TetrisNextPieceView.size(&self.tetris.game_state.next_piece, ctx);
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        let board_size = TetrisBoardView.size(&state.tetris.game_state, ctx);
+        let next_piece_size = TetrisNextPieceView.size(&state.tetris.game_state.next_piece, ctx);
         board_size.set_width(board_size.width() + next_piece_size.width())
     }
 }
@@ -190,8 +188,77 @@ impl Component for TetrisNextPieceView {
     }
 }
 
-fn tetris<R: Rng>(rng: &mut R) -> CF<TetrisComponent> {
-    cf(TetrisComponent::new(rng))
+#[derive(Clone, Copy)]
+enum PauseMenuChoice {
+    Resume,
+    Restart,
+    Quit,
+}
+
+type PauseMenu = CF<Border<menu::MenuCF<PauseMenuChoice, TetrisState>>>;
+fn pause_menu() -> PauseMenu {
+    use menu::builder::*;
+    let BorderStyles { common, .. } = BorderStyles::new();
+    let menu = menu_builder()
+        .add_item(item(PauseMenuChoice::Resume, identifier::simple("Resume")))
+        .add_item(item(
+            PauseMenuChoice::Restart,
+            identifier::simple("Restart"),
+        ))
+        .add_item(item(PauseMenuChoice::Quit, identifier::simple("Quit")))
+        .build_cf();
+    cf(Border {
+        component: menu,
+        style: common,
+    })
+}
+
+fn tetris() -> CF<TetrisComponent> {
+    cf(TetrisComponent::new())
+}
+
+#[derive(Clone)]
+enum PausableTetrisOutput {
+    MainMenu,
+    Exit,
+}
+
+fn pausable_tetris(
+) -> CF<impl Component<Output = Option<PausableTetrisOutput>, State = TetrisState>> {
+    mkeither!(Ei = A | B);
+    loop_(|| {
+        tetris()
+            .catch_escape()
+            .and_then(|or_escape| match or_escape {
+                OrEscape::Escape => Ei::A(pause_menu().catch_escape().and_then(|choice| {
+                    with_state(move |s: &mut TetrisState| match choice {
+                        OrEscape::Value(PauseMenuChoice::Resume) | OrEscape::Escape => {
+                            LoopControl::Continue
+                        }
+                        OrEscape::Value(PauseMenuChoice::Restart) => {
+                            s.tetris = Tetris::new(&mut s.rng);
+                            LoopControl::Continue
+                        }
+                        OrEscape::Value(PauseMenuChoice::Quit) => {
+                            LoopControl::Break(PausableTetrisOutput::Exit)
+                        }
+                    })
+                })),
+                OrEscape::Value(TetrisOutput::GameOver) => Ei::B(
+                    cf(text::StyledString {
+                        string: "YOU DIED".to_string(),
+                        style: Style {
+                            foreground: Some(rgba32::rgba32_rgb(255, 0, 0)),
+                            bold: Some(true),
+                            ..Default::default()
+                        },
+                    })
+                    .ignore_state()
+                    .delay(Duration::from_millis(1000))
+                    .map(|()| LoopControl::Break(PausableTetrisOutput::MainMenu)),
+                ),
+            })
+    })
 }
 
 #[derive(Clone)]
@@ -215,15 +282,15 @@ fn main_menu() -> CF<Border<menu::MenuCF<MainMenuChoice, TetrisState>>> {
 
 pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = ()> {
     let state = TetrisState {
+        tetris: Tetris::new(&mut rng),
         rng: Isaac64Rng::from_rng(&mut rng).unwrap(),
     };
     mkeither!(Ei = A | B);
     loop_state(state, || {
         main_menu().and_then(|choice| match choice {
-            MainMenuChoice::Play => Ei::A(with_state(|s: &mut TetrisState| {
-                tetris(&mut s.rng).map(|output| match output {
-                    _ => LoopControl::Continue,
-                })
+            MainMenuChoice::Play => Ei::A(pausable_tetris().map(|output| match output {
+                PausableTetrisOutput::Exit => LoopControl::Break(app::Exit),
+                PausableTetrisOutput::MainMenu => LoopControl::Continue,
             })),
             MainMenuChoice::Quit => Ei::B(val(LoopControl::Break(app::Exit))),
         })

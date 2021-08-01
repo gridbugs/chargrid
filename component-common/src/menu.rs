@@ -9,7 +9,7 @@ pub trait MenuItemIdentifier: Component {
 }
 
 pub type MenuItemIdentifierBoxed<S = ()> = Box<dyn MenuItemIdentifier<State = S, Output = ()>>;
-pub type MenuCF<T, S> = CF<IgnoreState<S, CF<Menu<T, ()>>>>;
+pub type MenuCF<T, S> = CF<IgnoreState<S, Menu<T, ()>>>;
 
 pub struct MenuItem<T: Clone, S = ()> {
     value: T,
