@@ -50,9 +50,12 @@ impl BorderStyles {
     }
 }
 
+struct TetrisState {
+    rng: Isaac64Rng,
+}
+
 struct TetrisComponent {
     tetris: Tetris,
-    rng: Isaac64Rng,
     board_view: Border<TetrisBoardView>,
     next_piece_view: Border<TetrisNextPieceView>,
 }
@@ -62,7 +65,6 @@ impl TetrisComponent {
         let BorderStyles { common, next_piece } = BorderStyles::new();
         Self {
             tetris: Tetris::new(rng),
-            rng: Isaac64Rng::from_rng(rng).unwrap(),
             board_view: Border {
                 component: TetrisBoardView,
                 style: common,
@@ -76,14 +78,13 @@ impl TetrisComponent {
 }
 
 enum TetrisOutput {
-    Exit,
     Pause,
     GameOver,
 }
 
 impl Component for TetrisComponent {
     type Output = Option<TetrisOutput>;
-    type State = ();
+    type State = TetrisState;
     fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         self.board_view.render(&self.tetris.game_state, ctx, fb);
         self.next_piece_view.render(
@@ -95,12 +96,11 @@ impl Component for TetrisComponent {
             fb,
         );
     }
-    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
+    fn update(&mut self, state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
         use input::*;
         match event {
             Event::Peek => (),
             Event::Input(input) => match input {
-                Input::Keyboard(keys::ETX) => return Some(TetrisOutput::Exit),
                 Input::Keyboard(keys::ESCAPE) => return Some(TetrisOutput::Pause),
                 Input::Keyboard(KeyboardInput::Up) => self.tetris.input(TetrisInput::Up),
                 Input::Keyboard(KeyboardInput::Down) => self.tetris.input(TetrisInput::Down),
@@ -109,7 +109,7 @@ impl Component for TetrisComponent {
                 _ => (),
             },
             Event::Tick(duration) => {
-                if let Some(meta) = self.tetris.tick(duration, &mut self.rng) {
+                if let Some(meta) = self.tetris.tick(duration, &mut state.rng) {
                     match meta {
                         Meta::GameOver => return Some(TetrisOutput::GameOver),
                     }
@@ -200,22 +200,34 @@ enum MainMenuChoice {
     Quit,
 }
 
-fn main_menu() -> CF<menu::Menu<MainMenuChoice>> {
+fn main_menu() -> CF<Border<menu::MenuCF<MainMenuChoice, TetrisState>>> {
     use menu::builder::*;
-    cf(menu_builder()
-        .add_item(item(MainMenuChoice::Play, identifier::simple("Play!")))
-        .add_item(item(MainMenuChoice::Quit, identifier::simple("Quit")))
-        .build())
+    let BorderStyles { common, .. } = BorderStyles::new();
+    let menu = menu_builder()
+        .add_item(item(MainMenuChoice::Play, identifier::simple("> Play!")))
+        .add_item(item(MainMenuChoice::Quit, identifier::simple("> Quit")))
+        .build_cf();
+    cf(Border {
+        component: menu,
+        style: common,
+    })
 }
 
 pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = ()> {
+    let state = TetrisState {
+        rng: Isaac64Rng::from_rng(&mut rng).unwrap(),
+    };
     mkeither!(Ei = A | B);
-    main_menu()
-        .and_then(move |choice| match choice {
-            MainMenuChoice::Play => Ei::A(tetris(&mut rng).map(|output| match output {
-                _ => app::Exit,
+    loop_state(state, || {
+        main_menu().and_then(|choice| match choice {
+            MainMenuChoice::Play => Ei::A(with_state(|s: &mut TetrisState| {
+                tetris(&mut s.rng).map(|output| match output {
+                    _ => LoopControl::Continue,
+                })
             })),
-            MainMenuChoice::Quit => Ei::B(val(app::Exit)),
+            MainMenuChoice::Quit => Ei::B(val(LoopControl::Break(app::Exit))),
         })
-        .clear_each_frame()
+    })
+    .clear_each_frame()
+    .exit_on_close()
 }

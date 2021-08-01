@@ -1,3 +1,4 @@
+use crate::control_flow::{IgnoreState, CF};
 use chargrid_component::*;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -8,6 +9,7 @@ pub trait MenuItemIdentifier: Component {
 }
 
 pub type MenuItemIdentifierBoxed<S = ()> = Box<dyn MenuItemIdentifier<State = S, Output = ()>>;
+pub type MenuCF<T, S> = CF<IgnoreState<S, CF<Menu<T, ()>>>>;
 
 pub struct MenuItem<T: Clone, S = ()> {
     value: T,
@@ -428,6 +430,13 @@ pub mod builder {
                 hotkeys,
                 since_epoch: Duration::from_millis(0),
             }
+        }
+    }
+
+    impl<T: Clone> MenuBuilder<T, ()> {
+        pub fn build_cf<S>(self) -> MenuCF<T, S> {
+            use crate::control_flow::cf;
+            cf(self.build()).ignore_state()
         }
     }
 
