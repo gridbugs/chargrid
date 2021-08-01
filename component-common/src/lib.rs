@@ -1,3 +1,4 @@
+pub mod align;
 pub mod border;
 pub mod control_flow;
 pub mod fade;
