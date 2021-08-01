@@ -96,8 +96,8 @@ impl FrameBufferCell {
         underline: false,
         foreground: Rgba32::new_rgb(255, 255, 255),
         background: Rgba32::new_rgb(0, 0, 0),
-        foreground_depth: 0,
-        background_depth: 0,
+        foreground_depth: i8::MIN,
+        background_depth: i8::MIN,
     };
     fn set_character(&mut self, character: char, depth: i8) {
         if depth >= self.foreground_depth {
@@ -434,6 +434,13 @@ impl<F: Fn(Rgba32) -> Rgba32> Tint for F {
     }
 }
 
+pub struct TintDim(pub u8);
+impl Tint for TintDim {
+    fn tint(&self, rgba32: Rgba32) -> Rgba32 {
+        rgba32.normalised_scalar_mul(self.0)
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Ctx<'a> {
     pub tint: &'a dyn Tint,
@@ -453,6 +460,13 @@ impl<'a> Ctx<'a> {
     pub fn add_offset(self, offset: Coord) -> Self {
         Self {
             bounding_box: self.bounding_box.add_offset(offset),
+            ..self
+        }
+    }
+
+    pub fn add_depth(self, depth_delta: i8) -> Self {
+        Self {
+            depth: self.depth + depth_delta,
             ..self
         }
     }

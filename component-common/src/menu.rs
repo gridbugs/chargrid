@@ -320,6 +320,7 @@ pub mod identifier {
                 string: s.to_string(),
                 style: Style {
                     bold: Some(true),
+                    foreground: Some(Rgba32::new_grey(255)),
                     ..Default::default()
                 },
             },
@@ -327,6 +328,7 @@ pub mod identifier {
                 string: s.to_string(),
                 style: Style {
                     bold: Some(false),
+                    foreground: Some(Rgba32::new_grey(255)),
                     ..Default::default()
                 },
             },

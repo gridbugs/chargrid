@@ -1,4 +1,4 @@
-use chargrid_component::{app, input, Component, Ctx, Event, FrameBuffer, Size};
+use chargrid_component::{app, input, Component, Ctx, Event, FrameBuffer, Size, Tint};
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -18,6 +18,22 @@ impl<C: Component> Component for CF<C> {
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.0.size(state, ctx)
+    }
+}
+
+impl<C: Component> CF<C> {
+    pub fn overlay<D: Component<State = C::State>, T: Tint>(
+        self,
+        background: D,
+        tint: T,
+        depth_delta: i8,
+    ) -> CF<Overlay<C, D, T>> {
+        cf(Overlay {
+            foreground: self.0,
+            background,
+            tint,
+            depth_delta,
+        })
     }
 }
 
@@ -452,6 +468,38 @@ where
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.component.size(state, ctx)
+    }
+}
+
+pub struct Overlay<C: Component, D: Component, T: Tint> {
+    pub foreground: C,
+    pub background: D,
+    pub tint: T,
+    pub depth_delta: i8,
+}
+
+impl<C, D, T> Component for Overlay<C, D, T>
+where
+    C: Component,
+    D: Component<State = C::State>,
+    T: Tint,
+{
+    type Output = C::Output;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        let tint = |r| self.tint.tint(ctx.tint.tint(r));
+        self.background.render(
+            state,
+            Ctx { tint: &tint, ..ctx }.add_depth(-self.depth_delta),
+            fb,
+        );
+        self.foreground.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.foreground.update(state, ctx, event)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.foreground.size(state, ctx)
     }
 }
 

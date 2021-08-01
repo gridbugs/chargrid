@@ -1,7 +1,9 @@
 use chargrid_component::prelude::*;
+use chargrid_component::TintDim;
 use chargrid_component_common::control_flow::*;
 use chargrid_component_common::{
     border::{Border, BorderStyle},
+    fill::Fill,
     menu, text,
 };
 use rand::{Rng, SeedableRng};
@@ -195,8 +197,7 @@ enum PauseMenuChoice {
     Quit,
 }
 
-type PauseMenu = CF<Border<menu::MenuCF<PauseMenuChoice, TetrisState>>>;
-fn pause_menu() -> PauseMenu {
+fn pause_menu() -> CF<Border<Fill<menu::MenuCF<PauseMenuChoice, TetrisState>>>> {
     use menu::builder::*;
     let BorderStyles { common, .. } = BorderStyles::new();
     let menu = menu_builder()
@@ -208,7 +209,10 @@ fn pause_menu() -> PauseMenu {
         .add_item(item(PauseMenuChoice::Quit, identifier::simple("Quit")))
         .build_cf();
     cf(Border {
-        component: menu,
+        component: Fill {
+            component: menu,
+            background: Rgba32::new_grey(0),
+        },
         style: common,
     })
 }
@@ -230,20 +234,25 @@ fn pausable_tetris(
         tetris()
             .catch_escape()
             .and_then(|or_escape| match or_escape {
-                OrEscape::Escape => Ei::A(pause_menu().catch_escape().and_then(|choice| {
-                    with_state(move |s: &mut TetrisState| match choice {
-                        OrEscape::Value(PauseMenuChoice::Resume) | OrEscape::Escape => {
-                            LoopControl::Continue
-                        }
-                        OrEscape::Value(PauseMenuChoice::Restart) => {
-                            s.tetris = Tetris::new(&mut s.rng);
-                            LoopControl::Continue
-                        }
-                        OrEscape::Value(PauseMenuChoice::Quit) => {
-                            LoopControl::Break(PausableTetrisOutput::Exit)
-                        }
-                    })
-                })),
+                OrEscape::Escape => Ei::A(
+                    pause_menu()
+                        .overlay(tetris(), TintDim(63), 10)
+                        .catch_escape()
+                        .and_then(|choice| {
+                            with_state(move |s: &mut TetrisState| match choice {
+                                OrEscape::Value(PauseMenuChoice::Resume) | OrEscape::Escape => {
+                                    LoopControl::Continue
+                                }
+                                OrEscape::Value(PauseMenuChoice::Restart) => {
+                                    s.tetris = Tetris::new(&mut s.rng);
+                                    LoopControl::Continue
+                                }
+                                OrEscape::Value(PauseMenuChoice::Quit) => {
+                                    LoopControl::Break(PausableTetrisOutput::Exit)
+                                }
+                            })
+                        }),
+                ),
                 OrEscape::Value(TetrisOutput::GameOver) => Ei::B(
                     cf(text::StyledString {
                         string: "YOU DIED".to_string(),
