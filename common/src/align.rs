@@ -1,4 +1,4 @@
-use chargrid_component::*;
+use chargrid_core::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum AlignmentX {

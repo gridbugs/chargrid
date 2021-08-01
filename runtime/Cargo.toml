@@ -1,5 +1,5 @@
 [package]
-name = "chargrid_component_runtime"
+name = "chargrid_runtime"
 description = "Helpers for implementing chargrid frontends that can execute components"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
@@ -11,7 +11,7 @@ documentation = "https://docs.rs/chargrid_wgpu"
 edition = "2018"
 
 [features]
-gamepad = ["chargrid_component/gamepad"]
+gamepad = ["chargrid_core/gamepad"]
 
 [dependencies]
-chargrid_component = { path = "../component", version = "0.1" }
+chargrid_core = { path = "../core", version = "0.1" }

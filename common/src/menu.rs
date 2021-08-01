@@ -1,5 +1,5 @@
 use crate::control_flow::{IgnoreState, CF};
-use chargrid_component::*;
+use chargrid_core::*;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -341,7 +341,7 @@ pub mod builder {
 
     pub use super::identifier;
     pub use crate::text::StyledString;
-    pub use chargrid_component::Rgba32;
+    pub use chargrid_core::Rgba32;
     pub use input::KeyboardInput;
     pub use std::fmt::Write;
 

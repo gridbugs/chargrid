@@ -1,8 +1,6 @@
-use chargrid_component_runtime::{
-    app, on_frame, on_input, Component, Coord, FrameBuffer, Rgba32, Size,
-};
 pub use chargrid_graphical_common::*;
 use chargrid_input::{keys, Input, KeyboardInput, MouseButton, MouseInput, ScrollDirection};
+use chargrid_runtime::{app, on_frame, on_input, Component, Coord, FrameBuffer, Rgba32, Size};
 use std::time::Instant;
 
 pub struct Context {
@@ -19,7 +17,7 @@ where
     C: 'static + Component<State = (), Output = app::Output>,
 {
     fonts: Fonts,
-    chargrid_component: C,
+    chargrid_core: C,
     chargrid_frame_buffer: FrameBuffer,
     last_frame: Instant,
     font_scale: ggez::graphics::PxScale,
@@ -63,7 +61,7 @@ where
         while ggez::timer::check_update_time(ctx, DESIRED_FPS) {}
         let now = Instant::now();
         if let Some(app::Exit) = on_frame(
-            &mut self.chargrid_component,
+            &mut self.chargrid_core,
             now - self.last_frame,
             &mut self.chargrid_frame_buffer,
         ) {
@@ -258,7 +256,7 @@ where
             }
         };
         if let Some(app::Exit) = on_input(
-            &mut self.chargrid_component,
+            &mut self.chargrid_core,
             Input::Keyboard(input),
             &self.chargrid_frame_buffer,
         ) {
@@ -279,7 +277,7 @@ where
             self.current_mouse_position = coord;
             let input = MouseInput::MousePress { button, coord };
             if let Some(app::Exit) = on_input(
-                &mut self.chargrid_component,
+                &mut self.chargrid_core,
                 Input::Mouse(input),
                 &self.chargrid_frame_buffer,
             ) {
@@ -304,7 +302,7 @@ where
                 coord,
             };
             if let Some(app::Exit) = on_input(
-                &mut self.chargrid_component,
+                &mut self.chargrid_core,
                 Input::Mouse(input),
                 &self.chargrid_frame_buffer,
             ) {
@@ -321,7 +319,7 @@ where
             button: self.current_mouse_button,
         };
         if let Some(app::Exit) = on_input(
-            &mut self.chargrid_component,
+            &mut self.chargrid_core,
             Input::Mouse(input),
             &self.chargrid_frame_buffer,
         ) {
@@ -334,7 +332,7 @@ where
             let coord = self.current_mouse_position;
             let input = MouseInput::MouseScroll { direction, coord };
             if let Some(app::Exit) = on_input(
-                &mut self.chargrid_component,
+                &mut self.chargrid_core,
                 Input::Mouse(input),
                 &self.chargrid_frame_buffer,
             ) {
@@ -357,7 +355,7 @@ where
 
     fn quit_event(&mut self, _ctx: &mut ggez::Context) -> bool {
         if let Some(app::Exit) = on_input(
-            &mut self.chargrid_component,
+            &mut self.chargrid_core,
             Input::Keyboard(keys::ETX),
             &self.chargrid_frame_buffer,
         ) {
@@ -403,7 +401,7 @@ where
             id: integer_id,
         };
         if let Some(app::Exit) = on_input(
-            &mut self.chargrid_component,
+            &mut self.chargrid_core,
             Input::Gamepad(input),
             &self.chargrid_frame_buffer,
         ) {
@@ -508,7 +506,7 @@ impl Context {
             events_loop,
             GgezApp {
                 fonts,
-                chargrid_component: component,
+                chargrid_core: component,
                 chargrid_frame_buffer,
                 last_frame: Instant::now(),
                 font_scale: ggez::graphics::PxScale {

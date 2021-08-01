@@ -1,4 +1,4 @@
-use chargrid_component::{app, input, Component, Ctx, Event, FrameBuffer, Size, Tint};
+use chargrid_core::{app, input, Component, Ctx, Event, FrameBuffer, Size, Tint};
 use std::marker::PhantomData;
 use std::time::Duration;
 

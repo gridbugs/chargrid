@@ -4,5 +4,4 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-chargrid_component = { path = "../../../component", features = ["gamepad"] }
-chargrid_component_common = { path = "../../../component-common", features = ["gamepad"] }
+chargrid = { path = "../../../chargrid", features = ["gamepad"] }

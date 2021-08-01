@@ -1,0 +1,11 @@
+[package]
+name = "chargrid_common"
+version = "0.1.0"
+edition = "2018"
+
+[features]
+serialize = ["chargrid_core/serialize"]
+gamepad = ["chargrid_core/gamepad"]
+
+[dependencies]
+chargrid_core = { path = "../core", version = "0.1" }

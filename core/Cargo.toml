@@ -1,9 +1,10 @@
 [package]
-name = "chargrid_component"
+name = "chargrid_core"
 version = "0.1.0"
 edition = "2018"
 
 [features]
+serialize = ["chargrid_input/serialize"]
 gamepad = ["chargrid_input/gamepad"]
 
 [dependencies]

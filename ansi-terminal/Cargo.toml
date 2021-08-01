@@ -12,12 +12,12 @@ edition = "2018"
 
 [features]
 serialize = ["chargrid_input/serialize"]
-gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_component_runtime/gamepad"]
+gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamepad"]
 
 [dependencies]
 chargrid_input = { path = "../input", version = "0.2" }
 chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
-chargrid_component_runtime = { path = "../component-runtime", version = "0.1" }
+chargrid_runtime = { path = "../runtime", version = "0.1" }
 rgb24 = "0.3"
 grid_2d = "0.15"
 libc = "0.2"

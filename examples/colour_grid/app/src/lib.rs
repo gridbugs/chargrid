@@ -1,5 +1,4 @@
-use chargrid_component::*;
-use chargrid_component_common::control_flow::*;
+use chargrid::{control_flow::*, core::*};
 
 pub fn app() -> impl Component<Output = app::Output, State = ()> {
     render(|ctx, fb| {

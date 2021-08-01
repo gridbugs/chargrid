@@ -1,7 +1,7 @@
 use crate::{input, Config, Dimensions, FontBytes};
-use chargrid_component_runtime::{app, on_frame, on_input, Component, FrameBuffer};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
+use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer};
 use grid_2d::{Coord, Grid, Size};
 use std::sync::Arc;
 use std::thread;

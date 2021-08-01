@@ -1,5 +1,5 @@
 use crate::signal::{Linear, SignalU8};
-use chargrid_component::Rgba32;
+use chargrid_core::Rgba32;
 use std::time::Duration;
 
 pub struct Fade<S: SignalU8> {

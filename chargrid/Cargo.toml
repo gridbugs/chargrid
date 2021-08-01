@@ -1,0 +1,19 @@
+[package]
+name = "chargrid"
+description = "Wrapper crate for frontend-independent chargrid crates"
+version = "0.5.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/gridbugs/chargrid.git"
+repository = "https://github.com/gridbugs/chargrid.git"
+documentation = "https://docs.rs/chargrid"
+edition = "2018"
+
+[features]
+serialize = ["chargrid_core/serialize"]
+gamepad = [ "chargrid_core/gamepad", "chargrid_common/gamepad" ]
+
+[dependencies]
+chargrid_core = { path = "../core", version = "0.1" }
+chargrid_common = { path = "../common", version = "0.1" }

@@ -1,11 +1,11 @@
 mod input;
 
-use chargrid_component_runtime::{app, on_frame, on_input, Component, FrameBuffer, Rgba32};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 pub use chargrid_input;
 pub use chargrid_input::{Input, MouseInput};
 use chargrid_input::{MouseButton, ScrollDirection};
+use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer, Rgba32};
 use grid_2d::Coord;
 pub use grid_2d::Size;
 use js_sys::Function;

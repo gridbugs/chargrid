@@ -1,4 +1,4 @@
-use chargrid_component::*;
+use chargrid_core::*;
 
 pub struct PadTo<C: Component> {
     pub component: C,

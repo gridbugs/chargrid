@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 tetris = { path = "../tetris" }
-chargrid_component = { path = "../../../component" }
-chargrid_component_common = { path = "../../../component-common" }
+chargrid = { path = "../../../chargrid" }
 rand = "0.8"
 rand_isaac = "0.3"

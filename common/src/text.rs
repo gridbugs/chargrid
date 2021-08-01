@@ -1,4 +1,4 @@
-use chargrid_component::*;
+use chargrid_core::*;
 use std::cell::RefCell;
 
 pub struct StyledString {

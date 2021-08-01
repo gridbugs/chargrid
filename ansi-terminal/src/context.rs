@@ -1,8 +1,8 @@
 use crate::error::*;
 use crate::terminal::*;
-use chargrid_component_runtime::{app, on_frame, on_input, Component, FrameBuffer, Size};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
+use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer, Size};
 use std::thread;
 use std::time::{Duration, Instant};
 

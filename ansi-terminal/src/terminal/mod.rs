@@ -1,6 +1,6 @@
 use crate::error::Result;
-use chargrid_component_runtime::{FrameBuffer, FrameBufferCell, Rgba32, Size};
 use chargrid_input::*;
+use chargrid_runtime::{FrameBuffer, FrameBufferCell, Rgba32, Size};
 use rgb24::Rgb24;
 
 mod ansi_colour_codes;

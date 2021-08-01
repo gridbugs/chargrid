@@ -1,11 +1,12 @@
-use chargrid_component::prelude::*;
-use chargrid_component::TintDim;
-use chargrid_component_common::control_flow::*;
-use chargrid_component_common::{
+use chargrid::{
     align::Align,
     border::{Border, BorderStyle},
+    control_flow::*,
+    core::TintDim,
     fill::Fill,
-    menu, text,
+    menu,
+    prelude::*,
+    text,
 };
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;

@@ -8,9 +8,10 @@ members = [
     "graphical-common",
     "gamepad",
     "input",
-    "component",
-    "component-common",
-    "component-runtime",
+    "core",
+    "common",
+    "chargrid",
+    "runtime",
 
     "examples/tetris/tetris",
     "examples/tetris/app",
