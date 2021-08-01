@@ -228,12 +228,12 @@ impl<R: Rng> Component for TetrisAppComponent<R> {
 }
 
 pub fn app<R: Rng>(rng: R) -> impl Component<Output = app::Output, State = ()> {
-    use control_flow::*;
+    use chargrid_component_common::control_flow::*;
     let tetris = TetrisAppComponent {
         tetris_component: TetrisComponent::new(rng),
     };
     mkeither!(Ei = A | B);
-    CF(main_menu()).and_then(|choice| match choice {
+    cf(main_menu()).and_then(|choice| match choice {
         MainMenuChoice::Play => Ei::A(tetris),
         MainMenuChoice::Quit => Ei::B(Val(app::Exit)),
     })
