@@ -193,18 +193,18 @@ impl Context {
         }
     }
 
-    pub fn run_component<C>(self, component: C)
+    pub fn run<C>(self, component: C)
     where
         C: 'static + Component<State = (), Output = app::Output>,
     {
         let component = Rc::new(RefCell::new(component));
         let context = Rc::new(RefCell::new(self));
-        run_component_frame(component.clone(), context.clone());
-        run_component_input(component, context);
+        run_frame(component.clone(), context.clone());
+        run_input(component, context);
     }
 }
 
-fn run_component_frame<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
+fn run_frame<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
 where
     C: 'static + Component<State = (), Output = app::Output>,
 {
@@ -267,7 +267,7 @@ mod button {
     }
 }
 
-fn run_component_input<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
+fn run_input<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
 where
     C: 'static + Component<State = (), Output = app::Output>,
 {

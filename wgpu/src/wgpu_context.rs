@@ -621,7 +621,7 @@ impl Context {
         }
     }
 
-    pub fn run_component<C>(self, mut component: C) -> !
+    pub fn run<C>(self, mut component: C) -> !
     where
         C: 'static + Component<State = (), Output = app::Output>,
     {

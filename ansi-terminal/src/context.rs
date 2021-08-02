@@ -33,7 +33,7 @@ impl Context {
         })
     }
 
-    pub fn run_component<C, E>(self, mut component: C, col_encode: E)
+    pub fn run<C, E>(self, mut component: C, col_encode: E)
     where
         C: 'static + Component<State = (), Output = app::Output>,
         E: ColEncode,

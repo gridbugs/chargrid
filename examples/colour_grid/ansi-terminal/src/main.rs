@@ -31,9 +31,9 @@ fn main() {
     let app = app();
     use ColEncodeChoice as C;
     match col_encode_choice {
-        C::TrueColour => context.run_component(app, col_encode::XtermTrueColour),
-        C::Rgb => context.run_component(app, col_encode::FromTermInfoRgb),
-        C::Greyscale => context.run_component(app, col_encode::FromTermInfoGreyscale),
-        C::Ansi => context.run_component(app, col_encode::FromTermInfoAnsi16Colour),
+        C::TrueColour => context.run(app, col_encode::XtermTrueColour),
+        C::Rgb => context.run(app, col_encode::FromTermInfoRgb),
+        C::Greyscale => context.run(app, col_encode::FromTermInfoGreyscale),
+        C::Ansi => context.run(app, col_encode::FromTermInfoAnsi16Colour),
     }
 }
