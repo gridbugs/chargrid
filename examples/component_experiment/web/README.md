@@ -1,4 +1,4 @@
-# component_experiment/web
+# component\_experiment
 
 ## Install
 ```

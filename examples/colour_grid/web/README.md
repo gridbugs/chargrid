@@ -1,4 +1,4 @@
-# component_experiment/web
+# colour\_grid
 
 ## Install
 ```

@@ -1,4 +1,4 @@
-# component_experiment/web
+# tetris
 
 ## Install
 ```
