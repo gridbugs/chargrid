@@ -250,6 +250,7 @@ where
             ggez::event::KeyCode::Right => KeyboardInput::Right,
             ggez::event::KeyCode::Return => keys::RETURN,
             ggez::event::KeyCode::Escape => keys::ESCAPE,
+            ggez::event::KeyCode::Space => KeyboardInput::Char(' '),
             other => {
                 log::warn!("Unhandled input: {:?}", other);
                 return;
