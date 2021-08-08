@@ -41,6 +41,7 @@ stdenv.mkDerivation rec {
     vulkan-loader
     vulkan-tools
     libGL
+    bzip2
     nodejs-16_x
     wasm-pack
     cargo-watch
