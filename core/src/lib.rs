@@ -521,7 +521,7 @@ impl Event {
 
 pub trait Component {
     type Output;
-    type State;
+    type State: ?Size;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer);
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output;
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size;
