@@ -199,7 +199,7 @@ enum PauseMenuChoice {
     Quit,
 }
 
-fn pause_menu() -> CF<Border<Fill<menu::MenuCF<PauseMenuChoice, TetrisState>>>> {
+fn pause_menu() -> CF<impl Component<State = TetrisState, Output = Option<PauseMenuChoice>>> {
     use menu::builder::*;
     let BorderStyles { common, .. } = BorderStyles::new();
     let menu = menu_builder()
@@ -209,7 +209,16 @@ fn pause_menu() -> CF<Border<Fill<menu::MenuCF<PauseMenuChoice, TetrisState>>>> 
             identifier::simple("Restart"),
         ))
         .add_item(item(PauseMenuChoice::Quit, identifier::simple("Quit")))
-        .build_cf();
+        .build_cf::<Tetris>()
+        .lens_state({
+            fn get(s: &TetrisState) -> &Tetris {
+                &s.tetris
+            }
+            fn get_mut(s: &mut TetrisState) -> &mut Tetris {
+                &mut s.tetris
+            }
+            LensFns::new(get, get_mut)
+        });
     cf(Border {
         component: Fill {
             component: menu,

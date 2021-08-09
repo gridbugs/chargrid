@@ -35,6 +35,17 @@ impl<C: Component> CF<C> {
             depth_delta,
         })
     }
+
+    pub fn lens_state<S, L>(self, lens: L) -> CF<LensState<S, L, C>>
+    where
+        L: Lens<Input = S, Output = C::State>,
+    {
+        cf(LensState {
+            state: PhantomData,
+            lens,
+            component: self.0,
+        })
+    }
 }
 
 impl<C: Component<Output = ()>> CF<C> {
@@ -320,6 +331,75 @@ where
     }
     fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         self.component.size(&(), ctx)
+    }
+}
+
+pub trait Lens {
+    type Input;
+    type Output;
+    fn get<'a>(&self, input: &'a Self::Input) -> &'a Self::Output;
+    fn get_mut<'a>(&mut self, input: &'a mut Self::Input) -> &'a mut Self::Output;
+}
+
+pub struct LensFns<I, O, R, M> {
+    input: PhantomData<I>,
+    output: PhantomData<O>,
+    get: R,
+    get_mut: M,
+}
+
+impl<I, O, R, M> LensFns<I, O, R, M> {
+    pub fn new(get: R, get_mut: M) -> Self {
+        Self {
+            input: PhantomData,
+            output: PhantomData,
+            get,
+            get_mut,
+        }
+    }
+}
+
+impl<I, O, R, M> Lens for LensFns<I, O, R, M>
+where
+    R: Fn(&I) -> &O,
+    M: FnMut(&mut I) -> &mut O,
+{
+    type Input = I;
+    type Output = O;
+    fn get<'a>(&self, input: &'a Self::Input) -> &'a Self::Output {
+        (self.get)(input)
+    }
+    fn get_mut<'a>(&mut self, input: &'a mut Self::Input) -> &'a mut Self::Output {
+        (self.get_mut)(input)
+    }
+}
+
+pub struct LensState<S, L, C>
+where
+    C: Component,
+    L: Lens<Input = S, Output = C::State>,
+{
+    state: PhantomData<S>,
+    lens: L,
+    component: C,
+}
+
+impl<S, L, C> Component for LensState<S, L, C>
+where
+    C: Component,
+    L: Lens<Input = S, Output = C::State>,
+{
+    type Output = C::Output;
+    type State = S;
+
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(&self.lens.get(state), ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.component.update(self.lens.get_mut(state), ctx, event)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(self.lens.get(state), ctx)
     }
 }
 
