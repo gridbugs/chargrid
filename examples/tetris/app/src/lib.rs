@@ -210,15 +210,7 @@ fn pause_menu() -> CF<impl Component<State = TetrisState, Output = Option<PauseM
         ))
         .add_item(item(PauseMenuChoice::Quit, identifier::simple("Quit")))
         .build_cf::<Tetris>()
-        .lens_state({
-            fn get(s: &TetrisState) -> &Tetris {
-                &s.tetris
-            }
-            fn get_mut(s: &mut TetrisState) -> &mut Tetris {
-                &mut s.tetris
-            }
-            LensFns::new(get, get_mut)
-        });
+        .lens_state(mklens!(TetrisState::tetris: Tetris));
     cf(Border {
         component: Fill {
             component: menu,

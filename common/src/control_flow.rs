@@ -667,4 +667,17 @@ macro_rules! mkeither {
     };
 }
 
-pub use crate::mkeither;
+#[macro_export]
+macro_rules! mklens {
+    ($input:ident::$field:ident: $output:ident) => {{
+        fn get(state: &$input) -> &$output {
+            &state.$field
+        }
+        fn get_mut(state: &mut $input) -> &mut $output {
+            &mut state.$field
+        }
+        LensFns::new(get, get_mut)
+    }};
+}
+
+pub use crate::{mkeither, mklens};
