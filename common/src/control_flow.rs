@@ -631,7 +631,7 @@ where
 }
 
 #[macro_export]
-macro_rules! mkeither {
+macro_rules! either {
     ($type:ident = $first:ident | $($rest:ident)|*) => {
         pub enum $type<$first, $($rest),*> {
             $first($first),
@@ -668,7 +668,7 @@ macro_rules! mkeither {
 }
 
 #[macro_export]
-macro_rules! mklens {
+macro_rules! lens {
     ($input:ident::$field:ident: $output:ident) => {{
         fn get(state: &$input) -> &$output {
             &state.$field
@@ -680,4 +680,4 @@ macro_rules! mklens {
     }};
 }
 
-pub use crate::{mkeither, mklens};
+pub use crate::{either, lens};

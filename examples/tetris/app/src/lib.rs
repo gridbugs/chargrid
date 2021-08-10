@@ -232,7 +232,7 @@ enum PausableTetrisOutput {
 
 fn pausable_tetris(
 ) -> CF<impl Component<Output = Option<PausableTetrisOutput>, State = TetrisState>> {
-    mkeither!(Ei = A | B);
+    either!(Ei = A | B);
     loop_(|| {
         tetris()
             .catch_escape()
@@ -297,7 +297,7 @@ pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = (
         tetris: Tetris::new(&mut rng),
         rng: Isaac64Rng::from_rng(&mut rng).unwrap(),
     };
-    mkeither!(Ei = A | B);
+    either!(Ei = A | B);
     loop_state(state, || {
         main_menu().and_then(|choice| match choice {
             MainMenuChoice::Play => Ei::A(
