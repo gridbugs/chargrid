@@ -1,9 +1,7 @@
 use chargrid::{
-    align::Align,
     border::{Border, BorderStyle},
     control_flow::*,
     core::TintDim,
-    fill::Fill,
     menu,
     prelude::*,
     text,
@@ -202,7 +200,7 @@ enum PauseMenuChoice {
 fn pause_menu() -> CF<impl Component<State = TetrisState, Output = Option<PauseMenuChoice>>> {
     use menu::builder::*;
     let BorderStyles { common, .. } = BorderStyles::new();
-    let menu = menu_builder()
+    menu_builder()
         .add_item(item(PauseMenuChoice::Resume, identifier::simple("Resume")))
         .add_item(item(
             PauseMenuChoice::Restart,
@@ -210,14 +208,9 @@ fn pause_menu() -> CF<impl Component<State = TetrisState, Output = Option<PauseM
         ))
         .add_item(item(PauseMenuChoice::Quit, identifier::simple("Quit")))
         .build_cf::<Tetris>()
-        .lens_state(mklens!(TetrisState::tetris: Tetris));
-    cf(Border {
-        component: Fill {
-            component: menu,
-            background: Rgba32::new_grey(0),
-        },
-        style: common,
-    })
+        .lens_state(lens!(TetrisState::tetris: Tetris))
+        .fill(Rgba32::new_grey(0))
+        .border(common)
 }
 
 fn tetris() -> CF<TetrisComponent> {
@@ -238,7 +231,8 @@ fn pausable_tetris(
             .catch_escape()
             .and_then(|or_escape| match or_escape {
                 OrEscape::Escape => Ei::A(
-                    cf(Align::centre(pause_menu()))
+                    pause_menu()
+                        .centre()
                         .overlay(tetris(), TintDim(63), 10)
                         .catch_escape()
                         .and_then(|choice| {
@@ -257,14 +251,15 @@ fn pausable_tetris(
                         }),
                 ),
                 OrEscape::Value(TetrisOutput::GameOver) => Ei::B(
-                    cf(Align::centre(text::StyledString {
+                    cf(text::StyledString {
                         string: "YOU DIED".to_string(),
                         style: Style {
                             foreground: Some(rgba32::rgba32_rgb(255, 0, 0)),
                             bold: Some(true),
                             ..Default::default()
                         },
-                    }))
+                    })
+                    .centre()
                     .ignore_state()
                     .delay(Duration::from_millis(1000))
                     .map(|()| LoopControl::Break(PausableTetrisOutput::MainMenu)),
@@ -279,17 +274,15 @@ enum MainMenuChoice {
     Quit,
 }
 
-fn main_menu() -> CF<Align<Border<menu::MenuCF<MainMenuChoice, TetrisState>>>> {
+fn main_menu() -> CF<impl Component<State = TetrisState, Output = Option<MainMenuChoice>>> {
     use menu::builder::*;
     let BorderStyles { common, .. } = BorderStyles::new();
-    let menu = menu_builder()
+    menu_builder()
         .add_item(item(MainMenuChoice::Play, identifier::simple("Play!")))
         .add_item(item(MainMenuChoice::Quit, identifier::simple("Quit")))
-        .build_cf();
-    cf(Align::centre(Border {
-        component: menu,
-        style: common,
-    }))
+        .build_cf()
+        .border(common)
+        .centre()
 }
 
 pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = ()> {

@@ -1,4 +1,10 @@
-use chargrid_core::{app, input, Component, Ctx, Event, FrameBuffer, Size, Tint};
+use crate::{
+    align::{Align, Alignment},
+    border::{Border, BorderStyle},
+    fill::Fill,
+    pad_to::PadTo,
+};
+use chargrid_core::{app, input, Component, Ctx, Event, FrameBuffer, Rgba32, Size, Tint};
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -45,6 +51,38 @@ impl<C: Component> CF<C> {
             lens,
             component: self.0,
         })
+    }
+
+    pub fn fill(self, background: Rgba32) -> CF<Fill<C>> {
+        cf(Fill {
+            component: self.0,
+            background,
+        })
+    }
+
+    pub fn border(self, style: BorderStyle) -> CF<Border<C>> {
+        cf(Border {
+            component: self.0,
+            style,
+        })
+    }
+
+    pub fn pad_to(self, size: Size) -> CF<PadTo<C>> {
+        cf(PadTo {
+            component: self.0,
+            size,
+        })
+    }
+
+    pub fn align(self, alignment: Alignment) -> CF<Align<C>> {
+        cf(Align {
+            component: self.0,
+            alignment,
+        })
+    }
+
+    pub fn centre(self) -> CF<Align<C>> {
+        self.align(Alignment::centre())
     }
 }
 
