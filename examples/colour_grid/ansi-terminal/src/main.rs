@@ -25,6 +25,7 @@ fn main() {
     use meap::Parser;
     let col_encode_choice = ColEncodeChoice::parser()
         .with_help_default()
+        .with_program_description("Display a grid of colours.")
         .parse_env_or_exit();
     let context = Context::new().unwrap();
     let app = app();
