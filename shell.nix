@@ -26,6 +26,7 @@ stdenv.mkDerivation rec {
   buildInputs = [
     ruststable
     rust-analyzer
+    cargo-watch
 
     # project-specific dependencies
     pkg-config
@@ -44,7 +45,6 @@ stdenv.mkDerivation rec {
     bzip2
     nodejs-16_x
     wasm-pack
-    cargo-watch
   ];
 
   # Enable backtraces on panics
