@@ -652,7 +652,7 @@ where
     type Output = C::Output;
     type State = C::State;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        let tint = |r| self.tint.tint(ctx.tint.tint(r));
+        let tint = |r| ctx.tint.tint(self.tint.tint(r));
         self.background.render(
             state,
             Ctx { tint: &tint, ..ctx }.add_depth(-self.depth_delta),
