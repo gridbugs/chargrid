@@ -1,8 +1,6 @@
 use chargrid_ansi_terminal::{col_encode, Context};
 use colour_grid_app::app;
-use simon::*;
 
-#[derive(Clone)]
 enum ColEncodeChoice {
     TrueColour,
     Rgb,
@@ -11,20 +9,21 @@ enum ColEncodeChoice {
 }
 
 impl ColEncodeChoice {
-    fn arg() -> impl Arg<Item = Self> {
+    fn parser() -> impl meap::Parser<Item = Self> {
         use ColEncodeChoice::*;
-        (args_choice! {
-            flag("", "true-colour", "").some_if(TrueColour),
-            flag("", "rgb", "").some_if(Rgb),
-            flag("", "greyscale", "").some_if(Greyscale),
-            flag("", "ansi", "").some_if(Ansi),
-        })
-        .with_default(Rgb)
+        meap::choose_at_most_one!(
+            flag("true-colour").some_if(TrueColour),
+            flag("rgb").some_if(Rgb),
+            flag("greyscale").some_if(Greyscale),
+            flag("ansi").some_if(Ansi),
+        )
+        .with_default_general(TrueColour)
     }
 }
 
 fn main() {
-    let col_encode_choice = ColEncodeChoice::arg()
+    use meap::Parser;
+    let col_encode_choice = ColEncodeChoice::parser()
         .with_help_default()
         .parse_env_or_exit();
     let context = Context::new().unwrap();
