@@ -254,7 +254,7 @@ fn pausable_tetris(
                     cf(text::StyledString {
                         string: "YOU DIED".to_string(),
                         style: Style {
-                            foreground: Some(rgba32::rgba32_rgb(255, 0, 0)),
+                            foreground: Some(Rgba32::new_rgb(255, 0, 0)),
                             bold: Some(true),
                             ..Default::default()
                         },

@@ -18,7 +18,6 @@ gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamep
 chargrid_input = { path = "../input", version = "0.2" }
 chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
-rgb24 = "0.3"
 grid_2d = "0.15"
 libc = "0.2"
 term = "0.7"

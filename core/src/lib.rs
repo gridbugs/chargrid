@@ -2,8 +2,8 @@ pub use chargrid_input as input;
 use grid_2d::Grid;
 pub use grid_2d::{Coord, Size};
 use input::Input;
-pub use rgba32;
-pub use rgba32::Rgba32;
+pub use rgb_int;
+pub use rgb_int::Rgba32;
 use std::time::Duration;
 
 #[derive(Clone, Copy, Debug)]
@@ -536,8 +536,7 @@ pub mod app {
 /// types/traits/modules useful for implementing `Component` and friends
 pub mod prelude {
     pub use super::{
-        app, input, rgba32, Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size,
-        Style,
+        app, input, Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size, Style,
     };
     pub use std::time::Duration;
 }

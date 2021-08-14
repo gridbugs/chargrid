@@ -1,4 +1,6 @@
-pub use chargrid_core::{app, Component, Coord, FrameBuffer, FrameBufferCell, Rgba32, Size};
+pub use chargrid_core::{
+    app, rgb_int, Component, Coord, FrameBuffer, FrameBufferCell, Rgba32, Size,
+};
 use chargrid_core::{input::Input, Event};
 use std::time::Duration;
 

@@ -1,5 +1,4 @@
 use chargrid::{border, core::*, fade, menu, pad_to, signal, text};
-use rgba32::*;
 use std::time::Duration;
 
 #[derive(Clone)]
@@ -36,7 +35,7 @@ impl HelloWorld {
                                 string: ">".to_string(),
                                 style: Style {
                                     bold: Some(true),
-                                    foreground: Some(rgba32_rgb(255, 0, 0)),
+                                    foreground: Some(Rgba32::new_rgb(255, 0, 0)),
                                     ..Style::default()
                                 },
                             },
@@ -44,7 +43,7 @@ impl HelloWorld {
                                 string: format!(" {}", s),
                                 style: Style {
                                     bold: Some(true),
-                                    foreground: Some(rgba32_grey(255)),
+                                    foreground: Some(Rgba32::new_grey(255)),
                                     ..Style::default()
                                 },
                             },
@@ -53,7 +52,7 @@ impl HelloWorld {
                             string: format!("  {}", s),
                             style: Style {
                                 bold: Some(false),
-                                foreground: Some(rgba32_grey(127)),
+                                foreground: Some(Rgba32::new_grey(127)),
                                 ..Style::default()
                             },
                         },
@@ -61,10 +60,11 @@ impl HelloWorld {
                 };
                 let make_identifier = |s: &str, c: Rgba32| {
                     let string = s.to_string();
-                    let fade_fg = fade::linear(rgba32_grey(100), c, Duration::from_millis(100));
+                    let fade_fg =
+                        fade::linear(Rgba32::new_grey(100), c, Duration::from_millis(100));
                     let fade_bg = fade::linear(
-                        rgba32_grey(255),
-                        rgba32_grey(200),
+                        Rgba32::new_grey(255),
+                        Rgba32::new_grey(200),
                         Duration::from_millis(200),
                     );
                     let dots = Linear::with_step_duration(Duration::from_millis(50)).min(3);
@@ -73,12 +73,12 @@ impl HelloWorld {
                         Duration::from_millis(100),
                     );
                     let rainbow = vec![
-                        rgba32_rgb(255, 0, 0),
-                        rgba32_rgb(255, 255, 0),
-                        rgba32_rgb(0, 255, 0),
-                        rgba32_rgb(0, 255, 255),
-                        rgba32_rgb(0, 0, 255),
-                        rgba32_rgb(255, 0, 255),
+                        Rgba32::new_rgb(255, 0, 0),
+                        Rgba32::new_rgb(255, 255, 0),
+                        Rgba32::new_rgb(0, 255, 0),
+                        Rgba32::new_rgb(0, 255, 255),
+                        Rgba32::new_rgb(0, 0, 255),
+                        Rgba32::new_rgb(255, 0, 255),
                     ];
                     let mut count = 0;
                     identifier::dynamic_fn(4, move |ctx| {
@@ -104,7 +104,8 @@ impl HelloWorld {
                             ctx.component.parts[3].style = Style {
                                 bold: Some(false),
                                 background: Some(
-                                    rgba32_grey(255).with_a(255 - blink.eval(ctx.since_change)),
+                                    Rgba32::new_grey(255)
+                                        .with_a(255 - blink.eval(ctx.since_change)),
                                 ),
                                 ..Style::default()
                             };
@@ -113,10 +114,14 @@ impl HelloWorld {
                             write!(&mut ctx.component.parts[1].string, "{}", string).unwrap();
                             ctx.component.parts[1].style = Style {
                                 bold: Some(false),
-                                foreground: Some(rgba32_grey(127)),
+                                foreground: Some(Rgba32::new_grey(127)),
                                 background: ctx.styles_prev[1].background.map(|bg| {
-                                    fade::linear(bg, rgba32(0, 0, 0, 0), Duration::from_millis(150))
-                                        .eval(ctx.since_change)
+                                    fade::linear(
+                                        bg,
+                                        Rgba32::new(0, 0, 0, 0),
+                                        Duration::from_millis(150),
+                                    )
+                                    .eval(ctx.since_change)
                                 }),
                                 ..Style::default()
                             };
@@ -127,14 +132,14 @@ impl HelloWorld {
                     .add_item(
                         item(
                             MenuItem::String("foo".to_string()),
-                            make_identifier("[F]oo", rgba32_rgb(255, 0, 0)),
+                            make_identifier("[F]oo", Rgba32::new_rgb(255, 0, 0)),
                         )
                         .add_hotkey_char('f'),
                     )
                     .add_item(
                         item(
                             MenuItem::String("bar".to_string()),
-                            make_identifier("[B]ar", rgba32_rgb(0, 0, 255)),
+                            make_identifier("[B]ar", Rgba32::new_rgb(0, 0, 255)),
                         )
                         .add_hotkey_char('b'),
                     )
@@ -175,7 +180,7 @@ impl Component for HelloWorld {
     type State = ();
 
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        fb.clear_with_background(rgba32_rgb(0, 0, 100));
+        fb.clear_with_background(Rgba32::new_rgb(0, 0, 100));
         self.title.render(state, title_ctx(ctx), fb);
         self.menu.render(state, menu_ctx(ctx), fb);
     }
