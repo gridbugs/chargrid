@@ -83,7 +83,7 @@ pub fn nearest_ansi_code(Rgb24 { r, g, b }: Rgb24) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use rgb24::Rgb24;
+    use chargrid_runtime::rgb_int::Rgb24;
 
     #[test]
     fn nearest_palette_code_all_cases() {
