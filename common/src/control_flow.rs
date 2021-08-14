@@ -4,7 +4,7 @@ use crate::{
     fill::Fill,
     pad_to::PadTo,
 };
-use chargrid_core::{app, input, Component, Ctx, Event, FrameBuffer, Rgba32, Size, Tint};
+use chargrid_core::{app, ctx_tint, input, Component, Ctx, Event, FrameBuffer, Rgba32, Size, Tint};
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -652,10 +652,9 @@ where
     type Output = C::Output;
     type State = C::State;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        let tint = |r| ctx.tint.tint(self.tint.tint(r));
         self.background.render(
             state,
-            Ctx { tint: &tint, ..ctx }.add_depth(-self.depth_delta),
+            ctx_tint!(ctx, self.tint).add_depth(-self.depth_delta),
             fb,
         );
         self.foreground.render(state, ctx, fb);

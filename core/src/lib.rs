@@ -441,6 +441,16 @@ impl Tint for TintDim {
     }
 }
 
+pub struct TintDynCompose<'a, T: Tint> {
+    pub outer: &'a dyn Tint,
+    pub inner: &'a T,
+}
+impl<'a, T: Tint> Tint for TintDynCompose<'a, T> {
+    fn tint(&self, rgba32: Rgba32) -> Rgba32 {
+        self.outer.tint(self.inner.tint(rgba32))
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Ctx<'a> {
     pub tint: &'a dyn Tint,
@@ -448,7 +458,23 @@ pub struct Ctx<'a> {
     pub bounding_box: BoundingBox,
 }
 
+#[macro_export]
+macro_rules! ctx_tint {
+    ($ctx:expr, $tint:expr) => {{
+        $ctx.with_tint(&$ctx.compose_tint(&$tint))
+    }};
+}
+
 impl<'a> Ctx<'a> {
+    pub fn compose_tint<T: Tint>(&self, tint: &'a T) -> TintDynCompose<T> {
+        TintDynCompose {
+            outer: self.tint,
+            inner: tint,
+        }
+    }
+    pub fn with_tint(self, tint: &'a dyn Tint) -> Self {
+        Self { tint, ..self }
+    }
     pub fn default_with_bounding_box_size(size: Size) -> Self {
         Self {
             tint: &TintIdentity,
@@ -536,7 +562,8 @@ pub mod app {
 /// types/traits/modules useful for implementing `Component` and friends
 pub mod prelude {
     pub use super::{
-        app, input, Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size, Style, Tint
+        app, ctx_tint, input, Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size,
+        Style, Tint,
     };
     pub use std::time::Duration;
 }
