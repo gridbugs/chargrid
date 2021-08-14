@@ -536,7 +536,7 @@ pub mod app {
 /// types/traits/modules useful for implementing `Component` and friends
 pub mod prelude {
     pub use super::{
-        app, input, Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size, Style,
+        app, input, Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size, Style, Tint
     };
     pub use std::time::Duration;
 }
