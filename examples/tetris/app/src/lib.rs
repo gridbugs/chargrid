@@ -226,7 +226,7 @@ enum PausableTetrisOutput {
 fn pausable_tetris(
 ) -> CF<impl Component<Output = Option<PausableTetrisOutput>, State = TetrisState>> {
     either!(Ei = A | B);
-    loop_(|| {
+    loop_((), |()| {
         tetris()
             .catch_escape()
             .and_then(|or_escape| match or_escape {
@@ -238,11 +238,11 @@ fn pausable_tetris(
                         .and_then(|choice| {
                             with_state(move |s: &mut TetrisState| match choice {
                                 OrEscape::Value(PauseMenuChoice::Resume) | OrEscape::Escape => {
-                                    LoopControl::Continue
+                                    LoopControl::Continue(())
                                 }
                                 OrEscape::Value(PauseMenuChoice::Restart) => {
                                     s.tetris = Tetris::new(&mut s.rng);
-                                    LoopControl::Continue
+                                    LoopControl::Continue(())
                                 }
                                 OrEscape::Value(PauseMenuChoice::Quit) => {
                                     LoopControl::Break(PausableTetrisOutput::Exit)
@@ -291,7 +291,7 @@ pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = (
         rng: Isaac64Rng::from_rng(&mut rng).unwrap(),
     };
     either!(Ei = A | B);
-    loop_state(state, || {
+    loop_state(state, (), |()| {
         main_menu().and_then(|choice| match choice {
             MainMenuChoice::Play => Ei::A(
                 with_state_then(|s: &mut TetrisState| {
@@ -300,7 +300,7 @@ pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = (
                 })
                 .map(|output| match output {
                     PausableTetrisOutput::Exit => LoopControl::Break(app::Exit),
-                    PausableTetrisOutput::MainMenu => LoopControl::Continue,
+                    PausableTetrisOutput::MainMenu => LoopControl::Continue(()),
                 }),
             ),
             MainMenuChoice::Quit => Ei::B(val(LoopControl::Break(app::Exit))),

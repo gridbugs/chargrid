@@ -161,32 +161,32 @@ impl<T: Clone> Component for Val<T> {
 }
 
 #[derive(Clone, Copy)]
-pub enum LoopControl<T> {
-    Break(T),
-    Continue,
+pub enum LoopControl<Co, Br> {
+    Continue(Co),
+    Break(Br),
 }
 pub struct LoopState<S, C, F> {
     state: S,
     component: C,
     f: F,
 }
-pub fn loop_state<S, T, C, F>(state: S, mut f: F) -> CF<LoopState<S, C, F>>
+pub fn loop_state<S, Co, Br, C, F>(state: S, init: Co, mut f: F) -> CF<LoopState<S, C, F>>
 where
-    C: Component<Output = Option<LoopControl<T>>, State = S>,
-    F: FnMut() -> C,
+    C: Component<Output = Option<LoopControl<Co, Br>>, State = S>,
+    F: FnMut(Co) -> C,
 {
     cf(LoopState {
-        component: f(),
+        component: f(init),
         state,
         f,
     })
 }
-impl<S, T, C, F> Component for LoopState<S, C, F>
+impl<S, Co, Br, C, F> Component for LoopState<S, C, F>
 where
-    C: Component<Output = Option<LoopControl<T>>, State = S>,
-    F: FnMut() -> C,
+    C: Component<Output = Option<LoopControl<Co, Br>>, State = S>,
+    F: FnMut(Co) -> C,
 {
-    type Output = Option<T>;
+    type Output = Option<Br>;
     type State = ();
     fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         self.component.render(&self.state, ctx, fb);
@@ -194,11 +194,11 @@ where
     fn update(&mut self, _state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         if let Some(control) = self.component.update(&mut self.state, ctx, event) {
             match control {
-                LoopControl::Continue => {
-                    self.component = (self.f)();
+                LoopControl::Continue(co) => {
+                    self.component = (self.f)(co);
                     None
                 }
-                LoopControl::Break(t) => Some(t),
+                LoopControl::Break(br) => Some(br),
             }
         } else {
             None
@@ -212,19 +212,22 @@ pub struct Loop<C, F> {
     component: C,
     f: F,
 }
-pub fn loop_<T, C, F>(mut f: F) -> CF<Loop<C, F>>
+pub fn loop_<Co, Br, C, F>(init: Co, mut f: F) -> CF<Loop<C, F>>
 where
-    C: Component<Output = Option<LoopControl<T>>>,
-    F: FnMut() -> C,
+    C: Component<Output = Option<LoopControl<Co, Br>>>,
+    F: FnMut(Co) -> C,
 {
-    cf(Loop { component: f(), f })
+    cf(Loop {
+        component: f(init),
+        f,
+    })
 }
-impl<T, C, F> Component for Loop<C, F>
+impl<Co, Br, C, F> Component for Loop<C, F>
 where
-    C: Component<Output = Option<LoopControl<T>>>,
-    F: FnMut() -> C,
+    C: Component<Output = Option<LoopControl<Co, Br>>>,
+    F: FnMut(Co) -> C,
 {
-    type Output = Option<T>;
+    type Output = Option<Br>;
     type State = C::State;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         self.component.render(state, ctx, fb);
@@ -232,11 +235,11 @@ where
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         if let Some(control) = self.component.update(state, ctx, event) {
             match control {
-                LoopControl::Continue => {
-                    self.component = (self.f)();
+                LoopControl::Continue(co) => {
+                    self.component = (self.f)(co);
                     None
                 }
-                LoopControl::Break(t) => Some(t),
+                LoopControl::Break(br) => Some(br),
             }
         } else {
             None
