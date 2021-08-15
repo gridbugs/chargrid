@@ -236,7 +236,7 @@ fn pausable_tetris(
                         .overlay(tetris(), TintDim(63), 10)
                         .catch_escape()
                         .and_then(|choice| {
-                            with_state(move |s: &mut TetrisState| match choice {
+                            on_state(move |s: &mut TetrisState| match choice {
                                 OrEscape::Value(PauseMenuChoice::Resume) | OrEscape::Escape => {
                                     LoopControl::Continue(())
                                 }
@@ -294,7 +294,7 @@ pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = (
     loop_state(state, (), |()| {
         main_menu().and_then(|choice| match choice {
             MainMenuChoice::Play => Ei::A(
-                with_state_then(|s: &mut TetrisState| {
+                on_state_then(|s: &mut TetrisState| {
                     s.tetris = Tetris::new(&mut s.rng);
                     pausable_tetris()
                 })

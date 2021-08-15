@@ -86,6 +86,15 @@ impl<C: Component> CF<C> {
     }
 }
 
+impl<S: Sized, C: Component<State = S>> CF<C> {
+    pub fn with_state(self, state: C::State) -> CF<WithState<C>> {
+        cf(WithState {
+            component: self.0,
+            state,
+        })
+    }
+}
+
 impl<C: Component<Output = ()>> CF<C> {
     pub fn delay(self, duration: Duration) -> CF<Delay<C>> {
         cf(Delay {
@@ -157,6 +166,27 @@ impl<T: Clone> Component for Val<T> {
     }
     fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
         Size::new_u16(0, 0)
+    }
+}
+
+pub struct WithState<C: Component> {
+    component: C,
+    state: C::State,
+}
+impl<C> Component for WithState<C>
+where
+    C: Component,
+{
+    type Output = C::Output;
+    type State = ();
+    fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(&self.state, ctx, fb);
+    }
+    fn update(&mut self, _state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.component.update(&mut self.state, ctx, event)
+    }
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(&self.state, ctx)
     }
 }
 
@@ -250,22 +280,22 @@ where
     }
 }
 
-pub struct WithState<S, T, F> {
+pub struct OnState<S, T, F> {
     state: PhantomData<S>,
     output: PhantomData<T>,
     f: Option<F>,
 }
-pub fn with_state<S, T, F>(f: F) -> CF<WithState<S, T, F>>
+pub fn on_state<S, T, F>(f: F) -> CF<OnState<S, T, F>>
 where
     F: FnOnce(&mut S) -> T,
 {
-    cf(WithState {
+    cf(OnState {
         state: PhantomData,
         output: PhantomData,
         f: Some(f),
     })
 }
-impl<S, T, F> Component for WithState<S, T, F>
+impl<S, T, F> Component for OnState<S, T, F>
 where
     F: FnOnce(&mut S) -> T,
 {
@@ -288,18 +318,18 @@ where
     }
 }
 
-pub enum WithStateThen<C: Component, F> {
+pub enum OnStateThen<C: Component, F> {
     Component(C),
     F(Option<F>),
 }
-pub fn with_state_then<C, F>(f: F) -> CF<WithStateThen<C, F>>
+pub fn on_state_then<C, F>(f: F) -> CF<OnStateThen<C, F>>
 where
     C: Component,
     F: FnOnce(&mut C::State) -> C,
 {
-    cf(WithStateThen::F(Some(f)))
+    cf(OnStateThen::F(Some(f)))
 }
-impl<C, F> Component for WithStateThen<C, F>
+impl<C, F> Component for OnStateThen<C, F>
 where
     C: Component,
     F: FnOnce(&mut C::State) -> C,
