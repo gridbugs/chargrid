@@ -208,7 +208,7 @@ fn pause_menu() -> CF<impl Component<State = TetrisState, Output = Option<PauseM
         ))
         .add_item(item(PauseMenuChoice::Quit, identifier::simple("Quit")))
         .build_cf::<Tetris>()
-        .lens_state(lens!(TetrisState::tetris: Tetris))
+        .lens_state(lens!(TetrisState[tetris]: Tetris))
         .fill(Rgba32::new_grey(0))
         .border(common)
 }

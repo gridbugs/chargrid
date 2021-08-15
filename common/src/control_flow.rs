@@ -706,7 +706,7 @@ macro_rules! either {
 
 #[macro_export]
 macro_rules! lens {
-    ($input:ident::$field:ident: $output:ident) => {{
+    ($input:ty[$field:ident]: $output:ty) => {{
         fn get(state: &$input) -> &$output {
             &state.$field
         }
