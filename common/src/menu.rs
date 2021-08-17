@@ -120,6 +120,10 @@ impl<T: Clone, S> Menu<T, S> {
         }
         None
     }
+
+    pub fn cancel_on_escape(self) -> MenuCancelOnEscape<T, S> {
+        MenuCancelOnEscape(self)
+    }
 }
 
 impl<T: Clone, S> Component for Menu<T, S> {
@@ -167,6 +171,30 @@ impl<T: Clone, S> Component for Menu<T, S> {
             }
         }
         max_coord.to_size().unwrap()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Cancel;
+pub type OrCancel<T> = Result<T, Cancel>;
+pub struct MenuCancelOnEscape<T: Clone, S = ()>(pub Menu<T, S>);
+
+impl<T: Clone, S> Component for MenuCancelOnEscape<T, S> {
+    type State = S;
+    type Output = Option<OrCancel<T>>;
+
+    fn render(&self, state: &S, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut S, ctx: Ctx, event: Event) -> Self::Output {
+        match event {
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(Err(Cancel)),
+            other => self.0.update(state, ctx, other).map(Ok),
+        }
+    }
+
+    fn size(&self, state: &S, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
     }
 }
 
