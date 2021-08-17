@@ -136,6 +136,14 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
     pub fn catch_escape(self) -> CF<CatchEscape<C>> {
         cf(CatchEscape(self.0))
     }
+
+    pub fn continue_<Br>(self) -> CF<Map<C, impl FnMut(T) -> LoopControl<T, Br>>> {
+        self.map(LoopControl::Continue)
+    }
+
+    pub fn break_<Co>(self) -> CF<Map<C, impl FnMut(T) -> LoopControl<Co, T>>> {
+        self.map(LoopControl::Break)
+    }
 }
 
 impl<C: Component<State = ()>> CF<C> {
