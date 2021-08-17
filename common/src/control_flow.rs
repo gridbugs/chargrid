@@ -739,19 +739,19 @@ macro_rules! either {
             fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
                 match self {
                     $type::$first(x) => x.render(state, ctx, fb),
-                    $($type::$rest(x) => x.render(state, ctx, fb),),*
+                    $($type::$rest(x) => x.render(state, ctx, fb)),*
                 }
             }
             fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
                 match self {
                     $type::$first(x) => x.update(state, ctx, event),
-                    $($type::$rest(x) => x.update(state, ctx, event),),*
+                    $($type::$rest(x) => x.update(state, ctx, event)),*
                 }
             }
             fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
                 match self {
                     $type::$first(x) => x.size(state, ctx),
-                    $($type::$rest(x) => x.size(state, ctx),),*
+                    $($type::$rest(x) => x.size(state, ctx)),*
                 }
             }
         }
