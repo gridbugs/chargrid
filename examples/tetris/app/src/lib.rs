@@ -230,27 +230,27 @@ fn pausable_tetris(
         tetris()
             .catch_escape()
             .and_then(|or_escape| match or_escape {
-                OrEscape::Escape => Ei::A(
+                Err(Escape) => Ei::A(
                     pause_menu()
                         .centre()
                         .overlay(tetris(), TintDim(63), 10)
                         .catch_escape()
                         .and_then(|choice| {
                             on_state(move |s: &mut TetrisState| match choice {
-                                OrEscape::Value(PauseMenuChoice::Resume) | OrEscape::Escape => {
+                                Ok(PauseMenuChoice::Resume) | Err(Escape) => {
                                     LoopControl::Continue(())
                                 }
-                                OrEscape::Value(PauseMenuChoice::Restart) => {
+                                Ok(PauseMenuChoice::Restart) => {
                                     s.tetris = Tetris::new(&mut s.rng);
                                     LoopControl::Continue(())
                                 }
-                                OrEscape::Value(PauseMenuChoice::Quit) => {
+                                Ok(PauseMenuChoice::Quit) => {
                                     LoopControl::Break(PausableTetrisOutput::Exit)
                                 }
                             })
                         }),
                 ),
-                OrEscape::Value(TetrisOutput::GameOver) => Ei::B(
+                Ok(TetrisOutput::GameOver) => Ei::B(
                     cf(text::StyledString {
                         string: "YOU DIED".to_string(),
                         style: Style {

@@ -617,11 +617,9 @@ where
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum OrEscape<T> {
-    Escape,
-    Value(T),
-}
+#[derive(Clone, Copy, Debug)]
+pub struct Escape;
+pub type OrEscape<T> = Result<T, Escape>;
 
 pub struct CatchEscape<C: Component>(pub C);
 
@@ -636,9 +634,9 @@ where
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         if let Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) = event {
-            return Some(OrEscape::Escape);
+            return Some(Err(Escape));
         }
-        self.0.update(state, ctx, event).map(OrEscape::Value)
+        self.0.update(state, ctx, event).map(Ok)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.0.size(state, ctx)
