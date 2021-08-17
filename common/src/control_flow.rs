@@ -169,6 +169,27 @@ impl<T: Clone> Component for Val<T> {
     }
 }
 
+pub struct ValOnce<T>(Option<T>);
+impl<T> ValOnce<T> {
+    pub fn new(t: T) -> Self {
+        Self(Some(t))
+    }
+}
+pub fn val_once<S, T>(t: T) -> CF<IgnoreState<S, ValOnce<T>>> {
+    cf(ValOnce::new(t)).ignore_state()
+}
+impl<T> Component for ValOnce<T> {
+    type Output = Option<T>;
+    type State = ();
+    fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
+        self.0.take()
+    }
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
+        Size::new_u16(0, 0)
+    }
+}
+
 pub struct WithState<C: Component> {
     component: C,
     state: C::State,
