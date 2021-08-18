@@ -137,12 +137,18 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         cf(CatchEscape(self.0))
     }
 
-    pub fn continue_<Br>(self) -> CF<Map<C, impl FnMut(T) -> LoopControl<T, Br>>> {
-        self.map(LoopControl::Continue)
+    pub fn continue_<Br>(self) -> CF<Continue<C, Br>> {
+        cf(Continue {
+            component: self.0,
+            br: PhantomData,
+        })
     }
 
-    pub fn break_<Co>(self) -> CF<Map<C, impl FnMut(T) -> LoopControl<Co, T>>> {
-        self.map(LoopControl::Break)
+    pub fn break_<Co>(self) -> CF<Break<C, Co>> {
+        cf(Break {
+            component: self.0,
+            co: PhantomData,
+        })
     }
 }
 
@@ -224,6 +230,53 @@ pub enum LoopControl<Co, Br> {
     Continue(Co),
     Break(Br),
 }
+
+pub struct Continue<C: Component, Br> {
+    component: C,
+    br: PhantomData<Br>,
+}
+impl<C, Co, Br> Component for Continue<C, Br>
+where
+    C: Component<Output = Option<Co>>,
+{
+    type Output = Option<LoopControl<Co, Br>>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(&state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.component
+            .update(state, ctx, event)
+            .map(LoopControl::Continue)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(&state, ctx)
+    }
+}
+
+pub struct Break<C: Component, Co> {
+    component: C,
+    co: PhantomData<Co>,
+}
+impl<C, Co, Br> Component for Break<C, Co>
+where
+    C: Component<Output = Option<Br>>,
+{
+    type Output = Option<LoopControl<Co, Br>>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(&state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.component
+            .update(state, ctx, event)
+            .map(LoopControl::Break)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(&state, ctx)
+    }
+}
+
 pub struct LoopState<S, C, F> {
     state: S,
     component: C,
