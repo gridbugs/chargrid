@@ -53,6 +53,10 @@ impl<C: Component> CF<C> {
         })
     }
 
+    pub fn some(self) -> CF<Some_<C>> {
+        cf(Some_(self.0))
+    }
+
     pub fn fill(self, background: Rgba32) -> CF<Fill<C>> {
         cf(Fill {
             component: self.0,
@@ -777,6 +781,21 @@ where
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.foreground.size(state, ctx)
+    }
+}
+
+pub struct Some_<C: Component>(pub C);
+impl<C: Component> Component for Some_<C> {
+    type Output = Option<C::Output>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb)
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        Some(self.0.update(state, ctx, event))
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
     }
 }
 
