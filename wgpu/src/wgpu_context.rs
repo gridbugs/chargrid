@@ -75,9 +75,7 @@ where
 
 struct WgpuContext {
     device: wgpu::Device,
-    sc_desc: wgpu::SwapChainDescriptor,
     surface: wgpu::Surface,
-    swap_chain: wgpu::SwapChain,
     render_pipeline: wgpu::RenderPipeline,
     background_cell_instance_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
@@ -130,7 +128,7 @@ struct Setup {
 }
 
 async fn request_adapter_for_backend(
-    backend: wgpu::BackendBit,
+    backend: wgpu::Backends,
     window: &winit::window::Window,
 ) -> Result<
     (
@@ -180,14 +178,14 @@ async fn setup(title: &str, window_dimensions: Dimensions<f64>, resizable: bool)
     };
     let window = window_builder.build(&event_loop).unwrap();
     let (adapter, instance, surface, device, queue) =
-        match request_adapter_for_backend(wgpu::BackendBit::PRIMARY, &window).await {
+        match request_adapter_for_backend(wgpu::Backends::PRIMARY, &window).await {
             Ok(x) => x,
             Err(message) => {
                 log::error!(
                 "Failed to initialize primary backend: {}\nFalling back to secondary backend....",
                 message
             );
-                request_adapter_for_backend(wgpu::BackendBit::SECONDARY, &window)
+                request_adapter_for_backend(wgpu::Backends::SECONDARY, &window)
                     .await
                     .expect("Failed to initialize secondary backend!")
             }
@@ -234,33 +232,31 @@ impl WgpuContext {
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
-        let swapchain_format = adapter
-            .get_swap_chain_preferred_format(&surface)
+        let texture_format = surface
+            .get_preferred_format(&adapter)
             .expect("Failed to find compatible texture format");
-        let sc_desc = wgpu::SwapChainDescriptor {
-            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-            format: swapchain_format,
+        let surface_configuration = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: texture_format,
             width: physical_size.width,
             height: physical_size.height,
             present_mode: wgpu::PresentMode::Mailbox,
         };
-        let swap_chain = device.create_swap_chain(&surface, &sc_desc);
+        surface.configure(&device, &surface_configuration);
         let vs_module = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
             label: None,
             source: Self::spirv_slice_to_shader_module_source(include_bytes!("./shader.vert.spv")),
-            flags: wgpu::ShaderFlags::VALIDATION,
         });
         let fs_module = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
             label: None,
             source: Self::spirv_slice_to_shader_module_source(include_bytes!("./shader.frag.spv")),
-            flags: wgpu::ShaderFlags::VALIDATION,
         });
         let background_cell_instance_buffer = populate_and_finish_buffer(
             device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
                 size: num_background_cell_instances as u64
                     * std::mem::size_of::<BackgroundCellInstance>() as u64,
-                usage: wgpu::BufferUsage::VERTEX,
+                usage: wgpu::BufferUsages::VERTEX,
                 mapped_at_creation: true,
             }),
             background_cell_instance_data.raw(),
@@ -272,7 +268,7 @@ impl WgpuContext {
             device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
                 size: 1 * global_uniforms_size,
-                usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: true,
             }),
             &[global_uniforms],
@@ -281,7 +277,7 @@ impl WgpuContext {
             label: None,
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStage::VERTEX,
+                visibility: wgpu::ShaderStages::VERTEX,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -315,7 +311,7 @@ impl WgpuContext {
                 entry_point: "main",
                 buffers: &[wgpu::VertexBufferLayout {
                     array_stride: mem::size_of::<BackgroundCellInstance>() as wgpu::BufferAddress,
-                    step_mode: wgpu::InputStepMode::Instance,
+                    step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &[
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Float32x3,
@@ -341,19 +337,17 @@ impl WgpuContext {
             fragment: Some(wgpu::FragmentState {
                 module: &fs_module,
                 entry_point: "main",
-                targets: &[swapchain_format.into()],
+                targets: &[surface_configuration.format.into()],
             }),
         });
         let glyph_brush =
             wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
                 .texture_filter_method(wgpu::FilterMode::Nearest)
-                .build(&mut device, swapchain_format);
+                .build(&mut device, surface_configuration.format);
         let modifier_state = winit::event::ModifiersState::default();
         Ok(Self {
             device,
-            sc_desc,
             surface,
-            swap_chain,
             render_pipeline,
             background_cell_instance_buffer,
             bind_group,
@@ -385,7 +379,7 @@ impl WgpuContext {
                 label: None,
                 size: self.chargrid_frame_buffer.size().count() as u64
                     * std::mem::size_of::<BackgroundCellInstance>() as u64,
-                usage: wgpu::BufferUsage::VERTEX,
+                usage: wgpu::BufferUsages::VERTEX,
                 mapped_at_creation: true,
             }),
             self.background_cell_instance_data.raw(),
@@ -396,15 +390,12 @@ impl WgpuContext {
         use std::mem;
         let logical_size = physical_size.to_logical(self.scale_factor);
         self.window_size = logical_size;
-        self.sc_desc.width = physical_size.width;
-        self.sc_desc.height = physical_size.height;
-        self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
         self.background_cell_instance_buffer = populate_and_finish_buffer(
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
                 size: self.chargrid_frame_buffer.size().count() as u64
                     * std::mem::size_of::<BackgroundCellInstance>() as u64,
-                usage: wgpu::BufferUsage::VERTEX,
+                usage: wgpu::BufferUsages::VERTEX,
                 mapped_at_creation: true,
             }),
             self.background_cell_instance_data.raw(),
@@ -415,7 +406,7 @@ impl WgpuContext {
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
                 size: 1 * std::mem::size_of::<GlobalUniforms>() as u64,
-                usage: wgpu::BufferUsage::COPY_SRC,
+                usage: wgpu::BufferUsages::COPY_SRC,
                 mapped_at_creation: true,
             }),
             &[global_uniforms],
@@ -714,16 +705,21 @@ impl Context {
                         return;
                     }
                     wgpu_context.render_background();
-                    if let Ok(frame) = wgpu_context.swap_chain.get_current_frame() {
+                    if let Ok(frame) = wgpu_context.surface.get_current_frame() {
                         let mut encoder = wgpu_context.device.create_command_encoder(
                             &wgpu::CommandEncoderDescriptor { label: None },
                         );
+                        let view = frame
+                            .output
+                            .texture
+                            .create_view(&wgpu::TextureViewDescriptor::default());
+
                         {
                             let mut render_pass =
                                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                                     label: None,
                                     color_attachments: &[wgpu::RenderPassColorAttachment {
-                                        view: &frame.output.view,
+                                        view: &view,
                                         resolve_target: None,
                                         ops: wgpu::Operations {
                                             load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -789,7 +785,7 @@ impl Context {
                                 &wgpu_context.device,
                                 &mut staging_belt,
                                 &mut encoder,
-                                &frame.output.view,
+                                &view,
                                 wgpu_context.window_size.width as u32,
                                 wgpu_context.window_size.height as u32,
                             )

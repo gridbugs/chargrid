@@ -1,5 +1,7 @@
 [workspace]
 
+resolver = "2" # this is required for the wgpu frontend
+
 members = [
     "wgpu",
     "ggez",
