@@ -468,6 +468,31 @@ where
     }
 }
 
+pub struct RenderState<S, F: Fn(&S, Ctx, &mut FrameBuffer)> {
+    state: PhantomData<S>,
+    f: F,
+}
+pub fn render_state<S, F: Fn(&S, Ctx, &mut FrameBuffer)>(f: F) -> CF<RenderState<S, F>> {
+    cf(RenderState {
+        state: PhantomData,
+        f,
+    })
+}
+impl<S, F> Component for RenderState<S, F>
+where
+    F: Fn(&S, Ctx, &mut FrameBuffer),
+{
+    type Output = ();
+    type State = S;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        (self.f)(state, ctx, fb);
+    }
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+        ctx.bounding_box.size()
+    }
+}
+
 pub struct IgnoreState<S, C: Component<State = ()>> {
     state: PhantomData<S>,
     component: C,
