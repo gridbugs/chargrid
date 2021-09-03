@@ -388,7 +388,13 @@ pub mod builder {
     }
 
     impl<T: Clone, S> MenuBuilder<T, S> {
+        #[must_use]
         pub fn add_item(mut self, add_item: MenuBuilderAddItem<T, S>) -> Self {
+            self.add_item_mut(add_item);
+            self
+        }
+
+        pub fn add_item_mut(&mut self, add_item: MenuBuilderAddItem<T, S>) {
             for hotkey in add_item.hotkeys {
                 if self
                     .hotkeys
@@ -403,12 +409,16 @@ pub mod builder {
                 identifier: add_item.identifier,
                 value: add_item.value,
             });
+        }
+
+        #[must_use]
+        pub fn add_space(mut self) -> Self {
+            self.add_space_mut();
             self
         }
 
-        pub fn add_space(mut self) -> Self {
+        pub fn add_space_mut(&mut self) {
             self.offset_to_item_index.push(None);
-            self
         }
 
         pub fn build(self) -> Menu<T, S> {
