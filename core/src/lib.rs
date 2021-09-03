@@ -543,6 +543,14 @@ impl Event {
             false
         }
     }
+
+    pub fn is_escape(self) -> bool {
+        if let Self::Input(Input::Keyboard(input::keys::ESCAPE)) = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 pub trait Component {
