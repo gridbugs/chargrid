@@ -87,6 +87,7 @@ struct WgpuContext {
     window_size: winit::dpi::LogicalSize<f64>,
     scale_factor: f64,
     modifier_state: winit::event::ModifiersState,
+    global_uniforms_to_sync: Option<GlobalUniforms>,
 }
 
 #[repr(C)]
@@ -359,6 +360,7 @@ impl WgpuContext {
             window_size,
             scale_factor,
             modifier_state,
+            global_uniforms_to_sync: None,
         })
     }
     fn render_background(&mut self) {
@@ -387,7 +389,6 @@ impl WgpuContext {
     }
 
     fn resize(&mut self, size_context: &SizeContext, physical_size: winit::dpi::PhysicalSize<u32>) {
-        use std::mem;
         let logical_size = physical_size.to_logical(self.scale_factor);
         self.window_size = logical_size;
         self.background_cell_instance_buffer = populate_and_finish_buffer(
@@ -402,26 +403,29 @@ impl WgpuContext {
         );
         let global_uniforms =
             size_context.global_uniforms(dimensions_from_logical_size(logical_size));
-        let temp_buffer = populate_and_finish_buffer(
-            self.device.create_buffer(&wgpu::BufferDescriptor {
-                label: None,
-                size: 1 * std::mem::size_of::<GlobalUniforms>() as u64,
-                usage: wgpu::BufferUsages::COPY_SRC,
-                mapped_at_creation: true,
-            }),
-            &[global_uniforms],
-        );
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        encoder.copy_buffer_to_buffer(
-            &temp_buffer,
-            0,
-            &self.global_uniforms_buffer,
-            0,
-            mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress,
-        );
-        self.queue.submit(Some(encoder.finish()));
+        self.global_uniforms_to_sync = Some(global_uniforms);
+    }
+
+    fn sync_global_uniforms(&mut self, encoder: &mut wgpu::CommandEncoder) {
+        use std::mem;
+        if let Some(global_uniforms) = self.global_uniforms_to_sync.take() {
+            let temp_buffer = populate_and_finish_buffer(
+                self.device.create_buffer(&wgpu::BufferDescriptor {
+                    label: None,
+                    size: 1 * std::mem::size_of::<GlobalUniforms>() as u64,
+                    usage: wgpu::BufferUsages::COPY_SRC,
+                    mapped_at_creation: true,
+                }),
+                &[global_uniforms],
+            );
+            encoder.copy_buffer_to_buffer(
+                &temp_buffer,
+                0,
+                &self.global_uniforms_buffer,
+                0,
+                mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress,
+            );
+        }
     }
 }
 
@@ -709,6 +713,7 @@ impl Context {
                         let mut encoder = wgpu_context.device.create_command_encoder(
                             &wgpu::CommandEncoderDescriptor { label: None },
                         );
+                        wgpu_context.sync_global_uniforms(&mut encoder);
                         let view = frame
                             .output
                             .texture
