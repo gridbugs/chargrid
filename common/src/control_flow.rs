@@ -125,11 +125,11 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
 
     pub fn map<U, F>(self, f: F) -> CF<Map<C, F>>
     where
-        F: FnMut(T) -> U,
+        F: FnOnce(T) -> U,
     {
         cf(Map {
             component: self.0,
-            f,
+            f: Some(f),
         })
     }
 
@@ -656,13 +656,13 @@ where
 
 pub struct Map<C, F> {
     component: C,
-    f: F,
+    f: Option<F>,
 }
 
 impl<T, U, C, F> Component for Map<C, F>
 where
     C: Component<Output = Option<T>>,
-    F: FnMut(T) -> U,
+    F: FnOnce(T) -> U,
 {
     type Output = Option<U>;
     type State = C::State;
@@ -672,7 +672,9 @@ where
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         match self.component.update(state, ctx, event) {
             None => None,
-            Some(t) => Some((self.f)(t)),
+            Some(t) => Some((self.f.take().expect("component yielded multiple times"))(
+                t,
+            )),
         }
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
