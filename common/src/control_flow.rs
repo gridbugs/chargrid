@@ -208,6 +208,29 @@ impl<T> Component for ValOnce<T> {
     }
 }
 
+pub struct Never<T> {
+    t: PhantomData<T>,
+}
+impl<T> Never<T> {
+    pub fn new() -> Self {
+        Self { t: PhantomData }
+    }
+}
+pub fn never<S, T>() -> CF<IgnoreState<S, Never<T>>> {
+    cf(Never::new()).ignore_state()
+}
+impl<T> Component for Never<T> {
+    type Output = Option<T>;
+    type State = ();
+    fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
+        None
+    }
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
+        Size::new_u16(0, 0)
+    }
+}
+
 pub struct WithState<C: Component> {
     component: C,
     state: C::State,
