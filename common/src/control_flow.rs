@@ -851,6 +851,34 @@ impl<C: Component> Component for Some_<C> {
 
 #[macro_export]
 macro_rules! either {
+    ($type:ident = $first:ident) => {
+        pub enum $type<$first> {
+            $first($first),
+        }
+        impl<$first> Component for $type<$first>
+            where
+                $first: Component,
+        {
+            type Output = $first::Output;
+            type State = $first::State;
+
+            fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+                match self {
+                    $type::$first(x) => x.render(state, ctx, fb),
+                }
+            }
+            fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+                match self {
+                    $type::$first(x) => x.update(state, ctx, event),
+                }
+            }
+            fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+                match self {
+                    $type::$first(x) => x.size(state, ctx),
+                }
+            }
+        }
+    };
     ($type:ident = $first:ident | $($rest:ident)|*) => {
         pub enum $type<$first, $($rest),*> {
             $first($first),
