@@ -22,7 +22,7 @@ chargrid_runtime = { path = "../runtime", version = "0.1" }
 wgpu = { version = "0.10", features = ["spirv"] }
 wgpu_glyph = "0.14"
 winit = "0.25"
-zerocopy = "0.5"
+zerocopy = "0.6"
 log = "0.4"
 grid_2d = "0.15"
 pollster = "0.2"
