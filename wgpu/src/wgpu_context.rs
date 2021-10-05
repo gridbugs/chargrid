@@ -141,14 +141,9 @@ async fn request_adapter_for_backend(
     ),
     String,
 > {
-    let power_preference = wgpu::PowerPreference::default();
     let instance = wgpu::Instance::new(backend);
     let surface = unsafe { instance.create_surface(window) };
-    let adapter = instance
-        .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference,
-            compatible_surface: Some(&surface),
-        })
+    let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, backend)
         .await
         .ok_or_else(|| "No suitable GPU adapters found on the system!".to_string())?;
     let (device, queue) = adapter
@@ -178,8 +173,9 @@ async fn setup(title: &str, window_dimensions: Dimensions<f64>, resizable: bool)
             .with_resizable(resizable)
     };
     let window = window_builder.build(&event_loop).unwrap();
+    let backend = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY);
     let (adapter, instance, surface, device, queue) =
-        match request_adapter_for_backend(wgpu::Backends::PRIMARY, &window).await {
+        match request_adapter_for_backend(backend, &window).await {
             Ok(x) => x,
             Err(message) => {
                 log::error!(
