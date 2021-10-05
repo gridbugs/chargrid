@@ -173,20 +173,37 @@ async fn setup(title: &str, window_dimensions: Dimensions<f64>, resizable: bool)
             .with_resizable(resizable)
     };
     let window = window_builder.build(&event_loop).unwrap();
-    let backend = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY);
-    let (adapter, instance, surface, device, queue) =
-        match request_adapter_for_backend(backend, &window).await {
-            Ok(x) => x,
-            Err(message) => {
-                log::error!(
-                "Failed to initialize primary backend: {}\nFalling back to secondary backend....",
-                message
-            );
-                request_adapter_for_backend(wgpu::Backends::SECONDARY, &window)
-                    .await
-                    .expect("Failed to initialize secondary backend!")
+    let mut backends_to_try_reverse_order = vec![
+        (wgpu::Backends::SECONDARY, "secondary"),
+        (wgpu::Backends::PRIMARY, "primary"),
+    ];
+    if let Some(env_backends) = wgpu::util::backend_bits_from_env() {
+        backends_to_try_reverse_order.push((env_backends, "environment"));
+    }
+    let (adapter, instance, surface, device, queue) = loop {
+        if let Some((backends, name)) = backends_to_try_reverse_order.pop() {
+            match request_adapter_for_backend(backends, &window).await {
+                Ok(x) => {
+                    log::info!(
+                        "Initialized one of the \"{}\" WGPU backends ({:?})!",
+                        name,
+                        backends,
+                    );
+                    break x;
+                }
+                Err(message) => {
+                    log::error!(
+                        "Failed to initialize one of the \"{}\" WGPU backends ({:?}):\n{}",
+                        name,
+                        backends,
+                        message,
+                    );
+                }
             }
-        };
+        } else {
+            panic!("Failed to initialize any WGPU backend!")
+        }
+    };
     Setup {
         window,
         event_loop,
