@@ -4,7 +4,7 @@
 # - in a pure shell, alsa-lib can't connect to pulseaudio
 # - in non-NixOS environments, there are errors when initializing audio of the form:
 #   ALSA lib dlmisc.c:337:(snd_dlobj_cache_get0) Cannot open shared library libasound_module_pcm_pulse.so
-#  in non-NixOS environments, there is an error when starting a nix-shell:
+# - in non-NixOS environments, there is an error when starting a nix-shell:
 #   * Error: Unable to use "ps" to scan for ssh-agent processes
 #   * Error: Please report to x48rph@gmail.com via http://bugs.gentoo.org
 #   ^^^ This error goes away if the `LD_LIBRARY_PATH = ...` line is removed (but that line is necessary for graphical frontends to work)
