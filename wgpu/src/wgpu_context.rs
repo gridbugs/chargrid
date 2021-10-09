@@ -143,7 +143,7 @@ async fn request_adapter_for_backend(
 > {
     let instance = wgpu::Instance::new(backend);
     let surface = unsafe { instance.create_surface(window) };
-    let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, backend)
+    let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, backend, None)
         .await
         .ok_or_else(|| "No suitable GPU adapters found on the system!".to_string())?;
     let (device, queue) = adapter
@@ -722,13 +722,12 @@ impl Context {
                         return;
                     }
                     wgpu_context.render_background();
-                    if let Ok(frame) = wgpu_context.surface.get_current_frame() {
+                    if let Ok(frame) = wgpu_context.surface.get_current_texture() {
                         let mut encoder = wgpu_context.device.create_command_encoder(
                             &wgpu::CommandEncoderDescriptor { label: None },
                         );
                         wgpu_context.sync_global_uniforms(&mut encoder);
                         let view = frame
-                            .output
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -811,6 +810,7 @@ impl Context {
                         staging_belt.finish();
                         wgpu_context.queue.submit(std::iter::once(encoder.finish()));
                         executor.spawn(staging_belt.recall()).detach();
+                        frame.present();
                     } else {
                         log::warn!("timeout when acquiring next swapchain texture");
                         thread::sleep(Duration::from_millis(100));
