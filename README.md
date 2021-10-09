@@ -6,3 +6,22 @@
 This repo contains a collection of crates relating to rendering grids of
 characters. Cells in the grid have characters, foreground and background
 colours, and attributes bold and underline.
+
+## Nix
+
+To set up a shell with stable rust:
+```
+nix-shell
+```
+
+For nightly rust:
+```
+nix-shell nightly.nix
+```
+
+## Debug Environment
+
+Source the script `debug_env_linux.sh` to set cargo environment variables for faster builds:
+```
+. debug_env_linux.sh
+```
