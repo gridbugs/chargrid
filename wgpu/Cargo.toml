@@ -20,9 +20,7 @@ chargrid_input = { path = "../input", version = "0.2" }
 chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
 wgpu = { version = "0.11", features = ["spirv"] }
-# TODO: Point back to official version when this is merged:
-# https://github.com/hecrj/wgpu_glyph/pull/75
-wgpu_glyph = { git = "https://github.com/genusistimelord/wgpu_glyph", rev = "a97012e81161890f8b30d7a1d4246a5fe0306ca3" }
+wgpu_glyph = "0.15"
 winit = "0.25"
 zerocopy = "0.6"
 log = "0.4"
