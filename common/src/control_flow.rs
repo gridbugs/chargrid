@@ -849,6 +849,24 @@ impl<C: Component> Component for Some_<C> {
     }
 }
 
+pub struct Unit<S> {
+    state: PhantomData<S>,
+}
+pub fn unit<S>() -> CF<Unit<S>> {
+    cf(Unit { state: PhantomData })
+}
+impl<S> Component for Unit<S> {
+    type Output = ();
+    type State = S;
+    fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
+        ()
+    }
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
+        Size::new_u16(0, 0)
+    }
+}
+
 #[macro_export]
 macro_rules! either {
     ($type:ident = $first:ident) => {
