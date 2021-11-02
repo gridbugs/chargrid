@@ -3,6 +3,7 @@ use crate::{
     border::{Border, BorderStyle},
     fill::Fill,
     pad_to::PadTo,
+    set_size::SetSize,
 };
 use chargrid_core::{app, ctx_tint, input, Component, Ctx, Event, FrameBuffer, Rgba32, Size, Tint};
 use std::marker::PhantomData;
@@ -87,6 +88,13 @@ impl<C: Component> CF<C> {
 
     pub fn centre(self) -> CF<Align<C>> {
         self.align(Alignment::centre())
+    }
+
+    pub fn set_size(self, size: Size) -> CF<SetSize<C>> {
+        cf(SetSize {
+            component: self.0,
+            size,
+        })
     }
 }
 
