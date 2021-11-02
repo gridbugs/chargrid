@@ -1,6 +1,7 @@
 use crate::{
     align::{Align, Alignment},
     border::{Border, BorderStyle},
+    bound_size::BoundSize,
     fill::Fill,
     pad_to::PadTo,
     set_size::SetSize,
@@ -92,6 +93,13 @@ impl<C: Component> CF<C> {
 
     pub fn set_size(self, size: Size) -> CF<SetSize<C>> {
         cf(SetSize {
+            component: self.0,
+            size,
+        })
+    }
+
+    pub fn bound_size(self, size: Size) -> CF<BoundSize<C>> {
+        cf(BoundSize {
             component: self.0,
             size,
         })

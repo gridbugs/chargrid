@@ -1,5 +1,6 @@
 pub mod align;
 pub mod border;
+pub mod bound_size;
 pub mod control_flow;
 pub mod fade;
 pub mod fill;
