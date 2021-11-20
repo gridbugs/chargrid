@@ -8,6 +8,6 @@ readme = "README.md"
 homepage = "https://github.com/gridbugs/chargrid.git"
 repository = "https://github.com/gridbugs/chargrid.git"
 documentation = "https://docs.rs/chargrid_graphical_common"
-edition = "2018"
+edition = "2021"
 
 [dependencies]

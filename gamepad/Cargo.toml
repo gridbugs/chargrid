@@ -8,7 +8,7 @@ readme = "README.md"
 homepage = "https://github.com/gridbugs/chargrid.git"
 repository = "https://github.com/gridbugs/chargrid.git"
 documentation = "https://docs.rs/chargrid_gamepad"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 chargrid_input = { path = "../input", version = "0.2", features = ["gamepad"] }
