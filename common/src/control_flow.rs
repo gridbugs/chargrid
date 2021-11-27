@@ -1052,7 +1052,7 @@ impl<S> Component for Unit<S> {
 }
 
 pub mod boxed {
-    pub use super::{BoxedCF, LoopControl};
+    pub use super::{boxed_cf, BoxedCF, LoopControl};
     use chargrid_core::{Component, Ctx, FrameBuffer};
 
     pub fn val<S: 'static, T: 'static + Clone>(t: T) -> BoxedCF<Option<T>, S> {
@@ -1067,6 +1067,12 @@ pub mod boxed {
         t: T,
     ) -> BoxedCF<Option<LoopControl<Co, T>>, S> {
         val_once(t).break_()
+    }
+
+    pub fn continue_<S: 'static, T: 'static, Br: 'static>(
+        t: T,
+    ) -> BoxedCF<Option<LoopControl<T, Br>>, S> {
+        val_once(t).continue_()
     }
 
     pub fn never<S: 'static, T: 'static>() -> BoxedCF<Option<T>, S> {
