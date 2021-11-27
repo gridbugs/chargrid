@@ -1052,7 +1052,7 @@ impl<S> Component for Unit<S> {
 }
 
 pub mod boxed {
-    pub use super::{boxed_cf, BoxedCF, LoopControl};
+    pub use super::{boxed_cf, BoxedCF, Escape, LoopControl, OrEscape};
     use chargrid_core::{Component, Ctx, FrameBuffer};
 
     pub fn val<S: 'static, T: 'static + Clone>(t: T) -> BoxedCF<Option<T>, S> {
