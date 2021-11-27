@@ -561,6 +561,22 @@ pub trait Component {
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size;
 }
 
+pub struct BoxedComponent<O, S>(pub Box<dyn Component<Output = O, State = S>>);
+
+impl<O, S> Component for BoxedComponent<O, S> {
+    type Output = O;
+    type State = S;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb)
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.0.update(state, ctx, event)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
 pub mod app {
     #[derive(Clone, Copy, Debug)]
     pub struct Exit;

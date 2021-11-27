@@ -6,7 +6,9 @@ use crate::{
     pad_to::PadTo,
     set_size::SetSize,
 };
-use chargrid_core::{app, ctx_tint, input, Component, Ctx, Event, FrameBuffer, Rgba32, Size, Tint};
+use chargrid_core::{
+    app, ctx_tint, input, BoxedComponent, Component, Ctx, Event, FrameBuffer, Rgba32, Size, Tint,
+};
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -112,6 +114,15 @@ impl<S: Sized, C: Component<State = S>> CF<C> {
             component: self.0,
             state,
         })
+    }
+}
+
+impl<C: 'static + Component> CF<C>
+where
+    C::State: Sized,
+{
+    pub fn boxed(self) -> CF<BoxedComponent<C::Output, C::State>> {
+        cf(BoxedComponent(Box::new(self.0)))
     }
 }
 
