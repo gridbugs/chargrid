@@ -207,6 +207,12 @@ where
 }
 
 pub struct BoxedCF<O, S>(CF<BoxedComponent<O, S>>);
+pub fn boxed_cf<C: 'static + Component>(component: C) -> BoxedCF<C::Output, C::State>
+where
+    C::State: Sized,
+{
+    cf(component).boxed_cf()
+}
 
 impl<O, S> Component for BoxedCF<O, S> {
     type Output = O;
