@@ -21,7 +21,7 @@ chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
 wgpu = { version = "0.11", features = ["spirv"] }
 wgpu_glyph = "0.15"
-winit = "0.25"
+winit = "0.26"
 zerocopy = "0.6"
 log = "0.4"
 grid_2d = "0.15"
