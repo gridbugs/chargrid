@@ -19,7 +19,7 @@ chargrid_graphical_common = { path = "../graphical-common", version = "0.2" }
 chargrid_input = { path = "../input", version = "0.2" }
 chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
-wgpu = { version = "0.11", features = ["spirv"] }
+wgpu = { version = "0.12", features = ["spirv"] }
 wgpu_glyph = "0.15"
 winit = "0.26"
 zerocopy = "0.6"
