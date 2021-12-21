@@ -3,3 +3,5 @@
 **/*.sw?
 **/*.wasm
 Cargo.lock
+.direnv
+.envrc
