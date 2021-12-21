@@ -8,6 +8,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use wgpu_glyph::ab_glyph;
 use zerocopy::AsBytes;
+use std::borrow::Cow;
 
 fn rgb_to_srgb_channel(c: f32) -> f32 {
     c.powf(2.2)
@@ -116,7 +117,7 @@ struct GlobalUniforms {
     grid_width: u32,
     underline_width_cell_ratio: f32,
     underline_top_offset_cell_ratio: f32,
-    _pad: u32, // pad the type to 32 bits to match the corresponding type defined in glsl
+    pad0: u32, // pad the type to 32 bits to match the corresponding type defined in glsl
 }
 
 struct Setup {
@@ -217,19 +218,6 @@ async fn setup(title: &str, window_dimensions: Dimensions<f64>, resizable: bool)
 }
 
 impl WgpuContext {
-    fn spirv_slice_to_shader_module_source(spirv_slice: &[u8]) -> wgpu::ShaderSource<'_> {
-        use std::borrow::Cow;
-        assert!(spirv_slice.len() % 4 == 0);
-        let mut buffer = Vec::with_capacity(spirv_slice.len() / 4);
-        let mut chunks = spirv_slice.chunks_exact(4);
-        for chunk in &mut chunks {
-            let mut array: [u8; 4] = Default::default();
-            array.copy_from_slice(chunk);
-            buffer.push(u32::from_le_bytes(array));
-        }
-        assert!(chunks.remainder().is_empty());
-        wgpu::ShaderSource::SpirV(Cow::Owned(buffer))
-    }
     fn new(
         window: &winit::window::Window,
         mut device: wgpu::Device,
@@ -258,13 +246,9 @@ impl WgpuContext {
             present_mode: wgpu::PresentMode::Mailbox,
         };
         surface.configure(&device, &surface_configuration);
-        let vs_module = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
             label: None,
-            source: Self::spirv_slice_to_shader_module_source(include_bytes!("./shader.vert.spv")),
-        });
-        let fs_module = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: Self::spirv_slice_to_shader_module_source(include_bytes!("./shader.frag.spv")),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
         });
         let background_cell_instance_buffer = populate_and_finish_buffer(
             device.create_buffer(&wgpu::BufferDescriptor {
@@ -322,8 +306,8 @@ impl WgpuContext {
             label: None,
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &vs_module,
-                entry_point: "main",
+                module: &shader,
+                entry_point: "vs_main",
                 buffers: &[wgpu::VertexBufferLayout {
                     array_stride: mem::size_of::<BackgroundCellInstance>() as wgpu::BufferAddress,
                     step_mode: wgpu::VertexStepMode::Instance,
@@ -350,8 +334,8 @@ impl WgpuContext {
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
-                module: &fs_module,
-                entry_point: "main",
+                module: &shader,
+                entry_point: "fs_main",
                 targets: &[surface_configuration.format.into()],
             }),
             multiview: None,
@@ -522,7 +506,7 @@ impl SizeContext {
             grid_width: self.grid_size().width(),
             underline_width_cell_ratio: self.underline_width as f32,
             underline_top_offset_cell_ratio: self.underline_top_offset as f32,
-            _pad: 0,
+            pad0: 0,
         }
     }
 }
