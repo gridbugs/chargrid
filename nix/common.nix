@@ -21,10 +21,33 @@ let
   };
 in
   with nixpkgs;
-  {
+  rec {
     stable = nixpkgs.latest.rustChannels.stable.rust.override rust_override;
     nightly = nixpkgs.latest.rustChannels.nightly.rust.override rust_override;
     rustChannelOf = desc: (rustChannelOf desc).rust.override rust_override;
+
+    # project-specific dependencies
+    projectDeps = [
+      lld
+      clang
+      pkg-config
+      alsaLib
+      libao
+      openal
+      libpulseaudio
+      udev
+      xorg.libX11
+      xorg.libXcursor
+      xorg.libXrandr
+      xorg.libXi
+      vulkan-loader
+      vulkan-tools
+      libGL
+      bzip2
+      nodejs-16_x
+      wasm-pack
+    ];
+
     mkDerivation = { rust }:
       stdenv.mkDerivation rec {
         name = "moz_overlay_shell";
@@ -32,27 +55,7 @@ in
           rust
           rust-analyzer
           cargo-watch
-
-          # project-specific dependencies
-          lld
-          clang
-          pkg-config
-          alsaLib
-          libao
-          openal
-          libpulseaudio
-          udev
-          xorg.libX11
-          xorg.libXcursor
-          xorg.libXrandr
-          xorg.libXi
-          vulkan-loader
-          vulkan-tools
-          libGL
-          bzip2
-          nodejs-16_x
-          wasm-pack
-        ];
+        ] ++ projectDeps;
 
         # Enable backtraces on panics
         RUST_BACKTRACE = 1;

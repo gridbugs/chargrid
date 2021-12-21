@@ -1,4 +1,4 @@
-with import ./.nix/common.nix;
+with import ./common.nix;
 mkDerivation {
 
   # To just use the current nightly rust:

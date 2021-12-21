@@ -1,2 +1,1 @@
-with import ./.nix/common.nix;
-mkDerivation { rust = stable; }
+nix/offline.nix
