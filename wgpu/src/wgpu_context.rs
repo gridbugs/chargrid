@@ -116,6 +116,7 @@ struct GlobalUniforms {
     grid_width: u32,
     underline_width_cell_ratio: f32,
     underline_top_offset_cell_ratio: f32,
+    _pad: u32, // pad the type to 32 bits to match the corresponding type defined in glsl
 }
 
 struct Setup {
@@ -353,6 +354,7 @@ impl WgpuContext {
                 entry_point: "main",
                 targets: &[surface_configuration.format.into()],
             }),
+            multiview: None,
         });
         let glyph_brush =
             wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
@@ -520,6 +522,7 @@ impl SizeContext {
             grid_width: self.grid_size().width(),
             underline_width_cell_ratio: self.underline_width as f32,
             underline_top_offset_cell_ratio: self.underline_top_offset as f32,
+            _pad: 0,
         }
     }
 }
