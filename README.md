@@ -9,14 +9,14 @@ colours, and attributes bold and underline.
 
 ## Nix
 
-To set up a shell with stable rust:
+To set up a shell with an installation of rust and external dependencies:
 ```
 nix-shell
 ```
 
 For nightly rust:
 ```
-nix-shell nightly.nix
+nix-shell nix/nightly.nix
 ```
 
 ## Debug Environment
