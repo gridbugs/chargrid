@@ -334,6 +334,113 @@ pub mod identifier {
             },
         )
     }
+
+    pub mod fade_spec {
+        pub use chargrid_core::Rgba32;
+        pub use std::time::Duration;
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct Layers<T> {
+            pub foreground: T,
+            pub background: T,
+        }
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct To {
+            pub rgba32: Layers<Rgba32>,
+            pub bold: bool,
+            pub underline: bool,
+        }
+
+        #[derive(Clone, Copy, Debug)]
+        pub enum FromStyle {
+            Current,
+            Rgba32(Rgba32),
+        }
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct From {
+            pub style: Layers<FromStyle>,
+        }
+
+        impl From {
+            pub fn current() -> Self {
+                Self {
+                    style: Layers {
+                        foreground: FromStyle::Current,
+                        background: FromStyle::Current,
+                    },
+                }
+            }
+        }
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct Fade {
+            pub to: To,
+            pub from: From,
+            pub durations: Layers<Duration>,
+        }
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct FadeSpec {
+            pub on_select: Fade,
+            pub on_deselect: Fade,
+        }
+
+        impl FadeSpec {
+            pub fn identifier<F: 'static + FnMut(&mut String)>(
+                self,
+                writer: F,
+            ) -> super::MenuItemIdentifierBoxed {
+                super::fade(self, writer)
+            }
+        }
+    }
+
+    pub fn fade<F: 'static + FnMut(&mut String)>(
+        spec: fade_spec::FadeSpec,
+        mut writer: F,
+    ) -> MenuItemIdentifierBoxed {
+        dynamic(1, move |ctx: MenuItemIdentifierDynamicCtx| {
+            use crate::fade;
+            use fade_spec::FromStyle;
+            let part = &mut ctx.component.parts[0];
+            writer(&mut part.string);
+            let fade = if ctx.is_selected {
+                &spec.on_select
+            } else {
+                &spec.on_deselect
+            };
+            let from_fg = match fade.from.style.foreground {
+                FromStyle::Current => ctx.styles_prev[0]
+                    .foreground
+                    .unwrap_or(fade.to.rgba32.foreground),
+                FromStyle::Rgba32(rgba32) => rgba32,
+            };
+            let fade_fg = fade::linear(
+                from_fg,
+                fade.to.rgba32.foreground,
+                fade.durations.foreground,
+            );
+            let from_bg = match fade.from.style.background {
+                FromStyle::Current => ctx.styles_prev[0]
+                    .background
+                    .unwrap_or(fade.to.rgba32.background),
+                FromStyle::Rgba32(rgba32) => rgba32,
+            };
+            let fade_bg = fade::linear(
+                from_bg,
+                fade.to.rgba32.background,
+                fade.durations.background,
+            );
+            ctx.component.parts[0].style = Style {
+                bold: Some(fade.to.bold),
+                underline: Some(fade.to.underline),
+                foreground: Some(fade_fg.eval(ctx.since_change)),
+                background: Some(fade_bg.eval(ctx.since_change)),
+            };
+        })
+    }
 }
 
 pub mod builder {
