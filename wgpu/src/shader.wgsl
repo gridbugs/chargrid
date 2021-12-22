@@ -12,7 +12,7 @@ var<uniform> globals: Globals;
 
 struct VertexOutput {
     [[builtin(position)]] position: vec4<f32>;
-    [[location(0)]] background_colour: vec3<f32>;
+    [[location(0), interpolate(flat)]] background_colour: vec3<f32>;
     [[location(1), interpolate(flat)]] foreground_colour: vec3<f32>;
     [[location(2)]] cell_ratio: f32;
     [[location(3), interpolate(flat)]] underline: bool;
