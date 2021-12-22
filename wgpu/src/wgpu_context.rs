@@ -3,12 +3,12 @@ use crate::{input, Config, Dimensions, FontBytes};
 use chargrid_gamepad::GamepadContext;
 use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer};
 use grid_2d::{Coord, Grid, Size};
+use std::borrow::Cow;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use wgpu_glyph::ab_glyph;
 use zerocopy::AsBytes;
-use std::borrow::Cow;
 
 fn rgb_to_srgb_channel(c: f32) -> f32 {
     c.powf(2.2)
@@ -117,7 +117,7 @@ struct GlobalUniforms {
     grid_width: u32,
     underline_width_cell_ratio: f32,
     underline_top_offset_cell_ratio: f32,
-    pad0: u32, // pad the type to 32 bits to match the corresponding type defined in glsl
+    pad0: u32, // pad the type to 32 bytes
 }
 
 struct Setup {
@@ -276,7 +276,7 @@ impl WgpuContext {
             label: None,
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
+                visibility: wgpu::ShaderStages::all(),
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -323,7 +323,7 @@ impl WgpuContext {
                             shader_location: 1,
                         },
                         wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Sint32,
+                            format: wgpu::VertexFormat::Uint32,
                             offset: 24,
                             shader_location: 2,
                         },

@@ -4,7 +4,7 @@ struct Globals {
     grid_width: u32;
     underline_width_cell_ratio: f32;
     underline_top_offset_cell_ratio: f32;
-    pad0: u32;
+    pad0: u32; // pad the type to 32 bytes
 };
 
 [[group(0), binding(0)]]
@@ -14,21 +14,15 @@ struct VertexOutput {
     [[builtin(position)]] position: vec4<f32>;
     [[location(0)]] background_colour: vec3<f32>;
     [[location(1), interpolate(flat)]] foreground_colour: vec3<f32>;
-
-    // We only need the y component of this ratio, but opengl complains if this is a float.
-    // Error is: "initializer of type int cannot be assigned to variable of type float"
-    [[location(2)]] cell_ratio: vec2<f32>;
-
-    // When the fragment shader reads this uniform in opengl it seems to get a value other
-    // than what was placed in the constant buffer, so make it a varying instead???
-    [[location(3), interpolate(flat)]] underline_x_top_off_cell_ratio_y_width_cell_ratio: vec2<f32>;
+    [[location(2)]] cell_ratio: f32;
+    [[location(3), interpolate(flat)]] underline: bool;
 };
 
 [[stage(vertex)]]
 fn vs_main(
     [[location(0)]] background_colour: vec3<f32>,
     [[location(1)]] foreground_colour: vec3<f32>,
-    [[location(2)]] underline: i32,
+    [[location(2)]] underline: u32,
     [[builtin(vertex_index)]] in_vertex_index: u32,
     [[builtin(instance_index)]] in_instance_index: u32,
 ) -> VertexOutput {
@@ -49,31 +43,21 @@ fn vs_main(
         vec2<f32>(-1.0, -1.0) + top_left_corner + scaled_corner_offset + globals.offset_to_centre;
 
     var out: VertexOutput;
-
-    out.cell_ratio = corner_offset;
+    out.cell_ratio = corner_offset_y;
     out.background_colour = background_colour;
     out.foreground_colour = foreground_colour;
-
-    if (underline == 0) {
-        // setting the underline ratio > 1 means that no pixel will be within it, disablihng the underline
-        out.underline_x_top_off_cell_ratio_y_width_cell_ratio = vec2<f32>(2.0, 0.0);
-    } else {
-        out.underline_x_top_off_cell_ratio_y_width_cell_ratio = vec2<f32>(
-            globals.underline_top_offset_cell_ratio,
-            globals.underline_width_cell_ratio,
-        );
-    }
-
+    out.underline = underline != 0u;
     out.position = vec4<f32>(absolute.x, -absolute.y, 0.0, 1.0);
     return out;
 }
 
 [[stage(fragment)]]
 fn fs_main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
-
-    if (in.cell_ratio.y >= in.underline_x_top_off_cell_ratio_y_width_cell_ratio.x &&
-        in.cell_ratio.y <= in.underline_x_top_off_cell_ratio_y_width_cell_ratio.x + in.underline_x_top_off_cell_ratio_y_width_cell_ratio.y)
-    {
+    let pixel_is_underline =
+        in.underline &&
+        in.cell_ratio >= globals.underline_top_offset_cell_ratio &&
+        in.cell_ratio <= globals.underline_top_offset_cell_ratio + globals.underline_width_cell_ratio;
+    if (pixel_is_underline) {
         return vec4<f32>(in.foreground_colour, 1.0);
     } else {
         return vec4<f32>(in.background_colour, 1.0);
