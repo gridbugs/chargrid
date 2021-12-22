@@ -6,6 +6,7 @@ pkgs.mkShell rec {
     cargo
     rust-analyzer
     cargo-watch
+    rustfmt
   ] ++ (import ./common.nix).projectDeps;
 
   # Without this graphical frontends can't find the GPU adapters
