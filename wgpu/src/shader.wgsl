@@ -72,7 +72,7 @@ fn vs_main(
 fn fs_main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
 
     if (in.cell_ratio.y >= in.underline_x_top_off_cell_ratio_y_width_cell_ratio.x &&
-        in.cell_ratio.y >= in.underline_x_top_off_cell_ratio_y_width_cell_ratio.x + in.underline_x_top_off_cell_ratio_y_width_cell_ratio.y)
+        in.cell_ratio.y <= in.underline_x_top_off_cell_ratio_y_width_cell_ratio.x + in.underline_x_top_off_cell_ratio_y_width_cell_ratio.y)
     {
         return vec4<f32>(in.foreground_colour, 1.0);
     } else {
