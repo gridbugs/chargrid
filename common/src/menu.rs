@@ -364,7 +364,7 @@ pub mod identifier {
         }
 
         impl From {
-            pub fn current() -> Self {
+            pub const fn current() -> Self {
                 Self {
                     style: Layers {
                         foreground: FromStyle::Current,
