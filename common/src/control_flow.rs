@@ -1140,6 +1140,15 @@ pub mod boxed {
         super::loop_(init, f).boxed_cf()
     }
 
+    pub fn loop_unit<Br, C: 'static, F: 'static>(f: F) -> BoxedCF<Option<Br>, C::State>
+    where
+        C::State: Sized,
+        C: Component<Output = Option<LoopControl<(), Br>>>,
+        F: FnMut() -> C,
+    {
+        super::loop_unit(f).boxed_cf()
+    }
+
     pub fn on_state<S: 'static, T: 'static, F: 'static>(f: F) -> BoxedCF<Option<T>, S>
     where
         F: FnOnce(&mut S) -> T,
