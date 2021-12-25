@@ -120,11 +120,20 @@ impl<T: Clone, S> Menu<T, S> {
         }
         None
     }
+
+    pub fn enumerate(self) -> MenuEnumerate<T, S> {
+        MenuEnumerate(self)
+    }
+
+    pub fn cf(self) -> CF<Menu<T, S>> {
+        crate::control_flow::cf(self)
+    }
 }
 
 impl<T: Clone, S> Component for Menu<T, S> {
     type State = S;
     type Output = Option<T>;
+
     fn render(&self, state: &S, ctx: Ctx, fb: &mut FrameBuffer) {
         for (offset, &item_index) in self.offset_to_item_index.iter().enumerate() {
             if let Some(item_index) = item_index {
@@ -137,6 +146,7 @@ impl<T: Clone, S> Component for Menu<T, S> {
             }
         }
     }
+
     fn update(&mut self, state: &mut S, ctx: Ctx, event: Event) -> Self::Output {
         match event {
             Event::Input(input) => self.choose(ctx, input),
@@ -167,6 +177,27 @@ impl<T: Clone, S> Component for Menu<T, S> {
             }
         }
         max_coord.to_size().unwrap()
+    }
+}
+
+pub struct MenuEnumerate<T: Clone, S = ()>(Menu<T, S>);
+
+impl<T: Clone, S> Component for MenuEnumerate<T, S> {
+    type State = S;
+    type Output = Option<(usize, T)>;
+
+    fn render(&self, state: &S, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+
+    fn update(&mut self, state: &mut S, ctx: Ctx, event: Event) -> Self::Output {
+        self.0
+            .update(state, ctx, event)
+            .map(|value| (self.0.selected_index, value))
+    }
+
+    fn size(&self, state: &S, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
     }
 }
 
