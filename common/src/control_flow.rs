@@ -564,6 +564,45 @@ where
     }
 }
 
+pub struct LoopUnit<C, F> {
+    component: C,
+    f: F,
+}
+pub fn loop_unit<Br, C, F>(mut f: F) -> CF<LoopUnit<C, F>>
+where
+    C: Component<Output = Option<LoopControl<(), Br>>>,
+    F: FnMut() -> C,
+{
+    cf(LoopUnit { component: f(), f })
+}
+impl<Br, C, F> Component for LoopUnit<C, F>
+where
+    C: Component<Output = Option<LoopControl<(), Br>>>,
+    F: FnMut() -> C,
+{
+    type Output = Option<Br>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        if let Some(control) = self.component.update(state, ctx, event) {
+            match control {
+                LoopControl::Continue(()) => {
+                    self.component = (self.f)();
+                    None
+                }
+                LoopControl::Break(br) => Some(br),
+            }
+        } else {
+            None
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
+    }
+}
+
 /// Call a function on the current state returning a value which is yielded by
 /// this component
 pub struct OnState<S, T, F> {
