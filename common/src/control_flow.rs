@@ -176,6 +176,21 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
             co: PhantomData,
         })
     }
+
+    pub fn continue_with<Br, U>(self, value: U) -> CF<Continue<Replace<C, U>, Br>> {
+        self.replace(value).continue_()
+    }
+
+    pub fn break_with<Co, U>(self, value: U) -> CF<Break<Replace<C, U>, Co>> {
+        self.replace(value).break_()
+    }
+
+    pub fn replace<U>(self, value: U) -> CF<Replace<C, U>> {
+        cf(Replace {
+            component: self.0,
+            value: Some(value),
+        })
+    }
 }
 
 impl<C: Component<State = ()>> CF<C> {
@@ -318,12 +333,30 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         self.0.catch_escape().boxed_cf()
     }
 
+    pub fn replace<U: 'static>(self, value: U) -> BoxedCF<Option<U>, S> {
+        self.0.replace(value).boxed_cf()
+    }
+
     pub fn continue_<Br: 'static>(self) -> BoxedCF<Option<LoopControl<T, Br>>, S> {
         self.0.continue_().boxed_cf()
     }
 
     pub fn break_<Co: 'static>(self) -> BoxedCF<Option<LoopControl<Co, T>>, S> {
         self.0.break_().boxed_cf()
+    }
+
+    pub fn continue_with<Br: 'static, U: 'static>(
+        self,
+        value: U,
+    ) -> BoxedCF<Option<LoopControl<U, Br>>, S> {
+        self.0.continue_with(value).boxed_cf()
+    }
+
+    pub fn break_with<Co: 'static, U: 'static>(
+        self,
+        value: U,
+    ) -> BoxedCF<Option<LoopControl<Co, U>>, S> {
+        self.0.break_with(value).boxed_cf()
     }
 }
 
@@ -876,7 +909,6 @@ pub struct Map<C, F> {
     component: C,
     f: Option<F>,
 }
-
 impl<T, U, C, F> Component for Map<C, F>
 where
     C: Component<Output = Option<T>>,
@@ -894,6 +926,29 @@ where
                 t,
             )),
         }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
+    }
+}
+
+pub struct Replace<C, T> {
+    component: C,
+    value: Option<T>,
+}
+impl<C, T, U> Component for Replace<C, T>
+where
+    C: Component<Output = Option<U>>,
+{
+    type Output = Option<T>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.component
+            .update(state, ctx, event)
+            .and_then(|_| self.value.take())
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.component.size(state, ctx)
