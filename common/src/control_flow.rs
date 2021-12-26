@@ -636,6 +636,50 @@ where
     }
 }
 
+pub struct LoopMut<T, C, F> {
+    value: T,
+    component: C,
+    f: F,
+}
+pub fn loop_mut<Co, Br, T, C, F>(init: Co, mut value: T, mut f: F) -> CF<LoopMut<T, C, F>>
+where
+    C: Component<Output = Option<LoopControl<Co, Br>>>,
+    F: FnMut(Co, &mut T) -> C,
+{
+    cf(LoopMut {
+        component: f(init, &mut value),
+        value,
+        f,
+    })
+}
+impl<Co, Br, T, C, F> Component for LoopMut<T, C, F>
+where
+    C: Component<Output = Option<LoopControl<Co, Br>>>,
+    F: FnMut(Co, &mut T) -> C,
+{
+    type Output = Option<Br>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        if let Some(control) = self.component.update(state, ctx, event) {
+            match control {
+                LoopControl::Continue(co) => {
+                    self.component = (self.f)(co, &mut self.value);
+                    None
+                }
+                LoopControl::Break(br) => Some(br),
+            }
+        } else {
+            None
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
+    }
+}
+
 /// Call a function on the current state returning a value which is yielded by
 /// this component
 pub struct OnState<S, T, F> {
@@ -1202,6 +1246,19 @@ pub mod boxed {
         F: FnMut() -> C,
     {
         super::loop_unit(f).boxed_cf()
+    }
+
+    pub fn loop_mut<Co, Br, T: 'static, C: 'static, F: 'static>(
+        init: Co,
+        value: T,
+        f: F,
+    ) -> BoxedCF<Option<Br>, C::State>
+    where
+        C::State: Sized,
+        C: Component<Output = Option<LoopControl<Co, Br>>>,
+        F: FnMut(Co, &mut T) -> C,
+    {
+        super::loop_mut(init, value, f).boxed_cf()
     }
 
     pub fn on_state<S: 'static, T: 'static, F: 'static>(f: F) -> BoxedCF<Option<T>, S>
