@@ -488,6 +488,21 @@ pub enum LoopControl<Co, Br> {
     Break(Br),
 }
 
+impl<Co, Br> LoopControl<Co, Br> {
+    pub fn map_continue<Co2, F: FnOnce(Co) -> Co2>(self, f: F) -> LoopControl<Co2, Br> {
+        match self {
+            Self::Continue(co) => LoopControl::Continue(f(co)),
+            Self::Break(br) => LoopControl::Break(br),
+        }
+    }
+    pub fn map_break<Br2, F: FnOnce(Br) -> Br2>(self, f: F) -> LoopControl<Co, Br2> {
+        match self {
+            Self::Continue(co) => LoopControl::Continue(co),
+            Self::Break(br) => LoopControl::Break(f(br)),
+        }
+    }
+}
+
 /// Component decorator intended for use within `loop_`, which wraps yielded values
 /// in `LoopControl::Continue`
 pub struct Continue<C: Component, Br> {
