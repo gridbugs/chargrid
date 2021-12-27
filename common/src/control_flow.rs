@@ -385,6 +385,17 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
     ) -> BoxedCF<Option<LoopControl<Co, U>>, S> {
         self.0.break_with(value).boxed_cf()
     }
+
+    pub fn repeat<A: 'static, O: 'static, F: 'static>(self, init: A, f: F) -> BoxedCF<Option<O>, S>
+    where
+        F: FnMut(A, T) -> BoxedCF<Option<LoopControl<A, O>>, S>,
+    {
+        boxed::loop_((self, f, init), |(self_, mut f, acc)| {
+            self_.and_then_persistent(|self_, entry| {
+                f(acc, entry).map(|loop_control| loop_control.map_continue(|c| (self_, f, c)))
+            })
+        })
+    }
 }
 
 impl<O: 'static> BoxedCF<O, ()> {
