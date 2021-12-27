@@ -336,9 +336,9 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
     pub fn and_then_persistent<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
     where
         D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(BoxedComponent<Option<T>, S>, T) -> D,
+        F: FnOnce(Self, T) -> D,
     {
-        self.0.and_then_persistent(f).boxed_cf()
+        self.0.and_then_persistent(|a, b| f(a.into(), b)).boxed_cf()
     }
 
     pub fn and_then<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
