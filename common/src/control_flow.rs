@@ -138,6 +138,19 @@ impl<C: Component<Output = ()>> CF<C> {
 }
 
 impl<T, C: Component<Output = Option<T>>> CF<C> {
+    pub fn and_then_persistent<U, D, F>(self, f: F) -> CF<AndThenPersistent<C, D, F>>
+    where
+        D: Component<Output = Option<U>, State = C::State>,
+        F: FnOnce(C, T) -> D,
+    {
+        cf(AndThenPersistent(AndThenPersistentPriv::First(Some(
+            AndThenPersistentFirst {
+                component: self.0,
+                f,
+            },
+        ))))
+    }
+
     pub fn and_then<U, D, F>(self, f: F) -> CF<AndThen<C, D, F>>
     where
         D: Component<Output = Option<U>, State = C::State>,
@@ -314,6 +327,14 @@ impl<S: 'static> BoxedCF<(), S> {
 }
 
 impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
+    pub fn and_then_persistent<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
+    where
+        D: Component<Output = Option<U>, State = S>,
+        F: FnOnce(BoxedComponent<Option<T>, S>, T) -> D,
+    {
+        self.0.and_then_persistent(f).boxed_cf()
+    }
+
     pub fn and_then<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
     where
         D: Component<Output = Option<U>, State = S>,
@@ -903,6 +924,63 @@ where
     }
 }
 
+struct AndThenPersistentFirst<C, F> {
+    component: C,
+    f: F,
+}
+enum AndThenPersistentPriv<C, D, F> {
+    // First is an option because when it is called, the compiler doesn't know that we're about to
+    // destroy it
+    First(Option<AndThenPersistentFirst<C, F>>),
+    Second { component: D },
+}
+pub struct AndThenPersistent<C, D, F>(AndThenPersistentPriv<C, D, F>);
+
+impl<T, U, C, D, F> Component for AndThenPersistent<C, D, F>
+where
+    C: Component<Output = Option<T>>,
+    D: Component<Output = Option<U>, State = C::State>,
+    F: FnOnce(C, T) -> D,
+{
+    type Output = Option<U>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        match &self.0 {
+            AndThenPersistentPriv::First(first) => {
+                first.as_ref().unwrap().component.render(state, ctx, fb)
+            }
+            AndThenPersistentPriv::Second { component, .. } => component.render(state, ctx, fb),
+        }
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match &mut self.0 {
+            AndThenPersistentPriv::First(first) => {
+                match first.as_mut().unwrap().component.update(state, ctx, event) {
+                    None => None,
+                    Some(t) => {
+                        let first = first.take().unwrap();
+                        let mut second_component = (first.f)(first.component, t);
+                        let peek_result = second_component.update(state, ctx, Event::Peek);
+                        self.0 = AndThenPersistentPriv::Second {
+                            component: second_component,
+                        };
+                        peek_result
+                    }
+                }
+            }
+            AndThenPersistentPriv::Second { component, .. } => component.update(state, ctx, event),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        match &self.0 {
+            AndThenPersistentPriv::First(first) => {
+                first.as_ref().unwrap().component.size(state, ctx)
+            }
+            AndThenPersistentPriv::Second { component, .. } => component.size(state, ctx),
+        }
+    }
+}
+
 pub enum AndThen<C, D, F> {
     // f is an option because when it is called, the compiler doesn't know that we're about to
     // destroy it
@@ -926,10 +1004,7 @@ where
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         match self {
-            Self::First {
-                component,
-                ref mut f,
-            } => match component.update(state, ctx, event) {
+            Self::First { component, f } => match component.update(state, ctx, event) {
                 None => None,
                 Some(t) => {
                     let mut d = (f.take().unwrap())(t);
