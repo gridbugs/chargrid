@@ -242,6 +242,12 @@ where
     cf(component).boxed_cf()
 }
 
+impl<O, S> From<BoxedComponent<O, S>> for BoxedCF<O, S> {
+    fn from(boxed_component: BoxedComponent<O, S>) -> Self {
+        BoxedCF(cf(boxed_component))
+    }
+}
+
 impl<O, S> Component for BoxedCF<O, S> {
     type Output = O;
     type State = S;
