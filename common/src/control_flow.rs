@@ -396,6 +396,13 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
             })
         })
     }
+
+    pub fn repeat_unit<O: 'static, F: 'static>(self, mut f: F) -> BoxedCF<Option<O>, S>
+    where
+        F: FnMut(T) -> BoxedCF<Option<LoopControl<(), O>>, S>,
+    {
+        self.repeat((), move |(), entry| f(entry))
+    }
 }
 
 impl<O: 'static> BoxedCF<O, ()> {
