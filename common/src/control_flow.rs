@@ -204,6 +204,10 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
             value: Some(value),
         })
     }
+
+    pub fn pause(self) -> CF<Pause<C>> {
+        cf(Pause(self.0))
+    }
 }
 
 impl<C: Component<State = ()>> CF<C> {
@@ -1263,10 +1267,30 @@ where
         self.foreground.render(state, ctx, fb);
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.background.update(state, ctx, event);
         self.foreground.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.foreground.size(state, ctx)
+    }
+}
+
+pub struct Pause<C: Component>(C);
+
+impl<T, C> Component for Pause<C>
+where
+    C: Component<Output = Option<T>>,
+{
+    type Output = C::Output;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
+        None
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
     }
 }
 
