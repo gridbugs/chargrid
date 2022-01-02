@@ -407,6 +407,10 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
     {
         self.repeat((), move |(), entry| f(entry))
     }
+
+    pub fn pause(self) -> BoxedCF<Option<T>, S> {
+        self.0.pause().boxed_cf()
+    }
 }
 
 impl<O: 'static> BoxedCF<O, ()> {
