@@ -1,4 +1,5 @@
 use crate::{
+    add_offset::AddOffset,
     align::{Align, Alignment},
     border::{Border, BorderStyle},
     bound_size::BoundSize,
@@ -7,7 +8,8 @@ use crate::{
     set_size::SetSize,
 };
 use chargrid_core::{
-    app, ctx_tint, input, BoxedComponent, Component, Ctx, Event, FrameBuffer, Rgba32, Size, Tint,
+    app, ctx_tint, input, BoxedComponent, Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size,
+    Tint,
 };
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -95,6 +97,13 @@ impl<C: Component> CF<C> {
 
     pub fn centre(self) -> CF<Align<C>> {
         self.align(Alignment::centre())
+    }
+
+    pub fn add_offset(self, offset: Coord) -> CF<AddOffset<C>> {
+        cf(AddOffset {
+            component: self.0,
+            offset,
+        })
     }
 
     pub fn set_size(self, size: Size) -> CF<SetSize<C>> {
@@ -309,6 +318,10 @@ impl<O: 'static, S: 'static> BoxedCF<O, S> {
 
     pub fn centre(self) -> Self {
         self.0.centre().boxed_cf()
+    }
+
+    pub fn add_offset(self, offset: Coord) -> Self {
+        self.0.add_offset(offset).boxed_cf()
     }
 
     pub fn set_size(self, size: Size) -> Self {
