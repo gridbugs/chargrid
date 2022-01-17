@@ -20,4 +20,4 @@ chargrid_graphical_common = { path = "../graphical-common", version = "0.2" }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
 log = "0.4"
 ggez = "0.7"
-hashbrown = { version = "0.11", optional = true }
+hashbrown = { version = "0.12", optional = true }
