@@ -1581,9 +1581,9 @@ macro_rules! lens {
 #[macro_export]
 macro_rules! boxed_many {
     ($($items:expr),*) => {
-        many([
-          $($items),*
-        ]).boxed_cf()
+        $crate::control_flow::boxed::many([
+            $($items),*
+        ])
     };
 }
 
