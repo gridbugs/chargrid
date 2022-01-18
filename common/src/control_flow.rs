@@ -1580,7 +1580,7 @@ macro_rules! lens {
 
 #[macro_export]
 macro_rules! boxed_many {
-    ($($items:expr),*) => {
+    ($($items:expr),* $(,)* ) => {
         $crate::control_flow::boxed::many([
             $($items),*
         ])
