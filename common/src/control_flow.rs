@@ -1364,7 +1364,7 @@ where
         }
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-        for mut component in &mut self.iterable {
+        for component in &mut self.iterable {
             component.update(state, ctx, event);
         }
     }
