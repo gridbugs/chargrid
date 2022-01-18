@@ -2,7 +2,7 @@
 
 layout(location = 0) in vec3 a_BackgroundColour;
 layout(location = 1) in vec3 a_ForegroundColour;
-layout(location = 2) in int a_Underline;
+layout(location = 2) in uint a_Underline;
 
 layout(location = 0) out vec3 v_BackgroundColour;
 layout(location = 1) flat out vec3 v_ForegroundColour;

@@ -218,6 +218,19 @@ async fn setup(title: &str, window_dimensions: Dimensions<f64>, resizable: bool)
 }
 
 impl WgpuContext {
+    fn spirv_slice_to_shader_module_source(spirv_slice: &[u8]) -> wgpu::ShaderSource<'_> {
+        assert!(spirv_slice.len() % 4 == 0);
+        let mut buffer = Vec::with_capacity(spirv_slice.len() / 4);
+        let mut chunks = spirv_slice.chunks_exact(4);
+        for chunk in &mut chunks {
+            let mut array: [u8; 4] = Default::default();
+            array.copy_from_slice(chunk);
+            buffer.push(u32::from_le_bytes(array));
+        }
+        assert!(chunks.remainder().is_empty());
+        wgpu::ShaderSource::SpirV(Cow::Owned(buffer))
+    }
+
     fn new(
         window: &winit::window::Window,
         mut device: wgpu::Device,
@@ -245,11 +258,78 @@ impl WgpuContext {
             height: physical_size.height,
             present_mode: wgpu::PresentMode::Mailbox,
         };
+        enum Shaders {
+            Spv {
+                vertex: wgpu::ShaderModule,
+                fragment: wgpu::ShaderModule,
+                entry_point: &'static str,
+            },
+            Wgsl {
+                module: wgpu::ShaderModule,
+                vertex_entry_point: &'static str,
+                fragment_entry_point: &'static str,
+            },
+        }
+        impl Shaders {
+            fn vertex_module(&self) -> &wgpu::ShaderModule {
+                match self {
+                    Self::Spv { ref vertex, .. } => vertex,
+                    Self::Wgsl { ref module, .. } => module,
+                }
+            }
+            fn fragment_module(&self) -> &wgpu::ShaderModule {
+                match self {
+                    Self::Spv { ref fragment, .. } => fragment,
+                    Self::Wgsl { ref module, .. } => module,
+                }
+            }
+            fn vertex_entry_point(&self) -> &str {
+                match self {
+                    Self::Spv { entry_point, .. } => entry_point,
+                    Self::Wgsl {
+                        vertex_entry_point, ..
+                    } => vertex_entry_point,
+                }
+            }
+            fn fragment_entry_point(&self) -> &str {
+                match self {
+                    Self::Spv { entry_point, .. } => entry_point,
+                    Self::Wgsl {
+                        fragment_entry_point,
+                        ..
+                    } => fragment_entry_point,
+                }
+            }
+        }
+        let shaders = match adapter.get_info().backend {
+            wgpu::Backend::Gl => {
+                log::warn!("Using SPV shaders");
+                Shaders::Spv {
+                    vertex: device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                        label: None,
+                        source: Self::spirv_slice_to_shader_module_source(include_bytes!(
+                            "./shader.vert.spv"
+                        )),
+                    }),
+                    fragment: device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                        label: None,
+                        source: Self::spirv_slice_to_shader_module_source(include_bytes!(
+                            "./shader.frag.spv"
+                        )),
+                    }),
+                    entry_point: "main",
+                }
+            }
+            _other => Shaders::Wgsl {
+                module: device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                    label: None,
+                    source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+                }),
+                vertex_entry_point: "vs_main",
+                fragment_entry_point: "fs_main",
+            },
+        };
         surface.configure(&device, &surface_configuration);
-        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
-        });
         let background_cell_instance_buffer = populate_and_finish_buffer(
             device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
@@ -306,8 +386,8 @@ impl WgpuContext {
             label: None,
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
+                module: shaders.vertex_module(),
+                entry_point: shaders.vertex_entry_point(),
                 buffers: &[wgpu::VertexBufferLayout {
                     array_stride: mem::size_of::<BackgroundCellInstance>() as wgpu::BufferAddress,
                     step_mode: wgpu::VertexStepMode::Instance,
@@ -334,8 +414,8 @@ impl WgpuContext {
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
+                module: shaders.fragment_module(),
+                entry_point: shaders.fragment_entry_point(),
                 targets: &[surface_configuration.format.into()],
             }),
             multiview: None,
