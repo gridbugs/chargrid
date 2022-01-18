@@ -6,10 +6,11 @@ use crate::{
     fill::Fill,
     pad_to::PadTo,
     set_size::SetSize,
+    text::StyledString,
 };
 use chargrid_core::{
     app, ctx_tint, input, BoxedComponent, Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size,
-    Tint,
+    Style, Tint,
 };
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -1344,53 +1345,13 @@ impl<S> Component for Unit<S> {
     }
 }
 
-pub struct Many<I, S> {
-    iterable: I,
-    state: PhantomData<S>,
-}
-
-impl<I, S, C> Component for Many<I, S>
-where
-    C: Component<State = S>,
-    for<'a> &'a I: IntoIterator<Item = &'a C>,
-    for<'a> &'a mut I: IntoIterator<Item = &'a mut C>,
-{
-    type Output = ();
-    type State = S;
-    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        for component in &self.iterable {
-            component.render(state, ctx, fb);
-        }
-    }
-    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-        for mut component in &mut self.iterable {
-            component.update(state, ctx, event);
-        }
-    }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        let mut size = Size::new_u16(0, 0);
-        for component in &self.iterable {
-            size = size.pairwise_max(component.size(state, ctx));
-        }
-        size
-    }
-}
-
-pub fn many<I, S, C>(iterable: I) -> CF<Many<I, S>>
-where
-    C: Component<State = S>,
-    for<'a> &'a I: IntoIterator<Item = &'a C>,
-    for<'a> &'a mut I: IntoIterator<Item = &'a mut C>,
-{
-    cf(Many {
-        iterable,
-        state: PhantomData,
-    })
+pub fn styled_string<S>(string: String, style: Style) -> CF<IgnoreState<S, StyledString>> {
+    cf(StyledString { string, style }).ignore_state()
 }
 
 pub mod boxed {
     pub use super::{boxed_cf, BoxedCF, Escape, LoopControl, OrEscape};
-    use chargrid_core::{Component, Ctx, FrameBuffer};
+    use chargrid_core::{Component, Ctx, FrameBuffer, Style};
 
     pub fn val<S: 'static, T: 'static + Clone>(t: T) -> BoxedCF<Option<T>, S> {
         super::val(t).boxed_cf()
@@ -1490,13 +1451,8 @@ pub mod boxed {
         super::unit().boxed_cf()
     }
 
-    pub fn many<I: 'static, S: 'static, C: 'static>(iterable: I) -> BoxedCF<(), S>
-    where
-        C: Component<State = S>,
-        for<'a> &'a I: IntoIterator<Item = &'a C>,
-        for<'a> &'a mut I: IntoIterator<Item = &'a mut C>,
-    {
-        super::many(iterable).boxed_cf()
+    pub fn styled_string<S: 'static>(string: String, style: Style) -> BoxedCF<(), S> {
+        super::styled_string(string, style).boxed_cf()
     }
 }
 
@@ -1578,13 +1534,4 @@ macro_rules! lens {
     }};
 }
 
-#[macro_export]
-macro_rules! boxed_many {
-    ($($items:expr),* $(,)* ) => {
-        $crate::control_flow::boxed::many([
-            $($crate::control_flow::boxed_cf($items)),*
-        ])
-    };
-}
-
-pub use crate::{boxed_many, either, lens};
+pub use crate::{either, lens};
