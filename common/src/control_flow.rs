@@ -1578,4 +1578,13 @@ macro_rules! lens {
     }};
 }
 
-pub use crate::{either, lens};
+#[macro_export]
+macro_rules! boxed_many {
+    ($($items:expr),*) => {
+        boxed::many([
+            $($items),*
+        ])
+    };
+}
+
+pub use crate::{boxed_many, either, lens};
