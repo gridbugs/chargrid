@@ -2,6 +2,7 @@ use chargrid_wgpu::*;
 use component_experiment_app::app;
 
 fn main() {
+    env_logger::init();
     let context = Context::new(Config {
         font_bytes: FontBytes {
             normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
