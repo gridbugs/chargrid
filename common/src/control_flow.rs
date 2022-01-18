@@ -1344,6 +1344,58 @@ impl<S> Component for Unit<S> {
     }
 }
 
+pub struct Many<I, S>
+where
+    for<'a> &'a I: IntoIterator,
+    for<'a> &'a mut I: IntoIterator,
+    for<'a> <&'a I as IntoIterator>::Item: Component<State = S>,
+    for<'a> <&'a mut I as IntoIterator>::Item: Component<State = S>,
+{
+    iterable: I,
+    state: PhantomData<S>,
+}
+
+impl<I, S> Component for Many<I, S>
+where
+    for<'a> &'a I: IntoIterator,
+    for<'a> &'a mut I: IntoIterator,
+    for<'a> <&'a I as IntoIterator>::Item: Component<State = S>,
+    for<'a> <&'a mut I as IntoIterator>::Item: Component<State = S>,
+{
+    type Output = ();
+    type State = S;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        for component in &self.iterable {
+            component.render(state, ctx, fb);
+        }
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        for mut component in &mut self.iterable {
+            component.update(state, ctx, event);
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        let mut size = Size::new_u16(0, 0);
+        for component in &self.iterable {
+            size = size.pairwise_max(component.size(state, ctx));
+        }
+        size
+    }
+}
+
+pub fn many<I, S>(iterable: I) -> CF<Many<I, S>>
+where
+    for<'a> &'a I: IntoIterator,
+    for<'a> &'a mut I: IntoIterator,
+    for<'a> <&'a I as IntoIterator>::Item: Component<State = S>,
+    for<'a> <&'a mut I as IntoIterator>::Item: Component<State = S>,
+{
+    cf(Many {
+        iterable,
+        state: PhantomData,
+    })
+}
+
 pub mod boxed {
     pub use super::{boxed_cf, BoxedCF, Escape, LoopControl, OrEscape};
     use chargrid_core::{Component, Ctx, FrameBuffer};
@@ -1444,6 +1496,16 @@ pub mod boxed {
 
     pub fn unit<S: 'static>() -> BoxedCF<(), S> {
         super::unit().boxed_cf()
+    }
+
+    pub fn many<I: 'static, S: 'static>(iterable: I) -> BoxedCF<(), S>
+    where
+        for<'a> &'a I: IntoIterator,
+        for<'a> &'a mut I: IntoIterator,
+        for<'a> <&'a I as IntoIterator>::Item: Component<State = S>,
+        for<'a> <&'a mut I as IntoIterator>::Item: Component<State = S>,
+    {
+        super::many(iterable).boxed_cf()
     }
 }
 
