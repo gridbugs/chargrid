@@ -1344,23 +1344,16 @@ impl<S> Component for Unit<S> {
     }
 }
 
-pub struct Many<I, S>
-where
-    for<'a> &'a I: IntoIterator,
-    for<'a> &'a mut I: IntoIterator,
-    for<'a> <&'a I as IntoIterator>::Item: Component<State = S>,
-    for<'a> <&'a mut I as IntoIterator>::Item: Component<State = S>,
-{
+pub struct Many<I, S> {
     iterable: I,
     state: PhantomData<S>,
 }
 
-impl<I, S> Component for Many<I, S>
+impl<I, S, C> Component for Many<I, S>
 where
-    for<'a> &'a I: IntoIterator,
-    for<'a> &'a mut I: IntoIterator,
-    for<'a> <&'a I as IntoIterator>::Item: Component<State = S>,
-    for<'a> <&'a mut I as IntoIterator>::Item: Component<State = S>,
+    C: Component<State = S>,
+    for<'a> &'a I: IntoIterator<Item = &'a C>,
+    for<'a> &'a mut I: IntoIterator<Item = &'a mut C>,
 {
     type Output = ();
     type State = S;
@@ -1383,12 +1376,11 @@ where
     }
 }
 
-pub fn many<I, S>(iterable: I) -> CF<Many<I, S>>
+pub fn many<I, S, C>(iterable: I) -> CF<Many<I, S>>
 where
-    for<'a> &'a I: IntoIterator,
-    for<'a> &'a mut I: IntoIterator,
-    for<'a> <&'a I as IntoIterator>::Item: Component<State = S>,
-    for<'a> <&'a mut I as IntoIterator>::Item: Component<State = S>,
+    C: Component<State = S>,
+    for<'a> &'a I: IntoIterator<Item = &'a C>,
+    for<'a> &'a mut I: IntoIterator<Item = &'a mut C>,
 {
     cf(Many {
         iterable,
@@ -1498,12 +1490,11 @@ pub mod boxed {
         super::unit().boxed_cf()
     }
 
-    pub fn many<I: 'static, S: 'static>(iterable: I) -> BoxedCF<(), S>
+    pub fn many<I: 'static, S: 'static, C: 'static>(iterable: I) -> BoxedCF<(), S>
     where
-        for<'a> &'a I: IntoIterator,
-        for<'a> &'a mut I: IntoIterator,
-        for<'a> <&'a I as IntoIterator>::Item: Component<State = S>,
-        for<'a> <&'a mut I as IntoIterator>::Item: Component<State = S>,
+        C: Component<State = S>,
+        for<'a> &'a I: IntoIterator<Item = &'a C>,
+        for<'a> &'a mut I: IntoIterator<Item = &'a mut C>,
     {
         super::many(iterable).boxed_cf()
     }
