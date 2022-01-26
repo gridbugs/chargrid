@@ -1,7 +1,7 @@
 pub use chargrid_input as input;
 use grid_2d::Grid;
 pub use grid_2d::{Coord, Size};
-use input::Input;
+use input::{Input, KeyboardInput};
 pub use rgb_int;
 pub use rgb_int::Rgba32;
 use std::time::Duration;
@@ -550,6 +550,10 @@ impl Event {
         } else {
             false
         }
+    }
+
+    pub fn keyboard_input(self) -> Option<KeyboardInput> {
+        self.input().and_then(|input| input.keyboard_input())
     }
 }
 

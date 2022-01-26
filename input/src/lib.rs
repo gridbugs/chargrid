@@ -204,6 +204,15 @@ impl Input {
             Input::Gamepad(_) => false,
         }
     }
+
+    pub fn keyboard_input(self) -> Option<KeyboardInput> {
+        match self {
+            Input::Keyboard(keyboard_input) => Some(keyboard_input),
+            Input::Mouse(_) => None,
+            #[cfg(feature = "gamepad")]
+            Input::Gamepad(_) => None,
+        }
+    }
 }
 
 pub mod keys {
