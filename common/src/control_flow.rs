@@ -172,6 +172,16 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         })
     }
 
+    pub fn then_side_effect<F>(self, f: F) -> CF<ThenSideEffect<C, F>>
+    where
+        F: FnOnce(&mut C::State),
+    {
+        cf(ThenSideEffect {
+            component: self.0,
+            f: Some(f),
+        })
+    }
+
     pub fn map<U, F>(self, f: F) -> CF<Map<C, F>>
     where
         F: FnOnce(T) -> U,
@@ -365,6 +375,13 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         F: FnOnce(T) -> D,
     {
         self.0.and_then(f).boxed_cf()
+    }
+
+    pub fn then_side_effect<F: 'static>(self, f: F) -> BoxedCF<Option<T>, S>
+    where
+        F: FnOnce(&mut S),
+    {
+        self.0.then_side_effect(f).boxed_cf()
     }
 
     pub fn map<U, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
@@ -1082,6 +1099,37 @@ where
             Self::First { component, .. } => component.size(state, ctx),
             Self::Second(component) => component.size(state, ctx),
         }
+    }
+}
+
+pub struct ThenSideEffect<C, F> {
+    component: C,
+    // f is an option because when it is called, the compiler doesn't know that we're about to
+    // destroy it
+    f: Option<F>,
+}
+
+impl<T, C, F> Component for ThenSideEffect<C, F>
+where
+    C: Component<Output = Option<T>>,
+    F: FnOnce(&mut C::State),
+{
+    type Output = Option<T>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match self.component.update(state, ctx, event) {
+            None => None,
+            Some(t) => {
+                (self.f.take().expect("component yielded multiple times"))(state);
+                Some(t)
+            }
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
     }
 }
 
