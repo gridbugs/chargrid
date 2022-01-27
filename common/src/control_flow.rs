@@ -841,7 +841,7 @@ where
     type State = C::State;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
         match self {
-            Self::F(_) => panic!("state F should not last long enough to get here"),
+            Self::F(_) => (),
             Self::Component(component) => component.render(state, ctx, fb),
         }
     }
@@ -858,7 +858,7 @@ where
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         match self {
-            Self::F(_) => panic!("state F should not last long enough to get here"),
+            Self::F(_) => ctx.bounding_box.size(),
             Self::Component(component) => component.size(state, ctx),
         }
     }
