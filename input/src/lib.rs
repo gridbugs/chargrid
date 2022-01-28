@@ -213,6 +213,15 @@ impl Input {
             Input::Gamepad(_) => None,
         }
     }
+
+    pub fn mouse_input(self) -> Option<MouseInput> {
+        match self {
+            Input::Keyboard(_) => None,
+            Input::Mouse(mouse_input) => Some(mouse_input),
+            #[cfg(feature = "gamepad")]
+            Input::Gamepad(_) => None,
+        }
+    }
 }
 
 pub mod keys {
