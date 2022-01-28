@@ -2,10 +2,10 @@ use crate::{
     add_offset::AddOffset,
     align::{Align, Alignment},
     border::{Border, BorderStyle},
-    bound_size::BoundSize,
+    bound_size::{BoundHeight, BoundSize, BoundWidth},
     fill::Fill,
     pad_to::PadTo,
-    set_size::SetSize,
+    set_size::{SetHeight, SetSize, SetWidth},
     text::StyledString,
 };
 use chargrid_core::{
@@ -114,10 +114,38 @@ impl<C: Component> CF<C> {
         })
     }
 
+    pub fn set_width(self, width: u32) -> CF<SetWidth<C>> {
+        cf(SetWidth {
+            component: self.0,
+            width,
+        })
+    }
+
+    pub fn set_height(self, height: u32) -> CF<SetHeight<C>> {
+        cf(SetHeight {
+            component: self.0,
+            height,
+        })
+    }
+
     pub fn bound_size(self, size: Size) -> CF<BoundSize<C>> {
         cf(BoundSize {
             component: self.0,
             size,
+        })
+    }
+
+    pub fn bound_width(self, width: u32) -> CF<BoundWidth<C>> {
+        cf(BoundWidth {
+            component: self.0,
+            width,
+        })
+    }
+
+    pub fn bound_height(self, height: u32) -> CF<BoundHeight<C>> {
+        cf(BoundHeight {
+            component: self.0,
+            height,
         })
     }
 }
@@ -339,8 +367,24 @@ impl<O: 'static, S: 'static> BoxedCF<O, S> {
         self.0.set_size(size).boxed_cf()
     }
 
+    pub fn set_width(self, width: u32) -> Self {
+        self.0.set_width(width).boxed_cf()
+    }
+
+    pub fn set_height(self, height: u32) -> Self {
+        self.0.set_height(height).boxed_cf()
+    }
+
     pub fn bound_size(self, size: Size) -> Self {
         self.0.bound_size(size).boxed_cf()
+    }
+
+    pub fn bound_width(self, width: u32) -> Self {
+        self.0.bound_width(width).boxed_cf()
+    }
+
+    pub fn bound_height(self, height: u32) -> Self {
+        self.0.bound_height(height).boxed_cf()
     }
 }
 
