@@ -185,6 +185,14 @@ mod gamepad {
 #[cfg(feature = "gamepad")]
 pub use gamepad::{GamepadButton, GamepadInput};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum InputDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 /// An input event
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -246,6 +254,20 @@ impl Input {
         match self {
             Input::Keyboard(_) | Input::Mouse(_) => None,
             Input::Gamepad(gamepad_input) => Some(gamepad_input),
+        }
+    }
+
+    pub fn direction(self) -> Option<InputDirection> {
+        match self {
+            Input::Keyboard(KeyboardInput::Left) => Some(InputDirection::Left),
+            Input::Keyboard(KeyboardInput::Right) => Some(InputDirection::Right),
+            #[cfg(feature = "gamepad")]
+            Input::Gamepad(GamepadInput { button, .. }) => match button {
+                GamepadButton::DPadLeft => Some(InputDirection::Left),
+                GamepadButton::DPadRight => Some(InputDirection::Right),
+                _ => None,
+            },
+            _ => None,
         }
     }
 }

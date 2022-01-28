@@ -1,7 +1,7 @@
 pub use chargrid_input as input;
 use grid_2d::Grid;
 pub use grid_2d::{Coord, Size};
-use input::{Input, KeyboardInput, MouseInput};
+use input::{Input, InputDirection, KeyboardInput, MouseInput};
 pub use rgb_int;
 pub use rgb_int::Rgba32;
 use std::time::Duration;
@@ -585,6 +585,10 @@ impl Event {
     #[cfg(feature = "gamepad")]
     pub fn gamepad(self) -> Option<input::GamepadInput> {
         self.input().and_then(Input::gamepad)
+    }
+
+    pub fn input_direction(self) -> Option<InputDirection> {
+        self.input().and_then(Input::direction)
     }
 }
 
