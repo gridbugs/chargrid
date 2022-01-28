@@ -205,7 +205,25 @@ impl Input {
         }
     }
 
-    pub fn keyboard_input(self) -> Option<KeyboardInput> {
+    pub fn is_mouse(&self) -> bool {
+        match self {
+            Input::Keyboard(_) => false,
+            Input::Mouse(_) => true,
+            #[cfg(feature = "gamepad")]
+            Input::Gamepad(_) => false,
+        }
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub fn is_gamepad(&self) -> bool {
+        match self {
+            Input::Keyboard(_) => false,
+            Input::Mouse(_) => false,
+            Input::Gamepad(_) => true,
+        }
+    }
+
+    pub fn keyboard(self) -> Option<KeyboardInput> {
         match self {
             Input::Keyboard(keyboard_input) => Some(keyboard_input),
             Input::Mouse(_) => None,
@@ -214,12 +232,20 @@ impl Input {
         }
     }
 
-    pub fn mouse_input(self) -> Option<MouseInput> {
+    pub fn mouse(self) -> Option<MouseInput> {
         match self {
             Input::Keyboard(_) => None,
             Input::Mouse(mouse_input) => Some(mouse_input),
             #[cfg(feature = "gamepad")]
             Input::Gamepad(_) => None,
+        }
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub fn gamepad(self) -> Option<GamepadInput> {
+        match self {
+            Input::Keyboard(_) | Input::Mouse(_) => None,
+            Input::Gamepad(gamepad_input) => Some(gamepad_input),
         }
     }
 }

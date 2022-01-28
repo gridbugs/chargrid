@@ -575,11 +575,16 @@ impl Event {
     }
 
     pub fn keyboard_input(self) -> Option<KeyboardInput> {
-        self.input().and_then(|input| input.keyboard_input())
+        self.input().and_then(Input::keyboard)
     }
 
     pub fn mouse_input(self) -> Option<MouseInput> {
-        self.input().and_then(|input| input.mouse_input())
+        self.input().and_then(Input::mouse)
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub fn gamepad(self) -> Option<input::GamepadInput> {
+        self.input().and_then(Input::gamepad)
     }
 }
 
