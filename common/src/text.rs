@@ -1,3 +1,4 @@
+use crate::control_flow::{cf, BoxedCF, IgnoreState, CF};
 use chargrid_core::*;
 use std::cell::RefCell;
 
@@ -100,6 +101,14 @@ impl StyledString {
             state: RefCell::new(WordWrapState::default()),
         }
     }
+
+    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
+        cf(self).ignore_state()
+    }
+
+    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
+        self.cf().boxed_cf()
+    }
 }
 
 impl Component for StyledString {
@@ -161,6 +170,14 @@ impl StyledStringCharWrapped {
         }
         cursor
     }
+
+    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
+        cf(self).ignore_state()
+    }
+
+    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
+        self.cf().boxed_cf()
+    }
 }
 
 impl Component for StyledStringCharWrapped {
@@ -185,6 +202,16 @@ impl Component for StyledStringCharWrapped {
 pub struct StyledStringWordWrapped {
     pub styled_string: StyledString,
     state: RefCell<WordWrapState>,
+}
+
+impl StyledStringWordWrapped {
+    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
+        cf(self).ignore_state()
+    }
+
+    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
+        self.cf().boxed_cf()
+    }
 }
 
 impl Component for StyledStringWordWrapped {
@@ -326,6 +353,14 @@ impl Text {
             state: RefCell::new(WordWrapState::default()),
         }
     }
+
+    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
+        cf(self).ignore_state()
+    }
+
+    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
+        self.cf().boxed_cf()
+    }
 }
 
 impl Component for Text {
@@ -350,6 +385,16 @@ impl Component for Text {
 
 pub struct TextCharWrapped {
     pub text: Text,
+}
+
+impl TextCharWrapped {
+    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
+        cf(self).ignore_state()
+    }
+
+    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
+        self.cf().boxed_cf()
+    }
 }
 
 impl Component for TextCharWrapped {
@@ -381,6 +426,17 @@ pub struct TextWordWrapped {
     pub text: Text,
     state: RefCell<WordWrapState>,
 }
+
+impl TextWordWrapped {
+    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
+        cf(self).ignore_state()
+    }
+
+    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
+        self.cf().boxed_cf()
+    }
+}
+
 impl Component for TextWordWrapped {
     type Output = ();
     type State = ();
