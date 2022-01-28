@@ -185,12 +185,14 @@ mod gamepad {
 #[cfg(feature = "gamepad")]
 pub use gamepad::{GamepadButton, GamepadInput};
 
+/// Opinionated policy for interpreting input for convenience
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum InputDirection {
+pub enum InputPolicy {
     Up,
     Down,
     Left,
     Right,
+    Select,
 }
 
 /// An input event
@@ -257,14 +259,17 @@ impl Input {
         }
     }
 
-    pub fn direction(self) -> Option<InputDirection> {
+    pub fn policy(self) -> Option<InputPolicy> {
         match self {
-            Input::Keyboard(KeyboardInput::Left) => Some(InputDirection::Left),
-            Input::Keyboard(KeyboardInput::Right) => Some(InputDirection::Right),
+            Input::Keyboard(KeyboardInput::Left) => Some(InputPolicy::Left),
+            Input::Keyboard(KeyboardInput::Right) => Some(InputPolicy::Right),
+            Input::Keyboard(keys::RETURN) => Some(InputPolicy::Select),
+            Input::Mouse(MouseInput::MousePress { .. }) => Some(InputPolicy::Select),
             #[cfg(feature = "gamepad")]
             Input::Gamepad(GamepadInput { button, .. }) => match button {
-                GamepadButton::DPadLeft => Some(InputDirection::Left),
-                GamepadButton::DPadRight => Some(InputDirection::Right),
+                GamepadButton::DPadLeft => Some(InputPolicy::Left),
+                GamepadButton::DPadRight => Some(InputPolicy::Right),
+                GamepadButton::Start | GamepadButton::South => Some(InputPolicy::Select),
                 _ => None,
             },
             _ => None,
