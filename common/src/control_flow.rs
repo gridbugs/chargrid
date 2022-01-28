@@ -1342,10 +1342,10 @@ where
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.0.update(state, ctx, event);
-        if let Event::Input(input::Input::Keyboard(_)) = event {
-            Some(())
-        } else {
-            None
+        match event {
+            Event::Input(input::Input::Keyboard(_))
+            | Event::Input(input::Input::Mouse(input::MouseInput::MousePress { .. })) => Some(()),
+            _ => None,
         }
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
