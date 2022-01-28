@@ -173,6 +173,10 @@ impl<C: Component<Output = ()>> CF<C> {
     pub fn press_any_key(self) -> CF<PressAnyKey<C>> {
         cf(PressAnyKey(self.0))
     }
+
+    pub fn wait_for_click(self) -> CF<WaitForClick<C>> {
+        cf(WaitForClick(self.0))
+    }
 }
 
 impl<T, C: Component<Output = Option<T>>> CF<C> {
@@ -401,6 +405,10 @@ impl<S: 'static> BoxedCF<(), S> {
 
     pub fn press_any_key(self) -> BoxedCF<Option<()>, S> {
         self.0.press_any_key().boxed_cf()
+    }
+
+    pub fn wait_for_click(self) -> BoxedCF<Option<()>, S> {
+        self.0.wait_for_click().boxed_cf()
     }
 }
 
@@ -1343,6 +1351,29 @@ where
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.0.update(state, ctx, event);
         if let Event::Input(input::Input::Keyboard(_)) = event {
+            Some(())
+        } else {
+            None
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
+pub struct WaitForClick<C: Component<Output = ()>>(C);
+impl<C> Component for WaitForClick<C>
+where
+    C: Component<Output = ()>,
+{
+    type Output = Option<()>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.0.update(state, ctx, event);
+        if let Event::Input(input::Input::Mouse(input::MouseInput::MousePress { .. })) = event {
             Some(())
         } else {
             None
