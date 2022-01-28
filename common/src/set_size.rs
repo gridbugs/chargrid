@@ -38,7 +38,8 @@ impl<C: Component> Component for SetWidth<C> {
         self.component.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        self.component.size(state, ctx).set_width(self.width)
+        let ctx = ctx.set_width(self.width);
+        self.component.size(state, ctx)
     }
 }
 
@@ -59,6 +60,7 @@ impl<C: Component> Component for SetHeight<C> {
         self.component.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        self.component.size(state, ctx).set_height(self.height)
+        let ctx = ctx.set_height(self.height);
+        self.component.size(state, ctx)
     }
 }
