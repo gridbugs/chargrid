@@ -265,6 +265,12 @@ impl Input {
             Input::Keyboard(KeyboardInput::Right) => Some(InputPolicy::Right),
             Input::Keyboard(keys::RETURN) => Some(InputPolicy::Select),
             Input::Mouse(MouseInput::MousePress { .. }) => Some(InputPolicy::Select),
+            Input::Mouse(MouseInput::MouseScroll { direction, .. }) => Some(match direction {
+                ScrollDirection::Up => InputPolicy::Up,
+                ScrollDirection::Down => InputPolicy::Down,
+                ScrollDirection::Left => InputPolicy::Left,
+                ScrollDirection::Right => InputPolicy::Right,
+            }),
             #[cfg(feature = "gamepad")]
             Input::Gamepad(GamepadInput { button, .. }) => match button {
                 GamepadButton::DPadLeft => Some(InputPolicy::Left),
