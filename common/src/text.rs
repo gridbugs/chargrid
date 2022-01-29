@@ -57,6 +57,16 @@ impl Target for MeasureBounds {
 }
 
 impl StyledString {
+    pub fn white(string: String) -> StyledString {
+        StyledString {
+            string,
+            style: Style::default()
+                .with_bold(false)
+                .with_underline(false)
+                .with_foreground(Rgba32::new_grey(255)),
+        }
+    }
+
     fn process_character<T: Target>(
         mut cursor: Coord,
         character: char,
