@@ -6,6 +6,7 @@ pub mod control_flow;
 pub mod fade;
 pub mod fill;
 pub mod menu;
+pub mod pad_by;
 pub mod pad_to;
 pub mod set_size;
 pub mod signal;

@@ -4,6 +4,7 @@ use crate::{
     border::{Border, BorderStyle},
     bound_size::{BoundHeight, BoundSize, BoundWidth},
     fill::Fill,
+    pad_by::{PadBy, Padding},
     pad_to::PadTo,
     set_size::{SetHeight, SetSize, SetWidth},
     text::StyledString,
@@ -86,6 +87,13 @@ impl<C: Component> CF<C> {
         cf(PadTo {
             component: self.0,
             size,
+        })
+    }
+
+    pub fn pad_by(self, padding: Padding) -> CF<PadBy<C>> {
+        cf(PadBy {
+            component: self.0,
+            padding,
         })
     }
 
@@ -200,6 +208,17 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         })
     }
 
+    pub fn then<U, D, F>(self, f: F) -> CF<Then<C, D, F>>
+    where
+        D: Component<Output = Option<U>, State = C::State>,
+        F: FnOnce() -> D,
+    {
+        cf(Then::First {
+            component: self.0,
+            f: Some(f),
+        })
+    }
+
     pub fn then_side_effect<F>(self, f: F) -> CF<ThenSideEffect<C, F>>
     where
         F: FnOnce(&mut C::State),
@@ -215,6 +234,16 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         F: FnOnce(T) -> U,
     {
         cf(Map {
+            component: self.0,
+            f: Some(f),
+        })
+    }
+
+    pub fn map_val<U, F>(self, f: F) -> CF<MapVal<C, F>>
+    where
+        F: FnOnce() -> U,
+    {
+        cf(MapVal {
             component: self.0,
             f: Some(f),
         })
@@ -351,6 +380,10 @@ impl<O: 'static, S: 'static> BoxedCF<O, S> {
         self.0.pad_to(size).boxed_cf()
     }
 
+    pub fn pad_by(self, padding: Padding) -> Self {
+        self.0.pad_by(padding).boxed_cf()
+    }
+
     pub fn align(self, alignment: Alignment) -> Self {
         self.0.align(alignment).boxed_cf()
     }
@@ -421,6 +454,14 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         self.0.and_then(f).boxed_cf()
     }
 
+    pub fn then<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
+    where
+        D: Component<Output = Option<U>, State = S>,
+        F: FnOnce() -> D,
+    {
+        self.0.then(f).boxed_cf()
+    }
+
     pub fn then_side_effect<F: 'static>(self, f: F) -> BoxedCF<Option<T>, S>
     where
         F: FnOnce(&mut S),
@@ -433,6 +474,13 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         F: FnOnce(T) -> U,
     {
         self.0.map(f).boxed_cf()
+    }
+
+    pub fn map_val<U, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
+    where
+        F: FnOnce() -> U,
+    {
+        self.0.map_val(f).boxed_cf()
     }
 
     pub fn catch_escape(self) -> BoxedCF<Option<OrEscape<T>>, S> {
@@ -1146,6 +1194,50 @@ where
     }
 }
 
+/// Similar to AndThen but the output of the component is ignored
+pub enum Then<C, D, F> {
+    // f is an option because when it is called, the compiler doesn't know that we're about to
+    // destroy it
+    First { component: C, f: Option<F> },
+    Second(D),
+}
+
+impl<T, U, C, D, F> Component for Then<C, D, F>
+where
+    C: Component<Output = Option<T>>,
+    D: Component<Output = Option<U>, State = C::State>,
+    F: FnOnce() -> D,
+{
+    type Output = Option<U>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        match self {
+            Self::First { component, .. } => component.render(state, ctx, fb),
+            Self::Second(component) => component.render(state, ctx, fb),
+        }
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match self {
+            Self::First { component, f } => match component.update(state, ctx, event) {
+                None => None,
+                Some(_) => {
+                    let mut d = (f.take().unwrap())();
+                    let peek_result = d.update(state, ctx, Event::Peek);
+                    *self = Self::Second(d);
+                    peek_result
+                }
+            },
+            Self::Second(component) => component.update(state, ctx, event),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        match self {
+            Self::First { component, .. } => component.size(state, ctx),
+            Self::Second(component) => component.size(state, ctx),
+        }
+    }
+}
+
 pub struct ThenSideEffect<C, F> {
     component: C,
     // f is an option because when it is called, the compiler doesn't know that we're about to
@@ -1197,6 +1289,31 @@ where
             Some(t) => Some((self.f.take().expect("component yielded multiple times"))(
                 t,
             )),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
+    }
+}
+
+pub struct MapVal<C, F> {
+    component: C,
+    f: Option<F>,
+}
+impl<T, U, C, F> Component for MapVal<C, F>
+where
+    C: Component<Output = Option<T>>,
+    F: FnOnce() -> U,
+{
+    type Output = Option<U>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match self.component.update(state, ctx, event) {
+            None => None,
+            Some(_) => Some((self.f.take().expect("component yielded multiple times"))()),
         }
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {

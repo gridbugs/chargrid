@@ -80,6 +80,10 @@ impl BoundingBox {
     pub fn set_height(self, height: u32) -> Self {
         self.set_size(self.size().set_height(height))
     }
+
+    pub fn add_size(self, size: Size) -> Self {
+        self.set_size(self.size() + size)
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -537,6 +541,13 @@ impl<'a> Ctx<'a> {
     pub fn set_height(self, height: u32) -> Self {
         Self {
             bounding_box: self.bounding_box.set_height(height),
+            ..self
+        }
+    }
+
+    pub fn add_size(self, size: Size) -> Self {
+        Self {
+            bounding_box: self.bounding_box.add_size(size),
             ..self
         }
     }
