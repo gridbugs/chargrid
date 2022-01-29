@@ -27,6 +27,9 @@ impl Padding {
         ctx.add_offset(Coord::new(self.left as i32, self.top as i32))
             .add_size(Size::new(self.right, self.bottom))
     }
+    fn size_delta(&self) -> Size {
+        Size::new(self.left + self.right, self.top + self.bottom)
+    }
 }
 
 impl<C: Component> Component for PadBy<C> {
@@ -41,6 +44,6 @@ impl<C: Component> Component for PadBy<C> {
             .update(state, self.padding.update_ctx(ctx), event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        self.component.size(state, self.padding.update_ctx(ctx))
+        self.component.size(state, ctx) + self.padding.size_delta()
     }
 }
