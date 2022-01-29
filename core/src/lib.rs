@@ -498,6 +498,14 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    pub fn add_x(self, x: i32) -> Self {
+        self.add_offset(Coord { x, y: 0 })
+    }
+
+    pub fn add_y(self, y: i32) -> Self {
+        self.add_offset(Coord { x: 0, y })
+    }
+
     pub fn add_depth(self, depth_delta: i8) -> Self {
         Self {
             depth: self.depth + depth_delta,
