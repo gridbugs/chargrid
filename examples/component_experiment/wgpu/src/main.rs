@@ -24,6 +24,7 @@ fn main() {
         underline_width_cell_ratio: 0.1,
         underline_top_offset_cell_ratio: 0.8,
         resizable: false,
+        force_secondary_adapter: false,
     });
     context.run(app());
 }

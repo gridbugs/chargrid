@@ -162,7 +162,12 @@ async fn request_adapter_for_backend(
     Ok((adapter, instance, surface, device, queue))
 }
 
-async fn setup(title: &str, window_dimensions: Dimensions<f64>, resizable: bool) -> Setup {
+async fn setup(
+    title: &str,
+    window_dimensions: Dimensions<f64>,
+    resizable: bool,
+    force_secondary_adapter: bool,
+) -> Setup {
     let event_loop = winit::event_loop::EventLoop::new();
     let window_builder = winit::window::WindowBuilder::new().with_title(title);
     let window_builder = {
@@ -179,6 +184,10 @@ async fn setup(title: &str, window_dimensions: Dimensions<f64>, resizable: bool)
         (wgpu::Backends::SECONDARY, "secondary"),
         (wgpu::Backends::PRIMARY, "primary"),
     ];
+    if force_secondary_adapter {
+        let (backend, _) = backends_to_try_reverse_order.pop().unwrap();
+        assert!(backend == wgpu::Backends::PRIMARY);
+    }
     if let Some(env_backends) = wgpu::util::backend_bits_from_env() {
         backends_to_try_reverse_order.push((env_backends, "environment"));
     }
@@ -638,6 +647,7 @@ impl Context {
             underline_width_cell_ratio,
             underline_top_offset_cell_ratio,
             resizable,
+            force_secondary_adapter,
         }: Config,
     ) -> Result<Self, ContextBuildError> {
         let Setup {
@@ -648,7 +658,12 @@ impl Context {
             adapter,
             device,
             queue,
-        } = pollster::block_on(setup(title.as_str(), window_dimensions_px, resizable));
+        } = pollster::block_on(setup(
+            title.as_str(),
+            window_dimensions_px,
+            resizable,
+            force_secondary_adapter,
+        ));
         let size_context = SizeContext {
             font_source_scale: ab_glyph::PxScale {
                 x: font_scale.width as f32,

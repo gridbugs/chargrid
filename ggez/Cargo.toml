@@ -16,7 +16,6 @@ gamepad = ["chargrid_input/gamepad", "hashbrown", "chargrid_runtime/gamepad"]
 
 [dependencies]
 chargrid_input = { path = "../input", version = "0.2" }
-chargrid_graphical_common = { path = "../graphical-common", version = "0.2" }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
 log = "0.4"
 ggez = "0.7"

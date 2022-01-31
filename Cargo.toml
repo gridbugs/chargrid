@@ -7,7 +7,6 @@ members = [
     "ggez",
     "ansi-terminal",
     "web",
-    "graphical-common",
     "gamepad",
     "input",
     "core",

@@ -15,7 +15,6 @@ serialize = ["chargrid_input/serialize"]
 gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamepad"]
 
 [dependencies]
-chargrid_graphical_common = { path = "../graphical-common", version = "0.2" }
 chargrid_input = { path = "../input", version = "0.2" }
 chargrid_gamepad = { path = "../gamepad", version = "0.2", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
