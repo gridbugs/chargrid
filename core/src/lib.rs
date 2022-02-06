@@ -510,6 +510,10 @@ impl<'a> Ctx<'a> {
         self.add_offset(Coord { x: 0, y })
     }
 
+    pub fn add_xy(self, x: i32, y: i32) -> Self {
+        self.add_offset(Coord { x, y })
+    }
+
     pub fn add_depth(self, depth_delta: i8) -> Self {
         Self {
             depth: self.depth + depth_delta,
