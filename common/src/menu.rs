@@ -21,6 +21,7 @@ pub struct Menu<T: Clone, S = ()> {
     offset_to_item_index: Vec<Option<usize>>,
     selected_index: usize,
     hotkeys: HashMap<input::KeyboardInput, T>,
+    vi_keys: bool,
     since_epoch: Duration,
 }
 
@@ -92,6 +93,16 @@ impl<T: Clone, S> Menu<T, S> {
                 ..
             }) => self.down(),
             Input::Keyboard(other) => {
+                if self.vi_keys {
+                    if other == KeyboardInput::Char('j') {
+                        self.down();
+                        return None;
+                    }
+                    if other == KeyboardInput::Char('k') {
+                        self.up();
+                        return None;
+                    }
+                }
                 if let Some(item) = self.hotkeys.get(&other).cloned() {
                     return Some(item);
                 }
@@ -482,6 +493,7 @@ pub mod builder {
         items: Vec<MenuItem<T, S>>,
         hotkeys: HashMap<input::KeyboardInput, T>,
         offset_to_item_index: Vec<Option<usize>>,
+        vi_keys: bool,
     }
 
     impl<T: Clone, S> Default for MenuBuilder<T, S> {
@@ -490,6 +502,7 @@ pub mod builder {
                 items: Vec::new(),
                 offset_to_item_index: Vec::new(),
                 hotkeys: HashMap::new(),
+                vi_keys: false,
             }
         }
     }
@@ -528,11 +541,21 @@ pub mod builder {
             self.offset_to_item_index.push(None);
         }
 
+        pub fn vi_keys(mut self) -> Self {
+            self.vi_keys_mut();
+            self
+        }
+
+        pub fn vi_keys_mut(&mut self) {
+            self.vi_keys = true;
+        }
+
         pub fn build(self) -> Menu<T, S> {
             let Self {
                 mut items,
                 hotkeys,
                 offset_to_item_index,
+                vi_keys,
             } = self;
             let selected_index = 0;
             for (i, item) in items.iter_mut().enumerate() {
@@ -542,11 +565,21 @@ pub mod builder {
                     item.identifier.init_selection(false);
                 }
             }
+            if vi_keys {
+                // make sure the hotkeys don't include the vi keys
+                if hotkeys.contains_key(&input::KeyboardInput::Char('j')) {
+                    panic!("vi_keys cannot be used when j is a hotkey");
+                }
+                if hotkeys.contains_key(&input::KeyboardInput::Char('k')) {
+                    panic!("vi_keys cannot be used when k is a hotkey");
+                }
+            }
             Menu {
                 items,
                 selected_index,
                 offset_to_item_index,
                 hotkeys,
+                vi_keys,
                 since_epoch: Duration::from_millis(0),
             }
         }
