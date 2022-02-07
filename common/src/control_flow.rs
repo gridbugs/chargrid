@@ -1602,9 +1602,42 @@ pub fn styled_string<S>(string: String, style: Style) -> CF<IgnoreState<S, Style
     cf(StyledString { string, style }).ignore_state()
 }
 
+pub struct OnInput<F, S> {
+    f: F,
+    state: PhantomData<S>,
+}
+impl<F, T, S> Component for OnInput<F, S>
+where
+    F: FnMut(input::Input) -> Option<T>,
+{
+    type Output = Option<T>;
+    type State = S;
+    fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
+        if let Event::Input(input) = event {
+            if let Some(output) = (self.f)(input) {
+                return Some(output);
+            }
+        }
+        None
+    }
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+        ctx.bounding_box.size()
+    }
+}
+pub fn on_input<F, T, S>(f: F) -> CF<OnInput<F, S>>
+where
+    F: FnMut(input::Input) -> Option<T>,
+{
+    cf(OnInput {
+        f,
+        state: PhantomData,
+    })
+}
+
 pub mod boxed {
     pub use super::{boxed_cf, BoxedCF, Escape, LoopControl, OrEscape};
-    use chargrid_core::{Component, Ctx, FrameBuffer, Style};
+    use chargrid_core::{input, Component, Ctx, FrameBuffer, Style};
 
     pub fn val<S: 'static, T: 'static + Clone>(t: T) -> BoxedCF<Option<T>, S> {
         super::val(t).boxed_cf()
@@ -1715,6 +1748,13 @@ pub mod boxed {
 
     pub fn styled_string<S: 'static>(string: String, style: Style) -> BoxedCF<(), S> {
         super::styled_string(string, style).boxed_cf()
+    }
+
+    pub fn on_input<F: 'static, T, S: 'static>(f: F) -> BoxedCF<Option<T>, S>
+    where
+        F: FnMut(input::Input) -> Option<T>,
+    {
+        super::on_input(f).boxed_cf()
     }
 }
 
