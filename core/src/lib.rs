@@ -316,6 +316,14 @@ impl Style {
             background: (self.background.or(other.background)),
         }
     }
+    pub const fn plain_text() -> Self {
+        Self {
+            bold: Some(false),
+            underline: Some(false),
+            foreground: Some(Rgba32::new_grey(255)),
+            background: None,
+        }
+    }
 }
 
 impl Default for Style {
