@@ -11,7 +11,7 @@ use crate::{
 };
 use chargrid_core::{
     app, ctx_tint, input, BoxedComponent, Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size,
-    Style, Tint,
+    Style, Tint, TintIdentity,
 };
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -55,16 +55,29 @@ impl<C: Component> CF<C> {
         cf(ClearEachFrame(self.0))
     }
 
-    pub fn overlay<D: Component<State = C::State>, T: Tint>(
+    pub fn overlay_tint<D: Component<State = C::State>, T: Tint>(
         self,
         background: D,
         tint: T,
         depth_delta: i8,
-    ) -> CF<Overlay<C, D, T>> {
-        cf(Overlay {
+    ) -> CF<OverlayTint<C, D, T>> {
+        cf(OverlayTint {
             foreground: self.0,
             background,
             tint,
+            depth_delta,
+        })
+    }
+
+    pub fn overlay<D: Component<State = C::State>>(
+        self,
+        background: D,
+        depth_delta: i8,
+    ) -> CF<OverlayTint<C, D, TintIdentity>> {
+        cf(OverlayTint {
+            foreground: self.0,
+            background,
+            tint: TintIdentity,
             depth_delta,
         })
     }
@@ -112,6 +125,20 @@ impl<C: Component> CF<C> {
         cf(AddOffset {
             component: self.0,
             offset,
+        })
+    }
+
+    pub fn add_x(self, x: i32) -> CF<AddOffset<C>> {
+        cf(AddOffset {
+            component: self.0,
+            offset: Coord { x, y: 0 },
+        })
+    }
+
+    pub fn add_y(self, y: i32) -> CF<AddOffset<C>> {
+        cf(AddOffset {
+            component: self.0,
+            offset: Coord { x: 0, y },
         })
     }
 
@@ -355,13 +382,23 @@ impl<O: 'static, S: 'static> BoxedCF<O, S> {
         self.0.some().boxed_cf()
     }
 
-    pub fn overlay<D: 'static + Component<State = S>, T: 'static + Tint>(
+    pub fn overlay_tint<D: 'static + Component<State = S>, T: 'static + Tint>(
         self,
         background: D,
         tint: T,
         depth_delta: i8,
     ) -> Self {
-        self.0.overlay(background, tint, depth_delta).boxed_cf()
+        self.0
+            .overlay_tint(background, tint, depth_delta)
+            .boxed_cf()
+    }
+
+    pub fn overlay<D: 'static + Component<State = S>>(
+        self,
+        background: D,
+        depth_delta: i8,
+    ) -> Self {
+        self.0.overlay(background, depth_delta).boxed_cf()
     }
 
     pub fn clear_each_frame(self) -> Self {
@@ -394,6 +431,14 @@ impl<O: 'static, S: 'static> BoxedCF<O, S> {
 
     pub fn add_offset(self, offset: Coord) -> Self {
         self.0.add_offset(offset).boxed_cf()
+    }
+
+    pub fn add_x(self, x: i32) -> Self {
+        self.0.add_x(x).boxed_cf()
+    }
+
+    pub fn add_y(self, y: i32) -> Self {
+        self.0.add_y(y).boxed_cf()
     }
 
     pub fn set_size(self, size: Size) -> Self {
@@ -1470,14 +1515,14 @@ where
     }
 }
 
-pub struct Overlay<C: Component, D: Component, T: Tint> {
+pub struct OverlayTint<C: Component, D: Component, T: Tint> {
     pub foreground: C,
     pub background: D,
     pub tint: T,
     pub depth_delta: i8,
 }
 
-impl<C, D, T> Component for Overlay<C, D, T>
+impl<C, D, T> Component for OverlayTint<C, D, T>
 where
     C: Component,
     D: Component<State = C::State>,

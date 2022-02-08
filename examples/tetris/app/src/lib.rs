@@ -233,7 +233,7 @@ fn pausable_tetris(
                 Err(Escape) => Ei::A(
                     pause_menu()
                         .centre()
-                        .overlay(tetris(), TintDim(63), 10)
+                        .overlay_tint(tetris(), TintDim(63), 10)
                         .catch_escape()
                         .and_then(|choice| {
                             on_state(move |s: &mut TetrisState| match choice {
