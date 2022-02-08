@@ -183,6 +183,18 @@ impl<C: Component> CF<C> {
             height,
         })
     }
+
+    pub fn with_title<T: Component<State = C::State>>(
+        self,
+        title: T,
+        padding: i32,
+    ) -> CF<WithTitle<T, C>> {
+        cf(WithTitle {
+            title,
+            component: self.0,
+            padding,
+        })
+    }
 }
 
 impl<C: Component> CF<C>
@@ -463,6 +475,10 @@ impl<O: 'static, S: 'static> BoxedCF<O, S> {
 
     pub fn bound_height(self, height: u32) -> Self {
         self.0.bound_height(height).boxed_cf()
+    }
+
+    pub fn with_title<T: 'static + Component<State = S>>(self, title: T, padding: i32) -> Self {
+        self.0.with_title(title, padding).boxed_cf()
     }
 }
 
@@ -1678,6 +1694,56 @@ where
         f,
         state: PhantomData,
     })
+}
+
+pub struct WithTitle<T, C>
+where
+    T: Component,
+    C: Component<State = T::State>,
+{
+    pub title: T,
+    pub component: C,
+    pub padding: i32,
+}
+
+impl<T, C> WithTitle<T, C>
+where
+    T: Component,
+    C: Component<State = T::State>,
+{
+    fn component_ctx<'a>(&self, state: &T::State, ctx: Ctx<'a>) -> Ctx<'a> {
+        ctx.add_y(self.padding + self.title.size(state, ctx).height() as i32)
+    }
+}
+
+impl<T, C> Component for WithTitle<T, C>
+where
+    T: Component,
+    C: Component<State = T::State>,
+{
+    type Output = C::Output;
+    type State = C::State;
+
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.title.render(state, ctx, fb);
+        self.component
+            .render(state, self.component_ctx(state, ctx), fb);
+    }
+
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.title.update(state, ctx, event);
+        self.component
+            .update(state, self.component_ctx(state, ctx), event)
+    }
+
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        let title_size = self.title.size(state, ctx);
+        let component_size = self.component.size(state, self.component_ctx(state, ctx));
+        let width = title_size.width().max(component_size.width());
+        let height =
+            (title_size.height() as i32 + component_size.height() as i32 + self.padding) as u32;
+        Size::new(width, height)
+    }
 }
 
 pub mod boxed {
