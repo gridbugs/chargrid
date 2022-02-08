@@ -17,7 +17,7 @@ impl<C: Component> Component for BoundSize<C> {
         self.component.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        let child_size = self.component.size(state, ctx);
+        let child_size = self.component.size(state, ctx.set_size(self.size));
         child_size.pairwise_min(self.size)
     }
 }
@@ -39,7 +39,7 @@ impl<C: Component> Component for BoundWidth<C> {
         self.component.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        let child_size = self.component.size(state, ctx);
+        let child_size = self.component.size(state, ctx.set_width(self.width));
         child_size.set_width(child_size.width().min(self.width))
     }
 }
@@ -61,7 +61,7 @@ impl<C: Component> Component for BoundHeight<C> {
         self.component.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        let child_size = self.component.size(state, ctx);
+        let child_size = self.component.size(state, ctx.set_height(self.height));
         child_size.set_height(child_size.height().min(self.height))
     }
 }
