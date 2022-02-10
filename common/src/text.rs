@@ -2,6 +2,7 @@ use crate::control_flow::{cf, BoxedCF, IgnoreState, CF};
 use chargrid_core::*;
 use std::cell::RefCell;
 
+#[derive(Clone, Debug)]
 pub struct StyledString {
     pub string: String,
     pub style: Style,
