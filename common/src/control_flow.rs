@@ -51,6 +51,10 @@ impl<C: Component> CF<C> {
         cf(Some_(self.0))
     }
 
+    pub fn none(self) -> CF<None_<C>> {
+        cf(None_(self.0))
+    }
+
     pub fn clear_each_frame(self) -> CF<ClearEachFrame<C>> {
         cf(ClearEachFrame(self.0))
     }
@@ -392,6 +396,10 @@ impl<O: 'static, S: 'static> BoxedCF<O, S> {
 
     pub fn some(self) -> BoxedCF<Option<O>, S> {
         self.0.some().boxed_cf()
+    }
+
+    pub fn none(self) -> BoxedCF<Option<O>, S> {
+        self.0.none().boxed_cf()
     }
 
     pub fn overlay_tint<D: 'static + Component<State = S>, T: 'static + Tint>(
@@ -1591,6 +1599,22 @@ impl<C: Component> Component for Some_<C> {
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         Some(self.0.update(state, ctx, event))
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
+pub struct None_<C: Component>(pub C);
+impl<C: Component> Component for None_<C> {
+    type Output = Option<C::Output>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb)
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.0.update(state, ctx, event);
+        None
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.0.size(state, ctx)
