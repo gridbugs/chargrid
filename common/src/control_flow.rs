@@ -1730,6 +1730,39 @@ where
     })
 }
 
+pub struct OnInputState<F, S> {
+    f: F,
+    state: PhantomData<S>,
+}
+impl<F, T, S> Component for OnInputState<F, S>
+where
+    F: FnMut(input::Input, &mut S) -> Option<T>,
+{
+    type Output = Option<T>;
+    type State = S;
+    fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
+    fn update(&mut self, state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
+        if let Event::Input(input) = event {
+            if let Some(output) = (self.f)(input, state) {
+                return Some(output);
+            }
+        }
+        None
+    }
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+        ctx.bounding_box.size()
+    }
+}
+pub fn on_input_state<F, T, S>(f: F) -> CF<OnInputState<F, S>>
+where
+    F: FnMut(input::Input, &mut S) -> Option<T>,
+{
+    cf(OnInputState {
+        f,
+        state: PhantomData,
+    })
+}
+
 pub struct WithTitle<T, C>
 where
     T: Component,
@@ -1943,6 +1976,13 @@ pub mod boxed {
         F: FnMut(input::Input) -> Option<T>,
     {
         super::on_input(f).boxed_cf()
+    }
+
+    pub fn on_input_state<F: 'static, T, S: 'static>(f: F) -> BoxedCF<Option<T>, S>
+    where
+        F: FnMut(input::Input, &mut S) -> Option<T>,
+    {
+        super::on_input_state(f).boxed_cf()
     }
 }
 
