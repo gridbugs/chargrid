@@ -605,6 +605,24 @@ impl Event {
         }
     }
 
+    #[cfg(feature = "gamepad")]
+    pub fn is_start(self) -> bool {
+        if let Self::Input(Input::Gamepad(input::GamepadInput {
+            button: input::GamepadButton::Start,
+            ..
+        })) = self
+        {
+            true
+        } else {
+            false
+        }
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub fn is_escape_or_start(self) -> bool {
+        self.is_escape() || self.is_start()
+    }
+
     pub fn keyboard_input(self) -> Option<KeyboardInput> {
         self.input().and_then(Input::keyboard)
     }
