@@ -1898,7 +1898,10 @@ where
 }
 
 pub mod boxed {
-    pub use super::{boxed_cf, BoxedCF, Escape, LoopControl, OrEscape};
+    pub use super::{
+        boxed_cf, BoxedCF, Close, Escape, EscapeOrStart, LoopControl, OrClose, OrEscape,
+        OrEscapeOrStart,
+    };
     use chargrid_core::{input, Component, Ctx, FrameBuffer, Style};
 
     pub fn val<S: 'static, T: 'static + Clone>(t: T) -> BoxedCF<Option<T>, S> {
