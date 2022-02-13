@@ -304,6 +304,10 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         cf(MenuHarness(self.0))
     }
 
+    pub fn no_peek(self) -> CF<NoPeek<C>> {
+        cf(NoPeek(self.0))
+    }
+
     pub fn continue_<Br>(self) -> CF<Continue<C, Br>> {
         cf(Continue {
             component: self.0,
@@ -572,6 +576,10 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         self.0.menu_harness().boxed_cf()
     }
 
+    pub fn no_peek(self) -> BoxedCF<Option<T>, S> {
+        self.0.no_peek().boxed_cf()
+    }
+
     pub fn replace<U: 'static>(self, value: U) -> BoxedCF<Option<U>, S> {
         self.0.replace(value).boxed_cf()
     }
@@ -818,6 +826,18 @@ where
             match control {
                 LoopControl::Continue(co) => {
                     self.component = (self.f)(co);
+                    while let Some(control) =
+                        self.component.update(&mut self.state, ctx, Event::Peek)
+                    {
+                        match control {
+                            LoopControl::Continue(co) => {
+                                self.component = (self.f)(co);
+                            }
+                            LoopControl::Break(br) => {
+                                return Some(br);
+                            }
+                        }
+                    }
                     None
                 }
                 LoopControl::Break(br) => Some(br),
@@ -860,6 +880,16 @@ where
             match control {
                 LoopControl::Continue(co) => {
                     self.component = (self.f)(co);
+                    while let Some(control) = self.component.update(state, ctx, Event::Peek) {
+                        match control {
+                            LoopControl::Continue(co) => {
+                                self.component = (self.f)(co);
+                            }
+                            LoopControl::Break(br) => {
+                                return Some(br);
+                            }
+                        }
+                    }
                     None
                 }
                 LoopControl::Break(br) => Some(br),
@@ -899,6 +929,16 @@ where
             match control {
                 LoopControl::Continue(()) => {
                     self.component = (self.f)();
+                    while let Some(control) = self.component.update(state, ctx, Event::Peek) {
+                        match control {
+                            LoopControl::Continue(()) => {
+                                self.component = (self.f)();
+                            }
+                            LoopControl::Break(br) => {
+                                return Some(br);
+                            }
+                        }
+                    }
                     None
                 }
                 LoopControl::Break(br) => Some(br),
@@ -943,6 +983,17 @@ where
             match control {
                 LoopControl::Continue(co) => {
                     self.component = (self.f)(co, &mut self.value);
+                    while let Some(control) = self.component.update(state, ctx, Event::Peek) {
+                        match control {
+                            LoopControl::Continue(co) => {
+                                self.component = (self.f)(co, &mut self.value);
+                            }
+                            LoopControl::Break(br) => {
+                                return Some(br);
+                            }
+                        }
+                    }
+
                     None
                 }
                 LoopControl::Break(br) => Some(br),
@@ -1572,6 +1623,24 @@ where
                 .map(Ok),
             _ => self.0.update(state, ctx, event).map(Ok),
         }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
+pub struct NoPeek<C>(C);
+impl<T, C: Component<Output = Option<T>>> Component for NoPeek<C> {
+    type Output = C::Output;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        if let Event::Peek = event {
+            return None;
+        }
+        self.0.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.0.size(state, ctx)
