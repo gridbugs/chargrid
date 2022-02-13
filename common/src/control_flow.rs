@@ -1541,6 +1541,8 @@ where
         match event {
             Event::Input(input::Input::Keyboard(_))
             | Event::Input(input::Input::Mouse(input::MouseInput::MousePress { .. })) => Some(()),
+            #[cfg(feature = "gamepad")]
+            Event::Input(input::Input::Gamepad(_)) => Some(()),
             _ => None,
         }
     }
