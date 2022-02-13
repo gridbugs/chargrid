@@ -296,9 +296,12 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         cf(CatchEscape(self.0))
     }
 
-    #[cfg(feature = "gamepad")]
     pub fn catch_escape_or_start(self) -> CF<CatchEscapeOrStart<C>> {
         cf(CatchEscapeOrStart(self.0))
+    }
+
+    pub fn menu_harness(self) -> CF<MenuHarness<C>> {
+        cf(MenuHarness(self.0))
     }
 
     pub fn continue_<Br>(self) -> CF<Continue<C, Br>> {
@@ -561,9 +564,12 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         self.0.catch_escape().boxed_cf()
     }
 
-    #[cfg(feature = "gamepad")]
     pub fn catch_escape_or_start(self) -> BoxedCF<Option<OrEscapeOrStart<T>>, S> {
         self.0.catch_escape_or_start().boxed_cf()
+    }
+
+    pub fn menu_harness(self) -> BoxedCF<Option<OrClose<T>>, S> {
+        self.0.menu_harness().boxed_cf()
     }
 
     pub fn replace<U: 'static>(self, value: U) -> BoxedCF<Option<U>, S> {
@@ -1496,6 +1502,82 @@ where
     }
 }
 
+pub struct CatchEscapeOrStart<C: Component>(pub C);
+
+pub enum EscapeOrStart {
+    Escape,
+    Start,
+}
+
+pub type OrEscapeOrStart<T> = Result<T, EscapeOrStart>;
+
+impl<T, C> Component for CatchEscapeOrStart<C>
+where
+    C: Component<Output = Option<T>>,
+{
+    type Output = Option<OrEscapeOrStart<T>>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match event {
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => {
+                Some(Err(EscapeOrStart::Escape))
+            }
+            #[cfg(feature = "gamepad")]
+            Event::Input(input::Input::Gamepad(input::GamepadInput {
+                button: input::GamepadButton::Start,
+                ..
+            })) => Some(Err(EscapeOrStart::Start)),
+            _ => self.0.update(state, ctx, event).map(Ok),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
+pub struct MenuHarness<C: Component>(pub C);
+pub struct Close;
+pub type OrClose<T> = Result<T, Close>;
+impl<T, C> Component for MenuHarness<C>
+where
+    C: Component<Output = Option<T>>,
+{
+    type Output = Option<OrClose<T>>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match event {
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(Err(Close)),
+            #[cfg(feature = "gamepad")]
+            Event::Input(input::Input::Gamepad(input::GamepadInput {
+                button: input::GamepadButton::East,
+                ..
+            })) => Some(Err(Close)),
+            #[cfg(feature = "gamepad")]
+            Event::Input(input::Input::Gamepad(input::GamepadInput {
+                button: input::GamepadButton::Start,
+                ..
+            })) => self
+                .0
+                .update(
+                    state,
+                    ctx,
+                    Event::Input(input::Input::Keyboard(input::keys::RETURN)),
+                )
+                .map(Ok),
+            _ => self.0.update(state, ctx, event).map(Ok),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
 pub struct Delay<C: Component<Output = ()>> {
     component: C,
     remaining: Duration,
@@ -1814,49 +1896,6 @@ where
         Size::new(width, height)
     }
 }
-
-#[cfg(feature = "gamepad")]
-mod gamepad {
-    use chargrid_core::prelude::*;
-
-    pub struct CatchEscapeOrStart<C: Component>(pub C);
-
-    pub enum EscapeOrStart {
-        Escape,
-        Start,
-    }
-
-    pub type OrEscapeOrStart<T> = Result<T, EscapeOrStart>;
-
-    impl<T, C> Component for CatchEscapeOrStart<C>
-    where
-        C: Component<Output = Option<T>>,
-    {
-        type Output = Option<OrEscapeOrStart<T>>;
-        type State = C::State;
-        fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-            self.0.render(state, ctx, fb);
-        }
-        fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-            match event {
-                Event::Input(Input::Keyboard(input::keys::ESCAPE)) => {
-                    Some(Err(EscapeOrStart::Escape))
-                }
-                Event::Input(Input::Gamepad(GamepadInput {
-                    button: GamepadButton::Start,
-                    ..
-                })) => Some(Err(EscapeOrStart::Start)),
-                _ => self.0.update(state, ctx, event).map(Ok),
-            }
-        }
-        fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-            self.0.size(state, ctx)
-        }
-    }
-}
-
-#[cfg(feature = "gamepad")]
-pub use gamepad::*;
 
 pub mod boxed {
     pub use super::{boxed_cf, BoxedCF, Escape, LoopControl, OrEscape};
