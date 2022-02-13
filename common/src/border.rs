@@ -3,7 +3,6 @@ use chargrid_core::*;
 /// The characters comprising a border. By default, borders are made of unicode
 /// box-drawing characters, but they can be changed to arbitrary characters via
 /// this struct.
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]
 pub struct BorderChars {
     pub top: char,
@@ -37,7 +36,6 @@ impl Default for BorderChars {
 
 /// The space in cells between the edge of the bordered area
 /// and the element inside.
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct BorderPadding {
     pub top: u32,
@@ -60,7 +58,6 @@ impl BorderPadding {
 /// Decorate another element with a border.
 /// It's possible to give the border a title, in which case
 /// the text appears in the top-left corner.
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct BorderStyle {
     pub title: Option<String>,

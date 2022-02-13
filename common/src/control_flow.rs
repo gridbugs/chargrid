@@ -296,6 +296,11 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         cf(CatchEscape(self.0))
     }
 
+    #[cfg(feature = "gamepad")]
+    pub fn catch_escape_or_start(self) -> CF<CatchEscapeOrStart<C>> {
+        cf(CatchEscapeOrStart(self.0))
+    }
+
     pub fn continue_<Br>(self) -> CF<Continue<C, Br>> {
         cf(Continue {
             component: self.0,
@@ -554,6 +559,11 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
 
     pub fn catch_escape(self) -> BoxedCF<Option<OrEscape<T>>, S> {
         self.0.catch_escape().boxed_cf()
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub fn catch_escape_or_start(self) -> BoxedCF<Option<OrEscapeOrStart<T>>, S> {
+        self.0.catch_escape_or_start().boxed_cf()
     }
 
     pub fn replace<U: 'static>(self, value: U) -> BoxedCF<Option<U>, S> {
@@ -1769,6 +1779,49 @@ where
         Size::new(width, height)
     }
 }
+
+#[cfg(feature = "gamepad")]
+mod gamepad {
+    use chargrid_core::prelude::*;
+
+    pub struct CatchEscapeOrStart<C: Component>(pub C);
+
+    pub enum EscapeOrStart {
+        Escape,
+        Start,
+    }
+
+    pub type OrEscapeOrStart<T> = Result<T, EscapeOrStart>;
+
+    impl<T, C> Component for CatchEscapeOrStart<C>
+    where
+        C: Component<Output = Option<T>>,
+    {
+        type Output = Option<OrEscapeOrStart<T>>;
+        type State = C::State;
+        fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+            self.0.render(state, ctx, fb);
+        }
+        fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+            match event {
+                Event::Input(Input::Keyboard(input::keys::ESCAPE)) => {
+                    Some(Err(EscapeOrStart::Escape))
+                }
+                Event::Input(Input::Gamepad(GamepadInput {
+                    button: GamepadButton::Start,
+                    ..
+                })) => Some(Err(EscapeOrStart::Start)),
+                _ => self.0.update(state, ctx, event).map(Ok),
+            }
+        }
+        fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+            self.0.size(state, ctx)
+        }
+    }
+}
+
+#[cfg(feature = "gamepad")]
+pub use gamepad::*;
 
 pub mod boxed {
     pub use super::{boxed_cf, BoxedCF, Escape, LoopControl, OrEscape};

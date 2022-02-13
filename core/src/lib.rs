@@ -655,9 +655,11 @@ pub mod app {
 
 /// types/traits/modules useful for implementing `Component` and friends
 pub mod prelude {
+    #[cfg(feature = "gamepad")]
+    pub use super::input::{GamepadButton, GamepadInput};
     pub use super::{
-        app, ctx_tint, input, Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size,
-        Style, Tint,
+        app, ctx_tint, input, input::Input, input::KeyboardInput, input::MouseInput, Component,
+        Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size, Style, Tint,
     };
     pub use std::time::Duration;
 }
