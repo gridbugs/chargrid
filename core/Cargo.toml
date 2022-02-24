@@ -17,4 +17,4 @@ gamepad = ["chargrid_input/gamepad"]
 [dependencies]
 rgb_int = "0.1"
 grid_2d = "0.15"
-chargrid_input = { path = "../input", version = "0.2" }
+chargrid_input = { path = "../input", version = "0.3" }

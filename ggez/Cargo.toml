@@ -1,7 +1,7 @@
 [package]
 name = "chargrid_ggez"
 description = "Graphical chargrid context which renders with ggez"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -15,7 +15,7 @@ serialize = ["chargrid_input/serialize"]
 gamepad = ["chargrid_input/gamepad", "hashbrown", "chargrid_runtime/gamepad"]
 
 [dependencies]
-chargrid_input = { path = "../input", version = "0.2" }
+chargrid_input = { path = "../input", version = "0.3" }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
 log = "0.4"
 ggez = "0.7"
