@@ -251,6 +251,17 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         })
     }
 
+    pub fn and_then_side_effect<U, D, F>(self, f: F) -> CF<AndThenSideEffect<C, D, F>>
+    where
+        D: Component<Output = Option<U>, State = C::State>,
+        F: FnOnce(T, &mut C::State) -> D,
+    {
+        cf(AndThenSideEffect::First {
+            component: self.0,
+            f: Some(f),
+        })
+    }
+
     pub fn then<U, D, F>(self, f: F) -> CF<Then<C, D, F>>
     where
         D: Component<Output = Option<U>, State = C::State>,
@@ -262,11 +273,22 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         })
     }
 
-    pub fn then_side_effect<F>(self, f: F) -> CF<ThenSideEffect<C, F>>
+    pub fn then_side_effect<U, D, F>(self, f: F) -> CF<ThenSideEffect<C, D, F>>
+    where
+        D: Component<Output = Option<U>, State = C::State>,
+        F: FnOnce(&mut C::State) -> D,
+    {
+        cf(ThenSideEffect::First {
+            component: self.0,
+            f: Some(f),
+        })
+    }
+
+    pub fn side_effect<F>(self, f: F) -> CF<SideEffect<C, F>>
     where
         F: FnOnce(&mut C::State),
     {
-        cf(ThenSideEffect {
+        cf(SideEffect {
             component: self.0,
             f: Some(f),
         })
@@ -535,6 +557,14 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         self.0.and_then(f).boxed_cf()
     }
 
+    pub fn and_then_side_effect<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
+    where
+        D: Component<Output = Option<U>, State = S>,
+        F: FnOnce(T, &mut S) -> D,
+    {
+        self.0.and_then_side_effect(f).boxed_cf()
+    }
+
     pub fn then<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
     where
         D: Component<Output = Option<U>, State = S>,
@@ -543,11 +573,19 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         self.0.then(f).boxed_cf()
     }
 
-    pub fn then_side_effect<F: 'static>(self, f: F) -> BoxedCF<Option<T>, S>
+    pub fn then_side_effect<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
+    where
+        D: Component<Output = Option<U>, State = S>,
+        F: FnOnce(&mut S) -> D,
+    {
+        self.0.then_side_effect(f).boxed_cf()
+    }
+
+    pub fn side_effect<F: 'static>(self, f: F) -> BoxedCF<Option<T>, S>
     where
         F: FnOnce(&mut S),
     {
-        self.0.then_side_effect(f).boxed_cf()
+        self.0.side_effect(f).boxed_cf()
     }
 
     pub fn map<U, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
@@ -1330,6 +1368,49 @@ where
     }
 }
 
+pub enum AndThenSideEffect<C, D, F> {
+    // f is an option because when it is called, the compiler doesn't know that we're about to
+    // destroy it
+    First { component: C, f: Option<F> },
+    Second(D),
+}
+
+impl<T, U, C, D, F> Component for AndThenSideEffect<C, D, F>
+where
+    C: Component<Output = Option<T>>,
+    D: Component<Output = Option<U>, State = C::State>,
+    F: FnOnce(T, &mut C::State) -> D,
+{
+    type Output = Option<U>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        match self {
+            Self::First { component, .. } => component.render(state, ctx, fb),
+            Self::Second(component) => component.render(state, ctx, fb),
+        }
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match self {
+            Self::First { component, f } => match component.update(state, ctx, event) {
+                None => None,
+                Some(t) => {
+                    let mut d = (f.take().unwrap())(t, state);
+                    let peek_result = d.update(state, ctx, Event::Peek);
+                    *self = Self::Second(d);
+                    peek_result
+                }
+            },
+            Self::Second(component) => component.update(state, ctx, event),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        match self {
+            Self::First { component, .. } => component.size(state, ctx),
+            Self::Second(component) => component.size(state, ctx),
+        }
+    }
+}
+
 /// Similar to AndThen but the output of the component is ignored
 pub enum Then<C, D, F> {
     // f is an option because when it is called, the compiler doesn't know that we're about to
@@ -1374,14 +1455,57 @@ where
     }
 }
 
-pub struct ThenSideEffect<C, F> {
+pub enum ThenSideEffect<C, D, F> {
+    // f is an option because when it is called, the compiler doesn't know that we're about to
+    // destroy it
+    First { component: C, f: Option<F> },
+    Second(D),
+}
+
+impl<T, U, C, D, F> Component for ThenSideEffect<C, D, F>
+where
+    C: Component<Output = Option<T>>,
+    D: Component<Output = Option<U>, State = C::State>,
+    F: FnOnce(&mut C::State) -> D,
+{
+    type Output = Option<U>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        match self {
+            Self::First { component, .. } => component.render(state, ctx, fb),
+            Self::Second(component) => component.render(state, ctx, fb),
+        }
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match self {
+            Self::First { component, f } => match component.update(state, ctx, event) {
+                None => None,
+                Some(_) => {
+                    let mut d = (f.take().unwrap())(state);
+                    let peek_result = d.update(state, ctx, Event::Peek);
+                    *self = Self::Second(d);
+                    peek_result
+                }
+            },
+            Self::Second(component) => component.update(state, ctx, event),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        match self {
+            Self::First { component, .. } => component.size(state, ctx),
+            Self::Second(component) => component.size(state, ctx),
+        }
+    }
+}
+
+pub struct SideEffect<C, F> {
     component: C,
     // f is an option because when it is called, the compiler doesn't know that we're about to
     // destroy it
     f: Option<F>,
 }
 
-impl<T, C, F> Component for ThenSideEffect<C, F>
+impl<T, C, F> Component for SideEffect<C, F>
 where
     C: Component<Output = Option<T>>,
     F: FnOnce(&mut C::State),
