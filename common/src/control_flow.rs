@@ -2134,7 +2134,9 @@ pub mod boxed {
         boxed_cf, BoxedCF, Close, Escape, EscapeOrStart, LoopControl, OrClose, OrEscape,
         OrEscapeOrStart,
     };
-    use chargrid_core::{input, Component, Ctx, FrameBuffer, Style};
+    use chargrid_core::{app, input, Component, Ctx, FrameBuffer, Style};
+
+    pub type App = BoxedCF<app::Output, ()>;
 
     pub fn val<S: 'static, T: 'static + Clone>(t: T) -> BoxedCF<Option<T>, S> {
         super::val(t).boxed_cf()
