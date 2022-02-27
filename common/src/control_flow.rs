@@ -2134,7 +2134,8 @@ pub mod boxed {
         boxed_cf, BoxedCF, Close, Escape, EscapeOrStart, LoopControl, OrClose, OrEscape,
         OrEscapeOrStart,
     };
-    use chargrid_core::{app, input, Component, Ctx, FrameBuffer, Style};
+    pub use chargrid_core::app;
+    use chargrid_core::{input, Component, Ctx, FrameBuffer, Style};
 
     pub type App = BoxedCF<app::Output, ()>;
 
