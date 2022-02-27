@@ -373,6 +373,15 @@ impl<C: Component<State = ()>> CF<C> {
     }
 }
 
+impl<C: Component<Output = ()>> CF<C> {
+    pub fn ignore_output<O>(self) -> CF<IgnoreOutput<O, C>> {
+        cf(IgnoreOutput {
+            output: PhantomData,
+            component: self.0,
+        })
+    }
+}
+
 impl<C: Component<Output = app::Output>> CF<C> {
     pub fn exit_on_close(self) -> CF<ExitOnClose<C>> {
         cf(ExitOnClose(self.0))
@@ -670,6 +679,12 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
 impl<O: 'static> BoxedCF<O, ()> {
     pub fn ignore_state<S: 'static>(self) -> BoxedCF<O, S> {
         self.0.ignore_state().boxed_cf()
+    }
+}
+
+impl<S: 'static> BoxedCF<(), S> {
+    pub fn ignore_output<O: 'static>(self) -> BoxedCF<Option<O>, S> {
+        self.0.ignore_output().boxed_cf()
     }
 }
 
@@ -1196,6 +1211,30 @@ where
     }
     fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         self.component.size(&(), ctx)
+    }
+}
+
+pub struct IgnoreOutput<O, C: Component<Output = ()>> {
+    output: PhantomData<O>,
+    component: C,
+}
+
+impl<O, C> Component for IgnoreOutput<O, C>
+where
+    C: Component<Output = ()>,
+{
+    type Output = Option<O>;
+    type State = C::State;
+
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.component.update(state, ctx, event);
+        None
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
     }
 }
 
