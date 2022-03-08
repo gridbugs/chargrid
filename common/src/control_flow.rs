@@ -314,6 +314,16 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
         })
     }
 
+    pub fn map_side_effect<U, F>(self, f: F) -> CF<MapSideEffect<C, F>>
+    where
+        F: FnOnce(T, &mut C::State) -> U,
+    {
+        cf(MapSideEffect {
+            component: self.0,
+            f: Some(f),
+        })
+    }
+
     pub fn catch_escape(self) -> CF<CatchEscape<C>> {
         cf(CatchEscape(self.0))
     }
@@ -609,6 +619,13 @@ impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
         F: FnOnce() -> U,
     {
         self.0.map_val(f).boxed_cf()
+    }
+
+    pub fn map_side_effect<U, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
+    where
+        F: FnOnce(T, &mut S) -> U,
+    {
+        self.0.map_side_effect(f).boxed_cf()
     }
 
     pub fn catch_escape(self) -> BoxedCF<Option<OrEscape<T>>, S> {
@@ -1613,6 +1630,33 @@ where
         match self.component.update(state, ctx, event) {
             None => None,
             Some(_) => Some((self.f.take().expect("component yielded multiple times"))()),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
+    }
+}
+
+pub struct MapSideEffect<C, F> {
+    component: C,
+    f: Option<F>,
+}
+impl<T, U, C, F> Component for MapSideEffect<C, F>
+where
+    C: Component<Output = Option<T>>,
+    F: FnOnce(T, &mut C::State) -> U,
+{
+    type Output = Option<U>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        match self.component.update(state, ctx, event) {
+            None => None,
+            Some(t) => Some((self.f.take().expect("component yielded multiple times"))(
+                t, state,
+            )),
         }
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
