@@ -1,8 +1,10 @@
+pub use crate::control_flow::{lens, Close, Escape, EscapeOrStart, LensFns, LoopControl};
 use crate::{
     add_offset::AddOffset,
     align::{Align, Alignment},
     border::{Border, BorderStyle},
     bound_size::{BoundHeight, BoundSize, BoundWidth},
+    control_flow::{boxed, Lens, LensState, OrClose, OrEscape, OrEscapeOrStart},
     fill::Fill,
     pad_by::{PadBy, Padding},
     pad_to::PadTo,
@@ -10,8 +12,8 @@ use crate::{
     text::StyledString,
 };
 use chargrid_core::{
-    app, ctx_tint, input, BoxedComponent, Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size,
-    Style, Tint, TintIdentity,
+    app, ctx_tint, input, Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size, Style, Tint,
+    TintIdentity,
 };
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -402,312 +404,8 @@ impl<C: 'static + Component> CF<C>
 where
     C::State: Sized,
 {
-    pub fn boxed(self) -> CF<BoxedComponent<C::Output, C::State>> {
-        cf(BoxedComponent(Box::new(self.0)))
-    }
-
-    pub fn boxed_cf(self) -> BoxedCF<C::Output, C::State> {
-        BoxedCF(self.boxed())
-    }
-}
-
-pub struct BoxedCF<O, S>(CF<BoxedComponent<O, S>>);
-pub fn boxed_cf<C: 'static + Component>(component: C) -> BoxedCF<C::Output, C::State>
-where
-    C::State: Sized,
-{
-    cf(component).boxed_cf()
-}
-
-impl<O, S> From<BoxedComponent<O, S>> for BoxedCF<O, S> {
-    fn from(boxed_component: BoxedComponent<O, S>) -> Self {
-        BoxedCF(cf(boxed_component))
-    }
-}
-
-impl<O, S> Component for BoxedCF<O, S> {
-    type Output = O;
-    type State = S;
-    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        self.0.render(state, ctx, fb);
-    }
-    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-        self.0.update(state, ctx, event)
-    }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        self.0.size(state, ctx)
-    }
-}
-
-impl<O: 'static, S: 'static> BoxedCF<O, S> {
-    pub fn lens_state<S_: 'static, L: 'static>(self, lens: L) -> BoxedCF<O, S_>
-    where
-        L: Lens<Input = S_, Output = S>,
-    {
-        self.0.lens_state(lens).boxed_cf()
-    }
-
-    pub fn some(self) -> BoxedCF<Option<O>, S> {
-        self.0.some().boxed_cf()
-    }
-
-    pub fn none(self) -> BoxedCF<Option<O>, S> {
-        self.0.none().boxed_cf()
-    }
-
-    pub fn overlay_tint<D: 'static + Component<State = S>, T: 'static + Tint>(
-        self,
-        background: D,
-        tint: T,
-        depth_delta: i8,
-    ) -> Self {
-        self.0
-            .overlay_tint(background, tint, depth_delta)
-            .boxed_cf()
-    }
-
-    pub fn overlay<D: 'static + Component<State = S>>(
-        self,
-        background: D,
-        depth_delta: i8,
-    ) -> Self {
-        self.0.overlay(background, depth_delta).boxed_cf()
-    }
-
-    pub fn clear_each_frame(self) -> Self {
-        self.0.clear_each_frame().boxed_cf()
-    }
-
-    pub fn fill(self, background: Rgba32) -> Self {
-        self.0.fill(background).boxed_cf()
-    }
-
-    pub fn border(self, style: BorderStyle) -> Self {
-        self.0.border(style).boxed_cf()
-    }
-
-    pub fn pad_to(self, size: Size) -> Self {
-        self.0.pad_to(size).boxed_cf()
-    }
-
-    pub fn pad_by(self, padding: Padding) -> Self {
-        self.0.pad_by(padding).boxed_cf()
-    }
-
-    pub fn align(self, alignment: Alignment) -> Self {
-        self.0.align(alignment).boxed_cf()
-    }
-
-    pub fn centre(self) -> Self {
-        self.0.centre().boxed_cf()
-    }
-
-    pub fn add_offset(self, offset: Coord) -> Self {
-        self.0.add_offset(offset).boxed_cf()
-    }
-
-    pub fn add_x(self, x: i32) -> Self {
-        self.0.add_x(x).boxed_cf()
-    }
-
-    pub fn add_y(self, y: i32) -> Self {
-        self.0.add_y(y).boxed_cf()
-    }
-
-    pub fn set_size(self, size: Size) -> Self {
-        self.0.set_size(size).boxed_cf()
-    }
-
-    pub fn set_width(self, width: u32) -> Self {
-        self.0.set_width(width).boxed_cf()
-    }
-
-    pub fn set_height(self, height: u32) -> Self {
-        self.0.set_height(height).boxed_cf()
-    }
-
-    pub fn bound_size(self, size: Size) -> Self {
-        self.0.bound_size(size).boxed_cf()
-    }
-
-    pub fn bound_width(self, width: u32) -> Self {
-        self.0.bound_width(width).boxed_cf()
-    }
-
-    pub fn bound_height(self, height: u32) -> Self {
-        self.0.bound_height(height).boxed_cf()
-    }
-
-    pub fn with_title<T: 'static + Component<State = S>>(self, title: T, padding: i32) -> Self {
-        self.0.with_title(title, padding).boxed_cf()
-    }
-}
-
-impl<O: 'static, S: 'static> BoxedCF<O, S> {
-    pub fn with_state(self, state: S) -> BoxedCF<O, ()> {
-        self.0.with_state(state).boxed_cf()
-    }
-}
-
-impl<S: 'static> BoxedCF<(), S> {
-    pub fn delay(self, duration: Duration) -> BoxedCF<Option<()>, S> {
-        self.0.delay(duration).boxed_cf()
-    }
-
-    pub fn press_any_key(self) -> BoxedCF<Option<()>, S> {
-        self.0.press_any_key().boxed_cf()
-    }
-}
-
-impl<T: 'static, S: 'static> BoxedCF<Option<T>, S> {
-    pub fn and_then_persistent<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
-    where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(Self, T) -> D,
-    {
-        self.0.and_then_persistent(|a, b| f(a.into(), b)).boxed_cf()
-    }
-
-    pub fn and_then<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
-    where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(T) -> D,
-    {
-        self.0.and_then(f).boxed_cf()
-    }
-
-    pub fn and_then_side_effect<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
-    where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(T, &mut S) -> D,
-    {
-        self.0.and_then_side_effect(f).boxed_cf()
-    }
-
-    pub fn then<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
-    where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce() -> D,
-    {
-        self.0.then(f).boxed_cf()
-    }
-
-    pub fn then_side_effect<U, D: 'static, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
-    where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(&mut S) -> D,
-    {
-        self.0.then_side_effect(f).boxed_cf()
-    }
-
-    pub fn side_effect<F: 'static>(self, f: F) -> BoxedCF<Option<T>, S>
-    where
-        F: FnOnce(&mut S),
-    {
-        self.0.side_effect(f).boxed_cf()
-    }
-
-    pub fn map<U, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
-    where
-        F: FnOnce(T) -> U,
-    {
-        self.0.map(f).boxed_cf()
-    }
-
-    pub fn map_val<U, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
-    where
-        F: FnOnce() -> U,
-    {
-        self.0.map_val(f).boxed_cf()
-    }
-
-    pub fn map_side_effect<U, F: 'static>(self, f: F) -> BoxedCF<Option<U>, S>
-    where
-        F: FnOnce(T, &mut S) -> U,
-    {
-        self.0.map_side_effect(f).boxed_cf()
-    }
-
-    pub fn catch_escape(self) -> BoxedCF<Option<OrEscape<T>>, S> {
-        self.0.catch_escape().boxed_cf()
-    }
-
-    pub fn catch_escape_or_start(self) -> BoxedCF<Option<OrEscapeOrStart<T>>, S> {
-        self.0.catch_escape_or_start().boxed_cf()
-    }
-
-    pub fn menu_harness(self) -> BoxedCF<Option<OrClose<T>>, S> {
-        self.0.menu_harness().boxed_cf()
-    }
-
-    pub fn no_peek(self) -> BoxedCF<Option<T>, S> {
-        self.0.no_peek().boxed_cf()
-    }
-
-    pub fn replace<U: 'static>(self, value: U) -> BoxedCF<Option<U>, S> {
-        self.0.replace(value).boxed_cf()
-    }
-
-    pub fn continue_<Br: 'static>(self) -> BoxedCF<Option<LoopControl<T, Br>>, S> {
-        self.0.continue_().boxed_cf()
-    }
-
-    pub fn break_<Co: 'static>(self) -> BoxedCF<Option<LoopControl<Co, T>>, S> {
-        self.0.break_().boxed_cf()
-    }
-
-    pub fn continue_with<Br: 'static, U: 'static>(
-        self,
-        value: U,
-    ) -> BoxedCF<Option<LoopControl<U, Br>>, S> {
-        self.0.continue_with(value).boxed_cf()
-    }
-
-    pub fn break_with<Co: 'static, U: 'static>(
-        self,
-        value: U,
-    ) -> BoxedCF<Option<LoopControl<Co, U>>, S> {
-        self.0.break_with(value).boxed_cf()
-    }
-
-    pub fn repeat<A: 'static, O: 'static, F: 'static>(self, init: A, f: F) -> BoxedCF<Option<O>, S>
-    where
-        F: FnMut(A, T) -> BoxedCF<Option<LoopControl<A, O>>, S>,
-    {
-        boxed::loop_((self, f, init), |(self_, mut f, acc)| {
-            self_.and_then_persistent(|self_, entry| {
-                f(acc, entry).map(|loop_control| loop_control.map_continue(|c| (self_, f, c)))
-            })
-        })
-    }
-
-    pub fn repeat_unit<O: 'static, F: 'static>(self, mut f: F) -> BoxedCF<Option<O>, S>
-    where
-        F: FnMut(T) -> BoxedCF<Option<LoopControl<(), O>>, S>,
-    {
-        self.repeat((), move |(), entry| f(entry))
-    }
-
-    pub fn pause(self) -> BoxedCF<Option<T>, S> {
-        self.0.pause().boxed_cf()
-    }
-}
-
-impl<O: 'static> BoxedCF<O, ()> {
-    pub fn ignore_state<S: 'static>(self) -> BoxedCF<O, S> {
-        self.0.ignore_state().boxed_cf()
-    }
-}
-
-impl<S: 'static> BoxedCF<(), S> {
-    pub fn ignore_output<O: 'static>(self) -> BoxedCF<Option<O>, S> {
-        self.0.ignore_output().boxed_cf()
-    }
-}
-
-impl<S: 'static> BoxedCF<app::Output, S> {
-    pub fn exit_on_close(self) -> Self {
-        self.0.exit_on_close().boxed_cf()
+    pub fn boxed(self) -> boxed::CF<C::Output, C::State> {
+        boxed::cf(self.0)
     }
 }
 
@@ -791,27 +489,6 @@ where
     }
     fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
         self.component.size(&self.state, ctx)
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum LoopControl<Co, Br> {
-    Continue(Co),
-    Break(Br),
-}
-
-impl<Co, Br> LoopControl<Co, Br> {
-    pub fn map_continue<Co2, F: FnOnce(Co) -> Co2>(self, f: F) -> LoopControl<Co2, Br> {
-        match self {
-            Self::Continue(co) => LoopControl::Continue(f(co)),
-            Self::Break(br) => LoopControl::Break(br),
-        }
-    }
-    pub fn map_break<Br2, F: FnOnce(Br) -> Br2>(self, f: F) -> LoopControl<Co, Br2> {
-        match self {
-            Self::Continue(co) => LoopControl::Continue(co),
-            Self::Break(br) => LoopControl::Break(f(br)),
-        }
     }
 }
 
@@ -1255,75 +932,6 @@ where
     }
 }
 
-pub trait Lens {
-    type Input;
-    type Output;
-    fn get<'a>(&self, input: &'a Self::Input) -> &'a Self::Output;
-    fn get_mut<'a>(&mut self, input: &'a mut Self::Input) -> &'a mut Self::Output;
-}
-
-pub struct LensFns<I, O, R, M> {
-    input: PhantomData<I>,
-    output: PhantomData<O>,
-    get: R,
-    get_mut: M,
-}
-
-impl<I, O, R, M> LensFns<I, O, R, M> {
-    pub fn new(get: R, get_mut: M) -> Self {
-        Self {
-            input: PhantomData,
-            output: PhantomData,
-            get,
-            get_mut,
-        }
-    }
-}
-
-impl<I, O, R, M> Lens for LensFns<I, O, R, M>
-where
-    R: Fn(&I) -> &O,
-    M: FnMut(&mut I) -> &mut O,
-{
-    type Input = I;
-    type Output = O;
-    fn get<'a>(&self, input: &'a Self::Input) -> &'a Self::Output {
-        (self.get)(input)
-    }
-    fn get_mut<'a>(&mut self, input: &'a mut Self::Input) -> &'a mut Self::Output {
-        (self.get_mut)(input)
-    }
-}
-
-pub struct LensState<S, L, C>
-where
-    C: Component,
-    L: Lens<Input = S, Output = C::State>,
-{
-    state: PhantomData<S>,
-    lens: L,
-    component: C,
-}
-
-impl<S, L, C> Component for LensState<S, L, C>
-where
-    C: Component,
-    L: Lens<Input = S, Output = C::State>,
-{
-    type Output = C::Output;
-    type State = S;
-
-    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        self.component.render(&self.lens.get(state), ctx, fb);
-    }
-    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-        self.component.update(self.lens.get_mut(state), ctx, event)
-    }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        self.component.size(self.lens.get(state), ctx)
-    }
-}
-
 struct AndThenPersistentFirst<C, F> {
     component: C,
     f: F,
@@ -1732,10 +1340,6 @@ where
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Escape;
-pub type OrEscape<T> = Result<T, Escape>;
-
 /// Component decorator that yields `Err(Escape)` when the escape key is pressed
 /// rather than passing the escape key event to its child
 pub struct CatchEscape<C: Component>(pub C);
@@ -1761,13 +1365,6 @@ where
 }
 
 pub struct CatchEscapeOrStart<C: Component>(pub C);
-
-pub enum EscapeOrStart {
-    Escape,
-    Start,
-}
-
-pub type OrEscapeOrStart<T> = Result<T, EscapeOrStart>;
 
 impl<T, C> Component for CatchEscapeOrStart<C>
 where
@@ -1797,8 +1394,6 @@ where
 }
 
 pub struct MenuHarness<C: Component>(pub C);
-pub struct Close;
-pub type OrClose<T> = Result<T, Close>;
 impl<T, C> Component for MenuHarness<C>
 where
     C: Component<Output = Option<T>>,
@@ -2173,142 +1768,6 @@ where
     }
 }
 
-pub mod boxed {
-    pub use super::{
-        boxed_cf, BoxedCF, Close, Escape, EscapeOrStart, LoopControl, OrClose, OrEscape,
-        OrEscapeOrStart,
-    };
-    pub use chargrid_core::app;
-    use chargrid_core::{input, Component, Ctx, FrameBuffer, Style};
-
-    pub type App = BoxedCF<app::Output, ()>;
-
-    pub fn val<S: 'static, T: 'static + Clone>(t: T) -> BoxedCF<Option<T>, S> {
-        super::val(t).boxed_cf()
-    }
-
-    pub fn val_once<S: 'static, T: 'static>(t: T) -> BoxedCF<Option<T>, S> {
-        super::val_once(t).boxed_cf()
-    }
-
-    pub fn break_<S: 'static, T: 'static, Co: 'static>(
-        t: T,
-    ) -> BoxedCF<Option<LoopControl<Co, T>>, S> {
-        val_once(t).break_()
-    }
-
-    pub fn continue_<S: 'static, T: 'static, Br: 'static>(
-        t: T,
-    ) -> BoxedCF<Option<LoopControl<T, Br>>, S> {
-        val_once(t).continue_()
-    }
-
-    pub fn never<S: 'static, T: 'static>() -> BoxedCF<Option<T>, S> {
-        super::never().boxed_cf()
-    }
-
-    pub fn loop_state<S: 'static, Co, Br, C: 'static, F: 'static>(
-        state: S,
-        init: Co,
-        f: F,
-    ) -> BoxedCF<Option<Br>, ()>
-    where
-        C::State: Sized,
-        C: Component<Output = Option<LoopControl<Co, Br>>, State = S>,
-        F: FnMut(Co) -> C,
-    {
-        super::loop_state(state, init, f).boxed_cf()
-    }
-
-    pub fn loop_<Co, Br, C: 'static, F: 'static>(init: Co, f: F) -> BoxedCF<Option<Br>, C::State>
-    where
-        C::State: Sized,
-        C: Component<Output = Option<LoopControl<Co, Br>>>,
-        F: FnMut(Co) -> C,
-    {
-        super::loop_(init, f).boxed_cf()
-    }
-
-    pub fn loop_unit<Br, C: 'static, F: 'static>(f: F) -> BoxedCF<Option<Br>, C::State>
-    where
-        C::State: Sized,
-        C: Component<Output = Option<LoopControl<(), Br>>>,
-        F: FnMut() -> C,
-    {
-        super::loop_unit(f).boxed_cf()
-    }
-
-    pub fn loop_mut<Co, Br, T: 'static, C: 'static, F: 'static>(
-        init: Co,
-        value: T,
-        f: F,
-    ) -> BoxedCF<Option<Br>, C::State>
-    where
-        C::State: Sized,
-        C: Component<Output = Option<LoopControl<Co, Br>>>,
-        F: FnMut(Co, &mut T) -> C,
-    {
-        super::loop_mut(init, value, f).boxed_cf()
-    }
-
-    pub fn on_state<S: 'static, T: 'static, F: 'static>(f: F) -> BoxedCF<Option<T>, S>
-    where
-        F: FnOnce(&mut S) -> T,
-    {
-        super::on_state(f).boxed_cf()
-    }
-
-    pub fn on_state_then<C: 'static, F: 'static>(f: F) -> BoxedCF<C::Output, C::State>
-    where
-        C: Component,
-        C::State: Sized,
-        F: FnOnce(&mut C::State) -> C,
-    {
-        super::on_state_then(f).boxed_cf()
-    }
-
-    pub fn render<F: 'static + Fn(Ctx, &mut FrameBuffer)>(f: F) -> BoxedCF<(), ()> {
-        super::render(f).boxed_cf()
-    }
-
-    pub fn render_state<S: 'static, F: 'static + Fn(&S, Ctx, &mut FrameBuffer)>(
-        f: F,
-    ) -> BoxedCF<(), S> {
-        super::render_state(f).boxed_cf()
-    }
-
-    pub fn unit<S: 'static>() -> BoxedCF<(), S> {
-        super::unit().boxed_cf()
-    }
-
-    pub fn many<I: 'static, S: 'static, C: 'static>(iterable: I) -> BoxedCF<(), S>
-    where
-        C: Component<State = S>,
-        for<'a> &'a I: IntoIterator<Item = &'a C>,
-        for<'a> &'a mut I: IntoIterator<Item = &'a mut C>,
-    {
-        super::many(iterable).boxed_cf()
-    }
-
-    pub fn styled_string<S: 'static>(string: String, style: Style) -> BoxedCF<(), S> {
-        super::styled_string(string, style).boxed_cf()
-    }
-
-    pub fn on_input<F: 'static, T, S: 'static>(f: F) -> BoxedCF<Option<T>, S>
-    where
-        F: FnMut(input::Input) -> Option<T>,
-    {
-        super::on_input(f).boxed_cf()
-    }
-
-    pub fn on_input_state<F: 'static, T, S: 'static>(f: F) -> BoxedCF<Option<T>, S>
-    where
-        F: FnMut(input::Input, &mut S) -> Option<T>,
-    {
-        super::on_input_state(f).boxed_cf()
-    }
-}
-
 #[macro_export]
 macro_rules! either {
     ($type:ident = $first:ident) => {
@@ -2374,26 +1833,4 @@ macro_rules! either {
     };
 }
 
-#[macro_export]
-macro_rules! lens {
-    ($input:ty[$field:ident]: $output:ty) => {{
-        fn get(state: &$input) -> &$output {
-            &state.$field
-        }
-        fn get_mut(state: &mut $input) -> &mut $output {
-            &mut state.$field
-        }
-        LensFns::new(get, get_mut)
-    }};
-}
-
-#[macro_export]
-macro_rules! boxed_many {
-    ($($items:expr),* $(,)* ) => {
-        $crate::control_flow::boxed::many([
-            $($crate::control_flow::boxed_cf($items)),*
-        ])
-    };
-}
-
-pub use crate::{boxed_many, either, lens};
+pub use crate::either;

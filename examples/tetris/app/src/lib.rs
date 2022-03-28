@@ -1,6 +1,6 @@
 use chargrid::{
     border::{Border, BorderStyle},
-    control_flow::*,
+    control_flow::unboxed::*,
     core::TintDim,
     menu,
     prelude::*,

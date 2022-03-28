@@ -1,4 +1,7 @@
-use crate::control_flow::{cf, BoxedCF, IgnoreState, CF};
+use crate::control_flow::{
+    boxed,
+    unboxed::{self, IgnoreState},
+};
 use chargrid_core::*;
 use std::cell::RefCell;
 
@@ -110,12 +113,12 @@ impl StyledString {
         }
     }
 
-    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
-        cf(self).ignore_state()
+    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
+        unboxed::cf(self).ignore_state()
     }
 
-    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
-        self.cf().boxed_cf()
+    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
+        self.cf().boxed()
     }
 }
 
@@ -179,12 +182,12 @@ impl StyledStringCharWrapped {
         cursor
     }
 
-    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
-        cf(self).ignore_state()
+    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
+        unboxed::cf(self).ignore_state()
     }
 
-    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
-        self.cf().boxed_cf()
+    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
+        self.cf().boxed()
     }
 }
 
@@ -213,12 +216,12 @@ pub struct StyledStringWordWrapped {
 }
 
 impl StyledStringWordWrapped {
-    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
-        cf(self).ignore_state()
+    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
+        unboxed::cf(self).ignore_state()
     }
 
-    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
-        self.cf().boxed_cf()
+    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
+        self.cf().boxed()
     }
 }
 
@@ -362,12 +365,12 @@ impl Text {
         }
     }
 
-    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
-        cf(self).ignore_state()
+    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
+        unboxed::cf(self).ignore_state()
     }
 
-    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
-        self.cf().boxed_cf()
+    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
+        self.cf().boxed()
     }
 }
 
@@ -396,12 +399,12 @@ pub struct TextCharWrapped {
 }
 
 impl TextCharWrapped {
-    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
-        cf(self).ignore_state()
+    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
+        unboxed::cf(self).ignore_state()
     }
 
-    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
-        self.cf().boxed_cf()
+    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
+        self.cf().boxed()
     }
 }
 
@@ -436,12 +439,12 @@ pub struct TextWordWrapped {
 }
 
 impl TextWordWrapped {
-    pub fn cf<S>(self) -> CF<IgnoreState<S, Self>> {
-        cf(self).ignore_state()
+    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
+        unboxed::cf(self).ignore_state()
     }
 
-    pub fn boxed_cf<S: 'static>(self) -> BoxedCF<(), S> {
-        self.cf().boxed_cf()
+    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
+        self.cf().boxed()
     }
 }
 

@@ -1,4 +1,7 @@
-use crate::control_flow::{BoxedCF, IgnoreState, CF};
+use crate::control_flow::{
+    boxed,
+    unboxed::{self, IgnoreState},
+};
 use chargrid_core::*;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -9,7 +12,7 @@ pub trait MenuItemIdentifier: Component {
 }
 
 pub type MenuItemIdentifierBoxed<S = ()> = Box<dyn MenuItemIdentifier<State = S, Output = ()>>;
-pub type MenuCF<T, S> = CF<IgnoreState<S, Menu<T, ()>>>;
+pub type MenuCF<T, S> = unboxed::CF<IgnoreState<S, Menu<T, ()>>>;
 
 pub struct MenuItem<T: Clone, S = ()> {
     value: T,
@@ -587,14 +590,14 @@ pub mod builder {
 
     impl<T: Clone> MenuBuilder<T, ()> {
         pub fn build_cf<S>(self) -> MenuCF<T, S> {
-            use crate::control_flow::cf;
+            use crate::control_flow::unboxed::cf;
             cf(self.build()).ignore_state()
         }
     }
 
     impl<T: 'static + Clone> MenuBuilder<T, ()> {
-        pub fn build_boxed_cf<S: 'static>(self) -> BoxedCF<Option<T>, S> {
-            self.build_cf().boxed_cf()
+        pub fn build_boxed_cf<S: 'static>(self) -> boxed::CF<Option<T>, S> {
+            self.build_cf().boxed()
         }
     }
 

@@ -1,4 +1,4 @@
-use chargrid::{control_flow::*, core::*};
+use chargrid::{control_flow::unboxed::*, core::*};
 
 pub fn app() -> impl Component<Output = app::Output, State = ()> {
     render(|ctx, fb| {
