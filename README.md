@@ -13,15 +13,7 @@ To set up a shell with an installation of rust and external dependencies:
 ```
 nix-shell
 ```
-
-For nightly rust:
+...or for nix flakes users:
 ```
-nix-shell nix/nightly.nix
-```
-
-## Debug Environment
-
-Source the script `debug_env_linux.sh` to set cargo environment variables for faster builds:
-```
-. debug_env_linux.sh
-```
+nix develop
+`
