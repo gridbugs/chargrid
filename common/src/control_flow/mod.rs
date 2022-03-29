@@ -75,7 +75,7 @@ where
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum LoopControl<Co, Br> {
     Continue(Co),
     Break(Br),
@@ -96,6 +96,7 @@ impl<Co, Br> LoopControl<Co, Br> {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Close;
 pub type OrClose<T> = Result<T, Close>;
 
@@ -103,11 +104,11 @@ pub type OrClose<T> = Result<T, Close>;
 pub struct Escape;
 pub type OrEscape<T> = Result<T, Escape>;
 
+#[derive(Clone, Copy, Debug)]
 pub enum EscapeOrStart {
     Escape,
     Start,
 }
-
 pub type OrEscapeOrStart<T> = Result<T, EscapeOrStart>;
 
 #[macro_export]
