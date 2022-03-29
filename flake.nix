@@ -1,5 +1,5 @@
 {
-  description = "Rain Forest";
+  description = "Crates for making text-ui applications";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
