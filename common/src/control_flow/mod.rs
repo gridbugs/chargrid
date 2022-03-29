@@ -128,7 +128,7 @@ macro_rules! lens {
 macro_rules! many {
     ($($items:expr),* $(,)* ) => {
         $crate::control_flow::many([
-            $($crate::control_flow($items)),*
+            $($crate::control_flow::cf($items)),*
         ])
     };
 }
