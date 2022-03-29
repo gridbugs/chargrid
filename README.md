@@ -16,4 +16,4 @@ nix-shell
 ...or for nix flakes users:
 ```
 nix develop
-`
+```
