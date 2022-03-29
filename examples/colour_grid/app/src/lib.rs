@@ -1,6 +1,6 @@
-use chargrid::{control_flow::unboxed::*, core::*};
+use chargrid::{control_flow::*, core::*};
 
-pub fn app() -> impl Component<Output = app::Output, State = ()> {
+pub fn app() -> App {
     render(|ctx, fb| {
         let size = ctx.bounding_box.size();
         for y in 0..size.height() {

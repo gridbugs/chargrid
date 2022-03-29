@@ -430,14 +430,3 @@ where
 {
     unboxed::on_input_state(f).boxed()
 }
-
-#[macro_export]
-macro_rules! boxed_many {
-    ($($items:expr),* $(,)* ) => {
-        $crate::control_flow::boxed::many([
-            $($crate::control_flow::boxed($items)),*
-        ])
-    };
-}
-
-pub use crate::boxed_many;

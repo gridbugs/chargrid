@@ -1,8 +1,10 @@
 use chargrid_core::{Component, Ctx, Event, FrameBuffer, Size};
 use std::marker::PhantomData;
 
-pub mod boxed;
-pub mod unboxed;
+mod boxed;
+mod unboxed;
+
+pub use boxed::*;
 
 pub trait Lens {
     type Input;
@@ -73,19 +75,6 @@ where
     }
 }
 
-#[macro_export]
-macro_rules! lens {
-    ($input:ty[$field:ident]: $output:ty) => {{
-        fn get(state: &$input) -> &$output {
-            &state.$field
-        }
-        fn get_mut(state: &mut $input) -> &mut $output {
-            &mut state.$field
-        }
-        LensFns::new(get, get_mut)
-    }};
-}
-
 #[derive(Clone, Copy)]
 pub enum LoopControl<Co, Br> {
     Continue(Co),
@@ -121,4 +110,26 @@ pub enum EscapeOrStart {
 
 pub type OrEscapeOrStart<T> = Result<T, EscapeOrStart>;
 
-pub use crate::lens;
+#[macro_export]
+macro_rules! lens {
+    ($input:ty[$field:ident]: $output:ty) => {{
+        fn get(state: &$input) -> &$output {
+            &state.$field
+        }
+        fn get_mut(state: &mut $input) -> &mut $output {
+            &mut state.$field
+        }
+        LensFns::new(get, get_mut)
+    }};
+}
+
+#[macro_export]
+macro_rules! many {
+    ($($items:expr),* $(,)* ) => {
+        $crate::control_flow::many([
+            $($crate::control_flow($items)),*
+        ])
+    };
+}
+
+pub use crate::{lens, many};

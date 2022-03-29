@@ -1,6 +1,6 @@
 use chargrid::{
     border::{Border, BorderStyle},
-    control_flow::unboxed::*,
+    control_flow::*,
     core::TintDim,
     menu,
     prelude::*,
@@ -197,7 +197,7 @@ enum PauseMenuChoice {
     Quit,
 }
 
-fn pause_menu() -> CF<impl Component<State = TetrisState, Output = Option<PauseMenuChoice>>> {
+fn pause_menu() -> CF<Option<PauseMenuChoice>, TetrisState> {
     use menu::builder::*;
     let BorderStyles { common, .. } = BorderStyles::new();
     menu_builder()
@@ -213,7 +213,7 @@ fn pause_menu() -> CF<impl Component<State = TetrisState, Output = Option<PauseM
         .border(common)
 }
 
-fn tetris() -> CF<TetrisComponent> {
+fn tetris() -> CF<Option<TetrisOutput>, TetrisState> {
     cf(TetrisComponent::new())
 }
 
@@ -223,47 +223,39 @@ enum PausableTetrisOutput {
     Exit,
 }
 
-fn pausable_tetris(
-) -> CF<impl Component<Output = Option<PausableTetrisOutput>, State = TetrisState>> {
-    either!(Ei = A | B);
+fn pausable_tetris() -> CF<Option<PausableTetrisOutput>, TetrisState> {
     loop_((), |()| {
         tetris()
             .catch_escape()
             .and_then(|or_escape| match or_escape {
-                Err(Escape) => Ei::A(
-                    pause_menu()
-                        .centre()
-                        .overlay_tint(tetris(), TintDim(63), 10)
-                        .catch_escape()
-                        .and_then(|choice| {
-                            on_state(move |s: &mut TetrisState| match choice {
-                                Ok(PauseMenuChoice::Resume) | Err(Escape) => {
-                                    LoopControl::Continue(())
-                                }
-                                Ok(PauseMenuChoice::Restart) => {
-                                    s.tetris = Tetris::new(&mut s.rng);
-                                    LoopControl::Continue(())
-                                }
-                                Ok(PauseMenuChoice::Quit) => {
-                                    LoopControl::Break(PausableTetrisOutput::Exit)
-                                }
-                            })
-                        }),
-                ),
-                Ok(TetrisOutput::GameOver) => Ei::B(
-                    cf(text::StyledString {
-                        string: "YOU DIED".to_string(),
-                        style: Style {
-                            foreground: Some(Rgba32::new_rgb(255, 0, 0)),
-                            bold: Some(true),
-                            ..Default::default()
-                        },
-                    })
+                Err(Escape) => pause_menu()
                     .centre()
-                    .ignore_state()
-                    .delay(Duration::from_millis(1000))
-                    .map(|()| LoopControl::Break(PausableTetrisOutput::MainMenu)),
-                ),
+                    .overlay_tint(tetris(), TintDim(63), 10)
+                    .catch_escape()
+                    .and_then(|choice| {
+                        on_state(move |s: &mut TetrisState| match choice {
+                            Ok(PauseMenuChoice::Resume) | Err(Escape) => LoopControl::Continue(()),
+                            Ok(PauseMenuChoice::Restart) => {
+                                s.tetris = Tetris::new(&mut s.rng);
+                                LoopControl::Continue(())
+                            }
+                            Ok(PauseMenuChoice::Quit) => {
+                                LoopControl::Break(PausableTetrisOutput::Exit)
+                            }
+                        })
+                    }),
+                Ok(TetrisOutput::GameOver) => cf(text::StyledString {
+                    string: "YOU DIED".to_string(),
+                    style: Style {
+                        foreground: Some(Rgba32::new_rgb(255, 0, 0)),
+                        bold: Some(true),
+                        ..Default::default()
+                    },
+                })
+                .centre()
+                .ignore_state()
+                .delay(Duration::from_millis(1000))
+                .map(|()| LoopControl::Break(PausableTetrisOutput::MainMenu)),
             })
     })
 }
@@ -274,7 +266,7 @@ enum MainMenuChoice {
     Quit,
 }
 
-fn main_menu() -> CF<impl Component<State = TetrisState, Output = Option<MainMenuChoice>>> {
+fn main_menu() -> CF<Option<MainMenuChoice>, TetrisState> {
     use menu::builder::*;
     let BorderStyles { common, .. } = BorderStyles::new();
     menu_builder()
@@ -290,20 +282,17 @@ pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = (
         tetris: Tetris::new(&mut rng),
         rng: Isaac64Rng::from_rng(&mut rng).unwrap(),
     };
-    either!(Ei = A | B);
     loop_state(state, (), |()| {
         main_menu().and_then(|choice| match choice {
-            MainMenuChoice::Play => Ei::A(
-                on_state_then(|s: &mut TetrisState| {
-                    s.tetris = Tetris::new(&mut s.rng);
-                    pausable_tetris()
-                })
-                .map(|output| match output {
-                    PausableTetrisOutput::Exit => LoopControl::Break(app::Exit),
-                    PausableTetrisOutput::MainMenu => LoopControl::Continue(()),
-                }),
-            ),
-            MainMenuChoice::Quit => Ei::B(val(LoopControl::Break(app::Exit))),
+            MainMenuChoice::Play => on_state_then(|s: &mut TetrisState| {
+                s.tetris = Tetris::new(&mut s.rng);
+                pausable_tetris()
+            })
+            .map(|output| match output {
+                PausableTetrisOutput::Exit => LoopControl::Break(app::Exit),
+                PausableTetrisOutput::MainMenu => LoopControl::Continue(()),
+            }),
+            MainMenuChoice::Quit => val(LoopControl::Break(app::Exit)),
         })
     })
     .clear_each_frame()

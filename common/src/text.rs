@@ -1,7 +1,4 @@
-use crate::control_flow::{
-    boxed,
-    unboxed::{self, IgnoreState},
-};
+use crate::control_flow::*;
 use chargrid_core::*;
 use std::cell::RefCell;
 
@@ -113,12 +110,8 @@ impl StyledString {
         }
     }
 
-    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
-        unboxed::cf(self).ignore_state()
-    }
-
-    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
-        self.cf().boxed()
+    pub fn cf<S: 'static>(self) -> CF<(), S> {
+        cf(self).ignore_state()
     }
 }
 
@@ -182,12 +175,8 @@ impl StyledStringCharWrapped {
         cursor
     }
 
-    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
-        unboxed::cf(self).ignore_state()
-    }
-
-    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
-        self.cf().boxed()
+    pub fn cf<S: 'static>(self) -> CF<(), S> {
+        cf(self).ignore_state()
     }
 }
 
@@ -216,12 +205,8 @@ pub struct StyledStringWordWrapped {
 }
 
 impl StyledStringWordWrapped {
-    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
-        unboxed::cf(self).ignore_state()
-    }
-
-    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
-        self.cf().boxed()
+    pub fn cf<S: 'static>(self) -> CF<(), S> {
+        cf(self).ignore_state()
     }
 }
 
@@ -365,12 +350,8 @@ impl Text {
         }
     }
 
-    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
-        unboxed::cf(self).ignore_state()
-    }
-
-    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
-        self.cf().boxed()
+    pub fn cf<S: 'static>(self) -> CF<(), S> {
+        cf(self).ignore_state()
     }
 }
 
@@ -399,12 +380,8 @@ pub struct TextCharWrapped {
 }
 
 impl TextCharWrapped {
-    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
-        unboxed::cf(self).ignore_state()
-    }
-
-    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
-        self.cf().boxed()
+    pub fn cf<S: 'static>(self) -> CF<(), S> {
+        cf(self).ignore_state()
     }
 }
 
@@ -439,12 +416,8 @@ pub struct TextWordWrapped {
 }
 
 impl TextWordWrapped {
-    pub fn cf<S>(self) -> unboxed::CF<IgnoreState<S, Self>> {
-        unboxed::cf(self).ignore_state()
-    }
-
-    pub fn boxed_cf<S: 'static>(self) -> boxed::CF<(), S> {
-        self.cf().boxed()
+    pub fn cf<S: 'static>(self) -> CF<(), S> {
+        cf(self).ignore_state()
     }
 }
 
