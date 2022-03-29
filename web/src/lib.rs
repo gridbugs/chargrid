@@ -344,7 +344,7 @@ where
                 );
             }
             #[cfg(feature = "gamepad")]
-            for input in context.gamepad.drain_input() {
+            for input in context.gamepad.drain_input().collect::<Vec<_>>() {
                 on_input(
                     &mut *component,
                     chargrid_input::Input::Gamepad(input),
