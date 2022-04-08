@@ -711,6 +711,13 @@ impl Context {
         }
     }
 
+    /**
+     * Starts an event loop. Each frame the given component is rendered by invoking its `render`
+     * method, and a `Event::Tick` event is passed to the component's `update` method set to the
+     * time since the previous frame. Each time an input event is received an `Event::Input` event
+     * is passed to the component's `update` method. When the component yields `Some(app::Exit)`,
+     * the program will exit. This method never returns.
+     */
     pub fn run<C>(self, mut component: C) -> !
     where
         C: 'static + Component<State = (), Output = app::Output>,
