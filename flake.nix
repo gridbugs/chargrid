@@ -53,7 +53,7 @@
             bzip2
 
             # JS/Wasm Deps
-            nodejs-17_x
+            nodejs-18_x
             wasm-pack
           ];
 
