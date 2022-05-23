@@ -6,6 +6,6 @@ edition = "2021"
 
 [dependencies]
 tetris = { path = "../tetris" }
-chargrid = { path = "../../../chargrid" }
+chargrid = { path = "../../../chargrid", features = ["gamepad"] }
 rand = "0.8"
 rand_isaac = "0.3"

@@ -5,7 +5,7 @@ authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2021"
 
 [dependencies]
-chargrid_wgpu = { path = "../../../wgpu" }
+chargrid_wgpu = { path = "../../../wgpu", features = ["gamepad"] }
 tetris_app = { path = "../app" }
 rand = "0.8"
 env_logger = "0.9"
