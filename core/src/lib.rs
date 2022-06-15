@@ -644,47 +644,35 @@ impl Event {
     }
 }
 
-/**
- * A tick-based UI element which can be rendered, respond to events, and yield values. Typically,
- * a component will be re-rendered (via its `render` method) each frame. Each time an input event
- * occurs, a component may update its internal state or its external state (the `State` type).
- * Additionally, in response to an input, a component yields a value (the `Output` type).
- */
+/// A tick-based UI element which can be rendered, respond to events, and yield values. Typically,
+/// a component will be re-rendered (via its `render` method) each frame. Each time an input event
+/// occurs, a component may update its internal state or its external state (the `State` type).
+/// Additionally, in response to an input, a component yields a value (the `Output` type).
 pub trait Component {
-    /**
-     * The type yielded by the component in response to an event. Typical components only yield
-     * meaningful results when certain conditions have been met (e.g. an item is chosen from a
-     * menu), thus it's common for this type to be `Option<_>`.
-     */
+    /// The type yielded by the component in response to an event. Typical components only yield
+    /// meaningful results when certain conditions have been met (e.g. an item is chosen from a
+    /// menu), thus it's common for this type to be `Option<_>`.
     type Output;
 
-    /**
-     * The type of the external state of this component. This allows multiple different components
-     * to share the same piece of state. For components whose entire state is contained within the
-     * component itself, set this to `()`.
-     */
+    /// The type of the external state of this component. This allows multiple different components
+    /// to share the same piece of state. For components whose entire state is contained within the
+    /// component itself, set this to `()`.
     type State: ?Sized;
 
-    /** Render the component to a frame buffer */
+    /// Render the component to a frame buffer
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer);
 
-    /**
-     * Update the internal and extnal state of this component in response to an event, and yield a
-     * value.
-     */
+    /// Update the internal and extnal state of this component in response to an event, and yield a
+    /// value.
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output;
 
-    /**
-     * Return the current size (in cells) of this component. This allows decorators to account for
-     * the size of the components they decorate (e.g. when drawing a border around a component, its
-     * size must be known).
-     */
+    /// Return the current size (in cells) of this component. This allows decorators to account for
+    /// the size of the components they decorate (e.g. when drawing a border around a component, its
+    /// size must be known).
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size;
 }
 
-/**
- * A wrapper of `Component` implementation which erases its specific by placing it inside a `Box`
- */
+/// A wrapper of `Component` implementation which erases its specific by placing it inside a `Box`
 pub struct BoxedComponent<O, S>(pub Box<dyn Component<Output = O, State = S>>);
 
 impl<O, S> Component for BoxedComponent<O, S> {
