@@ -257,15 +257,13 @@ impl WgpuContext {
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
-        let texture_format = surface
-            .get_preferred_format(&adapter)
-            .expect("Failed to find compatible texture format");
+        let texture_format = surface.get_supported_formats(&adapter)[0];
         let surface_configuration = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: texture_format,
             width: physical_size.width,
             height: physical_size.height,
-            present_mode: wgpu::PresentMode::Mailbox,
+            present_mode: wgpu::PresentMode::Fifo,
         };
         enum Shaders {
             Spv {
@@ -314,13 +312,13 @@ impl WgpuContext {
             wgpu::Backend::Gl => {
                 log::warn!("Using SPV shaders");
                 Shaders::Spv {
-                    vertex: device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                    vertex: device.create_shader_module(wgpu::ShaderModuleDescriptor {
                         label: None,
                         source: Self::spirv_slice_to_shader_module_source(include_bytes!(
                             "./shader.vert.spv"
                         )),
                     }),
-                    fragment: device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                    fragment: device.create_shader_module(wgpu::ShaderModuleDescriptor {
                         label: None,
                         source: Self::spirv_slice_to_shader_module_source(include_bytes!(
                             "./shader.frag.spv"
@@ -330,7 +328,7 @@ impl WgpuContext {
                 }
             }
             _other => Shaders::Wgsl {
-                module: device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                module: device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: None,
                     source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
                 }),
@@ -425,7 +423,7 @@ impl WgpuContext {
             fragment: Some(wgpu::FragmentState {
                 module: shaders.fragment_module(),
                 entry_point: shaders.fragment_entry_point(),
-                targets: &[surface_configuration.format.into()],
+                targets: &[Some(surface_configuration.format.into())],
             }),
             multiview: None,
         });
@@ -824,14 +822,14 @@ impl Context {
                             let mut render_pass =
                                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                                     label: None,
-                                    color_attachments: &[wgpu::RenderPassColorAttachment {
+                                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                                         view: &view,
                                         resolve_target: None,
                                         ops: wgpu::Operations {
                                             load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                                             store: true,
                                         },
-                                    }],
+                                    })],
                                     depth_stencil_attachment: None,
                                 });
                             render_pass.set_pipeline(&wgpu_context.render_pipeline);
@@ -898,7 +896,7 @@ impl Context {
                             .unwrap();
                         staging_belt.finish();
                         wgpu_context.queue.submit(std::iter::once(encoder.finish()));
-                        executor.spawn(staging_belt.recall()).detach();
+                        staging_belt.recall();
                         frame.present();
                     } else {
                         log::warn!("timeout when acquiring next swapchain texture");

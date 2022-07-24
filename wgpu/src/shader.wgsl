@@ -1,30 +1,30 @@
 struct Globals {
-    cell_size_relative_to_window: vec2<f32>;
-    offset_to_centre: vec2<f32>;
-    grid_width: u32;
-    underline_width_cell_ratio: f32;
-    underline_top_offset_cell_ratio: f32;
-    pad0: u32; // pad the type to 32 bytes
+    cell_size_relative_to_window: vec2<f32>,
+    offset_to_centre: vec2<f32>,
+    grid_width: u32,
+    underline_width_cell_ratio: f32,
+    underline_top_offset_cell_ratio: f32,
+    pad0: u32, // pad the type to 32 bytes
 };
 
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> globals: Globals;
 
 struct VertexOutput {
-    [[builtin(position)]] position: vec4<f32>;
-    [[location(0), interpolate(flat)]] background_colour: vec3<f32>;
-    [[location(1), interpolate(flat)]] foreground_colour: vec3<f32>;
-    [[location(2)]] cell_ratio: f32;
-    [[location(3), interpolate(flat)]] underline: bool;
+    @builtin(position) position: vec4<f32>,
+    @location(0) @interpolate(flat) background_colour: vec3<f32>,
+    @location(1) @interpolate(flat) foreground_colour: vec3<f32>,
+    @location(2) cell_ratio: f32,
+    @location(3) @interpolate(flat) underline: u32,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(
-    [[location(0)]] background_colour: vec3<f32>,
-    [[location(1)]] foreground_colour: vec3<f32>,
-    [[location(2)]] underline: u32,
-    [[builtin(vertex_index)]] in_vertex_index: u32,
-    [[builtin(instance_index)]] in_instance_index: u32,
+    @location(0) background_colour: vec3<f32>,
+    @location(1) foreground_colour: vec3<f32>,
+    @location(2) underline: u32,
+    @builtin(vertex_index) in_vertex_index: u32,
+    @builtin(instance_index) in_instance_index: u32,
 ) -> VertexOutput {
 
     // The magic numbers have the binary representation such that the shift and
@@ -46,15 +46,15 @@ fn vs_main(
     out.cell_ratio = corner_offset_y;
     out.background_colour = background_colour;
     out.foreground_colour = foreground_colour;
-    out.underline = underline != 0u;
+    out.underline = underline;
     out.position = vec4<f32>(absolute.x, -absolute.y, 0.0, 1.0);
     return out;
 }
 
-[[stage(fragment)]]
-fn fs_main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let pixel_is_underline =
-        in.underline &&
+        in.underline != 0u &&
         in.cell_ratio >= globals.underline_top_offset_cell_ratio &&
         in.cell_ratio <= globals.underline_top_offset_cell_ratio + globals.underline_width_cell_ratio;
     if (pixel_is_underline) {
