@@ -1,7 +1,7 @@
-# chargrid\_graphical\_wgpu
+# chargrid\_wgpu
 
-[![Version](https://img.shields.io/crates/v/chargrid_graphical_wgpu.svg)](https://crates.io/crates/chargrid_graphical_wgpu)
-[![Documentation](https://docs.rs/chargrid_graphical_wgpu/badge.svg)](https://docs.rs/chargrid_graphical_wgpu)
+[![Version](https://img.shields.io/crates/v/chargrid_wgpu.svg)](https://crates.io/crates/chargrid_wgpu)
+[![Documentation](https://docs.rs/chargrid_wgpu/badge.svg)](https://docs.rs/chargrid_wgpu)
 
 A graphical frontend for chargrid which renders with wgpu.
 
