@@ -5,8 +5,37 @@ use chargrid_runtime::{FrameBuffer, FrameBufferCell, Rgba32, Size};
 mod ansi_colour_codes;
 mod ansi_terminal;
 mod byte_prefix_tree;
-mod low_level;
 mod term_info_cache;
+
+#[cfg(unix)]
+mod low_level;
+
+#[cfg(not(unix))]
+mod low_level {
+    use crate::error::{Error, Result};
+    use chargrid_runtime::Size;
+    use std::io;
+
+    pub struct LowLevel {}
+
+    impl LowLevel {
+        pub fn new() -> Result<Self> {
+            Err(Error::NonUnixOS)
+        }
+
+        pub fn send(&mut self, _data: &str) -> io::Result<()> {
+            panic!("Unimplemented on non-unix OS")
+        }
+
+        pub fn read_polling(&mut self, _buf: &mut Vec<u8>) -> Result<()> {
+            panic!("Unimplemented on non-unix OS")
+        }
+
+        pub fn size(&self) -> Result<Size> {
+            panic!("Unimplemented on non-unix OS")
+        }
+    }
+}
 
 pub use self::ansi_terminal::{col_encode, AnsiTerminal, ColEncode, DrainInput};
 

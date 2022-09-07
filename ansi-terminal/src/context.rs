@@ -1,5 +1,5 @@
 use crate::error::*;
-use crate::terminal::*;
+use crate::terminal::{ColEncode, Terminal};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer, Size};

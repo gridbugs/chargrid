@@ -12,6 +12,7 @@ pub enum Error {
     NoSuchMenuPlace(String),
     TermError(TermError),
     ParamError(ParamError),
+    NonUnixOS,
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;

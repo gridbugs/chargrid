@@ -6,6 +6,7 @@ use std::io::{self, Read, Write};
 use std::mem::MaybeUninit;
 use std::os::unix::io::{AsRawFd, RawFd};
 
+#[repr(C)]
 struct WinSize {
     ws_row: libc::c_ushort,
     ws_col: libc::c_ushort,
