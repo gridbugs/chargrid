@@ -16,4 +16,10 @@ jobs:
           sudo apt update
           sudo apt install libudev-dev libasound2-dev
     - uses: actions/checkout@master
-    - run: ./test.sh
+    - if: matrix.os != 'windows-latest'
+      run: ./test.sh
+    - if: matrix.os == 'windows-latest'
+      run: |
+          cargo test --manifest-path=wgpu/Cargo.toml
+          cargo test --manifest-path=ggez/Cargo.toml
+          cargo test --manifest-path=ansi-terminal/Cargo.toml
