@@ -2,6 +2,7 @@
 
 pkgs.mkShell rec {
   packages = with pkgs; [
+    cmake
     rustc
     cargo
     rustPlatform.rustLibSrc
@@ -10,6 +11,11 @@ pkgs.mkShell rec {
     rustfmt
     pkg-config
     udev
+    alsaLib
+    libao
+    openal
+    libpulseaudio
+    fontconfig
     xorg.libX11
     xorg.libXcursor
     xorg.libXrandr
