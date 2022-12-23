@@ -19,4 +19,4 @@ chargrid_input = { path = "../input", version = "0.3" }
 chargrid_runtime = { path = "../runtime", version = "0.1" }
 log = "0.4"
 ggez = "0.7"
-hashbrown = { version = "0.12", optional = true }
+hashbrown = { version = "0.13", optional = true }
