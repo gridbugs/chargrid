@@ -8,4 +8,4 @@ edition = "2021"
 chargrid_wgpu = { path = "../../../wgpu", features = ["gamepad"] }
 tetris_app = { path = "../app" }
 rand = "0.8"
-env_logger = "0.9"
+env_logger = "0.10"
