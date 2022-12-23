@@ -264,6 +264,7 @@ impl WgpuContext {
             width: physical_size.width,
             height: physical_size.height,
             present_mode: wgpu::PresentMode::Fifo,
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
         };
         enum Shaders {
             Spv {
