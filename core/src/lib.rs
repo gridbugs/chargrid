@@ -47,6 +47,8 @@ impl BoundingBox {
         Some(coord - self.top_left)
     }
 
+    /// Move the top-left corner of the bounding box inwards by the specified offset, leaving the
+    /// bottom-right corner of the bounding box in place (ie. box shrinks - it does not move).
     pub fn add_offset(self, offset: Coord) -> Self {
         let top_left = Coord {
             x: (self.top_left.x + offset.x).min(self.bottom_right.x),
@@ -506,6 +508,8 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// Move the top-left corner of the bounding box inwards by the specified offset, leaving the
+    /// bottom-right corner of the bounding box in place (ie. box shrinks - it does not move).
     pub fn add_offset(self, offset: Coord) -> Self {
         Self {
             bounding_box: self.bounding_box.add_offset(offset),

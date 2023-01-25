@@ -84,24 +84,17 @@ impl Default for BorderStyle {
 }
 
 impl BorderStyle {
-    fn child_offset(&self) -> Coord {
+    fn child_offset_top_left(&self) -> Coord {
         Coord {
             x: (self.padding.left + 1) as i32,
             y: (self.padding.top + 1) as i32,
         }
     }
 
-    fn child_constrain_size_by(&self) -> Coord {
-        Coord::new(
-            (self.padding.left + self.padding.right + 2) as i32,
-            (self.padding.top + self.padding.bottom + 2) as i32,
-        )
-    }
-
-    fn span_offset(&self) -> Coord {
+    fn child_offset_bottom_right(&self) -> Coord {
         Coord {
-            x: (self.padding.left + self.padding.right + 1) as i32,
-            y: (self.padding.top + self.padding.bottom + 1) as i32,
+            x: (self.padding.left + 1) as i32,
+            y: (self.padding.top + 1) as i32,
         }
     }
 
@@ -118,7 +111,11 @@ impl BorderStyle {
     }
 
     fn draw_border(&self, size: Size, ctx: Ctx, fb: &mut FrameBuffer) {
-        let span = self.span_offset() + size;
+        // span is 1 less than the size of the bordered component in the x and y directions
+        let span = Coord {
+            x: (self.padding.left + self.padding.right + 1) as i32,
+            y: (self.padding.top + self.padding.bottom + 1) as i32,
+        } + size;
         fb.set_cell_relative_to_ctx(
             ctx,
             Coord::new(0, 0),
@@ -192,8 +189,8 @@ impl BorderStyle {
     }
 
     fn inner_ctx<'a>(&self, ctx: Ctx<'a>) -> Ctx<'a> {
-        ctx.add_offset(self.child_offset())
-            .constrain_size_by(self.child_constrain_size_by())
+        ctx.add_offset(self.child_offset_top_left())
+            .constrain_size_by(self.child_offset_bottom_right())
     }
 }
 
@@ -217,6 +214,7 @@ impl<C: Component> Component for Border<C> {
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.component.size(state, self.style.inner_ctx(ctx))
-            + self.style.child_constrain_size_by().to_size().unwrap()
+            + self.style.child_offset_top_left().to_size().unwrap()
+            + self.style.child_offset_bottom_right().to_size().unwrap()
     }
 }
