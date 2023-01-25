@@ -19,6 +19,27 @@ pub struct BorderChars {
 
 impl Default for BorderChars {
     fn default() -> Self {
+        Self::single_line_light()
+    }
+}
+
+impl BorderChars {
+    pub const fn all(ch: char) -> Self {
+        Self {
+            top: ch,
+            bottom: ch,
+            left: ch,
+            right: ch,
+            top_left: ch,
+            top_right: ch,
+            bottom_left: ch,
+            bottom_right: ch,
+            before_title: ch,
+            after_title: ch,
+        }
+    }
+
+    pub const fn single_line_light() -> Self {
         Self {
             top: '─',
             bottom: '─',
@@ -30,6 +51,29 @@ impl Default for BorderChars {
             bottom_right: '┘',
             before_title: '┤',
             after_title: '├',
+        }
+    }
+
+    pub const fn double_line_light() -> Self {
+        Self {
+            top: '═',
+            bottom: '═',
+            left: '║',
+            right: '║',
+            top_left: '╔',
+            top_right: '╗',
+            bottom_left: '╚',
+            bottom_right: '╝',
+            before_title: '╣',
+            after_title: '╠',
+        }
+    }
+
+    pub const fn with_title_separators(self, before_title: char, after_title: char) -> Self {
+        Self {
+            before_title,
+            after_title,
+            ..self
         }
     }
 }
