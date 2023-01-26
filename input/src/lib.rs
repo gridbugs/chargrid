@@ -152,6 +152,17 @@ pub enum MouseInput {
     },
 }
 
+impl MouseInput {
+    pub fn coord(&self) -> Coord {
+        match self {
+            Self::MouseMove { coord, .. }
+            | Self::MousePress { coord, .. }
+            | Self::MouseRelease { coord, .. }
+            | Self::MouseScroll { coord, .. } => *coord,
+        }
+    }
+}
+
 #[cfg(feature = "gamepad")]
 mod gamepad {
     #[cfg(feature = "serialize")]

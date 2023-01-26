@@ -86,6 +86,10 @@ impl BoundingBox {
     pub fn add_size(self, size: Size) -> Self {
         self.set_size(self.size() + size)
     }
+
+    pub fn contains_coord(&self, coord: Coord) -> bool {
+        (coord - self.top_left).is_valid(self.size())
+    }
 }
 
 #[derive(Clone, Copy)]
