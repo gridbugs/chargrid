@@ -256,7 +256,7 @@ impl FrameBuffer {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Style {
     pub bold: Option<bool>,
     pub underline: Option<bool>,
@@ -359,7 +359,7 @@ impl Default for Style {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RenderCell {
     pub character: Option<char>,
     pub style: Style,
