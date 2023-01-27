@@ -57,6 +57,18 @@ impl BoundingBox {
         Self { top_left, ..self }
     }
 
+    pub fn add_x(self, x: i32) -> Self {
+        self.add_offset(Coord { x, y: 0 })
+    }
+
+    pub fn add_y(self, y: i32) -> Self {
+        self.add_offset(Coord { x: 0, y })
+    }
+
+    pub fn add_xy(self, x: i32, y: i32) -> Self {
+        self.add_offset(Coord { x, y })
+    }
+
     pub fn constrain_size_by(self, by: Coord) -> Self {
         let bottom_right = Coord {
             x: (self.bottom_right.x - by.x).max(self.top_left.x),
@@ -317,6 +329,12 @@ impl Style {
             ..self
         }
     }
+    pub const fn with_foreground_option(self, foreground: Option<Rgba32>) -> Self {
+        Self { foreground, ..self }
+    }
+    pub const fn with_background_option(self, background: Option<Rgba32>) -> Self {
+        Self { background, ..self }
+    }
     pub fn coalesce(self, other: Self) -> Self {
         Self {
             bold: (self.bold.or(other.bold)),
@@ -432,6 +450,21 @@ impl RenderCell {
     pub const fn without_background(self) -> Self {
         Self {
             style: self.style.without_background(),
+            ..self
+        }
+    }
+    pub const fn with_character_option(self, character: Option<char>) -> Self {
+        Self { character, ..self }
+    }
+    pub const fn with_foreground_option(self, foreground: Option<Rgba32>) -> Self {
+        Self {
+            style: self.style.with_foreground_option(foreground),
+            ..self
+        }
+    }
+    pub const fn with_background_option(self, background: Option<Rgba32>) -> Self {
+        Self {
+            style: self.style.with_background_option(background),
             ..self
         }
     }
