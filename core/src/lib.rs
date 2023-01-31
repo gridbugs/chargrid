@@ -20,6 +20,14 @@ impl BoundingBox {
         }
     }
 
+    pub fn top_left(&self) -> Coord {
+        self.top_left
+    }
+
+    pub fn bottom_right(&self) -> Coord {
+        self.bottom_right
+    }
+
     pub fn size(&self) -> Size {
         (self.bottom_right - self.top_left).to_size().unwrap()
     }
