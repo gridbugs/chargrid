@@ -228,6 +228,7 @@ impl FrameBuffer {
                     cell.set_underline(underline, depth);
                 }
                 if let Some(foreground) = render_cell.style.foreground {
+                    // alpha composite the foreground colour over the existing background colour
                     let foreground_blended = foreground.alpha_composite(cell.background);
                     cell.set_foreground(foreground_blended, depth);
                 }
