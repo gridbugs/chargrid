@@ -5,6 +5,7 @@ pkgs.mkShell rec {
     cmake
     rustc
     cargo
+    llvmPackages.bintools
     rustPlatform.rustLibSrc
     rust-analyzer
     cargo-watch
