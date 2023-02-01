@@ -32,6 +32,12 @@ members = [
     "examples/component_experiment/ggez",
     "examples/component_experiment/ansi-terminal",
     "examples/component_experiment/web",
+
+    "examples/text_field/app",
+    "examples/text_field/wgpu",
+    "examples/text_field/ggez",
+    "examples/text_field/ansi-terminal",
+    "examples/text_field/web",
 ]
 
 [profile.release]

@@ -1,0 +1,8 @@
+[package]
+name = "text_field_ansi_terminal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+text_field_app = { path = "../app" }
+chargrid_ansi_terminal = { path = "../../../ansi-terminal" }

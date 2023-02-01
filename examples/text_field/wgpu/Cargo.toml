@@ -1,0 +1,9 @@
+[package]
+name = "text_field_wgpu"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+text_field_app = { path = "../app" }
+chargrid_wgpu = { path = "../../../wgpu" }
+env_logger = "0.10"
