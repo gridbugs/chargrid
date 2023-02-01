@@ -1,4 +1,4 @@
-# component\_experiment
+# text\_field
 
 ## Install
 ```
@@ -8,7 +8,7 @@ $ npm install
 
 ## Run Development Server
 ```
-$ npm run serve
+$ NODE_OPTIONS=--openssl-legacy-provider npm run serve
 ```
 
 ## Build

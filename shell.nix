@@ -1,10 +1,16 @@
-{ pkgs ? import <nixpkgs> {} }:
+{
+  pkgs ? import <nixpkgs> {
+    overlays = [(import (builtins.fetchTarball "https://github.com/oxalica/rust-overlay/archive/master.tar.gz"))];
+  }
+}:
 
 pkgs.mkShell rec {
   packages = with pkgs; [
     cmake
-    rustc
-    cargo
+    (rust-bin.stable.latest.default.override {
+      extensions = [ "rust-src" "rust-analysis" ];
+      targets = [ "wasm32-unknown-unknown" ];
+    })
     llvmPackages.bintools
     rustPlatform.rustLibSrc
     rust-analyzer
@@ -27,6 +33,7 @@ pkgs.mkShell rec {
     bzip2
     nodejs-16_x
     wasm-pack
+    openssl
   ];
 
   # Allows rust-analyzer to find the rust source

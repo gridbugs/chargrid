@@ -1,7 +1,7 @@
 [package]
 name = "chargrid_wgpu"
 description = "Graphical chargrid context which renders with wgpu"
-version = "0.2.4"
+version = "0.3.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -15,9 +15,9 @@ serialize = ["chargrid_input/serialize"]
 gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamepad"]
 
 [dependencies]
-chargrid_input = { path = "../input", version = "0.3" }
-chargrid_gamepad = { path = "../gamepad", version = "0.3", optional = true }
-chargrid_runtime = { path = "../runtime", version = "0.1" }
+chargrid_input = { path = "../input", version = "0.4" }
+chargrid_gamepad = { path = "../gamepad", version = "0.4", optional = true }
+chargrid_runtime = { path = "../runtime", version = "0.2" }
 wgpu = { version = "0.14", features = ["spirv"] }
 wgpu_glyph = "0.18"
 winit = "0.27"

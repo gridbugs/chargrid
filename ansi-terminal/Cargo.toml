@@ -1,7 +1,7 @@
 [package]
 name = "chargrid_ansi_terminal"
 description = "chargrid context for ansi terminals."
-version = "0.3.3"
+version = "0.4.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 license = "MIT"
 readme = "README.md"
@@ -15,9 +15,9 @@ serialize = ["chargrid_input/serialize"]
 gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamepad"]
 
 [dependencies]
-chargrid_input = { path = "../input", version = "0.3" }
-chargrid_gamepad = { path = "../gamepad", version = "0.3", optional = true }
-chargrid_runtime = { path = "../runtime", version = "0.1" }
+chargrid_input = { path = "../input", version = "0.4" }
+chargrid_gamepad = { path = "../gamepad", version = "0.4", optional = true }
+chargrid_runtime = { path = "../runtime", version = "0.2" }
 grid_2d = "0.15"
 libc = "0.2"
 term = "0.7"
