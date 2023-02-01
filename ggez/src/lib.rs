@@ -272,6 +272,8 @@ where
                 VirtualKeyCode::Return => keys::RETURN,
                 VirtualKeyCode::Escape => keys::ESCAPE,
                 VirtualKeyCode::Space => KeyboardInput::Char(' '),
+                VirtualKeyCode::Back => keys::BACKSPACE,
+                VirtualKeyCode::Delete => KeyboardInput::Delete,
                 other => {
                     log::warn!("Unhandled input: {:?}", other);
                     return Ok(());

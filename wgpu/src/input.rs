@@ -113,6 +113,8 @@ fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<K
         VirtualKeyCode::F22 => KeyboardInput::Function(22),
         VirtualKeyCode::F23 => KeyboardInput::Function(23),
         VirtualKeyCode::F24 => KeyboardInput::Function(24),
+        VirtualKeyCode::Back => keys::BACKSPACE,
+        VirtualKeyCode::Delete => KeyboardInput::Delete,
         _ => return None,
     };
     Some(keyboard_input)

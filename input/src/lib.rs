@@ -299,7 +299,7 @@ pub mod keys {
 
     pub const ESCAPE: KeyboardInput = KeyboardInput::Char('\u{1b}');
     pub const ETX: KeyboardInput = KeyboardInput::Char('\u{3}');
-    pub const BACKSPACE: KeyboardInput = KeyboardInput::Char('\u{8}');
+    pub const BACKSPACE: KeyboardInput = KeyboardInput::Char('\u{7f}');
     pub const TAB: KeyboardInput = KeyboardInput::Char('\u{9}');
     pub const RETURN: KeyboardInput = KeyboardInput::Char('\u{d}');
 }
