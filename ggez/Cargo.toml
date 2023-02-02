@@ -18,5 +18,5 @@ gamepad = ["chargrid_input/gamepad", "hashbrown", "chargrid_runtime/gamepad"]
 chargrid_input = { path = "../input", version = "0.4" }
 chargrid_runtime = { path = "../runtime", version = "0.2" }
 log = "0.4"
-ggez = "0.8"
+ggez = "0.7"
 hashbrown = { version = "0.13", optional = true }
