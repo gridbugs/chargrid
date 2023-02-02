@@ -103,9 +103,9 @@ where
             if cell.character != ' ' {
                 let mut text = ggez::graphics::Text::new(cell.character);
                 let font = if cell.bold {
-                    FONT_NAME_NORMAL
-                } else {
                     FONT_NAME_BOLD
+                } else {
+                    FONT_NAME_NORMAL
                 };
                 text.set_font(font);
                 text.set_scale(self.font_scale);
