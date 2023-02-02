@@ -18,9 +18,9 @@ gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamep
 chargrid_input = { path = "../input", version = "0.4" }
 chargrid_gamepad = { path = "../gamepad", version = "0.4", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.2" }
-wgpu = { version = "0.14", features = ["spirv"] }
-wgpu_glyph = "0.18"
-winit = "0.27"
+wgpu = { version = "0.15", features = ["spirv"] }
+wgpu_glyph = { git = "https://github.com/sconybeare/wgpu_glyph", branch = "wgpu-0.15" } # TODO: switch to crates.io version when it's published
+winit = "0.28"
 zerocopy = "0.6"
 log = "0.4"
 grid_2d = "0.15"
