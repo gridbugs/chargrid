@@ -18,5 +18,5 @@ gamepad = ["chargrid_input/gamepad", "hashbrown", "chargrid_runtime/gamepad"]
 chargrid_input = { path = "../input", version = "0.4" }
 chargrid_runtime = { path = "../runtime", version = "0.2" }
 log = "0.4"
-ggez = "0.7" # XXX this can't be updated yet because of this bug: https://github.com/ggez/ggez/issues/1167
+ggez = "0.9.0-rc0"
 hashbrown = { version = "0.13", optional = true }
