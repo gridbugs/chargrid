@@ -111,6 +111,17 @@ pub enum EscapeOrStart {
 }
 pub type OrEscapeOrStart<T> = Result<T, EscapeOrStart>;
 
+#[derive(Clone, Copy, Debug)]
+pub struct ClickOut;
+pub type OrClickOut<T> = Result<T, ClickOut>;
+
+#[derive(Clone, Copy, Debug)]
+pub enum EscapeOrClickOut {
+    Escape,
+    ClickOut,
+}
+pub type OrEscapeOrClickOut<T> = Result<T, EscapeOrClickOut>;
+
 #[macro_export]
 macro_rules! lens {
     ($input:ty[$field:ident]: $output:ty) => {{

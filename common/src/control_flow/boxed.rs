@@ -2,7 +2,9 @@ pub use crate::control_flow::{lens, Close, Escape, EscapeOrStart, LensFns, LoopC
 use crate::{
     align::Alignment,
     border::BorderStyle,
-    control_flow::{unboxed, Lens, OrClose, OrEscape, OrEscapeOrStart},
+    control_flow::{
+        unboxed, Lens, OrClickOut, OrClose, OrEscape, OrEscapeOrClickOut, OrEscapeOrStart,
+    },
     pad_by::Padding,
 };
 pub use chargrid_core::app;
@@ -331,6 +333,17 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     /// start button on a gamepad
     pub fn catch_escape_or_start(self) -> CF<Option<OrEscapeOrStart<T>>, S> {
         self.0.catch_escape_or_start().boxed()
+    }
+
+    /// Creates a new `CF` which may be interrupted by the user clicking outside the component
+    pub fn catch_click_out(self) -> CF<Option<OrClickOut<T>>, S> {
+        self.0.catch_click_out().boxed()
+    }
+
+    /// Creates a new `CF` which may be interrupted by the user clicking outside the component or
+    /// pressing escape
+    pub fn catch_escape_or_click_out(self) -> CF<Option<OrEscapeOrClickOut<T>>, S> {
+        self.0.catch_escape_or_click_out().boxed()
     }
 
     /// Applies a common policy for interracting with menus. Intercepts the escape and "east"

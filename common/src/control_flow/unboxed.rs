@@ -1,4 +1,7 @@
-pub use crate::control_flow::{lens, Close, Escape, EscapeOrStart, LensFns, LoopControl};
+pub use crate::control_flow::{
+    lens, ClickOut, Close, Escape, EscapeOrClickOut, EscapeOrStart, LensFns, LoopControl,
+    OrClickOut, OrEscapeOrClickOut,
+};
 use crate::{
     add_offset::AddOffset,
     align::{Align, Alignment},
@@ -332,6 +335,14 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
 
     pub fn catch_escape_or_start(self) -> CF<CatchEscapeOrStart<C>> {
         cf(CatchEscapeOrStart(self.0))
+    }
+
+    pub fn catch_click_out(self) -> CF<CatchClickOut<C>> {
+        cf(CatchClickOut(self.0))
+    }
+
+    pub fn catch_escape_or_click_out(self) -> CF<CatchEscapeOrClickOut<C>> {
+        cf(CatchEscapeOrClickOut(self.0))
     }
 
     pub fn menu_harness(self) -> CF<MenuHarness<C>> {
@@ -1386,6 +1397,73 @@ where
                 ..
             })) => Some(Err(EscapeOrStart::Start)),
             _ => self.0.update(state, ctx, event).map(Ok),
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
+pub struct CatchClickOut<C: Component>(pub C);
+
+impl<T, C> Component for CatchClickOut<C>
+where
+    C: Component<Output = Option<T>>,
+{
+    type Output = Option<OrClickOut<T>>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        let is_click_out = match event {
+            Event::Input(input::Input::Mouse(input::MouseInput::MousePress { coord, .. })) => {
+                let size = self.size(state, ctx);
+                !ctx.bounding_box.set_size(size).contains_coord(coord)
+            }
+            _ => false,
+        };
+        if is_click_out {
+            Some(Err(ClickOut))
+        } else {
+            self.0.update(state, ctx, event).map(Ok)
+        }
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.0.size(state, ctx)
+    }
+}
+
+pub struct CatchEscapeOrClickOut<C: Component>(pub C);
+
+impl<T, C> Component for CatchEscapeOrClickOut<C>
+where
+    C: Component<Output = Option<T>>,
+{
+    type Output = Option<OrEscapeOrClickOut<T>>;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.0.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        let escape_or_click_out = match event {
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => {
+                Some(EscapeOrClickOut::Escape)
+            }
+            Event::Input(input::Input::Mouse(input::MouseInput::MousePress { coord, .. })) => {
+                let size = self.size(state, ctx);
+                if ctx.bounding_box.set_size(size).contains_coord(coord) {
+                    None
+                } else {
+                    Some(EscapeOrClickOut::ClickOut)
+                }
+            }
+            _ => None,
+        };
+        if let Some(escape_or_click_out) = escape_or_click_out {
+            Some(Err(escape_or_click_out))
+        } else {
+            self.0.update(state, ctx, event).map(Ok)
         }
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
