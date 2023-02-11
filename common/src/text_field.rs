@@ -34,8 +34,8 @@ impl TextField {
         assert!(self.cursor_position <= self.text.len());
         if self.cursor_position > 0 {
             self.text.remove(self.cursor_position - 1);
+            self.cursor_position -= 1;
         }
-        self.cursor_position -= 1;
     }
 
     fn delete(&mut self) {
