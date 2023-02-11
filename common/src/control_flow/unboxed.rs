@@ -193,12 +193,24 @@ impl<C: Component> CF<C> {
         })
     }
 
-    pub fn with_title<T: Component<State = C::State>>(
+    pub fn with_title_vertical<T: Component<State = C::State>>(
         self,
         title: T,
         padding: i32,
-    ) -> CF<WithTitle<T, C>> {
-        cf(WithTitle {
+    ) -> CF<WithTitleVertical<T, C>> {
+        cf(WithTitleVertical {
+            title,
+            component: self.0,
+            padding,
+        })
+    }
+
+    pub fn with_title_horizontal<T: Component<State = C::State>>(
+        self,
+        title: T,
+        padding: i32,
+    ) -> CF<WithTitleHorizontal<T, C>> {
+        cf(WithTitleHorizontal {
             title,
             component: self.0,
             padding,
@@ -1796,7 +1808,7 @@ where
     })
 }
 
-pub struct WithTitle<T, C>
+pub struct WithTitleVertical<T, C>
 where
     T: Component,
     C: Component<State = T::State>,
@@ -1806,7 +1818,7 @@ where
     pub padding: i32,
 }
 
-impl<T, C> WithTitle<T, C>
+impl<T, C> WithTitleVertical<T, C>
 where
     T: Component,
     C: Component<State = T::State>,
@@ -1816,7 +1828,7 @@ where
     }
 }
 
-impl<T, C> Component for WithTitle<T, C>
+impl<T, C> Component for WithTitleVertical<T, C>
 where
     T: Component,
     C: Component<State = T::State>,
@@ -1842,6 +1854,56 @@ where
         let width = title_size.width().max(component_size.width());
         let height =
             (title_size.height() as i32 + component_size.height() as i32 + self.padding) as u32;
+        Size::new(width, height)
+    }
+}
+
+pub struct WithTitleHorizontal<T, C>
+where
+    T: Component,
+    C: Component<State = T::State>,
+{
+    pub title: T,
+    pub component: C,
+    pub padding: i32,
+}
+
+impl<T, C> WithTitleHorizontal<T, C>
+where
+    T: Component,
+    C: Component<State = T::State>,
+{
+    fn component_ctx<'a>(&self, state: &T::State, ctx: Ctx<'a>) -> Ctx<'a> {
+        ctx.add_x(self.padding + self.title.size(state, ctx).width() as i32)
+    }
+}
+
+impl<T, C> Component for WithTitleHorizontal<T, C>
+where
+    T: Component,
+    C: Component<State = T::State>,
+{
+    type Output = C::Output;
+    type State = C::State;
+
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.title.render(state, ctx, fb);
+        self.component
+            .render(state, self.component_ctx(state, ctx), fb);
+    }
+
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        self.title.update(state, ctx, event);
+        self.component
+            .update(state, self.component_ctx(state, ctx), event)
+    }
+
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        let title_size = self.title.size(state, ctx);
+        let component_size = self.component.size(state, self.component_ctx(state, ctx));
+        let width =
+            (title_size.width() as i32 + component_size.width() as i32 + self.padding) as u32;
+        let height = title_size.height().max(component_size.height());
         Size::new(width, height)
     }
 }

@@ -194,8 +194,23 @@ impl<O: 'static, S: 'static> CF<O, S> {
     /// Returns a new `CF` with identical behaviour to `self` but
     /// with an additional component rendered on top with a specified
     /// padding. Useful for adding title text to components
-    pub fn with_title<T: 'static + Component<State = S>>(self, title: T, padding: i32) -> Self {
-        self.0.with_title(title, padding).boxed()
+    pub fn with_title_vertical<T: 'static + Component<State = S>>(
+        self,
+        title: T,
+        padding: i32,
+    ) -> Self {
+        self.0.with_title_vertical(title, padding).boxed()
+    }
+
+    /// Returns a new `CF` with identical behaviour to `self` but
+    /// with an additional component rendered to the left with a specified
+    /// padding. Useful for adding labels to fields.
+    pub fn with_title_horizontal<T: 'static + Component<State = S>>(
+        self,
+        title: T,
+        padding: i32,
+    ) -> Self {
+        self.0.with_title_horizontal(title, padding).boxed()
     }
 }
 
