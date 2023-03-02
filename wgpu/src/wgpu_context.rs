@@ -131,7 +131,7 @@ struct Setup {
 }
 
 async fn request_adapter_for_backend(
-    backends: wgpu::Backends,
+    backend: wgpu::Backends,
     window: &winit::window::Window,
 ) -> Result<
     (
@@ -143,14 +143,9 @@ async fn request_adapter_for_backend(
     ),
     String,
 > {
-    let instance_descriptor = wgpu::InstanceDescriptor {
-        backends,
-        dx12_shader_compiler: wgpu::Dx12Compiler::default(),
-    };
-    let instance = wgpu::Instance::new(instance_descriptor);
-    let surface = unsafe { instance.create_surface(window) }
-        .map_err(|e| format!("Unable to create surface! ({:?})", e))?;
-    let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, backends, None)
+    let instance = wgpu::Instance::new(backend);
+    let surface = unsafe { instance.create_surface(window) };
+    let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, backend, None)
         .await
         .ok_or_else(|| "No suitable GPU adapters found on the system!".to_string())?;
     let (device, queue) = adapter
@@ -262,8 +257,7 @@ impl WgpuContext {
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
-        let caps = surface.get_capabilities(&adapter);
-        let texture_format = caps.formats[0];
+        let texture_format = surface.get_supported_formats(&adapter)[0];
         let surface_configuration = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: texture_format,
@@ -271,7 +265,6 @@ impl WgpuContext {
             height: physical_size.height,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
-            view_formats: vec![],
         };
         enum Shaders {
             Spv {
