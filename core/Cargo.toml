@@ -11,10 +11,11 @@ documentation = "https://docs.rs/chargrid_core"
 edition = "2021"
 
 [features]
-serialize = ["chargrid_input/serialize"]
+serialize = ["serde", "chargrid_input/serialize", "rgb_int/serialize"]
 gamepad = ["chargrid_input/gamepad"]
 
 [dependencies]
+serde = { version = "1.0", features = ["serde_derive"], optional = true }
 rgb_int = "0.1"
 grid_2d = "0.15"
 chargrid_input = { path = "../input", version = "0.4" }

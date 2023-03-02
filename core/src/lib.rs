@@ -4,6 +4,8 @@ pub use grid_2d::{Coord, Size};
 use input::{Input, InputPolicy, KeyboardInput, MouseInput};
 pub use rgb_int;
 pub use rgb_int::Rgba32;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 #[derive(Clone, Copy, Debug)]
@@ -265,6 +267,7 @@ impl FrameBuffer {
     }
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Style {
     pub bold: Option<bool>,
@@ -368,6 +371,7 @@ impl Default for Style {
     }
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RenderCell {
     pub character: Option<char>,
