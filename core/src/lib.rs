@@ -620,6 +620,10 @@ impl<'a> Ctx<'a> {
             ..self
         }
     }
+
+    pub fn top_left(self) -> Coord {
+        self.bounding_box.top_left
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

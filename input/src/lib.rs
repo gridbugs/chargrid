@@ -161,6 +161,21 @@ impl MouseInput {
             | Self::MouseScroll { coord, .. } => *coord,
         }
     }
+
+    fn coord_mut(&mut self) -> &mut Coord {
+        match self {
+            Self::MouseMove { coord, .. }
+            | Self::MousePress { coord, .. }
+            | Self::MouseRelease { coord, .. }
+            | Self::MouseScroll { coord, .. } => coord,
+        }
+    }
+
+    pub fn relative_to_coord(&self, coord: Coord) -> Self {
+        let mut ret = *self;
+        *ret.coord_mut() -= coord;
+        ret
+    }
 }
 
 #[cfg(feature = "gamepad")]
