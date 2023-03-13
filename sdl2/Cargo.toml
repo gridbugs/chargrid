@@ -1,0 +1,21 @@
+[package]
+name = "chargrid_sdl2"
+description = "Graphical chargrid context which renders with sdl2"
+version = "0.1.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/gridbugs/chargrid.git"
+repository = "https://github.com/gridbugs/chargrid.git"
+documentation = "https://docs.rs/chargrid_sdl2"
+edition = "2021"
+
+[features]
+serialize = ["chargrid_input/serialize"]
+gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamepad"]
+
+[dependencies]
+chargrid_input = { path = "../input", version = "0.4" }
+chargrid_gamepad = { path = "../gamepad", version = "0.4", optional = true }
+chargrid_runtime = { path = "../runtime", version = "0.2" }
+sdl2 = { version = "0.35", features = ["ttf"] }

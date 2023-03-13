@@ -1,0 +1,10 @@
+[package]
+name = "colour_grid_sdl"
+version = "0.1.0"
+authors = ["Stephen Sherratt <stephen@sherra.tt>"]
+edition = "2021"
+
+[dependencies]
+env_logger = "0.10"
+chargrid_sdl2 = { path = "../../../sdl2" }
+colour_grid_app = { path = "../app" }

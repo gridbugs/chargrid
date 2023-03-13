@@ -1,0 +1,8 @@
+[package]
+name = "component_experiment_sdl2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+component_experiment_app = { path = "../app" }
+chargrid_sdl2 = { path = "../../../sdl2", features = ["gamepad"] }

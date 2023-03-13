@@ -34,6 +34,7 @@ pkgs.mkShell rec {
     nodejs-16_x
     wasm-pack
     openssl
+    sdl2
   ];
 
   # Allows rust-analyzer to find the rust source

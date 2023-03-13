@@ -1,0 +1,8 @@
+[package]
+name = "text_field_sdl2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+text_field_app = { path = "../app" }
+chargrid_sdl2 = { path = "../../../sdl2" }

@@ -5,6 +5,7 @@ resolver = "2" # this is required for the wgpu frontend
 members = [
     "wgpu",
     "ggez",
+    "sdl2",
     "ansi-terminal",
     "web",
     "gamepad",
@@ -18,24 +19,28 @@ members = [
     "examples/tetris/app",
     "examples/tetris/wgpu",
     "examples/tetris/ggez",
+    "examples/tetris/sdl2",
     "examples/tetris/ansi-terminal",
     "examples/tetris/web",
 
     "examples/colour_grid/app",
     "examples/colour_grid/wgpu",
     "examples/colour_grid/ggez",
+    "examples/colour_grid/sdl2",
     "examples/colour_grid/ansi-terminal",
     "examples/colour_grid/web",
 
     "examples/component_experiment/app",
     "examples/component_experiment/wgpu",
     "examples/component_experiment/ggez",
+    "examples/component_experiment/sdl2",
     "examples/component_experiment/ansi-terminal",
     "examples/component_experiment/web",
 
     "examples/text_field/app",
     "examples/text_field/wgpu",
     "examples/text_field/ggez",
+    "examples/text_field/sdl2",
     "examples/text_field/ansi-terminal",
     "examples/text_field/web",
 ]
