@@ -78,8 +78,29 @@ impl Context {
         let video_subsys = sdl_context
             .video()
             .expect("failed to connect to video subsystem");
-        let ttf_context = sdl2::ttf::init().expect("failed to initialize ttf context");
+        let ttf_context = ttf::init().expect("failed to initialize ttf context");
         let font = config.font_bytes.load(&ttf_context, config.font_point_size);
+        #[cfg(feature = "gamepad")]
+        let joystick_subsystem = sdl_context
+            .joystick()
+            .expect("failed to get joystick subsystem");
+        #[cfg(feature = "gamepad")]
+        let num_joysticks = joystick_subsystem
+            .num_joysticks()
+            .expect("failed to get number of joysticks");
+        #[cfg(feature = "gamepad")]
+        let _joysticks = (0..num_joysticks)
+            .filter_map(|i| match joystick_subsystem.open(i) {
+                Ok(joystick) => {
+                    log::info!("Opened joystick {i}: {}", joystick.name());
+                    Some((i, joystick))
+                }
+                Err(e) => {
+                    log::error!("Failed to open joystick {i}: {e}");
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
         let window = video_subsys
             .window(
                 config.title.as_str(),
