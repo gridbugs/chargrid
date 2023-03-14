@@ -1,6 +1,7 @@
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
-use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer, Rgba32, Size};
+use chargrid_input::{keys, Input, MouseButton, MouseInput, ScrollDirection};
+use chargrid_runtime::{app, on_frame, on_input, Component, Coord, FrameBuffer, Rgba32, Size};
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect, rwops::RWops, ttf};
 use std::{
     thread,
@@ -105,6 +106,11 @@ impl Context {
             (config.window_dimensions_px.width as f64 / config.cell_dimensions_px.width) as u32,
             (config.window_dimensions_px.height as f64 / config.cell_dimensions_px.height) as u32,
         );
+        let px_to_coord = |x: i32, y: i32| Coord {
+            x: (x as f64 / config.cell_dimensions_px.width) as i32,
+            y: (y as f64 / config.cell_dimensions_px.height) as i32,
+        };
+        let mut current_mouse_position = Coord::new(0, 0);
         let mut chargrid_frame_buffer = FrameBuffer::new(grid_size);
         'mainloop: loop {
             let frame_start = Instant::now();
@@ -123,13 +129,87 @@ impl Context {
                 .expect("failed to create event pump")
                 .poll_iter()
             {
-                match event {
-                    Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
-                        ..
+                let input = match event {
+                    Event::MouseMotion {
+                        mousestate, x, y, ..
+                    } => {
+                        // chargrid doesn't handle dragging the mouse with multiple buttons pressed
+                        let button = if mousestate.left() {
+                            Some(MouseButton::Left)
+                        } else if mousestate.right() {
+                            Some(MouseButton::Right)
+                        } else if mousestate.middle() {
+                            Some(MouseButton::Middle)
+                        } else {
+                            None
+                        };
+                        current_mouse_position = px_to_coord(x, y);
+                        Some(Input::Mouse(MouseInput::MouseMove {
+                            button,
+                            coord: current_mouse_position,
+                        }))
                     }
-                    | Event::Quit { .. } => break 'mainloop,
-                    _ => {}
+                    Event::MouseButtonDown {
+                        mouse_btn, x, y, ..
+                    } => {
+                        let button = match mouse_btn {
+                            sdl2::mouse::MouseButton::Left => Some(MouseButton::Left),
+                            sdl2::mouse::MouseButton::Right => Some(MouseButton::Right),
+                            sdl2::mouse::MouseButton::Middle => Some(MouseButton::Middle),
+                            _ => None,
+                        };
+                        button.map(|button| {
+                            current_mouse_position = px_to_coord(x, y);
+                            Input::Mouse(MouseInput::MousePress {
+                                button,
+                                coord: current_mouse_position,
+                            })
+                        })
+                    }
+                    Event::MouseButtonUp {
+                        mouse_btn, x, y, ..
+                    } => {
+                        let button = match mouse_btn {
+                            sdl2::mouse::MouseButton::Left => Some(MouseButton::Left),
+                            sdl2::mouse::MouseButton::Right => Some(MouseButton::Right),
+                            sdl2::mouse::MouseButton::Middle => Some(MouseButton::Middle),
+                            _ => None,
+                        };
+                        button.map(|button| {
+                            current_mouse_position = px_to_coord(x, y);
+                            Input::Mouse(MouseInput::MouseRelease {
+                                button: Ok(button),
+                                coord: current_mouse_position,
+                            })
+                        })
+                    }
+                    Event::MouseWheel { x, y, .. } => {
+                        let direction = if y > 0 {
+                            Some(ScrollDirection::Up)
+                        } else if y < 0 {
+                            Some(ScrollDirection::Down)
+                        } else if x > 0 {
+                            Some(ScrollDirection::Left)
+                        } else if x < 0 {
+                            Some(ScrollDirection::Right)
+                        } else {
+                            None
+                        };
+                        direction.map(|direction| {
+                            Input::Mouse(MouseInput::MouseScroll {
+                                direction,
+                                coord: current_mouse_position,
+                            })
+                        })
+                    }
+                    Event::Quit { .. } => Some(Input::Keyboard(keys::ETX)),
+                    _ => None,
+                };
+                if let Some(input) = input {
+                    if let Some(app::Exit) = on_input(&mut component, input, &chargrid_frame_buffer)
+                    {
+                        break 'mainloop;
+                    }
                 }
             }
             if let Some(app::Exit) =
