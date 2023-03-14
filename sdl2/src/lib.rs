@@ -84,16 +84,16 @@ impl Context {
             .expect("failed to connect to video subsystem");
         let ttf_context = ttf::init().expect("failed to initialize ttf context");
         let font = config.font_bytes.load(&ttf_context, config.font_point_size);
-        let window = video_subsys
-            .window(
-                config.title.as_str(),
-                config.window_dimensions_px.width as u32,
-                config.window_dimensions_px.height as u32,
-            )
-            .position_centered()
-            .opengl()
-            .build()
-            .expect("failed to open window");
+        let mut window_builder = video_subsys.window(
+            config.title.as_str(),
+            config.window_dimensions_px.width as u32,
+            config.window_dimensions_px.height as u32,
+        );
+        window_builder.position_centered().opengl();
+        if config.resizable {
+            window_builder.resizable();
+        }
+        let window = window_builder.build().expect("failed to open window");
         let mut canvas = window
             .into_canvas()
             .build()
