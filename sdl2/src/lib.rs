@@ -2,11 +2,12 @@
 use chargrid_gamepad::GamepadContext;
 use chargrid_input::{keys, Input, MouseButton, MouseInput, ScrollDirection};
 use chargrid_runtime::{app, on_frame, on_input, Component, Coord, FrameBuffer, Rgba32, Size};
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect, rwops::RWops, ttf};
+use sdl2::{event::Event, pixels::Color, rect::Rect, rwops::RWops, ttf};
 use std::{
     thread,
     time::{Duration, Instant},
 };
+mod input;
 
 const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / 60);
 
@@ -130,6 +131,11 @@ impl Context {
                 .poll_iter()
             {
                 let input = match event {
+                    Event::KeyDown {
+                        keycode: Some(keycode),
+                        keymod,
+                        ..
+                    } => input::sdl2_to_chargrid(keycode, keymod).map(Input::Keyboard),
                     Event::MouseMotion {
                         mousestate, x, y, ..
                     } => {
