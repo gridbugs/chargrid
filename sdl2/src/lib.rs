@@ -2,7 +2,7 @@
 use chargrid_gamepad::GamepadContext;
 use chargrid_input::{keys, Input, MouseButton, MouseInput, ScrollDirection};
 use chargrid_runtime::{app, on_frame, on_input, Component, Coord, FrameBuffer, Rgba32, Size};
-use sdl2::{event::Event, pixels::Color, rect::Rect, rwops::RWops, ttf};
+use sdl2::{event::Event, pixels::Color, rect::Rect, rwops::RWops, surface::Surface, ttf};
 use std::{
     thread,
     time::{Duration, Instant},
@@ -96,6 +96,7 @@ impl Context {
         let window = window_builder.build().expect("failed to open window");
         let mut canvas = window
             .into_canvas()
+            .accelerated()
             .build()
             .expect("failed to create canvas");
         #[cfg(feature = "gamepad")]
@@ -103,6 +104,13 @@ impl Context {
         canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         canvas.clear();
         let texture_creator = canvas.texture_creator();
+        let default_pixel_format = texture_creator.default_pixel_format();
+        let mut text_surface = Surface::new(
+            config.window_dimensions_px.width as u32,
+            config.window_dimensions_px.height as u32,
+            default_pixel_format,
+        )
+        .expect("failed to create surface");
         let grid_size = Size::new(
             (config.window_dimensions_px.width as f64 / config.cell_dimensions_px.width) as u32,
             (config.window_dimensions_px.height as f64 / config.cell_dimensions_px.height) as u32,
@@ -224,6 +232,17 @@ impl Context {
                 break;
             }
             canvas.clear();
+            text_surface
+                .fill_rect(
+                    None,
+                    Color {
+                        r: 0,
+                        g: 0,
+                        b: 0,
+                        a: 0,
+                    },
+                )
+                .expect("failed to clear surface");
             for (coord, cell) in chargrid_frame_buffer.enumerate() {
                 let dst = Rect::new(
                     (coord.x as f64 * config.cell_dimensions_px.width) as i32,
@@ -263,15 +282,18 @@ impl Context {
                 let font = if cell.bold { &font.bold } else { &font.normal };
                 let surface = font
                     .render_char(cell.character)
-                    .blended(fg_colour)
+                    .solid(fg_colour)
                     .expect("failed to render character");
-                let texture = texture_creator
-                    .create_texture_from_surface(&surface)
-                    .expect("failed to create texture from surface");
-                canvas
-                    .copy(&texture, None, Some(dst))
-                    .expect("failed to copy rendered character to canvas");
+                surface
+                    .blit(None, &mut text_surface, Some(dst))
+                    .expect("failed to copy character to surface");
             }
+            let text_texture = text_surface
+                .as_texture(&texture_creator)
+                .expect("failed to create texture from surface");
+            canvas
+                .copy(&text_texture, None, None)
+                .expect("failed to copy rendered character to canvas");
             canvas.present();
             let since_frame_start = frame_start.elapsed();
             if let Some(until_next_frame) = FRAME_DURATION.checked_sub(since_frame_start) {
