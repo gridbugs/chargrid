@@ -19,4 +19,3 @@ chargrid_input = { path = "../input", version = "0.4" }
 chargrid_gamepad = { path = "../gamepad", version = "0.4", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.2" }
 sdl2 = { version = "0.35", features = ["ttf"] }
-log = "0.4"
