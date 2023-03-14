@@ -1,4 +1,6 @@
-use chargrid_runtime::{app, on_frame, Component, FrameBuffer, Rgba32, Size};
+#[cfg(feature = "gamepad")]
+use chargrid_gamepad::GamepadContext;
+use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer, Rgba32, Size};
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect, rwops::RWops, ttf};
 use std::{
     thread,
@@ -80,27 +82,6 @@ impl Context {
             .expect("failed to connect to video subsystem");
         let ttf_context = ttf::init().expect("failed to initialize ttf context");
         let font = config.font_bytes.load(&ttf_context, config.font_point_size);
-        #[cfg(feature = "gamepad")]
-        let joystick_subsystem = sdl_context
-            .joystick()
-            .expect("failed to get joystick subsystem");
-        #[cfg(feature = "gamepad")]
-        let num_joysticks = joystick_subsystem
-            .num_joysticks()
-            .expect("failed to get number of joysticks");
-        #[cfg(feature = "gamepad")]
-        let _joysticks = (0..num_joysticks)
-            .filter_map(|i| match joystick_subsystem.open(i) {
-                Ok(joystick) => {
-                    log::info!("Opened joystick {i}: {}", joystick.name());
-                    Some((i, joystick))
-                }
-                Err(e) => {
-                    log::error!("Failed to open joystick {i}: {e}");
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
         let window = video_subsys
             .window(
                 config.title.as_str(),
@@ -115,6 +96,8 @@ impl Context {
             .into_canvas()
             .build()
             .expect("failed to create canvas");
+        #[cfg(feature = "gamepad")]
+        let mut gamepad_context = GamepadContext::new();
         canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         canvas.clear();
         let texture_creator = canvas.texture_creator();
@@ -125,6 +108,16 @@ impl Context {
         let mut chargrid_frame_buffer = FrameBuffer::new(grid_size);
         'mainloop: loop {
             let frame_start = Instant::now();
+            #[cfg(feature = "gamepad")]
+            for input in gamepad_context.drain_input() {
+                if let Some(app::Exit) = on_input(
+                    &mut component,
+                    chargrid_input::Input::Gamepad(input),
+                    &chargrid_frame_buffer,
+                ) {
+                    break 'mainloop;
+                }
+            }
             for event in sdl_context
                 .event_pump()
                 .expect("failed to create event pump")
