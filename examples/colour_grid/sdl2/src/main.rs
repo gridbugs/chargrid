@@ -17,6 +17,7 @@ fn main() {
             height: 16.,
         },
         font_point_size: 16,
+        character_cell_offset: Default::default(),
         underline_width_cell_ratio: 0.1,
         underline_top_offset_cell_ratio: 0.8,
         resizable: false,

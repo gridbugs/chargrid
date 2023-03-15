@@ -9,8 +9,8 @@ fn main() {
         },
         title: "Component Experiment".to_string(),
         window_dimensions_px: Dimensions {
-            width: 640.,
-            height: 480.,
+            width: 320.,
+            height: 240.,
         },
         cell_dimensions_px: Dimensions {
             width: 12.,

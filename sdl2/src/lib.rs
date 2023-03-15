@@ -47,7 +47,7 @@ impl FontBytes {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Dimensions<T> {
     pub width: T,
     pub height: T,
