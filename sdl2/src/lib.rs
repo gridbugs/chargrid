@@ -258,10 +258,9 @@ impl Context {
                     let Rgba32 { r, g, b, a } = cell.foreground;
                     Color::RGBA(r, g, b, a)
                 };
-                canvas.set_draw_color(bg_colour);
-                canvas
-                    .fill_rect(dst)
-                    .expect("failed to fill cell background");
+                text_surface
+                    .fill_rect(dst, bg_colour)
+                    .expect("failed to fill background");
                 if cell.underline {
                     let rect = Rect::new(
                         dst.left(),
@@ -273,8 +272,9 @@ impl Context {
                         (config.underline_width_cell_ratio * config.cell_dimensions_px.height)
                             as u32,
                     );
-                    canvas.set_draw_color(fg_colour);
-                    canvas.fill_rect(rect).expect("failed to fill underline");
+                    text_surface
+                        .fill_rect(rect, fg_colour)
+                        .expect("failed to fill underline");
                 }
                 if cell.character == ' ' {
                     continue;
