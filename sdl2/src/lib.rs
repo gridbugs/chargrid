@@ -59,6 +59,7 @@ pub struct Config {
     pub window_dimensions_px: Dimensions<f64>,
     pub cell_dimensions_px: Dimensions<f64>,
     pub font_point_size: u16,
+    pub character_cell_offset: Dimensions<f64>,
     pub underline_width_cell_ratio: f64,
     pub underline_top_offset_cell_ratio: f64,
     pub resizable: bool,
@@ -284,8 +285,16 @@ impl Context {
                     .render_char(cell.character)
                     .solid(fg_colour)
                     .expect("failed to render character");
+                let blit_dst = Rect::new(
+                    ((coord.x as f64 * config.cell_dimensions_px.width)
+                        + config.character_cell_offset.width) as i32,
+                    ((coord.y as f64 * config.cell_dimensions_px.height)
+                        + config.character_cell_offset.height) as i32,
+                    config.cell_dimensions_px.width as u32,
+                    config.cell_dimensions_px.height as u32,
+                );
                 surface
-                    .blit(None, &mut text_surface, Some(dst))
+                    .blit(None, &mut text_surface, Some(blit_dst))
                     .expect("failed to copy character to surface");
             }
             let text_texture = text_surface

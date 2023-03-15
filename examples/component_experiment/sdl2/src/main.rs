@@ -13,10 +13,14 @@ fn main() {
             height: 480.,
         },
         cell_dimensions_px: Dimensions {
-            width: 32.,
-            height: 32.,
+            width: 12.,
+            height: 12.,
         },
-        font_point_size: 32,
+        font_point_size: 12,
+        character_cell_offset: Dimensions {
+            width: 0.,
+            height: -1.,
+        },
         underline_width_cell_ratio: 0.1,
         underline_top_offset_cell_ratio: 0.8,
         resizable: false,
