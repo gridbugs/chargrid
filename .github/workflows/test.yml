@@ -14,7 +14,10 @@ jobs:
     - if: matrix.os == 'ubuntu-latest'
       run: |
           sudo apt update
-          sudo apt install libudev-dev libasound2-dev
+          sudo apt install libudev-dev libasound2-dev libsdl2-dev libsdl2-ttf-dev
+    - if: matrix.os == 'macOS-latest'
+      run: |
+          brew install sdl2 sdl2_ttf
     - uses: actions/checkout@master
     - if: matrix.os != 'windows-latest'
       run: ./test.sh
