@@ -7,4 +7,4 @@ edition = "2021"
 [dependencies]
 chargrid_ansi_terminal = { path = "../../../ansi-terminal" }
 colour_grid_app = { path = "../app" }
-meap = "0.5"
+meap = "0.8"

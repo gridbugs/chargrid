@@ -18,8 +18,8 @@ gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamep
 chargrid_input = { path = "../input", version = "0.4" }
 chargrid_gamepad = { path = "../gamepad", version = "0.4", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.2" }
-wgpu = { version = "0.15", features = ["spirv"] }
-wgpu_glyph = "0.19"
+wgpu = { version = "0.16", features = ["spirv"] }
+wgpu_glyph = "0.20"
 winit = "0.28"
 zerocopy = "0.6"
 log = "0.4"
