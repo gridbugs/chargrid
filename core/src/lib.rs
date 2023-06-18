@@ -762,7 +762,7 @@ pub mod prelude {
     #[cfg(feature = "gamepad")]
     pub use super::input::{GamepadButton, GamepadInput};
     pub use super::{
-        app, ctx_tint, input, input::Input, input::KeyboardEvent, input::KeyboardInput,
+        app, ctx_tint, input, input::Input, input::Key, input::KeyboardEvent, input::KeyboardInput,
         input::MouseButton, input::MouseInput, input::ScrollDirection, Component, Coord, Ctx,
         Event, FrameBuffer, RenderCell, Rgba32, Size, Style, Tint,
     };
