@@ -187,7 +187,9 @@ impl Component for HelloWorld {
 
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         match event {
-            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(app::Exit),
+            Event::Input(input::Input::Keyboard(input::KeyboardInput {
+                key: input::keys::ESCAPE,
+            })) => Some(app::Exit),
             _ => {
                 if let Some(item) = self.menu.update(state, menu_ctx(ctx), event) {
                     match item {

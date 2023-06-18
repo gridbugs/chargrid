@@ -144,7 +144,7 @@ impl Context {
                         keycode: Some(keycode),
                         keymod,
                         ..
-                    } => input::sdl2_to_chargrid(keycode, keymod).map(Input::Keyboard),
+                    } => input::sdl2_to_chargrid(keycode, keymod).map(Input::key_press),
                     Event::MouseMotion {
                         mousestate, x, y, ..
                     } => {
@@ -217,7 +217,7 @@ impl Context {
                             })
                         })
                     }
-                    Event::Quit { .. } => Some(Input::Keyboard(keys::ETX)),
+                    Event::Quit { .. } => Some(Input::key_press(keys::ETX)),
                     _ => None,
                 };
                 if let Some(input) = input {

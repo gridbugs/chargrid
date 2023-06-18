@@ -24,7 +24,7 @@ pub enum MouseButton {
 pub struct NotSupported;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum KeyboardInput {
+pub enum Key {
     Char(char),
     Function(u8),
     Up,
@@ -52,42 +52,42 @@ mod key_names {
 }
 
 #[cfg(feature = "serialize")]
-impl KeyboardInput {
+impl Key {
     fn try_from_str(s: &str) -> Option<Self> {
         if s.chars().count() == 1 {
             let c = s.chars().next().unwrap();
-            return Some(KeyboardInput::Char(c));
+            return Some(Key::Char(c));
         }
         if s.starts_with('f') || s.starts_with('F') {
             let (_, maybe_number_str) = s.split_at(1);
             if let Ok(number) = maybe_number_str.parse::<u8>() {
-                return Some(KeyboardInput::Function(number));
+                return Some(Key::Function(number));
             }
         }
         use key_names::*;
         match s {
-            UP => Some(KeyboardInput::Up),
-            DOWN => Some(KeyboardInput::Down),
-            LEFT => Some(KeyboardInput::Left),
-            RIGHT => Some(KeyboardInput::Right),
-            HOME => Some(KeyboardInput::Home),
-            END => Some(KeyboardInput::End),
-            PAGE_UP => Some(KeyboardInput::PageUp),
-            PAGE_DOWN => Some(KeyboardInput::PageDown),
-            DELETE => Some(KeyboardInput::Delete),
+            UP => Some(Key::Up),
+            DOWN => Some(Key::Down),
+            LEFT => Some(Key::Left),
+            RIGHT => Some(Key::Right),
+            HOME => Some(Key::Home),
+            END => Some(Key::End),
+            PAGE_UP => Some(Key::PageUp),
+            PAGE_DOWN => Some(Key::PageDown),
+            DELETE => Some(Key::Delete),
             _ => None,
         }
     }
 }
 
 #[cfg(feature = "serialize")]
-impl serde::Serialize for KeyboardInput {
+impl serde::Serialize for Key {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         use key_names::*;
-        use KeyboardInput::*;
+        use Key::*;
         match self {
             Char(c) => serializer.serialize_char(*c),
             Function(n) => serializer.serialize_str(&format!("f{}", n)),
@@ -105,14 +105,14 @@ impl serde::Serialize for KeyboardInput {
 }
 
 #[cfg(feature = "serialize")]
-impl<'de> serde::Deserialize<'de> for KeyboardInput {
+impl<'de> serde::Deserialize<'de> for Key {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         struct Visitor;
         impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = KeyboardInput;
+            type Value = Key;
 
             fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 formatter.write_str("a keyboard input description")
@@ -122,11 +122,22 @@ impl<'de> serde::Deserialize<'de> for KeyboardInput {
             where
                 E: serde::de::Error,
             {
-                KeyboardInput::try_from_str(s)
-                    .ok_or_else(|| E::custom(format!("couldn't parse {}", s)))
+                Key::try_from_str(s).ok_or_else(|| E::custom(format!("couldn't parse {}", s)))
             }
         }
         deserializer.deserialize_str(Visitor)
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct KeyboardInput {
+    pub key: Key,
+}
+
+impl KeyboardInput {
+    pub fn press(key: Key) -> Self {
+        Self { key }
     }
 }
 
@@ -232,6 +243,10 @@ pub enum Input {
 }
 
 impl Input {
+    pub fn key_press(key: Key) -> Self {
+        Self::Keyboard(KeyboardInput::press(key))
+    }
+
     pub fn is_keyboard(&self) -> bool {
         match self {
             Input::Keyboard(_) => true,
@@ -287,9 +302,9 @@ impl Input {
 
     pub fn policy(self) -> Option<InputPolicy> {
         match self {
-            Input::Keyboard(KeyboardInput::Left) => Some(InputPolicy::Left),
-            Input::Keyboard(KeyboardInput::Right) => Some(InputPolicy::Right),
-            Input::Keyboard(keys::RETURN) => Some(InputPolicy::Select),
+            Input::Keyboard(KeyboardInput { key: Key::Left }) => Some(InputPolicy::Left),
+            Input::Keyboard(KeyboardInput { key: Key::Right }) => Some(InputPolicy::Right),
+            Input::Keyboard(KeyboardInput { key: keys::RETURN }) => Some(InputPolicy::Select),
             Input::Mouse(MouseInput::MousePress { .. }) => Some(InputPolicy::Select),
             Input::Mouse(MouseInput::MouseScroll { direction, .. }) => Some(match direction {
                 ScrollDirection::Up => InputPolicy::Up,
@@ -310,13 +325,13 @@ impl Input {
 }
 
 pub mod keys {
-    use super::KeyboardInput;
+    use super::Key;
 
-    pub const ESCAPE: KeyboardInput = KeyboardInput::Char('\u{1b}');
-    pub const ETX: KeyboardInput = KeyboardInput::Char('\u{3}');
-    pub const BACKSPACE: KeyboardInput = KeyboardInput::Char('\u{7f}');
-    pub const TAB: KeyboardInput = KeyboardInput::Char('\u{9}');
-    pub const RETURN: KeyboardInput = KeyboardInput::Char('\u{d}');
+    pub const ESCAPE: Key = Key::Char('\u{1b}');
+    pub const ETX: Key = Key::Char('\u{3}');
+    pub const BACKSPACE: Key = Key::Char('\u{7f}');
+    pub const TAB: Key = Key::Char('\u{9}');
+    pub const RETURN: Key = Key::Char('\u{d}');
 }
 
 #[cfg(feature = "serialize")]

@@ -2,7 +2,7 @@ use super::byte_prefix_tree::{BytePrefixTree, Found};
 use super::low_level::LowLevel;
 use super::term_info_cache::{MousePrefix, TermInfoCache, TerminalInput};
 use crate::error::Result;
-use chargrid_input::{Input, KeyboardInput, MouseInput, NotSupported};
+use chargrid_input::{Input, Key, MouseInput, NotSupported};
 use chargrid_runtime::{rgb_int::Rgb24, Coord, Size};
 use std::collections::{vec_deque, VecDeque};
 use term::terminfo::parm::{self, Param};
@@ -246,7 +246,7 @@ impl AnsiTerminal {
         };
         let rest = if let Some(input) = term_input {
             let (input, rest) = match input {
-                TerminalInput::Char(ch) => (Some(Input::Keyboard(KeyboardInput::Char(ch))), rest),
+                TerminalInput::Char(ch) => (Some(Input::key_press(Key::Char(ch))), rest),
                 TerminalInput::Literal(input) => (Some(input), rest),
                 TerminalInput::MousePrefix(prefix) => {
                     if let Some(rest) = rest {

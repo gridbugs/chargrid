@@ -102,10 +102,18 @@ impl Component for TetrisComponent {
         match event {
             Event::Peek => (),
             Event::Input(input) => match input {
-                Input::Keyboard(KeyboardInput::Up) => state.tetris.input(TetrisInput::Up),
-                Input::Keyboard(KeyboardInput::Down) => state.tetris.input(TetrisInput::Down),
-                Input::Keyboard(KeyboardInput::Left) => state.tetris.input(TetrisInput::Left),
-                Input::Keyboard(KeyboardInput::Right) => state.tetris.input(TetrisInput::Right),
+                Input::Keyboard(KeyboardInput { key: Key::Up }) => {
+                    state.tetris.input(TetrisInput::Up)
+                }
+                Input::Keyboard(KeyboardInput { key: Key::Down }) => {
+                    state.tetris.input(TetrisInput::Down)
+                }
+                Input::Keyboard(KeyboardInput { key: Key::Left }) => {
+                    state.tetris.input(TetrisInput::Left)
+                }
+                Input::Keyboard(KeyboardInput { key: Key::Right }) => {
+                    state.tetris.input(TetrisInput::Right)
+                }
                 _ => (),
             },
             Event::Tick(duration) => {

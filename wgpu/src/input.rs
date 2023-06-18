@@ -1,7 +1,7 @@
 use crate::Dimensions;
 use chargrid_input::{
-    keys, Coord, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput,
-    ScrollDirection,
+    keys, Coord, Input, Key, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton,
+    MouseInput, ScrollDirection,
 };
 use winit::dpi::{LogicalPosition, PhysicalSize};
 use winit::event::{
@@ -16,14 +16,14 @@ pub enum Event {
 
 macro_rules! convert_char_shift {
     ($lower:expr, $upper:expr, $shift:expr) => {
-        KeyboardInput::Char(if $shift { $upper } else { $lower })
+        Key::Char(if $shift { $upper } else { $lower })
     };
 }
 
 #[allow(clippy::cognitive_complexity)]
-fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<KeyboardInput> {
+fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<Key> {
     let keyboard_input = match code {
-        VirtualKeyCode::Space => KeyboardInput::Char(' '),
+        VirtualKeyCode::Space => Key::Char(' '),
         VirtualKeyCode::A => convert_char_shift!('a', 'A', shift),
         VirtualKeyCode::B => convert_char_shift!('b', 'B', shift),
         VirtualKeyCode::C => convert_char_shift!('c', 'C', shift),
@@ -51,7 +51,7 @@ fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<K
         VirtualKeyCode::Y => convert_char_shift!('y', 'Y', shift),
         VirtualKeyCode::Z => convert_char_shift!('z', 'Z', shift),
         VirtualKeyCode::Key1 => convert_char_shift!('1', '!', shift),
-        VirtualKeyCode::Key2 => KeyboardInput::Char('2'),
+        VirtualKeyCode::Key2 => Key::Char('2'),
         VirtualKeyCode::Key3 => convert_char_shift!('3', '#', shift),
         VirtualKeyCode::Key4 => convert_char_shift!('4', '$', shift),
         VirtualKeyCode::Key5 => convert_char_shift!('5', '%', shift),
@@ -60,75 +60,76 @@ fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<K
         VirtualKeyCode::Key8 => convert_char_shift!('8', '*', shift),
         VirtualKeyCode::Key9 => convert_char_shift!('9', '(', shift),
         VirtualKeyCode::Key0 => convert_char_shift!('0', ')', shift),
-        VirtualKeyCode::Numpad1 => KeyboardInput::Char('1'),
-        VirtualKeyCode::Numpad2 => KeyboardInput::Char('2'),
-        VirtualKeyCode::Numpad3 => KeyboardInput::Char('3'),
-        VirtualKeyCode::Numpad4 => KeyboardInput::Char('4'),
-        VirtualKeyCode::Numpad5 => KeyboardInput::Char('5'),
-        VirtualKeyCode::Numpad6 => KeyboardInput::Char('6'),
-        VirtualKeyCode::Numpad7 => KeyboardInput::Char('7'),
-        VirtualKeyCode::Numpad8 => KeyboardInput::Char('8'),
-        VirtualKeyCode::Numpad9 => KeyboardInput::Char('9'),
-        VirtualKeyCode::Numpad0 => KeyboardInput::Char('0'),
-        VirtualKeyCode::Left => KeyboardInput::Left,
-        VirtualKeyCode::Right => KeyboardInput::Right,
-        VirtualKeyCode::Up => KeyboardInput::Up,
-        VirtualKeyCode::Down => KeyboardInput::Down,
+        VirtualKeyCode::Numpad1 => Key::Char('1'),
+        VirtualKeyCode::Numpad2 => Key::Char('2'),
+        VirtualKeyCode::Numpad3 => Key::Char('3'),
+        VirtualKeyCode::Numpad4 => Key::Char('4'),
+        VirtualKeyCode::Numpad5 => Key::Char('5'),
+        VirtualKeyCode::Numpad6 => Key::Char('6'),
+        VirtualKeyCode::Numpad7 => Key::Char('7'),
+        VirtualKeyCode::Numpad8 => Key::Char('8'),
+        VirtualKeyCode::Numpad9 => Key::Char('9'),
+        VirtualKeyCode::Numpad0 => Key::Char('0'),
+        VirtualKeyCode::Left => Key::Left,
+        VirtualKeyCode::Right => Key::Right,
+        VirtualKeyCode::Up => Key::Up,
+        VirtualKeyCode::Down => Key::Down,
         VirtualKeyCode::Escape => keys::ESCAPE,
         VirtualKeyCode::Return => keys::RETURN,
-        VirtualKeyCode::At => KeyboardInput::Char('@'),
-        VirtualKeyCode::Plus => KeyboardInput::Char('+'),
-        VirtualKeyCode::Minus => KeyboardInput::Char('-'),
+        VirtualKeyCode::At => Key::Char('@'),
+        VirtualKeyCode::Plus => Key::Char('+'),
+        VirtualKeyCode::Minus => Key::Char('-'),
         VirtualKeyCode::Equals => convert_char_shift!('=', '+', shift),
         VirtualKeyCode::Backslash => convert_char_shift!('\\', '|', shift),
         VirtualKeyCode::Grave => convert_char_shift!('`', '~', shift),
         VirtualKeyCode::Apostrophe => convert_char_shift!('\'', '"', shift),
         VirtualKeyCode::LBracket => convert_char_shift!('[', '{', shift),
         VirtualKeyCode::RBracket => convert_char_shift!(']', '}', shift),
-        VirtualKeyCode::PageUp => KeyboardInput::PageUp,
-        VirtualKeyCode::PageDown => KeyboardInput::PageDown,
-        VirtualKeyCode::Home => KeyboardInput::Home,
-        VirtualKeyCode::End => KeyboardInput::End,
-        VirtualKeyCode::F1 => KeyboardInput::Function(1),
-        VirtualKeyCode::F2 => KeyboardInput::Function(2),
-        VirtualKeyCode::F3 => KeyboardInput::Function(3),
-        VirtualKeyCode::F4 => KeyboardInput::Function(4),
-        VirtualKeyCode::F5 => KeyboardInput::Function(5),
-        VirtualKeyCode::F6 => KeyboardInput::Function(6),
-        VirtualKeyCode::F7 => KeyboardInput::Function(7),
-        VirtualKeyCode::F8 => KeyboardInput::Function(8),
-        VirtualKeyCode::F9 => KeyboardInput::Function(9),
-        VirtualKeyCode::F10 => KeyboardInput::Function(10),
-        VirtualKeyCode::F11 => KeyboardInput::Function(11),
-        VirtualKeyCode::F12 => KeyboardInput::Function(12),
-        VirtualKeyCode::F13 => KeyboardInput::Function(13),
-        VirtualKeyCode::F14 => KeyboardInput::Function(14),
-        VirtualKeyCode::F15 => KeyboardInput::Function(15),
-        VirtualKeyCode::F16 => KeyboardInput::Function(16),
-        VirtualKeyCode::F17 => KeyboardInput::Function(17),
-        VirtualKeyCode::F18 => KeyboardInput::Function(18),
-        VirtualKeyCode::F19 => KeyboardInput::Function(19),
-        VirtualKeyCode::F20 => KeyboardInput::Function(20),
-        VirtualKeyCode::F21 => KeyboardInput::Function(21),
-        VirtualKeyCode::F22 => KeyboardInput::Function(22),
-        VirtualKeyCode::F23 => KeyboardInput::Function(23),
-        VirtualKeyCode::F24 => KeyboardInput::Function(24),
+        VirtualKeyCode::PageUp => Key::PageUp,
+        VirtualKeyCode::PageDown => Key::PageDown,
+        VirtualKeyCode::Home => Key::Home,
+        VirtualKeyCode::End => Key::End,
+        VirtualKeyCode::F1 => Key::Function(1),
+        VirtualKeyCode::F2 => Key::Function(2),
+        VirtualKeyCode::F3 => Key::Function(3),
+        VirtualKeyCode::F4 => Key::Function(4),
+        VirtualKeyCode::F5 => Key::Function(5),
+        VirtualKeyCode::F6 => Key::Function(6),
+        VirtualKeyCode::F7 => Key::Function(7),
+        VirtualKeyCode::F8 => Key::Function(8),
+        VirtualKeyCode::F9 => Key::Function(9),
+        VirtualKeyCode::F10 => Key::Function(10),
+        VirtualKeyCode::F11 => Key::Function(11),
+        VirtualKeyCode::F12 => Key::Function(12),
+        VirtualKeyCode::F13 => Key::Function(13),
+        VirtualKeyCode::F14 => Key::Function(14),
+        VirtualKeyCode::F15 => Key::Function(15),
+        VirtualKeyCode::F16 => Key::Function(16),
+        VirtualKeyCode::F17 => Key::Function(17),
+        VirtualKeyCode::F18 => Key::Function(18),
+        VirtualKeyCode::F19 => Key::Function(19),
+        VirtualKeyCode::F20 => Key::Function(20),
+        VirtualKeyCode::F21 => Key::Function(21),
+        VirtualKeyCode::F22 => Key::Function(22),
+        VirtualKeyCode::F23 => Key::Function(23),
+        VirtualKeyCode::F24 => Key::Function(24),
         VirtualKeyCode::Back => keys::BACKSPACE,
-        VirtualKeyCode::Delete => KeyboardInput::Delete,
+        VirtualKeyCode::Delete => Key::Delete,
         _ => return None,
     };
     Some(keyboard_input)
 }
 
 fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input> {
-    convert_keycode_keyboard_input(code, keymod.shift()).map(Input::Keyboard)
+    convert_keycode_keyboard_input(code, keymod.shift())
+        .map(|key| Input::Keyboard(KeyboardInput::press(key)))
 }
 
 fn convert_char(ch: char) -> Option<Event> {
     match ch {
-        '>' | '.' | ',' | '<' | '/' | '?' => {
-            Some(Event::Input(Input::Keyboard(KeyboardInput::Char(ch))))
-        }
+        '>' | '.' | ',' | '<' | '/' | '?' => Some(Event::Input(Input::Keyboard(KeyboardInput {
+            key: Key::Char(ch),
+        }))),
         _ => None,
     }
 }
@@ -143,9 +144,9 @@ pub fn convert_event(
     modifier_state: ModifiersState,
 ) -> Option<Event> {
     match event {
-        WindowEvent::CloseRequested => {
-            Some(Event::Input(Input::Keyboard(chargrid_input::keys::ETX)))
-        }
+        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(KeyboardInput::press(
+            chargrid_input::keys::ETX,
+        )))),
         WindowEvent::Resized(physical_size) => Some(Event::Resize(physical_size)),
         WindowEvent::ScaleFactorChanged {
             scale_factor: new_scale_factor,
