@@ -131,13 +131,25 @@ impl<'de> serde::Deserialize<'de> for Key {
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum KeyboardEvent {
+    KeyPress,
+    KeyUp,
+    KeyDown,
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct KeyboardInput {
     pub key: Key,
+    pub event: KeyboardEvent,
 }
 
 impl KeyboardInput {
     pub fn press(key: Key) -> Self {
-        Self { key }
+        Self {
+            key,
+            event: KeyboardEvent::KeyPress,
+        }
     }
 }
 
@@ -301,10 +313,20 @@ impl Input {
     }
 
     pub fn policy(self) -> Option<InputPolicy> {
+        use KeyboardEvent::*;
         match self {
-            Input::Keyboard(KeyboardInput { key: Key::Left }) => Some(InputPolicy::Left),
-            Input::Keyboard(KeyboardInput { key: Key::Right }) => Some(InputPolicy::Right),
-            Input::Keyboard(KeyboardInput { key: keys::RETURN }) => Some(InputPolicy::Select),
+            Input::Keyboard(KeyboardInput {
+                key: Key::Left,
+                event: KeyPress,
+            }) => Some(InputPolicy::Left),
+            Input::Keyboard(KeyboardInput {
+                key: Key::Right,
+                event: KeyPress,
+            }) => Some(InputPolicy::Right),
+            Input::Keyboard(KeyboardInput {
+                key: keys::RETURN,
+                event: KeyPress,
+            }) => Some(InputPolicy::Select),
             Input::Mouse(MouseInput::MousePress { .. }) => Some(InputPolicy::Select),
             Input::Mouse(MouseInput::MouseScroll { direction, .. }) => Some(match direction {
                 ScrollDirection::Up => InputPolicy::Up,

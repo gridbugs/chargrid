@@ -1,7 +1,7 @@
 use crate::Dimensions;
 use chargrid_input::{
-    keys, Coord, Input, Key, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton,
-    MouseInput, ScrollDirection,
+    keys, Coord, Input, Key, KeyboardEvent, KeyboardInput, MouseButton as ChargridMouseButton,
+    MouseButton, MouseInput, ScrollDirection,
 };
 use winit::dpi::{LogicalPosition, PhysicalSize};
 use winit::event::{
@@ -129,6 +129,7 @@ fn convert_char(ch: char) -> Option<Event> {
     match ch {
         '>' | '.' | ',' | '<' | '/' | '?' => Some(Event::Input(Input::Keyboard(KeyboardInput {
             key: Key::Char(ch),
+            event: KeyboardEvent::KeyPress,
         }))),
         _ => None,
     }

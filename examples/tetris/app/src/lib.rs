@@ -99,21 +99,26 @@ impl Component for TetrisComponent {
     }
     fn update(&mut self, state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
         use input::*;
+        use KeyboardEvent::*;
         match event {
             Event::Peek => (),
             Event::Input(input) => match input {
-                Input::Keyboard(KeyboardInput { key: Key::Up }) => {
-                    state.tetris.input(TetrisInput::Up)
-                }
-                Input::Keyboard(KeyboardInput { key: Key::Down }) => {
-                    state.tetris.input(TetrisInput::Down)
-                }
-                Input::Keyboard(KeyboardInput { key: Key::Left }) => {
-                    state.tetris.input(TetrisInput::Left)
-                }
-                Input::Keyboard(KeyboardInput { key: Key::Right }) => {
-                    state.tetris.input(TetrisInput::Right)
-                }
+                Input::Keyboard(KeyboardInput {
+                    key: Key::Up,
+                    event: KeyPress,
+                }) => state.tetris.input(TetrisInput::Up),
+                Input::Keyboard(KeyboardInput {
+                    key: Key::Down,
+                    event: KeyPress,
+                }) => state.tetris.input(TetrisInput::Down),
+                Input::Keyboard(KeyboardInput {
+                    key: Key::Left,
+                    event: KeyPress,
+                }) => state.tetris.input(TetrisInput::Left),
+                Input::Keyboard(KeyboardInput {
+                    key: Key::Right,
+                    event: KeyPress,
+                }) => state.tetris.input(TetrisInput::Right),
                 _ => (),
             },
             Event::Tick(duration) => {

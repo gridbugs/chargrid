@@ -79,7 +79,10 @@ impl<T: Clone, S> Menu<T, S> {
     pub fn choose(&mut self, ctx: Ctx, input: input::Input) -> Option<T> {
         use input::*;
         match input {
-            Input::Keyboard(KeyboardInput { key }) => match key {
+            Input::Keyboard(KeyboardInput {
+                key,
+                event: KeyboardEvent::KeyPress,
+            }) => match key {
                 keys::RETURN | Key::Char(' ') => {
                     return Some(self.selected().clone());
                 }

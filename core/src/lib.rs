@@ -661,6 +661,7 @@ impl Event {
     pub fn is_escape(self) -> bool {
         if let Self::Input(Input::Keyboard(KeyboardInput {
             key: input::keys::ESCAPE,
+            event: input::KeyboardEvent::KeyPress,
         })) = self
         {
             true

@@ -1355,6 +1355,7 @@ where
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         if let Event::Input(input::Input::Keyboard(input::KeyboardInput {
             key: input::keys::ETX,
+            event: input::KeyboardEvent::KeyPress,
         })) = event
         {
             return Some(app::Exit);
@@ -1382,6 +1383,7 @@ where
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         if let Event::Input(input::Input::Keyboard(input::KeyboardInput {
             key: input::keys::ESCAPE,
+            event: input::KeyboardEvent::KeyPress,
         })) = event
         {
             return Some(Err(Escape));
@@ -1408,6 +1410,7 @@ where
         match event {
             Event::Input(input::Input::Keyboard(input::KeyboardInput {
                 key: input::keys::ESCAPE,
+                event: input::KeyboardEvent::KeyPress,
             })) => Some(Err(EscapeOrStart::Escape)),
             #[cfg(feature = "gamepad")]
             Event::Input(input::Input::Gamepad(input::GamepadInput {
@@ -1467,6 +1470,7 @@ where
         let escape_or_click_out = match event {
             Event::Input(input::Input::Keyboard(input::KeyboardInput {
                 key: input::keys::ESCAPE,
+                event: input::KeyboardEvent::KeyPress,
             })) => Some(EscapeOrClickOut::Escape),
             Event::Input(input::Input::Mouse(input::MouseInput::MousePress { coord, .. })) => {
                 let size = self.size(state, ctx);
@@ -1503,6 +1507,7 @@ where
         match event {
             Event::Input(input::Input::Keyboard(input::KeyboardInput {
                 key: input::keys::ESCAPE,
+                event: input::KeyboardEvent::KeyPress,
             })) => Some(Err(Close)),
             #[cfg(feature = "gamepad")]
             Event::Input(input::Input::Gamepad(input::GamepadInput {

@@ -189,6 +189,7 @@ impl Component for HelloWorld {
         match event {
             Event::Input(input::Input::Keyboard(input::KeyboardInput {
                 key: input::keys::ESCAPE,
+                event: input::KeyboardEvent::KeyPress,
             })) => Some(app::Exit),
             _ => {
                 if let Some(item) = self.menu.update(state, menu_ctx(ctx), event) {

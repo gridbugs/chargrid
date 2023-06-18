@@ -99,7 +99,10 @@ impl Component for TextField {
                         }
                     }
                 }
-                Input::Keyboard(KeyboardInput { key }) => match key {
+                Input::Keyboard(KeyboardInput {
+                    key,
+                    event: KeyboardEvent::KeyPress,
+                }) => match key {
                     keys::RETURN => return Some(self.text.iter().collect::<String>()),
                     Key::Left => self.left(),
                     Key::Right => self.right(),
