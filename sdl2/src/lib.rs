@@ -143,8 +143,40 @@ impl Context {
                     Event::KeyDown {
                         keycode: Some(keycode),
                         keymod,
+                        repeat,
                         ..
-                    } => input::sdl2_to_chargrid(keycode, keymod).map(Input::key_press),
+                    } => {
+                        if let Some(key) = input::sdl2_to_chargrid(keycode, keymod) {
+                            if repeat {
+                                // repeated key inputs are just treated as key presses
+                                Some(Input::key_press(key))
+                            } else {
+                                // handle this here because we need to send both a keydown and keypress
+                                if let Some(app::Exit) = on_input(
+                                    &mut component,
+                                    Input::key_down(key),
+                                    &chargrid_frame_buffer,
+                                ) {
+                                    break 'mainloop;
+                                }
+                                if let Some(app::Exit) = on_input(
+                                    &mut component,
+                                    Input::key_press(key),
+                                    &chargrid_frame_buffer,
+                                ) {
+                                    break 'mainloop;
+                                }
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                    Event::KeyUp {
+                        keycode: Some(keycode),
+                        keymod,
+                        ..
+                    } => input::sdl2_to_chargrid(keycode, keymod).map(Input::key_up),
                     Event::MouseMotion {
                         mousestate, x, y, ..
                     } => {

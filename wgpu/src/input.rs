@@ -122,7 +122,7 @@ fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<K
 
 fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input> {
     convert_keycode_keyboard_input(code, keymod.shift())
-        .map(|key| Input::Keyboard(KeyboardInput::press(key)))
+        .map(|key| Input::Keyboard(KeyboardInput::key_press(key)))
 }
 
 fn convert_char(ch: char) -> Option<Event> {
@@ -145,9 +145,9 @@ pub fn convert_event(
     modifier_state: ModifiersState,
 ) -> Option<Event> {
     match event {
-        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(KeyboardInput::press(
-            chargrid_input::keys::ETX,
-        )))),
+        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(
+            KeyboardInput::key_press(chargrid_input::keys::ETX),
+        ))),
         WindowEvent::Resized(physical_size) => Some(Event::Resize(physical_size)),
         WindowEvent::ScaleFactorChanged {
             scale_factor: new_scale_factor,

@@ -145,10 +145,24 @@ pub struct KeyboardInput {
 }
 
 impl KeyboardInput {
-    pub fn press(key: Key) -> Self {
+    pub fn key_press(key: Key) -> Self {
         Self {
             key,
             event: KeyboardEvent::KeyPress,
+        }
+    }
+
+    pub fn key_up(key: Key) -> Self {
+        Self {
+            key,
+            event: KeyboardEvent::KeyUp,
+        }
+    }
+
+    pub fn key_down(key: Key) -> Self {
+        Self {
+            key,
+            event: KeyboardEvent::KeyDown,
         }
     }
 }
@@ -256,7 +270,15 @@ pub enum Input {
 
 impl Input {
     pub fn key_press(key: Key) -> Self {
-        Self::Keyboard(KeyboardInput::press(key))
+        Self::Keyboard(KeyboardInput::key_press(key))
+    }
+
+    pub fn key_up(key: Key) -> Self {
+        Self::Keyboard(KeyboardInput::key_up(key))
+    }
+
+    pub fn key_down(key: Key) -> Self {
+        Self::Keyboard(KeyboardInput::key_down(key))
     }
 
     pub fn is_keyboard(&self) -> bool {
