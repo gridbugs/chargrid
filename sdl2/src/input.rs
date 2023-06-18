@@ -56,6 +56,8 @@ pub fn sdl2_to_chargrid(keycode: Keycode, mod_: Mod) -> Option<Key> {
         Keycode::At => Key::Char('@'),
         Keycode::Plus => Key::Char('+'),
         Keycode::Minus => Key::Char('-'),
+        Keycode::Period => Key::Char('.'),
+        Keycode::Comma => Key::Char(','),
         Keycode::Equals => convert_char_shift!('=', '+', shift),
         Keycode::Backslash => convert_char_shift!('\\', '|', shift),
         Keycode::Backquote => convert_char_shift!('`', '~', shift),
