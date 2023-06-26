@@ -120,9 +120,8 @@ fn convert_keycode_keyboard_input(code: VirtualKeyCode, shift: bool) -> Option<K
     Some(keyboard_input)
 }
 
-fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Input> {
+fn convert_keycode(code: VirtualKeyCode, keymod: ModifiersState) -> Option<Key> {
     convert_keycode_keyboard_input(code, keymod.shift())
-        .map(|key| Input::Keyboard(KeyboardInput::key_press(key)))
 }
 
 fn convert_char(ch: char) -> Option<Event> {
@@ -158,10 +157,13 @@ pub fn convert_event(
         }
         WindowEvent::ReceivedCharacter(ch) => convert_char(ch),
         WindowEvent::KeyboardInput { input, .. } => {
-            if let ElementState::Pressed = input.state {
-                if let Some(virtual_keycode) = input.virtual_keycode {
-                    if let Some(input) = convert_keycode(virtual_keycode, modifier_state) {
-                        return Some(Event::Input(input));
+            if let Some(virtual_keycode) = input.virtual_keycode {
+                if let Some(key) = convert_keycode(virtual_keycode, modifier_state) {
+                    match input.state {
+                        ElementState::Pressed => {
+                            return Some(Event::Input(Input::key_press(key)));
+                        }
+                        ElementState::Released => return None,
                     }
                 }
             }

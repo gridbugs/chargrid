@@ -7,7 +7,7 @@ macro_rules! convert_char_shift {
 }
 
 #[allow(clippy::cognitive_complexity)]
-fn keyboard_input_from_js_event_key_press(key_code: u8, shift: bool) -> Option<Key> {
+pub fn key_from_js(key_code: u8, shift: bool) -> Option<Key> {
     let key = match key_code {
         8 => keys::BACKSPACE,
         9 => keys::TAB,
@@ -100,8 +100,4 @@ fn keyboard_input_from_js_event_key_press(key_code: u8, shift: bool) -> Option<K
         _ => return None,
     };
     Some(key)
-}
-
-pub fn from_js_event_key_press(key_code: u8, shift: bool) -> Option<Input> {
-    keyboard_input_from_js_event_key_press(key_code, shift).map(Input::key_press)
 }
