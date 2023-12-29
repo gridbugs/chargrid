@@ -150,7 +150,7 @@ async fn request_adapter_for_backend(
     let instance = wgpu::Instance::new(instance_descriptor);
     let surface = unsafe { instance.create_surface(window) }
         .map_err(|e| format!("Unable to create surface! ({:?})", e))?;
-    let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, backends, None)
+    let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, None)
         .await
         .ok_or_else(|| "No suitable GPU adapters found on the system!".to_string())?;
     let (device, queue) = adapter
