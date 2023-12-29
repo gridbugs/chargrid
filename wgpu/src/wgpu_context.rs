@@ -92,7 +92,7 @@ struct WgpuContext {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, zerocopy::AsBytes, zerocopy::FromBytes)]
+#[derive(Clone, Copy, zerocopy::AsBytes, zerocopy::FromZeroes, zerocopy::FromBytes)]
 struct BackgroundCellInstance {
     background_colour: [f32; 3],
     foreground_colour: [f32; 3],
@@ -110,7 +110,7 @@ impl Default for BackgroundCellInstance {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, zerocopy::AsBytes, zerocopy::FromBytes)]
+#[derive(Debug, Clone, Copy, zerocopy::AsBytes, zerocopy::FromZeroes, zerocopy::FromBytes)]
 struct GlobalUniforms {
     cell_size_relative_to_window: [f32; 2],
     offset_to_centre: [f32; 2],
