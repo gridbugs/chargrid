@@ -1,6 +1,6 @@
 pub use crate::control_flow::{
-    lens, ClickOut, Close, Escape, EscapeOrClickOut, EscapeOrStart, LensFns, LoopControl,
-    OrClickOut, OrEscapeOrClickOut,
+    ClickOut, Close, Escape, EscapeOrClickOut, EscapeOrStart, LoopControl, OrClickOut,
+    OrEscapeOrClickOut,
 };
 use crate::{
     add_offset::AddOffset,
