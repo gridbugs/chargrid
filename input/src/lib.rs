@@ -52,42 +52,42 @@ mod key_names {
 }
 
 #[cfg(feature = "serialize")]
-impl Key {
+impl KeyboardInput {
     fn try_from_str(s: &str) -> Option<Self> {
         if s.chars().count() == 1 {
             let c = s.chars().next().unwrap();
-            return Some(Key::Char(c));
+            return Some(KeyboardInput::Char(c));
         }
         if s.starts_with('f') || s.starts_with('F') {
             let (_, maybe_number_str) = s.split_at(1);
             if let Ok(number) = maybe_number_str.parse::<u8>() {
-                return Some(Key::Function(number));
+                return Some(KeyboardInput::Function(number));
             }
         }
         use key_names::*;
         match s {
-            UP => Some(Key::Up),
-            DOWN => Some(Key::Down),
-            LEFT => Some(Key::Left),
-            RIGHT => Some(Key::Right),
-            HOME => Some(Key::Home),
-            END => Some(Key::End),
-            PAGE_UP => Some(Key::PageUp),
-            PAGE_DOWN => Some(Key::PageDown),
-            DELETE => Some(Key::Delete),
+            UP => Some(KeyboardInput::Up),
+            DOWN => Some(KeyboardInput::Down),
+            LEFT => Some(KeyboardInput::Left),
+            RIGHT => Some(KeyboardInput::Right),
+            HOME => Some(KeyboardInput::Home),
+            END => Some(KeyboardInput::End),
+            PAGE_UP => Some(KeyboardInput::PageUp),
+            PAGE_DOWN => Some(KeyboardInput::PageDown),
+            DELETE => Some(KeyboardInput::Delete),
             _ => None,
         }
     }
 }
 
 #[cfg(feature = "serialize")]
-impl serde::Serialize for Key {
+impl serde::Serialize for KeyboardInput {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         use key_names::*;
-        use Key::*;
+        use KeyboardInput::*;
         match self {
             Char(c) => serializer.serialize_char(*c),
             Function(n) => serializer.serialize_str(&format!("f{}", n)),
@@ -105,14 +105,14 @@ impl serde::Serialize for Key {
 }
 
 #[cfg(feature = "serialize")]
-impl<'de> serde::Deserialize<'de> for Key {
+impl<'de> serde::Deserialize<'de> for KeyboardInput {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         struct Visitor;
         impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = Key;
+            type Value = KeyboardInput;
 
             fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 formatter.write_str("a keyboard input description")
@@ -122,7 +122,8 @@ impl<'de> serde::Deserialize<'de> for Key {
             where
                 E: serde::de::Error,
             {
-                Key::try_from_str(s).ok_or_else(|| E::custom(format!("couldn't parse {}", s)))
+                KeyboardInput::try_from_str(s)
+                    .ok_or_else(|| E::custom(format!("couldn't parse {}", s)))
             }
         }
         deserializer.deserialize_str(Visitor)

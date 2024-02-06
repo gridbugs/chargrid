@@ -7,8 +7,10 @@ export RUSTFLAGS="--deny warnings"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cargo clean
-
 cargo test --workspace
+
+cargo clean
+cargo test --workspace --features serialize
 
 cargo clean
 
