@@ -146,22 +146,22 @@ impl Context {
                         repeat,
                         ..
                     } => {
-                        if let Some(key) = input::sdl2_to_chargrid(keycode, keymod) {
+                        if let Some(keyboard_input) = input::sdl2_to_chargrid(keycode, keymod) {
                             if repeat {
                                 // repeated key inputs are just treated as key presses
-                                Some(Input::key_press(key))
+                                Some(Input::Keyboard(keyboard_input))
                             } else {
                                 // handle this here because we need to send both a keydown and keypress
                                 if let Some(app::Exit) = on_input(
                                     &mut component,
-                                    Input::key_down(key),
+                                    Input::Keyboard(keyboard_input),
                                     &chargrid_frame_buffer,
                                 ) {
                                     break 'mainloop;
                                 }
                                 if let Some(app::Exit) = on_input(
                                     &mut component,
-                                    Input::key_press(key),
+                                    Input::Keyboard(keyboard_input),
                                     &chargrid_frame_buffer,
                                 ) {
                                     break 'mainloop;
@@ -172,11 +172,6 @@ impl Context {
                             None
                         }
                     }
-                    Event::KeyUp {
-                        keycode: Some(keycode),
-                        keymod,
-                        ..
-                    } => input::sdl2_to_chargrid(keycode, keymod).map(Input::key_up),
                     Event::MouseMotion {
                         mousestate, x, y, ..
                     } => {
@@ -249,7 +244,7 @@ impl Context {
                             })
                         })
                     }
-                    Event::Quit { .. } => Some(Input::key_press(keys::ETX)),
+                    Event::Quit { .. } => Some(Input::Keyboard(keys::ETX)),
                     _ => None,
                 };
                 if let Some(input) = input {

@@ -278,35 +278,12 @@ where
         let context = context.clone();
         Closure::wrap(Box::new(move |event: JsValue| {
             let keyboard_event = event.unchecked_ref::<KeyboardEvent>();
-            if let Some(key) =
+            if let Some(keyboard_input) =
                 input::key_from_js(keyboard_event.key_code() as u8, keyboard_event.shift_key())
             {
                 on_input(
                     &mut *component.borrow_mut(),
-                    Input::key_press(key),
-                    &context.borrow().chargrid_frame_buffer,
-                );
-                if !keyboard_event.repeat() {
-                    on_input(
-                        &mut *component.borrow_mut(),
-                        Input::key_down(key),
-                        &context.borrow().chargrid_frame_buffer,
-                    );
-                }
-            }
-        }) as Box<dyn FnMut(JsValue)>)
-    };
-    let handle_keyup = {
-        let component = component.clone();
-        let context = context.clone();
-        Closure::wrap(Box::new(move |event: JsValue| {
-            let keyboard_event = event.unchecked_ref::<KeyboardEvent>();
-            if let Some(key) =
-                input::key_from_js(keyboard_event.key_code() as u8, keyboard_event.shift_key())
-            {
-                on_input(
-                    &mut *component.borrow_mut(),
-                    Input::key_up(key),
+                    Input::Keyboard(keyboard_input),
                     &context.borrow().chargrid_frame_buffer,
                 );
             }
@@ -469,9 +446,6 @@ where
         .add_event_listener_with_callback("keydown", handle_keydown.as_ref().unchecked_ref())
         .unwrap();
     window
-        .add_event_listener_with_callback("keyup", handle_keyup.as_ref().unchecked_ref())
-        .unwrap();
-    window
         .add_event_listener_with_callback("mousemove", handle_mouse_move.as_ref().unchecked_ref())
         .unwrap();
     window
@@ -484,7 +458,6 @@ where
         .add_event_listener_with_callback("wheel", handle_wheel.as_ref().unchecked_ref())
         .unwrap();
     handle_keydown.forget();
-    handle_keyup.forget();
     handle_mouse_move.forget();
     handle_mouse_down.forget();
     handle_mouse_up.forget();

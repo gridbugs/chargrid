@@ -99,16 +99,13 @@ impl Component for TextField {
                         }
                     }
                 }
-                Input::Keyboard(KeyboardInput {
-                    key,
-                    event: KeyboardEvent::KeyPress,
-                }) => match key {
+                Input::Keyboard(keyboard_input) => match keyboard_input {
                     keys::RETURN => return Some(self.text.iter().collect::<String>()),
-                    Key::Left => self.left(),
-                    Key::Right => self.right(),
-                    Key::Delete => self.delete(),
+                    KeyboardInput::Left => self.left(),
+                    KeyboardInput::Right => self.right(),
+                    KeyboardInput::Delete => self.delete(),
                     keys::BACKSPACE => self.backspace(),
-                    Key::Char(ch) => {
+                    KeyboardInput::Char(ch) => {
                         if !ch.is_control() {
                             self.add_character(ch);
                         }

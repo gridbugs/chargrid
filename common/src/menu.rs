@@ -20,7 +20,7 @@ pub struct Menu<T: Clone, S = ()> {
     items: Vec<MenuItem<T, S>>,
     offset_to_item_index: Vec<Option<usize>>,
     selected_index: usize,
-    hotkeys: HashMap<input::Key, T>,
+    hotkeys: HashMap<input::KeyboardInput, T>,
     vi_keys: bool,
     since_epoch: Duration,
 }
@@ -79,22 +79,19 @@ impl<T: Clone, S> Menu<T, S> {
     pub fn choose(&mut self, ctx: Ctx, input: input::Input) -> Option<T> {
         use input::*;
         match input {
-            Input::Keyboard(KeyboardInput {
-                key,
-                event: KeyboardEvent::KeyPress,
-            }) => match key {
-                keys::RETURN | Key::Char(' ') => {
+            Input::Keyboard(keyboard_input) => match keyboard_input {
+                keys::RETURN | KeyboardInput::Char(' ') => {
                     return Some(self.selected().clone());
                 }
-                Key::Up => self.up(),
-                Key::Down => self.down(),
+                KeyboardInput::Up => self.up(),
+                KeyboardInput::Down => self.down(),
                 other => {
                     if self.vi_keys {
-                        if other == Key::Char('j') {
+                        if other == KeyboardInput::Char('j') {
                             self.down();
                             return None;
                         }
-                        if other == Key::Char('k') {
+                        if other == KeyboardInput::Char('k') {
                             self.up();
                             return None;
                         }
@@ -471,7 +468,7 @@ pub mod builder {
     pub struct MenuBuilderAddItem<T: Clone, S = ()> {
         pub value: T,
         pub identifier: MenuItemIdentifierBoxed<S>,
-        pub hotkeys: Vec<input::Key>,
+        pub hotkeys: Vec<input::KeyboardInput>,
     }
 
     impl<T: Clone, S> MenuBuilderAddItem<T, S> {
@@ -483,20 +480,20 @@ pub mod builder {
             }
         }
 
-        pub fn add_hotkey(mut self, input: input::Key) -> Self {
+        pub fn add_hotkey(mut self, input: input::KeyboardInput) -> Self {
             self.hotkeys.push(input);
             self
         }
 
         pub fn add_hotkey_char(mut self, c: char) -> Self {
-            self.hotkeys.push(input::Key::Char(c));
+            self.hotkeys.push(input::KeyboardInput::Char(c));
             self
         }
     }
 
     pub struct MenuBuilder<T: Clone, S = ()> {
         items: Vec<MenuItem<T, S>>,
-        hotkeys: HashMap<input::Key, T>,
+        hotkeys: HashMap<input::KeyboardInput, T>,
         offset_to_item_index: Vec<Option<usize>>,
         vi_keys: bool,
     }
@@ -572,10 +569,10 @@ pub mod builder {
             }
             if vi_keys {
                 // make sure the hotkeys don't include the vi keys
-                if hotkeys.contains_key(&input::Key::Char('j')) {
+                if hotkeys.contains_key(&input::KeyboardInput::Char('j')) {
                     panic!("vi_keys cannot be used when j is a hotkey");
                 }
-                if hotkeys.contains_key(&input::Key::Char('k')) {
+                if hotkeys.contains_key(&input::KeyboardInput::Char('k')) {
                     panic!("vi_keys cannot be used when k is a hotkey");
                 }
             }

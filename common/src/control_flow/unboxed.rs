@@ -1353,11 +1353,7 @@ where
         self.0.render(state, ctx, fb);
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-        if let Event::Input(input::Input::Keyboard(input::KeyboardInput {
-            key: input::keys::ETX,
-            event: input::KeyboardEvent::KeyPress,
-        })) = event
-        {
+        if let Event::Input(input::Input::Keyboard(input::keys::ETX)) = event {
             return Some(app::Exit);
         }
         self.0.update(state, ctx, event)
@@ -1381,11 +1377,7 @@ where
         self.0.render(state, ctx, fb);
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
-        if let Event::Input(input::Input::Keyboard(input::KeyboardInput {
-            key: input::keys::ESCAPE,
-            event: input::KeyboardEvent::KeyPress,
-        })) = event
-        {
+        if let Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) = event {
             return Some(Err(Escape));
         }
         self.0.update(state, ctx, event).map(Ok)
@@ -1408,10 +1400,9 @@ where
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         match event {
-            Event::Input(input::Input::Keyboard(input::KeyboardInput {
-                key: input::keys::ESCAPE,
-                event: input::KeyboardEvent::KeyPress,
-            })) => Some(Err(EscapeOrStart::Escape)),
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => {
+                Some(Err(EscapeOrStart::Escape))
+            }
             #[cfg(feature = "gamepad")]
             Event::Input(input::Input::Gamepad(input::GamepadInput {
                 button: input::GamepadButton::Start,
@@ -1468,10 +1459,9 @@ where
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         let escape_or_click_out = match event {
-            Event::Input(input::Input::Keyboard(input::KeyboardInput {
-                key: input::keys::ESCAPE,
-                event: input::KeyboardEvent::KeyPress,
-            })) => Some(EscapeOrClickOut::Escape),
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => {
+                Some(EscapeOrClickOut::Escape)
+            }
             Event::Input(input::Input::Mouse(input::MouseInput::MousePress { coord, .. })) => {
                 let size = self.size(state, ctx);
                 if ctx.bounding_box.set_size(size).contains_coord(coord) {
@@ -1505,10 +1495,7 @@ where
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         match event {
-            Event::Input(input::Input::Keyboard(input::KeyboardInput {
-                key: input::keys::ESCAPE,
-                event: input::KeyboardEvent::KeyPress,
-            })) => Some(Err(Close)),
+            Event::Input(input::Input::Keyboard(input::keys::ESCAPE)) => Some(Err(Close)),
             #[cfg(feature = "gamepad")]
             Event::Input(input::Input::Gamepad(input::GamepadInput {
                 button: input::GamepadButton::East,
@@ -1523,7 +1510,7 @@ where
                 .update(
                     state,
                     ctx,
-                    Event::Input(input::Input::key_press(input::keys::RETURN)),
+                    Event::Input(input::Input::Keyboard(input::keys::RETURN)),
                 )
                 .map(Ok),
             _ => self.0.update(state, ctx, event).map(Ok),

@@ -1,7 +1,7 @@
 use crate::Dimensions;
 use chargrid_input::{
-    keys, Coord, Input, Key, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton,
-    MouseInput, ScrollDirection,
+    keys, Coord, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput,
+    ScrollDirection,
 };
 use winit::{
     dpi::{LogicalPosition, PhysicalSize},
@@ -16,14 +16,14 @@ pub enum Event {
 
 macro_rules! convert_char_shift {
     ($lower:expr, $upper:expr, $shift:expr) => {
-        Key::Char(if $shift { $upper } else { $lower })
+        KeyboardInput::Char(if $shift { $upper } else { $lower })
     };
 }
 
 #[allow(clippy::cognitive_complexity)]
-fn convert_keycode_keyboard_input(code: KeyCode, shift: bool) -> Option<Key> {
+fn convert_keycode_keyboard_input(code: KeyCode, shift: bool) -> Option<KeyboardInput> {
     let keyboard_input = match code {
-        KeyCode::Space => Key::Char(' '),
+        KeyCode::Space => KeyboardInput::Char(' '),
         KeyCode::KeyA => convert_char_shift!('a', 'A', shift),
         KeyCode::KeyB => convert_char_shift!('b', 'B', shift),
         KeyCode::KeyC => convert_char_shift!('c', 'C', shift),
@@ -60,59 +60,59 @@ fn convert_keycode_keyboard_input(code: KeyCode, shift: bool) -> Option<Key> {
         KeyCode::Digit8 => convert_char_shift!('8', '*', shift),
         KeyCode::Digit9 => convert_char_shift!('9', '(', shift),
         KeyCode::Digit0 => convert_char_shift!('0', ')', shift),
-        KeyCode::Numpad1 => Key::Char('1'),
-        KeyCode::Numpad2 => Key::Char('2'),
-        KeyCode::Numpad3 => Key::Char('3'),
-        KeyCode::Numpad4 => Key::Char('4'),
-        KeyCode::Numpad5 => Key::Char('5'),
-        KeyCode::Numpad6 => Key::Char('6'),
-        KeyCode::Numpad7 => Key::Char('7'),
-        KeyCode::Numpad8 => Key::Char('8'),
-        KeyCode::Numpad9 => Key::Char('9'),
-        KeyCode::Numpad0 => Key::Char('0'),
-        KeyCode::ArrowLeft => Key::Left,
-        KeyCode::ArrowRight => Key::Right,
-        KeyCode::ArrowUp => Key::Up,
-        KeyCode::ArrowDown => Key::Down,
+        KeyCode::Numpad1 => KeyboardInput::Char('1'),
+        KeyCode::Numpad2 => KeyboardInput::Char('2'),
+        KeyCode::Numpad3 => KeyboardInput::Char('3'),
+        KeyCode::Numpad4 => KeyboardInput::Char('4'),
+        KeyCode::Numpad5 => KeyboardInput::Char('5'),
+        KeyCode::Numpad6 => KeyboardInput::Char('6'),
+        KeyCode::Numpad7 => KeyboardInput::Char('7'),
+        KeyCode::Numpad8 => KeyboardInput::Char('8'),
+        KeyCode::Numpad9 => KeyboardInput::Char('9'),
+        KeyCode::Numpad0 => KeyboardInput::Char('0'),
+        KeyCode::ArrowLeft => KeyboardInput::Left,
+        KeyCode::ArrowRight => KeyboardInput::Right,
+        KeyCode::ArrowUp => KeyboardInput::Up,
+        KeyCode::ArrowDown => KeyboardInput::Down,
         KeyCode::Escape => keys::ESCAPE,
         KeyCode::Enter => keys::RETURN,
-        KeyCode::Minus => Key::Char('-'),
+        KeyCode::Minus => KeyboardInput::Char('-'),
         KeyCode::Equal => convert_char_shift!('=', '+', shift),
         KeyCode::Backslash => convert_char_shift!('\\', '|', shift),
         KeyCode::Backquote => convert_char_shift!('`', '~', shift),
         KeyCode::Quote => convert_char_shift!('\'', '"', shift),
         KeyCode::BracketLeft => convert_char_shift!('[', '{', shift),
         KeyCode::BracketRight => convert_char_shift!(']', '}', shift),
-        KeyCode::PageUp => Key::PageUp,
-        KeyCode::PageDown => Key::PageDown,
-        KeyCode::Home => Key::Home,
-        KeyCode::End => Key::End,
-        KeyCode::F1 => Key::Function(1),
-        KeyCode::F2 => Key::Function(2),
-        KeyCode::F3 => Key::Function(3),
-        KeyCode::F4 => Key::Function(4),
-        KeyCode::F5 => Key::Function(5),
-        KeyCode::F6 => Key::Function(6),
-        KeyCode::F7 => Key::Function(7),
-        KeyCode::F8 => Key::Function(8),
-        KeyCode::F9 => Key::Function(9),
-        KeyCode::F10 => Key::Function(10),
-        KeyCode::F11 => Key::Function(11),
-        KeyCode::F12 => Key::Function(12),
-        KeyCode::F13 => Key::Function(13),
-        KeyCode::F14 => Key::Function(14),
-        KeyCode::F15 => Key::Function(15),
-        KeyCode::F16 => Key::Function(16),
-        KeyCode::F17 => Key::Function(17),
-        KeyCode::F18 => Key::Function(18),
-        KeyCode::F19 => Key::Function(19),
-        KeyCode::F20 => Key::Function(20),
-        KeyCode::F21 => Key::Function(21),
-        KeyCode::F22 => Key::Function(22),
-        KeyCode::F23 => Key::Function(23),
-        KeyCode::F24 => Key::Function(24),
+        KeyCode::PageUp => KeyboardInput::PageUp,
+        KeyCode::PageDown => KeyboardInput::PageDown,
+        KeyCode::Home => KeyboardInput::Home,
+        KeyCode::End => KeyboardInput::End,
+        KeyCode::F1 => KeyboardInput::Function(1),
+        KeyCode::F2 => KeyboardInput::Function(2),
+        KeyCode::F3 => KeyboardInput::Function(3),
+        KeyCode::F4 => KeyboardInput::Function(4),
+        KeyCode::F5 => KeyboardInput::Function(5),
+        KeyCode::F6 => KeyboardInput::Function(6),
+        KeyCode::F7 => KeyboardInput::Function(7),
+        KeyCode::F8 => KeyboardInput::Function(8),
+        KeyCode::F9 => KeyboardInput::Function(9),
+        KeyCode::F10 => KeyboardInput::Function(10),
+        KeyCode::F11 => KeyboardInput::Function(11),
+        KeyCode::F12 => KeyboardInput::Function(12),
+        KeyCode::F13 => KeyboardInput::Function(13),
+        KeyCode::F14 => KeyboardInput::Function(14),
+        KeyCode::F15 => KeyboardInput::Function(15),
+        KeyCode::F16 => KeyboardInput::Function(16),
+        KeyCode::F17 => KeyboardInput::Function(17),
+        KeyCode::F18 => KeyboardInput::Function(18),
+        KeyCode::F19 => KeyboardInput::Function(19),
+        KeyCode::F20 => KeyboardInput::Function(20),
+        KeyCode::F21 => KeyboardInput::Function(21),
+        KeyCode::F22 => KeyboardInput::Function(22),
+        KeyCode::F23 => KeyboardInput::Function(23),
+        KeyCode::F24 => KeyboardInput::Function(24),
         KeyCode::Backspace => keys::BACKSPACE,
-        KeyCode::Delete => Key::Delete,
+        KeyCode::Delete => KeyboardInput::Delete,
         KeyCode::Comma => convert_char_shift!(',', '<', shift),
         KeyCode::Period => convert_char_shift!('.', '>', shift),
         KeyCode::Slash => convert_char_shift!('/', '?', shift),
@@ -131,17 +131,15 @@ pub fn convert_event(
     modifier_state: ModifiersState,
 ) -> Option<Event> {
     match event {
-        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(
-            KeyboardInput::key_press(chargrid_input::keys::ETX),
-        ))),
+        WindowEvent::CloseRequested => Some(Event::Input(Input::Keyboard(keys::ETX))),
         WindowEvent::Resized(physical_size) => Some(Event::Resize(physical_size)),
         WindowEvent::KeyboardInput { event, .. } => {
             if event.state == ElementState::Pressed {
                 if let PhysicalKey::Code(key_code) = event.physical_key {
-                    if let Some(key) =
+                    if let Some(keyboard_input) =
                         convert_keycode_keyboard_input(key_code, modifier_state.shift_key())
                     {
-                        return Some(Event::Input(Input::key_press(key)));
+                        return Some(Event::Input(Input::Keyboard(keyboard_input)));
                     }
                 }
             }

@@ -659,11 +659,7 @@ impl Event {
     }
 
     pub fn is_escape(self) -> bool {
-        if let Self::Input(Input::Keyboard(KeyboardInput {
-            key: input::keys::ESCAPE,
-            event: input::KeyboardEvent::KeyPress,
-        })) = self
-        {
+        if let Self::Input(Input::Keyboard(input::keys::ESCAPE)) = self {
             true
         } else {
             false
@@ -762,9 +758,9 @@ pub mod prelude {
     #[cfg(feature = "gamepad")]
     pub use super::input::{GamepadButton, GamepadInput};
     pub use super::{
-        app, ctx_tint, input, input::Input, input::Key, input::KeyboardEvent, input::KeyboardInput,
-        input::MouseButton, input::MouseInput, input::ScrollDirection, Component, Coord, Ctx,
-        Event, FrameBuffer, RenderCell, Rgba32, Size, Style, Tint,
+        app, ctx_tint, input, input::Input, input::KeyboardInput, input::MouseButton,
+        input::MouseInput, input::ScrollDirection, Component, Coord, Ctx, Event, FrameBuffer,
+        RenderCell, Rgba32, Size, Style, Tint,
     };
     pub use std::time::Duration;
 }
