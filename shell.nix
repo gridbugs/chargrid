@@ -23,6 +23,7 @@ pkgs.mkShell rec {
     openal
     libpulseaudio
     fontconfig
+    libxkbcommon
     xorg.libX11
     xorg.libXcursor
     xorg.libXrandr
@@ -31,7 +32,7 @@ pkgs.mkShell rec {
     vulkan-tools
     libGL
     bzip2
-    nodejs-16_x
+    nodejs
     wasm-pack
     openssl
     SDL2
