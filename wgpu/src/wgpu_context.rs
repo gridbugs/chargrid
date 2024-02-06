@@ -87,7 +87,7 @@ struct WgpuContext {
     global_uniforms_buffer: wgpu::Buffer,
     window_size: winit::dpi::LogicalSize<f64>,
     scale_factor: f64,
-    modifier_state: winit::event::ModifiersState,
+    modifier_state: winit::keyboard::ModifiersState,
     global_uniforms_to_sync: Option<GlobalUniforms>,
 }
 
@@ -146,6 +146,8 @@ async fn request_adapter_for_backend(
     let instance_descriptor = wgpu::InstanceDescriptor {
         backends,
         dx12_shader_compiler: wgpu::Dx12Compiler::default(),
+        flags: wgpu::InstanceFlags::default(),
+        gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
     };
     let instance = wgpu::Instance::new(instance_descriptor);
     let surface = unsafe { instance.create_surface(window) }
@@ -173,7 +175,7 @@ async fn setup(
     resizable: bool,
     force_secondary_adapter: bool,
 ) -> Setup {
-    let event_loop = winit::event_loop::EventLoop::new();
+    let event_loop = winit::event_loop::EventLoop::new().unwrap();
     let window_builder = winit::window::WindowBuilder::new().with_title(title);
     let window_builder = {
         let logical_size =
@@ -439,7 +441,7 @@ impl WgpuContext {
             wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
                 .texture_filter_method(wgpu::FilterMode::Nearest)
                 .build(&mut device, surface_configuration.format);
-        let modifier_state = winit::event::ModifiersState::default();
+        let modifier_state = winit::keyboard::ModifiersState::default();
         Ok(Self {
             device,
             surface,
@@ -724,7 +726,7 @@ impl Context {
      * is passed to the component's `update` method. When the component yields `Some(app::Exit)`,
      * the program will exit. This method never returns.
      */
-    pub fn run<C>(self, mut component: C) -> !
+    pub fn run<C>(self, mut component: C)
     where
         C: 'static + Component<State = (), Output = app::Output>,
     {
@@ -746,187 +748,197 @@ impl Context {
         log::info!("Entering main event loop");
         let mut current_window_dimensions = size_context.native_window_dimensions;
         let mut staging_belt = wgpu::util::StagingBelt::new(1024);
-        let executor = async_executor::LocalExecutor::new();
-        event_loop.run(move |event, _, control_flow| {
-            let _ = (&instance, &adapter); // force ownership by the closure
-            if exited {
-                *control_flow = winit::event_loop::ControlFlow::Exit;
-                return;
-            } else {
-                *control_flow = winit::event_loop::ControlFlow::Poll;
-            };
-            #[cfg(feature = "gamepad")]
-            for input in gamepad.drain_input() {
-                if let Some(app::Exit) = on_input(
-                    &mut component,
-                    chargrid_input::Input::Gamepad(input),
-                    &wgpu_context.chargrid_frame_buffer,
-                ) {
-                    exited = true;
+        event_loop
+            .run(move |event, elwt| {
+                let _ = (&instance, &adapter); // force ownership by the closure
+                if exited {
+                    elwt.exit();
                     return;
+                } else {
+                    elwt.set_control_flow(winit::event_loop::ControlFlow::Poll);
+                };
+                let target_frametime = Duration::from_secs_f64(1.0 / 60.0);
+                let time_since_last_frame = last_update_inst.elapsed();
+                if time_since_last_frame >= target_frametime {
+                    window.request_redraw();
+                    last_update_inst = Instant::now();
+                } else {
+                    elwt.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(
+                        Instant::now() + target_frametime - time_since_last_frame,
+                    ));
                 }
-            }
-            match event {
-                winit::event::Event::WindowEvent {
-                    event: window_event,
-                    ..
-                } => match window_event {
-                    winit::event::WindowEvent::ModifiersChanged(modifier_state) => {
-                        wgpu_context.modifier_state = modifier_state;
-                    }
-                    other => {
-                        if let Some(event) = input::convert_event(
-                            other,
-                            size_context.scaled_cell_dimensions(current_window_dimensions),
-                            size_context
-                                .pixel_offset_to_centre_native_window(current_window_dimensions),
-                            &mut input_context.last_mouse_coord,
-                            &mut input_context.last_mouse_button,
-                            &mut wgpu_context.scale_factor,
-                            wgpu_context.modifier_state,
-                        ) {
-                            match event {
-                                input::Event::Input(input) => {
-                                    if let Some(app::Exit) = on_input(
-                                        &mut component,
-                                        input,
-                                        &wgpu_context.chargrid_frame_buffer,
-                                    ) {
-                                        exited = true;
-                                        return;
-                                    }
-                                }
-                                input::Event::Resize(size) => {
-                                    wgpu_context.resize(&size_context, size);
-                                    current_window_dimensions =
-                                        dimensions_from_logical_size(wgpu_context.window_size);
-                                }
-                            }
-                        }
-                    }
-                },
-                winit::event::Event::RedrawRequested(_) => {
-                    let frame_duration = frame_instant.elapsed();
-                    frame_instant = Instant::now();
-                    if let Some(app::Exit) = on_frame(
+                #[cfg(feature = "gamepad")]
+                for input in gamepad.drain_input() {
+                    if let Some(app::Exit) = on_input(
                         &mut component,
-                        frame_duration,
-                        &mut wgpu_context.chargrid_frame_buffer,
+                        chargrid_input::Input::Gamepad(input),
+                        &wgpu_context.chargrid_frame_buffer,
                     ) {
                         exited = true;
                         return;
                     }
-                    wgpu_context.render_background();
-                    if let Ok(frame) = wgpu_context.surface.get_current_texture() {
-                        let mut encoder = wgpu_context.device.create_command_encoder(
-                            &wgpu::CommandEncoderDescriptor { label: None },
-                        );
-                        wgpu_context.sync_global_uniforms(&mut encoder);
-                        let view = frame
-                            .texture
-                            .create_view(&wgpu::TextureViewDescriptor::default());
-
-                        {
-                            let mut render_pass =
-                                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                                    label: None,
-                                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                        view: &view,
-                                        resolve_target: None,
-                                        ops: wgpu::Operations {
-                                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                                            store: true,
-                                        },
-                                    })],
-                                    depth_stencil_attachment: None,
-                                });
-                            render_pass.set_pipeline(&wgpu_context.render_pipeline);
-                            render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
-                            render_pass.set_vertex_buffer(
-                                0,
-                                wgpu_context.background_cell_instance_buffer.slice(..),
-                            );
-                            render_pass.draw(
-                                0..6,
-                                0..wgpu_context.chargrid_frame_buffer.size().count() as u32,
-                            );
+                }
+                match event {
+                    winit::event::Event::WindowEvent {
+                        event: window_event,
+                        ..
+                    } => match window_event {
+                        winit::event::WindowEvent::ModifiersChanged(modifiers) => {
+                            wgpu_context.modifier_state = modifiers.state();
                         }
-                        let offset_to_centre = size_context
-                            .pixel_offset_to_centre_native_window(current_window_dimensions);
-                        let font_scale = size_context.font_source_scale;
-                        text_buffer.clear();
-                        for row in wgpu_context.chargrid_frame_buffer.rows() {
-                            for cell in row {
-                                text_buffer.push(cell.character);
+                        winit::event::WindowEvent::RedrawRequested => {
+                            let frame_duration = frame_instant.elapsed();
+                            frame_instant = Instant::now();
+                            if let Some(app::Exit) = on_frame(
+                                &mut component,
+                                frame_duration,
+                                &mut wgpu_context.chargrid_frame_buffer,
+                            ) {
+                                exited = true;
+                                return;
                             }
-                        }
-                        let mut section = wgpu_glyph::Section::default().with_screen_position((
-                            offset_to_centre.width as f32,
-                            offset_to_centre.height as f32,
-                        ));
-                        let mut char_start = 0;
-                        for (ch, (coord, cell)) in text_buffer
-                            .chars()
-                            .zip(wgpu_context.chargrid_frame_buffer.enumerate())
-                        {
-                            let char_end = char_start + ch.len_utf8();
-                            let str_slice = &text_buffer[char_start..char_end];
-                            let font_id = if cell.bold {
-                                FONT_ID_BOLD
+                            wgpu_context.render_background();
+                            if let Ok(frame) = wgpu_context.surface.get_current_texture() {
+                                let mut encoder = wgpu_context.device.create_command_encoder(
+                                    &wgpu::CommandEncoderDescriptor { label: None },
+                                );
+                                wgpu_context.sync_global_uniforms(&mut encoder);
+                                let view = frame
+                                    .texture
+                                    .create_view(&wgpu::TextureViewDescriptor::default());
+
+                                {
+                                    let mut render_pass =
+                                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                            label: None,
+                                            color_attachments: &[Some(
+                                                wgpu::RenderPassColorAttachment {
+                                                    view: &view,
+                                                    resolve_target: None,
+                                                    ops: wgpu::Operations {
+                                                        load: wgpu::LoadOp::Clear(
+                                                            wgpu::Color::BLACK,
+                                                        ),
+                                                        store: wgpu::StoreOp::Store,
+                                                    },
+                                                },
+                                            )],
+                                            depth_stencil_attachment: None,
+                                            timestamp_writes: None,
+                                            occlusion_query_set: None,
+                                        });
+                                    render_pass.set_pipeline(&wgpu_context.render_pipeline);
+                                    render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
+                                    render_pass.set_vertex_buffer(
+                                        0,
+                                        wgpu_context.background_cell_instance_buffer.slice(..),
+                                    );
+                                    render_pass.draw(
+                                        0..6,
+                                        0..wgpu_context.chargrid_frame_buffer.size().count() as u32,
+                                    );
+                                }
+                                let offset_to_centre = size_context
+                                    .pixel_offset_to_centre_native_window(
+                                        current_window_dimensions,
+                                    );
+                                let font_scale = size_context.font_source_scale;
+                                text_buffer.clear();
+                                for row in wgpu_context.chargrid_frame_buffer.rows() {
+                                    for cell in row {
+                                        text_buffer.push(cell.character);
+                                    }
+                                }
+                                let mut section = wgpu_glyph::Section::default()
+                                    .with_screen_position((
+                                        offset_to_centre.width as f32,
+                                        offset_to_centre.height as f32,
+                                    ));
+                                let mut char_start = 0;
+                                for (ch, (coord, cell)) in text_buffer
+                                    .chars()
+                                    .zip(wgpu_context.chargrid_frame_buffer.enumerate())
+                                {
+                                    let char_end = char_start + ch.len_utf8();
+                                    let str_slice = &text_buffer[char_start..char_end];
+                                    let font_id = if cell.bold {
+                                        FONT_ID_BOLD
+                                    } else {
+                                        FONT_ID_NORMAL
+                                    };
+                                    section = section.add_text(
+                                        wgpu_glyph::Text::new(str_slice)
+                                            .with_scale(font_scale)
+                                            .with_font_id(font_id)
+                                            .with_color(rgba_to_srgb(
+                                                cell.foreground.to_f32_array_01(),
+                                            )),
+                                    );
+                                    char_start = char_end;
+                                    if coord.x as u32
+                                        == wgpu_context.chargrid_frame_buffer.size().width() - 1
+                                    {
+                                        section = section.add_text(
+                                            wgpu_glyph::Text::new("\n").with_scale(font_scale),
+                                        );
+                                    }
+                                }
+                                wgpu_context.glyph_brush.queue(section);
+                                wgpu_context
+                                    .glyph_brush
+                                    .draw_queued(
+                                        &wgpu_context.device,
+                                        &mut staging_belt,
+                                        &mut encoder,
+                                        &view,
+                                        wgpu_context.window_size.width as u32,
+                                        wgpu_context.window_size.height as u32,
+                                    )
+                                    .unwrap();
+                                staging_belt.finish();
+                                wgpu_context.queue.submit(std::iter::once(encoder.finish()));
+                                staging_belt.recall();
+                                frame.present();
                             } else {
-                                FONT_ID_NORMAL
-                            };
-                            section = section.add_text(
-                                wgpu_glyph::Text::new(str_slice)
-                                    .with_scale(font_scale)
-                                    .with_font_id(font_id)
-                                    .with_color(rgba_to_srgb(cell.foreground.to_f32_array_01())),
-                            );
-                            char_start = char_end;
-                            if coord.x as u32
-                                == wgpu_context.chargrid_frame_buffer.size().width() - 1
-                            {
-                                section = section
-                                    .add_text(wgpu_glyph::Text::new("\n").with_scale(font_scale));
+                                log::warn!("timeout when acquiring next swapchain texture");
+                                thread::sleep(Duration::from_millis(100));
                             }
                         }
-                        wgpu_context.glyph_brush.queue(section);
-                        wgpu_context
-                            .glyph_brush
-                            .draw_queued(
-                                &wgpu_context.device,
-                                &mut staging_belt,
-                                &mut encoder,
-                                &view,
-                                wgpu_context.window_size.width as u32,
-                                wgpu_context.window_size.height as u32,
-                            )
-                            .unwrap();
-                        staging_belt.finish();
-                        wgpu_context.queue.submit(std::iter::once(encoder.finish()));
-                        staging_belt.recall();
-                        frame.present();
-                    } else {
-                        log::warn!("timeout when acquiring next swapchain texture");
-                        thread::sleep(Duration::from_millis(100));
-                    }
+                        other => {
+                            if let Some(event) = input::convert_event(
+                                other,
+                                size_context.scaled_cell_dimensions(current_window_dimensions),
+                                size_context.pixel_offset_to_centre_native_window(
+                                    current_window_dimensions,
+                                ),
+                                &mut input_context.last_mouse_coord,
+                                &mut input_context.last_mouse_button,
+                                &mut wgpu_context.scale_factor,
+                                wgpu_context.modifier_state,
+                            ) {
+                                match event {
+                                    input::Event::Input(input) => {
+                                        if let Some(app::Exit) = on_input(
+                                            &mut component,
+                                            input,
+                                            &wgpu_context.chargrid_frame_buffer,
+                                        ) {
+                                            exited = true;
+                                            return;
+                                        }
+                                    }
+                                    input::Event::Resize(size) => {
+                                        wgpu_context.resize(&size_context, size);
+                                        current_window_dimensions =
+                                            dimensions_from_logical_size(wgpu_context.window_size);
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    _ => (),
                 }
-                winit::event::Event::RedrawEventsCleared => {
-                    let target_frametime = Duration::from_secs_f64(1.0 / 60.0);
-                    let time_since_last_frame = last_update_inst.elapsed();
-                    if time_since_last_frame >= target_frametime {
-                        window.request_redraw();
-                        last_update_inst = Instant::now();
-                    } else {
-                        *control_flow = winit::event_loop::ControlFlow::WaitUntil(
-                            Instant::now() + target_frametime - time_since_last_frame,
-                        );
-                    }
-
-                    while executor.try_tick() {}
-                }
-                _ => (),
-            }
-        })
+            })
+            .expect("Run loop exitted with error")
     }
 }
