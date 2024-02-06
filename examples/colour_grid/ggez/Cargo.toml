@@ -5,6 +5,6 @@ authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2021"
 
 [dependencies]
-env_logger = "0.10"
+env_logger = "0.11"
 chargrid_ggez = { path = "../../../ggez" }
 colour_grid_app = { path = "../app" }
