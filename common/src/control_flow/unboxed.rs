@@ -397,6 +397,13 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
     pub fn pause(self) -> CF<Pause<C>> {
         cf(Pause(self.0))
     }
+
+    pub fn on_each_tick<F: FnMut()>(self, f: F) -> CF<OnEachTick<C, F>> {
+        cf(OnEachTick {
+            component: self.0,
+            f,
+        })
+    }
 }
 
 impl<C: Component<State = ()>> CF<C> {
@@ -1905,5 +1912,24 @@ where
             (title_size.width() as i32 + component_size.width() as i32 + self.padding) as u32;
         let height = title_size.height().max(component_size.height());
         Size::new(width, height)
+    }
+}
+
+pub struct OnEachTick<C: Component, F: FnMut()> {
+    component: C,
+    f: F,
+}
+impl<C: Component, F: FnMut()> Component for OnEachTick<C, F> {
+    type Output = C::Output;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        (self.f)();
+        self.component.update(state, ctx, event)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
     }
 }

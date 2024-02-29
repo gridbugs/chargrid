@@ -444,6 +444,11 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     pub fn pause(self) -> CF<Option<T>, S> {
         self.0.pause().boxed()
     }
+
+    /// Call a given function on each tick of the component.
+    pub fn on_each_tick<F: FnMut() + 'static>(self, f: F) -> Self {
+        self.0.on_each_tick(f).boxed()
+    }
 }
 
 impl<O: 'static> CF<O, ()> {
