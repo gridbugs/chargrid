@@ -74,6 +74,11 @@ pub struct Context {
     gamepad: GamepadContext,
 }
 
+pub enum LoopMethod {
+    RequestAnimationFrame,
+    SetTimeoutMs(i32),
+}
+
 impl Context {
     fn element_display_info(&self) -> ElementDisplayInfo {
         let container_rect = self.container_element.get_bounding_client_rect();
@@ -193,18 +198,25 @@ impl Context {
         }
     }
 
-    pub fn run<C>(self, component: C)
+    pub fn run_with_loop_method<C>(self, component: C, loop_method: LoopMethod)
     where
         C: 'static + Component<State = (), Output = app::Output>,
     {
         let component = Rc::new(RefCell::new(component));
         let context = Rc::new(RefCell::new(self));
-        run_frame(component.clone(), context.clone());
+        run_frame(component.clone(), context.clone(), loop_method);
         run_input(component, context);
+    }
+
+    pub fn run<C>(self, component: C)
+    where
+        C: 'static + Component<State = (), Output = app::Output>,
+    {
+        self.run_with_loop_method(component, LoopMethod::RequestAnimationFrame)
     }
 }
 
-fn run_frame<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>)
+fn run_frame<C>(component: Rc<RefCell<C>>, context: Rc<RefCell<Context>>, loop_method: LoopMethod)
 where
     C: 'static + Component<State = (), Output = app::Output>,
 {
@@ -224,9 +236,22 @@ where
             &mut context.chargrid_frame_buffer,
         );
         context.render_internal();
-        window
-            .request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref())
-            .unwrap();
+        match loop_method {
+            LoopMethod::RequestAnimationFrame => {
+                window
+                    .request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+                    .unwrap();
+            }
+            LoopMethod::SetTimeoutMs(period_ms) => {
+                window
+                    .set_timeout_with_callback_and_timeout_and_arguments(
+                        f.borrow().as_ref().unwrap().as_ref().unchecked_ref(),
+                        period_ms,
+                        &js_sys::Array::new(),
+                    )
+                    .expect("failed to set timeout");
+            }
+        }
     }) as Box<dyn FnMut()>));
     g.borrow()
         .as_ref()
