@@ -454,6 +454,11 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     pub fn on_each_tick_with_state<F: FnMut(&mut S) + 'static>(self, f: F) -> Self {
         self.0.on_each_tick_with_state(f).boxed()
     }
+
+    /// Call a function on the state when the window is closed.
+    pub fn on_exit_with_state<F: FnMut(&mut S) + 'static>(self, f: F) -> Self {
+        self.0.on_exit_with_state(f).boxed()
+    }
 }
 
 impl<O: 'static> CF<O, ()> {

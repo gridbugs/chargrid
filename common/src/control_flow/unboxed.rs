@@ -414,6 +414,13 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
             f,
         })
     }
+
+    pub fn on_exit_with_state<F: FnMut(&mut C::State)>(self, f: F) -> CF<OnExitWithState<C, F>> {
+        cf(OnExitWithState {
+            component: self.0,
+            f,
+        })
+    }
 }
 
 impl<C: Component<State = ()>> CF<C> {
@@ -1378,6 +1385,28 @@ where
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.0.size(state, ctx)
+    }
+}
+
+pub struct OnExitWithState<C: Component, F: FnMut(&mut C::State)> {
+    component: C,
+    f: F,
+}
+
+impl<C: Component, F: FnMut(&mut C::State)> Component for OnExitWithState<C, F> {
+    type Output = C::Output;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        if let Event::Input(input::Input::Keyboard(input::keys::ETX)) = event {
+            (self.f)(state);
+        }
+        self.component.update(state, ctx, event)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
     }
 }
 
