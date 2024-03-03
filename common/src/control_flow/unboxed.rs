@@ -404,6 +404,16 @@ impl<T, C: Component<Output = Option<T>>> CF<C> {
             f,
         })
     }
+
+    pub fn on_each_tick_with_state<F: FnMut(&mut C::State)>(
+        self,
+        f: F,
+    ) -> CF<OnEachTickWithState<C, F>> {
+        cf(OnEachTickWithState {
+            component: self.0,
+            f,
+        })
+    }
 }
 
 impl<C: Component<State = ()>> CF<C> {
@@ -1927,6 +1937,25 @@ impl<C: Component, F: FnMut()> Component for OnEachTick<C, F> {
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         (self.f)();
+        self.component.update(state, ctx, event)
+    }
+    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        self.component.size(state, ctx)
+    }
+}
+
+pub struct OnEachTickWithState<C: Component, F: FnMut(&mut C::State)> {
+    component: C,
+    f: F,
+}
+impl<C: Component, F: FnMut(&mut C::State)> Component for OnEachTickWithState<C, F> {
+    type Output = C::Output;
+    type State = C::State;
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.component.render(state, ctx, fb);
+    }
+    fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        (self.f)(state);
         self.component.update(state, ctx, event)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
