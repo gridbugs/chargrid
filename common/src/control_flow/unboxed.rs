@@ -1370,10 +1370,11 @@ where
         self.0.render(state, ctx, fb);
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
+        let output_unless_close = self.0.update(state, ctx, event);
         if let Event::Input(input::Input::Keyboard(input::keys::ETX)) = event {
             return Some(app::Exit);
         }
-        self.0.update(state, ctx, event)
+        output_unless_close
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
         self.0.size(state, ctx)
