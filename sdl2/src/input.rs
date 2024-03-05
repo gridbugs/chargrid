@@ -61,6 +61,7 @@ pub fn sdl2_to_chargrid(keycode: Keycode, mod_: Mod) -> Option<KeyboardInput> {
         Keycode::Semicolon => KeyboardInput::Char(';'),
         Keycode::Equals => convert_char_shift!('=', '+', shift),
         Keycode::Backslash => convert_char_shift!('\\', '|', shift),
+        Keycode::Slash => convert_char_shift!('/', '?', shift),
         Keycode::Backquote => convert_char_shift!('`', '~', shift),
         Keycode::Quote => convert_char_shift!('\'', '"', shift),
         Keycode::LeftBracket => convert_char_shift!('[', '{', shift),
