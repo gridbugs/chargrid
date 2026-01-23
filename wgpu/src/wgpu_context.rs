@@ -1,4 +1,5 @@
 use crate::{input, Config, Dimensions, FontBytes};
+use anyhow::anyhow;
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer};
@@ -131,16 +132,13 @@ struct Setup<'window> {
 async fn request_adapter_for_backend(
     backends: wgpu::Backends,
     window: &winit::window::Window,
-) -> Result<
-    (
-        wgpu::Adapter,
-        wgpu::Instance,
-        wgpu::Surface<'_>,
-        wgpu::Device,
-        wgpu::Queue,
-    ),
-    String,
-> {
+) -> anyhow::Result<(
+    wgpu::Adapter,
+    wgpu::Instance,
+    wgpu::Surface<'_>,
+    wgpu::Device,
+    wgpu::Queue,
+)> {
     let instance_descriptor = wgpu::InstanceDescriptor {
         backends,
         flags: wgpu::InstanceFlags::default(),
@@ -150,14 +148,14 @@ async fn request_adapter_for_backend(
     let instance = wgpu::Instance::new(&instance_descriptor);
     let surface = instance
         .create_surface(window)
-        .map_err(|e| format!("Unable to create surface! ({:?})", e))?;
+        .map_err(|e| anyhow!("Unable to create surface! ({:?})", e))?;
     let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, None)
         .await
-        .map_err(|e| format!("No suitable GPU adapters found on the system: {}", e))?;
+        .map_err(|e| anyhow!("No suitable GPU adapters found on the system: {}", e))?;
     let (device, queue) = adapter
         .request_device(&wgpu::DeviceDescriptor::default())
         .await
-        .map_err(|e| format!("Unable to find a suitable GPU adapter! ({:?})", e))?;
+        .map_err(|e| anyhow!("Unable to find a suitable GPU adapter! ({:?})", e))?;
     Ok((adapter, instance, surface, device, queue))
 }
 
@@ -614,8 +612,8 @@ pub fn make_window_and_event_loop(
     title: impl Into<String>,
     dimensions_px: Dimensions<f64>,
     resizable: bool,
-) -> (Window, EventLoop) {
-    let winit_event_loop = winit::event_loop::EventLoop::new().unwrap();
+) -> anyhow::Result<(Window, EventLoop)> {
+    let winit_event_loop = winit::event_loop::EventLoop::new()?;
     let logical_size = winit::dpi::LogicalSize::new(dimensions_px.width, dimensions_px.height);
     let window_attributes = WindowAttributes::new()
         .with_title(title)
@@ -623,14 +621,14 @@ pub fn make_window_and_event_loop(
         .with_min_inner_size(logical_size)
         .with_max_inner_size(logical_size)
         .with_resizable(resizable);
-    let winit_window = winit_event_loop.create_window(window_attributes).unwrap();
-    (
+    let winit_window = winit_event_loop.create_window(window_attributes)?;
+    Ok((
         Window {
             winit_window,
             dimensions_px,
         },
         EventLoop { winit_event_loop },
-    )
+    ))
 }
 
 impl<'window> Context<'window> {
@@ -865,17 +863,17 @@ impl<'window> Context<'window> {
                                     }
                                 }
                                 wgpu_context.glyph_brush.queue(section);
-                                wgpu_context
-                                    .glyph_brush
-                                    .draw_queued(
-                                        &wgpu_context.device,
-                                        &mut staging_belt,
-                                        &mut encoder,
-                                        &view,
-                                        wgpu_context.window_size.width as u32,
-                                        wgpu_context.window_size.height as u32,
-                                    )
-                                    .unwrap();
+                                match wgpu_context.glyph_brush.draw_queued(
+                                    &wgpu_context.device,
+                                    &mut staging_belt,
+                                    &mut encoder,
+                                    &view,
+                                    wgpu_context.window_size.width as u32,
+                                    wgpu_context.window_size.height as u32,
+                                ) {
+                                    Ok(()) => (),
+                                    Err(message) => log::warn!("Failed to draw glyph: {message}"),
+                                }
                                 staging_belt.finish();
                                 wgpu_context.queue.submit(std::iter::once(encoder.finish()));
                                 staging_belt.recall();

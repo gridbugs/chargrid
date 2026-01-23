@@ -9,7 +9,8 @@ fn main() {
             height: 480.,
         },
         false,
-    );
+    )
+    .unwrap();
     let context = Context::new(
         &window,
         event_loop,
