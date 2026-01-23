@@ -74,9 +74,9 @@ where
     buffer
 }
 
-struct WgpuContext {
+struct WgpuContext<'window> {
     device: wgpu::Device,
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'window>,
     render_pipeline: wgpu::RenderPipeline,
     background_cell_instance_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
@@ -120,11 +120,9 @@ struct GlobalUniforms {
     pad0: u32, // pad the type to 32 bytes
 }
 
-struct Setup {
-    window: winit::window::Window,
-    event_loop: winit::event_loop::EventLoop<()>,
+struct Setup<'window> {
     instance: wgpu::Instance,
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'window>,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -145,48 +143,37 @@ async fn request_adapter_for_backend(
 > {
     let instance_descriptor = wgpu::InstanceDescriptor {
         backends,
-        dx12_shader_compiler: wgpu::Dx12Compiler::default(),
         flags: wgpu::InstanceFlags::default(),
-        gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
+        memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
+        backend_options: wgpu::BackendOptions::default(),
     };
-    let instance = wgpu::Instance::new(instance_descriptor);
-    let surface = unsafe { instance.create_surface(window) }
+    let instance = wgpu::Instance::new(&instance_descriptor);
+    let surface = instance
+        .create_surface(window)
         .map_err(|e| format!("Unable to create surface! ({:?})", e))?;
     let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, None)
         .await
-        .ok_or_else(|| "No suitable GPU adapters found on the system!".to_string())?;
+        .map_err(|e| format!("No suitable GPU adapters found on the system: {}", e))?;
     let (device, queue) = adapter
-        .request_device(
-            &wgpu::DeviceDescriptor {
-                label: None,
-                features: wgpu::Features::empty(),
-                limits: wgpu::Limits::default(),
-            },
-            None,
-        )
+        .request_device(&wgpu::DeviceDescriptor {
+            label: None,
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::default(),
+            memory_hints: wgpu::MemoryHints::default(),
+            trace: wgpu::Trace::default(),
+        })
         .await
         .map_err(|e| format!("Unable to find a suitable GPU adapter! ({:?})", e))?;
     Ok((adapter, instance, surface, device, queue))
 }
 
-async fn setup(
+async fn setup<'window>(
     title: &str,
     window_dimensions: Dimensions<f64>,
+    window: &'window winit::window::Window,
     resizable: bool,
     force_secondary_adapter: bool,
-) -> Setup {
-    let event_loop = winit::event_loop::EventLoop::new().unwrap();
-    let window_builder = winit::window::WindowBuilder::new().with_title(title);
-    let window_builder = {
-        let logical_size =
-            winit::dpi::LogicalSize::new(window_dimensions.width, window_dimensions.height);
-        window_builder
-            .with_inner_size(logical_size)
-            .with_min_inner_size(logical_size)
-            .with_max_inner_size(logical_size)
-            .with_resizable(resizable)
-    };
-    let window = window_builder.build(&event_loop).unwrap();
+) -> Setup<'window> {
     let mut backends_to_try_reverse_order = vec![
         (wgpu::Backends::SECONDARY, "secondary"),
         (wgpu::Backends::PRIMARY, "primary"),
@@ -195,7 +182,7 @@ async fn setup(
         let (backend, _) = backends_to_try_reverse_order.pop().unwrap();
         assert!(backend == wgpu::Backends::PRIMARY);
     }
-    if let Some(env_backends) = wgpu::util::backend_bits_from_env() {
+    if let Some(env_backends) = wgpu::Backends::from_env() {
         backends_to_try_reverse_order.push((env_backends, "environment"));
     }
     let (adapter, instance, surface, device, queue) = loop {
@@ -223,8 +210,6 @@ async fn setup(
         }
     };
     Setup {
-        window,
-        event_loop,
         instance,
         surface,
         adapter,
@@ -233,7 +218,7 @@ async fn setup(
     }
 }
 
-impl WgpuContext {
+impl<'window> WgpuContext<'window> {
     fn spirv_slice_to_shader_module_source(spirv_slice: &[u8]) -> wgpu::ShaderSource<'_> {
         assert!(spirv_slice.len() % 4 == 0);
         let mut buffer = Vec::with_capacity(spirv_slice.len() / 4);
@@ -248,11 +233,11 @@ impl WgpuContext {
     }
 
     fn new(
-        window: &winit::window::Window,
+        window: &'window winit::window::Window,
         mut device: wgpu::Device,
         queue: wgpu::Queue,
         adapter: &wgpu::Adapter,
-        surface: wgpu::Surface,
+        surface: wgpu::Surface<'window>,
         size_context: &SizeContext,
         grid_size: Size,
         font_bytes: FontBytes,
@@ -272,6 +257,7 @@ impl WgpuContext {
             width: physical_size.width,
             height: physical_size.height,
             present_mode: wgpu::PresentMode::Fifo,
+            desired_maximum_frame_latency: 2,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
             view_formats: vec![],
         };
@@ -404,7 +390,8 @@ impl WgpuContext {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: shaders.vertex_module(),
-                entry_point: shaders.vertex_entry_point(),
+                entry_point: Some(shaders.vertex_entry_point()),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
                 buffers: &[wgpu::VertexBufferLayout {
                     array_stride: mem::size_of::<BackgroundCellInstance>() as wgpu::BufferAddress,
                     step_mode: wgpu::VertexStepMode::Instance,
@@ -432,10 +419,12 @@ impl WgpuContext {
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: shaders.fragment_module(),
-                entry_point: shaders.fragment_entry_point(),
+                entry_point: Some(shaders.fragment_entry_point()),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(surface_configuration.format.into())],
             }),
             multiview: None,
+            cache: None,
         });
         let glyph_brush =
             wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
@@ -608,10 +597,10 @@ impl SizeContext {
     }
 }
 
-pub struct Context {
-    window: Arc<winit::window::Window>,
-    event_loop: winit::event_loop::EventLoop<()>,
-    wgpu_context: WgpuContext,
+pub struct Context<'window> {
+    window: &'window Window,
+    event_loop: EventLoop,
+    wgpu_context: WgpuContext<'window>,
     size_context: SizeContext,
     input_context: InputContext,
     text_buffer: String,
@@ -621,31 +610,41 @@ pub struct Context {
     gamepad: GamepadContext,
 }
 
-pub struct WindowHandle {
-    window: Arc<winit::window::Window>,
+pub struct Window {
+    winit_window: winit::window::Window,
 }
 
-impl WindowHandle {
-    pub fn fullscreen(&self) -> bool {
-        self.window.fullscreen().is_some()
-    }
-    pub fn set_fullscreen(&self, fullscreen: bool) {
-        let fullscreen = if fullscreen {
-            let current_monitor = self.window.current_monitor();
-            Some(winit::window::Fullscreen::Borderless(current_monitor))
-        } else {
-            None
-        };
-        self.window.set_fullscreen(fullscreen);
-    }
+pub struct EventLoop {
+    winit_event_loop: winit::event_loop::EventLoop<()>,
 }
 
-impl Context {
-    pub fn new(config: Config) -> Self {
-        Self::try_new(config).expect("Failed to initialize context!")
+pub fn make_window_and_event_loop(
+    title: &str,
+    dimensions_px: Dimensions<f64>,
+    resizable: bool,
+) -> (Window, EventLoop) {
+    let winit_event_loop = winit::event_loop::EventLoop::new().unwrap();
+    let window_builder = winit::window::WindowBuilder::new().with_title(title);
+    let window_builder = {
+        let logical_size = winit::dpi::LogicalSize::new(dimensions_px.width, dimensions_px.height);
+        window_builder
+            .with_inner_size(logical_size)
+            .with_min_inner_size(logical_size)
+            .with_max_inner_size(logical_size)
+            .with_resizable(resizable)
+    };
+    let winit_window = window_builder.build(&winit_event_loop).unwrap();
+    (Window { winit_window }, EventLoop { winit_event_loop })
+}
+
+impl<'window> Context<'window> {
+    pub fn new(window: &'window Window, event_loop: EventLoop, config: Config) -> Self {
+        Self::try_new(window, event_loop, config).expect("Failed to initialize context!")
     }
 
     pub fn try_new(
+        window: &'window Window,
+        event_loop: EventLoop,
         Config {
             font_bytes,
             title,
@@ -659,8 +658,6 @@ impl Context {
         }: Config,
     ) -> Result<Self, ContextBuildError> {
         let Setup {
-            window,
-            event_loop,
             instance,
             surface,
             adapter,
@@ -669,6 +666,7 @@ impl Context {
         } = pollster::block_on(setup(
             title.as_str(),
             window_dimensions_px,
+            &window.winit_window,
             resizable,
             force_secondary_adapter,
         ));
@@ -684,7 +682,7 @@ impl Context {
         };
         let grid_size = size_context.grid_size();
         let wgpu_context = WgpuContext::new(
-            &window,
+            &window.winit_window,
             device,
             queue,
             &adapter,
@@ -694,7 +692,6 @@ impl Context {
             font_bytes,
         )?;
         log::info!("grid size: {:?}", grid_size);
-        let window = Arc::new(window);
         Ok(Context {
             window,
             event_loop,
@@ -711,12 +708,6 @@ impl Context {
 
     pub fn grid_size(&self) -> Size {
         self.size_context.grid_size()
-    }
-
-    pub fn window_handle(&self) -> WindowHandle {
-        WindowHandle {
-            window: self.window.clone(),
-        }
     }
 
     /**
@@ -749,6 +740,7 @@ impl Context {
         let mut current_window_dimensions = size_context.native_window_dimensions;
         let mut staging_belt = wgpu::util::StagingBelt::new(1024);
         event_loop
+            .winit_event_loop
             .run(move |event, elwt| {
                 let _ = (&instance, &adapter); // force ownership by the closure
                 if exited {
@@ -760,7 +752,7 @@ impl Context {
                 let target_frametime = Duration::from_secs_f64(1.0 / 60.0);
                 let time_since_last_frame = last_update_inst.elapsed();
                 if time_since_last_frame >= target_frametime {
-                    window.request_redraw();
+                    window.winit_window.request_redraw();
                     last_update_inst = Instant::now();
                 } else {
                     elwt.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(
@@ -814,6 +806,7 @@ impl Context {
                                             color_attachments: &[Some(
                                                 wgpu::RenderPassColorAttachment {
                                                     view: &view,
+                                                    depth_slice: None,
                                                     resolve_target: None,
                                                     ops: wgpu::Operations {
                                                         load: wgpu::LoadOp::Clear(
