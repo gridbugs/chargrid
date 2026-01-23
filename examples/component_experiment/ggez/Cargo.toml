@@ -1,8 +1,0 @@
-[package]
-name = "component_experiment_ggez"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-component_experiment_app = { path = "../app" }
-chargrid_ggez = { path = "../../../ggez", features = ["gamepad"] }
