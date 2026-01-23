@@ -7,6 +7,7 @@ use std::borrow::Cow;
 use std::thread;
 use std::time::{Duration, Instant};
 use wgpu_glyph::ab_glyph;
+use winit::window::WindowAttributes;
 use zerocopy::AsBytes;
 
 fn rgb_to_srgb_channel(c: f32) -> f32 {
@@ -610,21 +611,19 @@ pub struct EventLoop {
 }
 
 pub fn make_window_and_event_loop(
-    title: &str,
+    title: impl Into<String>,
     dimensions_px: Dimensions<f64>,
     resizable: bool,
 ) -> (Window, EventLoop) {
     let winit_event_loop = winit::event_loop::EventLoop::new().unwrap();
-    let window_builder = winit::window::WindowBuilder::new().with_title(title);
-    let window_builder = {
-        let logical_size = winit::dpi::LogicalSize::new(dimensions_px.width, dimensions_px.height);
-        window_builder
-            .with_inner_size(logical_size)
-            .with_min_inner_size(logical_size)
-            .with_max_inner_size(logical_size)
-            .with_resizable(resizable)
-    };
-    let winit_window = window_builder.build(&winit_event_loop).unwrap();
+    let logical_size = winit::dpi::LogicalSize::new(dimensions_px.width, dimensions_px.height);
+    let window_attributes = WindowAttributes::new()
+        .with_title(title)
+        .with_inner_size(logical_size)
+        .with_min_inner_size(logical_size)
+        .with_max_inner_size(logical_size)
+        .with_resizable(resizable);
+    let winit_window = winit_event_loop.create_window(window_attributes).unwrap();
     (
         Window {
             winit_window,
