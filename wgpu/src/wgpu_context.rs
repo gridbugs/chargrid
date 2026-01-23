@@ -154,23 +154,14 @@ async fn request_adapter_for_backend(
         .await
         .map_err(|e| format!("No suitable GPU adapters found on the system: {}", e))?;
     let (device, queue) = adapter
-        .request_device(&wgpu::DeviceDescriptor {
-            label: None,
-            required_features: wgpu::Features::empty(),
-            required_limits: wgpu::Limits::default(),
-            memory_hints: wgpu::MemoryHints::default(),
-            trace: wgpu::Trace::default(),
-        })
+        .request_device(&wgpu::DeviceDescriptor::default())
         .await
         .map_err(|e| format!("Unable to find a suitable GPU adapter! ({:?})", e))?;
     Ok((adapter, instance, surface, device, queue))
 }
 
 async fn setup<'window>(
-    _title: &str,
-    _window_dimensions: Dimensions<f64>,
     window: &'window winit::window::Window,
-    _resizable: bool,
     force_secondary_adapter: bool,
 ) -> Setup<'window> {
     let mut backends_to_try_reverse_order = vec![
@@ -611,6 +602,7 @@ pub struct Context<'window> {
 
 pub struct Window {
     winit_window: winit::window::Window,
+    dimensions_px: Dimensions<f64>,
 }
 
 pub struct EventLoop {
@@ -633,7 +625,13 @@ pub fn make_window_and_event_loop(
             .with_resizable(resizable)
     };
     let winit_window = window_builder.build(&winit_event_loop).unwrap();
-    (Window { winit_window }, EventLoop { winit_event_loop })
+    (
+        Window {
+            winit_window,
+            dimensions_px,
+        },
+        EventLoop { winit_event_loop },
+    )
 }
 
 impl<'window> Context<'window> {
@@ -646,13 +644,10 @@ impl<'window> Context<'window> {
         event_loop: EventLoop,
         Config {
             font_bytes,
-            title,
-            window_dimensions_px,
             cell_dimensions_px,
             font_scale,
             underline_width_cell_ratio,
             underline_top_offset_cell_ratio,
-            resizable,
             force_secondary_adapter,
         }: Config,
     ) -> Result<Self, ContextBuildError> {
@@ -662,13 +657,7 @@ impl<'window> Context<'window> {
             adapter,
             device,
             queue,
-        } = pollster::block_on(setup(
-            title.as_str(),
-            window_dimensions_px,
-            &window.winit_window,
-            resizable,
-            force_secondary_adapter,
-        ));
+        } = pollster::block_on(setup(&window.winit_window, force_secondary_adapter));
         let size_context = SizeContext {
             font_source_scale: ab_glyph::PxScale {
                 x: font_scale.width as f32,
@@ -677,7 +666,7 @@ impl<'window> Context<'window> {
             cell_dimensions: cell_dimensions_px,
             underline_width: underline_width_cell_ratio,
             underline_top_offset: underline_top_offset_cell_ratio,
-            native_window_dimensions: window_dimensions_px,
+            native_window_dimensions: window.dimensions_px,
         };
         let grid_size = size_context.grid_size();
         let wgpu_context = WgpuContext::new(
