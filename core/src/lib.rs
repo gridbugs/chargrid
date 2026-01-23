@@ -205,15 +205,15 @@ impl FrameBuffer {
         }
     }
 
-    pub fn enumerate(&self) -> FrameBufferEnumerate {
+    pub fn enumerate(&self) -> FrameBufferEnumerate<'_> {
         self.grid.enumerate()
     }
 
-    pub fn iter(&self) -> FrameBufferIter {
+    pub fn iter(&self) -> FrameBufferIter<'_> {
         self.grid.iter()
     }
 
-    pub fn rows(&self) -> FrameBufferRows {
+    pub fn rows(&self) -> FrameBufferRows<'_> {
         self.grid.rows()
     }
 
@@ -541,7 +541,7 @@ macro_rules! ctx_tint {
 }
 
 impl<'a> Ctx<'a> {
-    pub fn compose_tint<T: Tint>(&self, tint: &'a T) -> TintDynCompose<T> {
+    pub fn compose_tint<T: Tint>(&self, tint: &'a T) -> TintDynCompose<'a, T> {
         TintDynCompose {
             outer: self.tint,
             inner: tint,

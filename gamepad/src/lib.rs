@@ -42,7 +42,7 @@ impl GamepadContext {
         Self { gilrs: gilrs.ok() }
     }
 
-    pub fn drain_input(&mut self) -> GamepadDrainInput {
+    pub fn drain_input(&mut self) -> GamepadDrainInput<'_> {
         GamepadDrainInput {
             gilrs: self.gilrs.as_mut(),
         }
