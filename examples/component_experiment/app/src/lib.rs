@@ -72,7 +72,7 @@ impl HelloWorld {
                         Duration::from_millis(200),
                         Duration::from_millis(100),
                     );
-                    let rainbow = vec![
+                    let rainbow = [
                         Rgba32::new_rgb(255, 0, 0),
                         Rgba32::new_rgb(255, 255, 0),
                         Rgba32::new_rgb(0, 255, 0),

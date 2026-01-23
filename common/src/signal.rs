@@ -41,7 +41,7 @@ impl SquareWave01 {
     }
 
     pub fn eval_bool(&self, after: Duration) -> bool {
-        (after.as_millis() / self.half_period.as_millis()) % 2 == 0
+        (after.as_millis() / self.half_period.as_millis()).is_multiple_of(2)
     }
 }
 
@@ -93,6 +93,6 @@ impl SignalU8 for SmoothSquareWave {
             return 255;
         }
         remain_within_cycle -= constant;
-        return 255 - ((remain_within_cycle * 255) / transition) as u8;
+        255 - ((remain_within_cycle * 255) / transition) as u8
     }
 }

@@ -28,6 +28,12 @@ pub struct GamepadContext {
     gilrs: Option<Gilrs>,
 }
 
+impl Default for GamepadContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GamepadContext {
     pub fn new() -> Self {
         let gilrs = Gilrs::new();

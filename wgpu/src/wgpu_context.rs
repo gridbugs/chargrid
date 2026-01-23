@@ -4,7 +4,6 @@ use chargrid_gamepad::GamepadContext;
 use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer};
 use grid_2d::{Coord, Grid, Size};
 use std::borrow::Cow;
-use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use wgpu_glyph::ab_glyph;
@@ -135,7 +134,7 @@ async fn request_adapter_for_backend(
     (
         wgpu::Adapter,
         wgpu::Instance,
-        wgpu::Surface,
+        wgpu::Surface<'_>,
         wgpu::Device,
         wgpu::Queue,
     ),
@@ -168,10 +167,10 @@ async fn request_adapter_for_backend(
 }
 
 async fn setup<'window>(
-    title: &str,
-    window_dimensions: Dimensions<f64>,
+    _title: &str,
+    _window_dimensions: Dimensions<f64>,
     window: &'window winit::window::Window,
-    resizable: bool,
+    _resizable: bool,
     force_secondary_adapter: bool,
 ) -> Setup<'window> {
     let mut backends_to_try_reverse_order = vec![
@@ -187,7 +186,7 @@ async fn setup<'window>(
     }
     let (adapter, instance, surface, device, queue) = loop {
         if let Some((backends, name)) = backends_to_try_reverse_order.pop() {
-            match request_adapter_for_backend(backends, &window).await {
+            match request_adapter_for_backend(backends, window).await {
                 Ok(x) => {
                     log::info!(
                         "Initialized one of the \"{}\" WGPU backends ({:?})!",
@@ -220,7 +219,7 @@ async fn setup<'window>(
 
 impl<'window> WgpuContext<'window> {
     fn spirv_slice_to_shader_module_source(spirv_slice: &[u8]) -> wgpu::ShaderSource<'_> {
-        assert!(spirv_slice.len() % 4 == 0);
+        assert!(spirv_slice.len().is_multiple_of(4));
         let mut buffer = Vec::with_capacity(spirv_slice.len() / 4);
         let mut chunks = spirv_slice.chunks_exact(4);
         for chunk in &mut chunks {
@@ -234,7 +233,7 @@ impl<'window> WgpuContext<'window> {
 
     fn new(
         window: &'window winit::window::Window,
-        mut device: wgpu::Device,
+        device: wgpu::Device,
         queue: wgpu::Queue,
         adapter: &wgpu::Adapter,
         surface: wgpu::Surface<'window>,
@@ -249,7 +248,7 @@ impl<'window> WgpuContext<'window> {
         let scale_factor = window.scale_factor();
         let physical_size = window.inner_size();
         let window_size: winit::dpi::LogicalSize<f64> = physical_size.to_logical(scale_factor);
-        let caps = surface.get_capabilities(&adapter);
+        let caps = surface.get_capabilities(adapter);
         let texture_format = caps.formats[0];
         let surface_configuration = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -349,7 +348,7 @@ impl<'window> WgpuContext<'window> {
         let global_uniforms_buffer = populate_and_finish_buffer(
             device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
-                size: 1 * global_uniforms_size,
+                size: global_uniforms_size,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: true,
             }),
@@ -429,7 +428,7 @@ impl<'window> WgpuContext<'window> {
         let glyph_brush =
             wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
                 .texture_filter_method(wgpu::FilterMode::Nearest)
-                .build(&mut device, surface_configuration.format);
+                .build(&device, surface_configuration.format);
         let modifier_state = winit::keyboard::ModifiersState::default();
         Ok(Self {
             device,
@@ -497,7 +496,7 @@ impl<'window> WgpuContext<'window> {
             let temp_buffer = populate_and_finish_buffer(
                 self.device.create_buffer(&wgpu::BufferDescriptor {
                     label: None,
-                    size: 1 * std::mem::size_of::<GlobalUniforms>() as u64,
+                    size: std::mem::size_of::<GlobalUniforms>() as u64,
                     usage: wgpu::BufferUsages::COPY_SRC,
                     mapped_at_creation: true,
                 }),
@@ -770,11 +769,12 @@ impl<'window> Context<'window> {
                         return;
                     }
                 }
-                match event {
-                    winit::event::Event::WindowEvent {
-                        event: window_event,
-                        ..
-                    } => match window_event {
+                if let winit::event::Event::WindowEvent {
+                    event: window_event,
+                    ..
+                } = event
+                {
+                    match window_event {
                         winit::event::WindowEvent::ModifiersChanged(modifiers) => {
                             wgpu_context.modifier_state = modifiers.state();
                         }
@@ -917,7 +917,6 @@ impl<'window> Context<'window> {
                                             &wgpu_context.chargrid_frame_buffer,
                                         ) {
                                             exited = true;
-                                            return;
                                         }
                                     }
                                     input::Event::Resize(size) => {
@@ -928,8 +927,7 @@ impl<'window> Context<'window> {
                                 }
                             }
                         }
-                    },
-                    _ => (),
+                    }
                 }
             })
             .expect("Run loop exitted with error")

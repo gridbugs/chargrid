@@ -65,7 +65,7 @@ where
     type State = S;
 
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        self.component.render(&self.lens.get(state), ctx, fb);
+        self.component.render(self.lens.get(state), ctx, fb);
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.component.update(self.lens.get_mut(state), ctx, event)

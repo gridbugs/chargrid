@@ -113,8 +113,8 @@ impl Context {
         )
         .expect("failed to create surface");
         let grid_size = Size::new(
-            (config.window_dimensions_px.width as f64 / config.cell_dimensions_px.width) as u32,
-            (config.window_dimensions_px.height as f64 / config.cell_dimensions_px.height) as u32,
+            (config.window_dimensions_px.width / config.cell_dimensions_px.width) as u32,
+            (config.window_dimensions_px.height / config.cell_dimensions_px.height) as u32,
         );
         let px_to_coord = |x: i32, y: i32| Coord {
             x: (x as f64 / config.cell_dimensions_px.width) as i32,
@@ -144,13 +144,7 @@ impl Context {
                         keycode: Some(keycode),
                         keymod,
                         ..
-                    } => {
-                        if let Some(keyboard_input) = input::sdl2_to_chargrid(keycode, keymod) {
-                            Some(Input::Keyboard(keyboard_input))
-                        } else {
-                            None
-                        }
-                    }
+                    } => input::sdl2_to_chargrid(keycode, keymod).map(Input::Keyboard),
                     Event::MouseMotion {
                         mousestate, x, y, ..
                     } => {

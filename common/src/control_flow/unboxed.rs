@@ -552,7 +552,7 @@ where
     type Output = Option<LoopControl<Co, Br>>;
     type State = C::State;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        self.component.render(&state, ctx, fb);
+        self.component.render(state, ctx, fb);
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.component
@@ -560,7 +560,7 @@ where
             .map(LoopControl::Continue)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        self.component.size(&state, ctx)
+        self.component.size(state, ctx)
     }
 }
 
@@ -577,7 +577,7 @@ where
     type Output = Option<LoopControl<Co, Br>>;
     type State = C::State;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        self.component.render(&state, ctx, fb);
+        self.component.render(state, ctx, fb);
     }
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.component
@@ -585,7 +585,7 @@ where
             .map(LoopControl::Break)
     }
     fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        self.component.size(&state, ctx)
+        self.component.size(state, ctx)
     }
 }
 
@@ -1733,9 +1733,7 @@ impl<S> Component for Unit<S> {
     type Output = ();
     type State = S;
     fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
-    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
-        ()
-    }
+    fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
     fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
         Size::new_u16(0, 0)
     }

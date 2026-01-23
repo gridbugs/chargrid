@@ -134,7 +134,7 @@ impl AnsiTerminal {
         self.output_buffer.push_str(&self.ti_cache.clear);
         self.output_buffer
             .push_str(&self.ti_cache.enable_mouse_reporting);
-        self.flush_buffer().map_err(Into::into)
+        self.flush_buffer()
     }
 
     fn teardown(&mut self) -> Result<()> {
@@ -148,7 +148,7 @@ impl AnsiTerminal {
         }
         self.output_buffer.push_str(&self.ti_cache.show_cursor);
         self.output_buffer.push_str(&self.ti_cache.reset);
-        self.flush_buffer().map_err(Into::into)
+        self.flush_buffer()
     }
 
     pub fn size(&self) -> Result<Size> {
@@ -197,7 +197,7 @@ impl AnsiTerminal {
         self.output_buffer.push_str(&self.ti_cache.reset);
     }
 
-    pub fn drain_input(&mut self) -> Result<DrainInput> {
+    pub fn drain_input(&mut self) -> Result<DrainInput<'_>> {
         self.low_level.read_polling(&mut self.input_buffer)?;
         self.drain_input_into_ring()?;
         Ok(self.input_ring.drain(..))
@@ -230,7 +230,7 @@ impl AnsiTerminal {
         let (term_input, rest) = match prefix_tree.get_longest(slice) {
             None => {
                 // slice does not begin with an escape sequence - chip off the start and try again
-                let s = if let Ok(s) = ::std::str::from_utf8(&slice) {
+                let s = if let Ok(s) = ::std::str::from_utf8(slice) {
                     s
                 } else {
                     return Ok(());

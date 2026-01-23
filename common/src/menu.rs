@@ -42,16 +42,14 @@ impl<T: Clone, S> Menu<T, S> {
     }
 
     pub fn set_index(&mut self, index: usize) {
-        if index < self.items.len() {
-            if self.selected_index != index {
-                self.items[self.selected_index]
-                    .identifier
-                    .set_selection(false);
-                self.selected_index = index;
-                self.items[self.selected_index]
-                    .identifier
-                    .set_selection(true);
-            }
+        if index < self.items.len() && self.selected_index != index {
+            self.items[self.selected_index]
+                .identifier
+                .set_selection(false);
+            self.selected_index = index;
+            self.items[self.selected_index]
+                .identifier
+                .set_selection(true);
         }
     }
 

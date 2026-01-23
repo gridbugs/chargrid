@@ -164,7 +164,7 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn drain_input(&mut self) -> Result<DrainInput> {
+    pub fn drain_input(&mut self) -> Result<DrainInput<'_>> {
         self.ansi.drain_input()
     }
 }
