@@ -23,5 +23,5 @@ fn main() {
         underline_top_offset_cell_ratio: 0.8,
         resizable: false,
     });
-    context.run(app(rand::thread_rng()));
+    context.run(app(rand::rng()));
 }

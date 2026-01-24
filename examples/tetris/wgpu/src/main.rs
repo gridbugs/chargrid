@@ -4,7 +4,7 @@ use tetris_app::app;
 fn main() {
     env_logger::init();
     run(
-        app(rand::thread_rng()),
+        app(rand::rng()),
         Config {
             title: "Tetris".to_string(),
             dimensions_px: Dimensions {

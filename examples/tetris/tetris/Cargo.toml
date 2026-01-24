@@ -2,8 +2,8 @@
 name = "tetris"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-rand = "0.8"
+rand = "0.9"
 coord_2d = "0.3"

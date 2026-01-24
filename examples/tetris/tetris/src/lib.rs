@@ -103,7 +103,7 @@ const PIECE_TYPES: &[PieceType] = &[
 ];
 
 fn random_piece_type<R: Rng>(rng: &mut R) -> PieceType {
-    PIECE_TYPES[rng.gen::<usize>() % PIECE_TYPES.len()]
+    PIECE_TYPES[rng.random::<u32>() as usize % PIECE_TYPES.len()]
 }
 
 fn random_piece<R: Rng>(rng: &mut R) -> Piece {

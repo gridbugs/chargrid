@@ -7,7 +7,7 @@ use crate::{
     align::{Align, Alignment},
     border::{Border, BorderStyle},
     bound_size::{BoundHeight, BoundSize, BoundWidth},
-    control_flow::{boxed, Lens, LensState, OrClose, OrEscape, OrEscapeOrStart},
+    control_flow::{Lens, LensState, OrClose, OrEscape, OrEscapeOrStart, boxed},
     fill::Fill,
     pad_by::{PadBy, Padding},
     pad_to::PadTo,
@@ -15,8 +15,7 @@ use crate::{
     text::StyledString,
 };
 use chargrid_core::{
-    app, ctx_tint, input, Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size, Style, Tint,
-    TintIdentity,
+    Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size, Style, Tint, TintIdentity, app, input,
 };
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -1657,9 +1656,10 @@ where
     type Output = C::Output;
     type State = C::State;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        let composed_tint = ctx.compose_tint(&self.tint);
         self.background.render(
             state,
-            ctx_tint!(ctx, self.tint).add_depth(-self.depth_delta),
+            ctx.with_tint(&composed_tint).add_depth(-self.depth_delta),
             fb,
         );
         self.foreground.render(state, ctx, fb);

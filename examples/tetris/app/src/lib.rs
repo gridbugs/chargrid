@@ -296,7 +296,7 @@ fn main_menu() -> CF<Option<MainMenuChoice>, TetrisState> {
 pub fn app<R: Rng>(mut rng: R) -> impl Component<Output = app::Output, State = ()> {
     let state = TetrisState {
         tetris: Tetris::new(&mut rng),
-        rng: Isaac64Rng::from_rng(&mut rng).unwrap(),
+        rng: Isaac64Rng::from_rng(&mut rng),
     };
     loop_state(state, (), |()| {
         main_menu().and_then(|choice| match choice {

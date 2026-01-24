@@ -536,7 +536,8 @@ pub struct Ctx<'a> {
 #[macro_export]
 macro_rules! ctx_tint {
     ($ctx:expr, $tint:expr) => {{
-        $ctx.with_tint(&$ctx.compose_tint(&$tint))
+        let x = $ctx.compose_tint(&$tint);
+        $ctx.with_tint(&x)
     }};
 }
 
@@ -651,11 +652,7 @@ impl Event {
     }
 
     pub fn is_peek(self) -> bool {
-        if let Self::Peek = self {
-            true
-        } else {
-            false
-        }
+        if let Self::Peek = self { true } else { false }
     }
 
     pub fn is_escape(self) -> bool {
@@ -758,9 +755,9 @@ pub mod prelude {
     #[cfg(feature = "gamepad")]
     pub use super::input::{GamepadButton, GamepadInput};
     pub use super::{
-        app, ctx_tint, input, input::Input, input::KeyboardInput, input::MouseButton,
-        input::MouseInput, input::ScrollDirection, Component, Coord, Ctx, Event, FrameBuffer,
-        RenderCell, Rgba32, Size, Style, Tint,
+        Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size, Style, Tint, app,
+        ctx_tint, input, input::Input, input::KeyboardInput, input::MouseButton, input::MouseInput,
+        input::ScrollDirection,
     };
     pub use std::time::Duration;
 }

@@ -1,8 +1,8 @@
-use crate::{input, text_renderer::TextRenderer, Config, Dimensions, FontBytes};
+use crate::{Config, Dimensions, FontBytes, input, text_renderer::TextRenderer};
 use anyhow::anyhow;
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
-use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer};
+use chargrid_runtime::{Component, FrameBuffer, app, on_frame, on_input};
 use grid_2d::{Coord, Grid, Size};
 use std::{
     borrow::Cow,
@@ -241,14 +241,14 @@ impl WgpuState {
         impl Shaders {
             fn vertex_module(&self) -> &wgpu::ShaderModule {
                 match self {
-                    Self::Spv { ref vertex, .. } => vertex,
-                    Self::Wgsl { ref module, .. } => module,
+                    Self::Spv { vertex, .. } => vertex,
+                    Self::Wgsl { module, .. } => module,
                 }
             }
             fn fragment_module(&self) -> &wgpu::ShaderModule {
                 match self {
-                    Self::Spv { ref fragment, .. } => fragment,
-                    Self::Wgsl { ref module, .. } => module,
+                    Self::Spv { fragment, .. } => fragment,
+                    Self::Wgsl { module, .. } => module,
                 }
             }
             fn vertex_entry_point(&self) -> &str {

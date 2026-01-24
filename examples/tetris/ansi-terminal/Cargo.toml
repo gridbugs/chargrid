@@ -2,9 +2,9 @@
 name = "tetris_ansi_terminal"
 version = "0.1.0"
 authors = ["Stephen Sherratt <stephen@sherra.tt>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 chargrid_ansi_terminal = { path = "../../../ansi-terminal" }
 tetris_app = { path = "../app" }
-rand = "0.8"
+rand = "0.9"
