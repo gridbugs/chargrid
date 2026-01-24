@@ -6,10 +6,10 @@ use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer};
 use grid_2d::{Coord, Grid, Size};
 use std::{
     borrow::Cow,
-    thread,
+    sync::Arc,
     time::{Duration, Instant},
 };
-use winit::window::WindowAttributes;
+use winit::application::ApplicationHandler;
 use zerocopy::AsBytes;
 
 fn rgb_to_srgb_channel(c: f32) -> f32 {
@@ -57,10 +57,10 @@ where
     buffer
 }
 
-struct WgpuContext<'window> {
+struct WgpuState {
     device: wgpu::Device,
     surface_configuration: wgpu::SurfaceConfiguration,
-    surface: wgpu::Surface<'window>,
+    surface: wgpu::Surface<'static>,
     render_pipeline: wgpu::RenderPipeline,
     background_cell_instance_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
@@ -104,9 +104,8 @@ struct GlobalUniforms {
     pad0: u32, // pad the type to 32 bytes
 }
 
-struct Setup<'window> {
-    instance: wgpu::Instance,
-    surface: wgpu::Surface<'window>,
+struct Setup {
+    surface: wgpu::Surface<'static>,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -114,11 +113,10 @@ struct Setup<'window> {
 
 async fn request_adapter_for_backend(
     backends: wgpu::Backends,
-    window: &winit::window::Window,
+    window: Arc<winit::window::Window>,
 ) -> anyhow::Result<(
     wgpu::Adapter,
-    wgpu::Instance,
-    wgpu::Surface<'_>,
+    wgpu::Surface<'static>,
     wgpu::Device,
     wgpu::Queue,
 )> {
@@ -139,13 +137,10 @@ async fn request_adapter_for_backend(
         .request_device(&wgpu::DeviceDescriptor::default())
         .await
         .map_err(|e| anyhow!("Unable to find a suitable GPU adapter! ({:?})", e))?;
-    Ok((adapter, instance, surface, device, queue))
+    Ok((adapter, surface, device, queue))
 }
 
-async fn setup<'window>(
-    window: &'window winit::window::Window,
-    force_secondary_adapter: bool,
-) -> Setup<'window> {
+async fn setup(window: Arc<winit::window::Window>, force_secondary_adapter: bool) -> Setup {
     let mut backends_to_try_reverse_order = vec![
         (wgpu::Backends::SECONDARY, "secondary"),
         (wgpu::Backends::PRIMARY, "primary"),
@@ -157,9 +152,9 @@ async fn setup<'window>(
     if let Some(env_backends) = wgpu::Backends::from_env() {
         backends_to_try_reverse_order.push((env_backends, "environment"));
     }
-    let (adapter, instance, surface, device, queue) = loop {
+    let (adapter, surface, device, queue) = loop {
         if let Some((backends, name)) = backends_to_try_reverse_order.pop() {
-            match request_adapter_for_backend(backends, window).await {
+            match request_adapter_for_backend(backends, window.clone()).await {
                 Ok(x) => {
                     log::info!(
                         "Initialized one of the \"{}\" WGPU backends ({:?})!",
@@ -182,7 +177,6 @@ async fn setup<'window>(
         }
     };
     Setup {
-        instance,
         surface,
         adapter,
         device,
@@ -190,7 +184,7 @@ async fn setup<'window>(
     }
 }
 
-impl<'window> WgpuContext<'window> {
+impl WgpuState {
     fn spirv_slice_to_shader_module_source(spirv_slice: &[u8]) -> wgpu::ShaderSource<'_> {
         assert!(spirv_slice.len().is_multiple_of(4));
         let mut buffer = Vec::with_capacity(spirv_slice.len() / 4);
@@ -205,11 +199,11 @@ impl<'window> WgpuContext<'window> {
     }
 
     fn new(
-        window: &'window winit::window::Window,
+        window: Arc<winit::window::Window>,
         device: wgpu::Device,
         queue: wgpu::Queue,
         adapter: &wgpu::Adapter,
-        surface: wgpu::Surface<'window>,
+        surface: wgpu::Surface<'static>,
         sizes: &Sizes,
         grid_size: Size,
         font_bytes: FontBytes,
@@ -487,14 +481,67 @@ impl<'window> WgpuContext<'window> {
             );
         }
     }
+
+    fn render_foreground(&mut self) {
+        if let Ok(frame) = self.surface.get_current_texture() {
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+            self.sync_global_uniforms(&mut encoder);
+            let view = frame
+                .texture
+                .create_view(&wgpu::TextureViewDescriptor::default());
+
+            {
+                let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: None,
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        depth_slice: None,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                    multiview_mask: None,
+                });
+                render_pass.set_pipeline(&self.render_pipeline);
+                render_pass.set_bind_group(0, &self.bind_group, &[]);
+                render_pass.set_vertex_buffer(0, self.background_cell_instance_buffer.slice(..));
+                render_pass.draw(0..6, 0..self.chargrid_frame_buffer.size().count() as u32);
+                self.text_renderer
+                    .render(
+                        &self.chargrid_frame_buffer,
+                        &self.surface_configuration,
+                        &self.device,
+                        &self.queue,
+                        &mut render_pass,
+                    )
+                    .unwrap();
+            }
+            self.queue.submit(std::iter::once(encoder.finish()));
+            frame.present();
+        } else {
+            log::warn!("timeout when acquiring next swapchain texture");
+        }
+    }
+
+    fn render(&mut self) {
+        self.render_background();
+        self.render_foreground();
+    }
 }
 
-struct InputContext {
+struct InputState {
     last_mouse_coord: Coord,
     last_mouse_button: Option<chargrid_input::MouseButton>,
 }
 
-impl Default for InputContext {
+impl Default for InputState {
     fn default() -> Self {
         Self {
             last_mouse_coord: Coord::new(0, 0),
@@ -572,84 +619,49 @@ impl Sizes {
     }
 }
 
-pub struct Context<'window> {
-    window: &'window Window,
-    event_loop: EventLoop,
-    wgpu_context: WgpuContext<'window>,
+struct Context {
+    window: Arc<winit::window::Window>,
+    wgpu_state: WgpuState,
     sizes: Sizes,
-    input_context: InputContext,
-    instance: wgpu::Instance,
-    adapter: wgpu::Adapter,
+    input_state: InputState,
     #[cfg(feature = "gamepad")]
     gamepad: GamepadContext,
 }
 
-pub struct Window {
-    winit_window: winit::window::Window,
-    dimensions_px: Dimensions<f64>,
-}
-
-pub struct EventLoop {
-    winit_event_loop: winit::event_loop::EventLoop<()>,
-}
-
-pub fn make_window_and_event_loop(
-    title: impl Into<String>,
-    dimensions_px: Dimensions<f64>,
-    resizable: bool,
-) -> anyhow::Result<(Window, EventLoop)> {
-    let winit_event_loop = winit::event_loop::EventLoop::new()?;
-    let logical_size = winit::dpi::LogicalSize::new(dimensions_px.width, dimensions_px.height);
-    let window_attributes = WindowAttributes::new()
-        .with_title(title)
-        .with_inner_size(logical_size)
-        .with_min_inner_size(logical_size)
-        .with_max_inner_size(logical_size)
-        .with_resizable(resizable);
-    let winit_window = winit_event_loop.create_window(window_attributes)?;
-    Ok((
-        Window {
-            winit_window,
-            dimensions_px,
-        },
-        EventLoop { winit_event_loop },
-    ))
-}
-
-impl<'window> Context<'window> {
-    pub fn new(window: &'window Window, event_loop: EventLoop, config: Config) -> Self {
-        Self::try_new(window, event_loop, config).expect("Failed to initialize context!")
+impl Context {
+    fn new(window: Arc<winit::window::Window>, config: Config) -> Self {
+        Self::try_new(window, config).expect("Failed to initialize context!")
     }
 
-    pub fn try_new(
-        window: &'window Window,
-        event_loop: EventLoop,
+    fn try_new(
+        window: Arc<winit::window::Window>,
         Config {
+            dimensions_px,
             font_bytes,
             font_size_px,
             cell_dimensions_px,
             underline_width_cell_ratio,
             underline_top_offset_cell_ratio,
             force_secondary_adapter,
+            ..
         }: Config,
     ) -> Result<Self, ContextBuildError> {
         let Setup {
-            instance,
             surface,
             adapter,
             device,
             queue,
-        } = pollster::block_on(setup(&window.winit_window, force_secondary_adapter));
+        } = pollster::block_on(setup(window.clone(), force_secondary_adapter));
         let sizes = Sizes {
             font_size_px,
             cell_dimensions: cell_dimensions_px,
             underline_width: underline_width_cell_ratio,
             underline_top_offset: underline_top_offset_cell_ratio,
-            native_window_dimensions: window.dimensions_px,
+            native_window_dimensions: dimensions_px,
         };
         let grid_size = sizes.grid_size();
-        let wgpu_context = WgpuContext::new(
-            &window.winit_window,
+        let wgpu_state = WgpuState::new(
+            window.clone(),
             device,
             queue,
             &adapter,
@@ -660,190 +672,186 @@ impl<'window> Context<'window> {
         )?;
         log::info!("grid size: {:?}", grid_size);
         Ok(Context {
-            window,
-            event_loop,
-            wgpu_context,
+            window: window.clone(),
+            wgpu_state,
             sizes,
-            input_context: Default::default(),
-            instance,
-            adapter,
+            input_state: Default::default(),
             #[cfg(feature = "gamepad")]
             gamepad: GamepadContext::new(),
         })
     }
+}
 
-    pub fn grid_size(&self) -> Size {
-        self.sizes.grid_size()
+struct AppState {
+    exited: bool,
+    frame_instant: Instant,
+    last_update_instant: Instant,
+    current_window_dimensions: Dimensions<f64>,
+}
+
+impl AppState {
+    fn new() -> Self {
+        Self {
+            exited: false,
+            frame_instant: Instant::now(),
+            last_update_instant: Instant::now(),
+            current_window_dimensions: Dimensions {
+                width: 0.,
+                height: 0.,
+            },
+        }
+    }
+}
+
+struct App<C>
+where
+    C: 'static + Component<State = (), Output = app::Output>,
+{
+    config: Config,
+    context: Option<Context>,
+    state: AppState,
+    component: C,
+}
+
+impl<C> App<C>
+where
+    C: 'static + Component<State = (), Output = app::Output>,
+{
+    fn new(component: C, config: Config) -> Self {
+        Self {
+            config,
+            context: None,
+            state: AppState::new(),
+            component,
+        }
+    }
+}
+
+impl<C> ApplicationHandler for App<C>
+where
+    C: 'static + Component<State = (), Output = app::Output>,
+{
+    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        let logical_size = winit::dpi::LogicalSize::new(
+            self.config.dimensions_px.width,
+            self.config.dimensions_px.height,
+        );
+        let window_attributes = winit::window::Window::default_attributes()
+            .with_title(self.config.title.clone())
+            .with_inner_size(logical_size)
+            .with_min_inner_size(logical_size)
+            .with_max_inner_size(logical_size)
+            .with_resizable(self.config.resizable);
+        let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
+        let context = Context::new(window.clone(), self.config.clone());
+        self.state.frame_instant = Instant::now();
+        self.state.last_update_instant = self.state.frame_instant;
+        self.state.current_window_dimensions = context.sizes.native_window_dimensions;
+        self.context = Some(context);
+        window.request_redraw();
     }
 
-    /**
-     * Starts an event loop. Each frame the given component is rendered by invoking its `render`
-     * method, and a `Event::Tick` event is passed to the component's `update` method set to the
-     * time since the previous frame. Each time an input event is received an `Event::Input` event
-     * is passed to the component's `update` method. When the component yields `Some(app::Exit)`,
-     * the program will exit. This method never returns.
-     */
-    pub fn run<C>(self, mut component: C)
-    where
-        C: 'static + Component<State = (), Output = app::Output>,
-    {
-        let Self {
-            window,
-            event_loop,
-            mut wgpu_context,
-            sizes,
-            mut input_context,
-            instance,
-            adapter,
-            #[cfg(feature = "gamepad")]
-            mut gamepad,
-        } = self;
-        let mut frame_instant = Instant::now();
-        let mut last_update_inst = Instant::now();
-        let mut exited = false;
-        log::info!("Entering main event loop");
-        let mut current_window_dimensions = sizes.native_window_dimensions;
-        event_loop
-            .winit_event_loop
-            .run(move |event, elwt| {
-                let _ = (&instance, &adapter); // force ownership by the closure
-                if exited {
-                    elwt.exit();
-                    return;
-                } else {
-                    elwt.set_control_flow(winit::event_loop::ControlFlow::Poll);
-                };
+    fn window_event(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        _window_id: winit::window::WindowId,
+        event: winit::event::WindowEvent,
+    ) {
+        if self.state.exited {
+            event_loop.exit();
+            return;
+        }
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+        let context = if let Some(context) = self.context.as_mut() {
+            context
+        } else {
+            return;
+        };
+
+        #[cfg(feature = "gamepad")]
+        for input in context.gamepad.drain_input() {
+            if let Some(app::Exit) = on_input(
+                &mut self.component,
+                chargrid_input::Input::Gamepad(input),
+                &context.wgpu_state.chargrid_frame_buffer,
+            ) {
+                self.state.exited = true;
+                return;
+            }
+        }
+        match event {
+            winit::event::WindowEvent::ModifiersChanged(modifiers) => {
+                context.wgpu_state.modifier_state = modifiers.state();
+            }
+            winit::event::WindowEvent::RedrawRequested => {
                 let target_frametime = Duration::from_secs_f64(1.0 / 60.0);
-                let time_since_last_frame = last_update_inst.elapsed();
-                if time_since_last_frame >= target_frametime {
-                    window.winit_window.request_redraw();
-                    last_update_inst = Instant::now();
-                } else {
-                    elwt.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(
-                        Instant::now() + target_frametime - time_since_last_frame,
-                    ));
-                }
-                #[cfg(feature = "gamepad")]
-                for input in gamepad.drain_input() {
-                    if let Some(app::Exit) = on_input(
-                        &mut component,
-                        chargrid_input::Input::Gamepad(input),
-                        &wgpu_context.chargrid_frame_buffer,
+                let time_since_last_frame = self.state.last_update_instant.elapsed();
+                let update_on_this_frame = time_since_last_frame >= target_frametime;
+                if update_on_this_frame {
+                    self.state.last_update_instant = Instant::now();
+                    let frame_duration = self.state.frame_instant.elapsed();
+                    self.state.frame_instant = Instant::now();
+                    if let Some(app::Exit) = on_frame(
+                        &mut self.component,
+                        frame_duration,
+                        &mut context.wgpu_state.chargrid_frame_buffer,
                     ) {
-                        exited = true;
+                        self.state.exited = true;
                         return;
                     }
                 }
-                if let winit::event::Event::WindowEvent {
-                    event: window_event,
-                    ..
-                } = event
-                {
-                    match window_event {
-                        winit::event::WindowEvent::ModifiersChanged(modifiers) => {
-                            wgpu_context.modifier_state = modifiers.state();
-                        }
-                        winit::event::WindowEvent::RedrawRequested => {
-                            let frame_duration = frame_instant.elapsed();
-                            frame_instant = Instant::now();
-                            if let Some(app::Exit) = on_frame(
-                                &mut component,
-                                frame_duration,
-                                &mut wgpu_context.chargrid_frame_buffer,
+                context.wgpu_state.render();
+                context.window.request_redraw();
+            }
+            other => {
+                if let Some(event) = input::convert_event(
+                    other,
+                    context
+                        .sizes
+                        .scaled_cell_dimensions(self.state.current_window_dimensions),
+                    context
+                        .sizes
+                        .pixel_offset_to_centre_native_window(self.state.current_window_dimensions),
+                    &mut context.input_state.last_mouse_coord,
+                    &mut context.input_state.last_mouse_button,
+                    &mut context.wgpu_state.scale_factor,
+                    context.wgpu_state.modifier_state,
+                ) {
+                    match event {
+                        input::Event::Input(input) => {
+                            if let Some(app::Exit) = on_input(
+                                &mut self.component,
+                                input,
+                                &context.wgpu_state.chargrid_frame_buffer,
                             ) {
-                                exited = true;
-                                return;
-                            }
-                            wgpu_context.render_background();
-                            if let Ok(frame) = wgpu_context.surface.get_current_texture() {
-                                let mut encoder = wgpu_context.device.create_command_encoder(
-                                    &wgpu::CommandEncoderDescriptor { label: None },
-                                );
-                                wgpu_context.sync_global_uniforms(&mut encoder);
-                                let view = frame
-                                    .texture
-                                    .create_view(&wgpu::TextureViewDescriptor::default());
-
-                                {
-                                    let mut render_pass =
-                                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                                            label: None,
-                                            color_attachments: &[Some(
-                                                wgpu::RenderPassColorAttachment {
-                                                    view: &view,
-                                                    depth_slice: None,
-                                                    resolve_target: None,
-                                                    ops: wgpu::Operations {
-                                                        load: wgpu::LoadOp::Clear(
-                                                            wgpu::Color::BLACK,
-                                                        ),
-                                                        store: wgpu::StoreOp::Store,
-                                                    },
-                                                },
-                                            )],
-                                            depth_stencil_attachment: None,
-                                            timestamp_writes: None,
-                                            occlusion_query_set: None,
-                                            multiview_mask: None,
-                                        });
-                                    render_pass.set_pipeline(&wgpu_context.render_pipeline);
-                                    render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
-                                    render_pass.set_vertex_buffer(
-                                        0,
-                                        wgpu_context.background_cell_instance_buffer.slice(..),
-                                    );
-                                    render_pass.draw(
-                                        0..6,
-                                        0..wgpu_context.chargrid_frame_buffer.size().count() as u32,
-                                    );
-                                    wgpu_context.text_renderer.render(
-                                        &wgpu_context.chargrid_frame_buffer,
-                                        &wgpu_context.surface_configuration,
-                                        &wgpu_context.device,
-                                        &wgpu_context.queue,
-                                        &mut render_pass,
-                                    );
-                                }
-                                wgpu_context.queue.submit(std::iter::once(encoder.finish()));
-                                frame.present();
-                            } else {
-                                log::warn!("timeout when acquiring next swapchain texture");
-                                thread::sleep(Duration::from_millis(100));
+                                self.state.exited = true;
                             }
                         }
-                        other => {
-                            if let Some(event) = input::convert_event(
-                                other,
-                                sizes.scaled_cell_dimensions(current_window_dimensions),
-                                sizes.pixel_offset_to_centre_native_window(
-                                    current_window_dimensions,
-                                ),
-                                &mut input_context.last_mouse_coord,
-                                &mut input_context.last_mouse_button,
-                                &mut wgpu_context.scale_factor,
-                                wgpu_context.modifier_state,
-                            ) {
-                                match event {
-                                    input::Event::Input(input) => {
-                                        if let Some(app::Exit) = on_input(
-                                            &mut component,
-                                            input,
-                                            &wgpu_context.chargrid_frame_buffer,
-                                        ) {
-                                            exited = true;
-                                        }
-                                    }
-                                    input::Event::Resize(size) => {
-                                        wgpu_context.resize(&sizes, size);
-                                        current_window_dimensions =
-                                            dimensions_from_logical_size(wgpu_context.window_size);
-                                    }
-                                }
-                            }
+                        input::Event::Resize(size) => {
+                            context.wgpu_state.resize(&context.sizes, size);
+                            self.state.current_window_dimensions =
+                                dimensions_from_logical_size(context.wgpu_state.window_size);
                         }
                     }
                 }
-            })
-            .expect("Run loop exitted with error")
+            }
+        }
     }
+}
+
+/**
+ * Runs a component. Each frame the given component is rendered by invoking its `render` method,
+ * and a `Event::Tick` event is passed to the component's `update` method set to the time since the
+ * previous frame. Each time an input event is received an `Event::Input` event is passed to the
+ * component's `update` method. When the component yields `Some(app::Exit)`, the program will exit.
+ */
+pub fn run<C>(component: C, config: Config) -> anyhow::Result<()>
+where
+    C: 'static + Component<State = (), Output = app::Output>,
+{
+    let event_loop = winit::event_loop::EventLoop::new()?;
+    event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+    let mut app = App::new(component, config);
+    event_loop.run_app(&mut app)?;
+    Ok(())
 }

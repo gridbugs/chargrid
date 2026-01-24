@@ -7,8 +7,8 @@ use std::sync::Arc;
 const FONT_NAME_NORMAL: &'static str = "user-normal";
 const FONT_NAME_BOLD: &'static str = "user-bold";
 
-fn font_data_to_font_source(data: Vec<u8>) -> fontdb::Source {
-    fontdb::Source::Binary(Arc::new(data))
+fn font_data_to_font_source(data: Arc<Vec<u8>>) -> fontdb::Source {
+    fontdb::Source::Binary(data)
 }
 
 fn font_bytes_to_font_system(FontBytes { normal, bold }: FontBytes) -> glyphon::FontSystem {
@@ -108,7 +108,7 @@ impl TextRenderer {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         render_pass: &mut wgpu::RenderPass<'_>,
-    ) {
+    ) -> anyhow::Result<()> {
         self.viewport.update(
             &queue,
             glyphon::Resolution {
@@ -160,19 +160,17 @@ impl TextRenderer {
                 custom_glyphs: &[],
             });
         }
+        self.text_renderer.prepare(
+            &device,
+            &queue,
+            &mut self.font_system,
+            &mut self.atlas,
+            &self.viewport,
+            text_areas.drain(..),
+            &mut self.swash_cache,
+        )?;
         self.text_renderer
-            .prepare(
-                &device,
-                &queue,
-                &mut self.font_system,
-                &mut self.atlas,
-                &self.viewport,
-                text_areas.drain(..),
-                &mut self.swash_cache,
-            )
-            .unwrap();
-        self.text_renderer
-            .render(&self.atlas, &self.viewport, render_pass)
-            .unwrap();
+            .render(&self.atlas, &self.viewport, render_pass)?;
+        Ok(())
     }
 }

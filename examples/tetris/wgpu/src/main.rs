@@ -3,23 +3,19 @@ use tetris_app::app;
 
 fn main() {
     env_logger::init();
-    let (window, event_loop) = make_window_and_event_loop(
-        "Tetris",
-        Dimensions {
-            width: 640.,
-            height: 480.,
-        },
-        false,
-    )
-    .unwrap();
-    let context = Context::new(
-        &window,
-        event_loop,
+    run(
+        app(rand::thread_rng()),
         Config {
-            font_bytes: FontBytes {
-                normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
-                bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
+            title: "Tetris".to_string(),
+            dimensions_px: Dimensions {
+                width: 640.,
+                height: 480.,
             },
+            resizable: false,
+            font_bytes: FontBytes::new(
+                include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
+                include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
+            ),
             font_size_px: 32.,
             cell_dimensions_px: Dimensions {
                 width: 32.,
@@ -29,6 +25,6 @@ fn main() {
             underline_top_offset_cell_ratio: 0.8,
             force_secondary_adapter: false,
         },
-    );
-    context.run(app(rand::thread_rng()));
+    )
+    .unwrap();
 }
