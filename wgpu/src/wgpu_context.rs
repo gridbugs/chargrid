@@ -7,7 +7,6 @@ use grid_2d::{Coord, Grid, Size};
 use std::borrow::Cow;
 use std::thread;
 use std::time::{Duration, Instant};
-use wgpu_glyph::ab_glyph;
 use winit::window::WindowAttributes;
 use zerocopy::AsBytes;
 
@@ -31,16 +30,6 @@ fn rgba_to_srgb([r, g, b, a]: [f32; 4]) -> [f32; 4] {
         a,
     ]
 }
-
-fn font_bytes_to_fonts(FontBytes { normal, bold }: FontBytes) -> Vec<ab_glyph::FontVec> {
-    vec![
-        ab_glyph::FontVec::try_from_vec(normal).unwrap(),
-        ab_glyph::FontVec::try_from_vec(bold).unwrap(),
-    ]
-}
-
-const FONT_ID_NORMAL: wgpu_glyph::FontId = wgpu_glyph::FontId(0);
-const FONT_ID_BOLD: wgpu_glyph::FontId = wgpu_glyph::FontId(1);
 
 #[derive(Debug)]
 pub enum ContextBuildError {
@@ -84,7 +73,6 @@ struct WgpuContext<'window> {
     queue: wgpu::Queue,
     background_cell_instance_data: Grid<BackgroundCellInstance>,
     chargrid_frame_buffer: FrameBuffer,
-    glyph_brush: wgpu_glyph::GlyphBrush<(), ab_glyph::FontVec>,
     global_uniforms_buffer: wgpu::Buffer,
     window_size: winit::dpi::LogicalSize<f64>,
     scale_factor: f64,
@@ -370,9 +358,8 @@ impl<'window> WgpuContext<'window> {
             }],
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
             bind_group_layouts: &[&bind_group_layout],
-            push_constant_ranges: &[],
+            ..Default::default()
         });
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
@@ -412,13 +399,9 @@ impl<'window> WgpuContext<'window> {
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(surface_configuration.format.into())],
             }),
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
-        let glyph_brush =
-            wgpu_glyph::GlyphBrushBuilder::using_fonts(font_bytes_to_fonts(font_bytes))
-                .texture_filter_method(wgpu::FilterMode::Nearest)
-                .build(&device, surface_configuration.format);
         let modifier_state = winit::keyboard::ModifiersState::default();
         Ok(Self {
             device,
@@ -429,7 +412,6 @@ impl<'window> WgpuContext<'window> {
             queue,
             background_cell_instance_data,
             chargrid_frame_buffer,
-            glyph_brush,
             global_uniforms_buffer,
             window_size,
             scale_factor,
@@ -519,7 +501,6 @@ impl Default for InputContext {
 
 #[derive(Debug)]
 struct SizeContext {
-    font_source_scale: ab_glyph::PxScale,
     cell_dimensions: Dimensions<f64>,
     underline_width: f64,
     underline_top_offset: f64,
@@ -656,10 +637,6 @@ impl<'window> Context<'window> {
             queue,
         } = pollster::block_on(setup(&window.winit_window, force_secondary_adapter));
         let size_context = SizeContext {
-            font_source_scale: ab_glyph::PxScale {
-                x: font_scale.width as f32,
-                y: font_scale.height as f32,
-            },
             cell_dimensions: cell_dimensions_px,
             underline_width: underline_width_cell_ratio,
             underline_top_offset: underline_top_offset_cell_ratio,
@@ -723,7 +700,6 @@ impl<'window> Context<'window> {
         let mut exited = false;
         log::info!("Entering main event loop");
         let mut current_window_dimensions = size_context.native_window_dimensions;
-        let mut staging_belt = wgpu::util::StagingBelt::new(1024);
         event_loop
             .winit_event_loop
             .run(move |event, elwt| {
@@ -805,6 +781,7 @@ impl<'window> Context<'window> {
                                             depth_stencil_attachment: None,
                                             timestamp_writes: None,
                                             occlusion_query_set: None,
+                                            multiview_mask: None,
                                         });
                                     render_pass.set_pipeline(&wgpu_context.render_pipeline);
                                     render_pass.set_bind_group(0, &wgpu_context.bind_group, &[]);
@@ -821,18 +798,13 @@ impl<'window> Context<'window> {
                                     .pixel_offset_to_centre_native_window(
                                         current_window_dimensions,
                                     );
-                                let font_scale = size_context.font_source_scale;
+                                let font_scale = 16; // TODO
                                 text_buffer.clear();
                                 for row in wgpu_context.chargrid_frame_buffer.rows() {
                                     for cell in row {
                                         text_buffer.push(cell.character);
                                     }
                                 }
-                                let mut section = wgpu_glyph::Section::default()
-                                    .with_screen_position((
-                                        offset_to_centre.width as f32,
-                                        offset_to_centre.height as f32,
-                                    ));
                                 let mut char_start = 0;
                                 for (ch, (coord, cell)) in text_buffer
                                     .chars()
@@ -840,43 +812,13 @@ impl<'window> Context<'window> {
                                 {
                                     let char_end = char_start + ch.len_utf8();
                                     let str_slice = &text_buffer[char_start..char_end];
-                                    let font_id = if cell.bold {
-                                        FONT_ID_BOLD
-                                    } else {
-                                        FONT_ID_NORMAL
-                                    };
-                                    section = section.add_text(
-                                        wgpu_glyph::Text::new(str_slice)
-                                            .with_scale(font_scale)
-                                            .with_font_id(font_id)
-                                            .with_color(rgba_to_srgb(
-                                                cell.foreground.to_f32_array_01(),
-                                            )),
-                                    );
                                     char_start = char_end;
                                     if coord.x as u32
                                         == wgpu_context.chargrid_frame_buffer.size().width() - 1
                                     {
-                                        section = section.add_text(
-                                            wgpu_glyph::Text::new("\n").with_scale(font_scale),
-                                        );
                                     }
                                 }
-                                wgpu_context.glyph_brush.queue(section);
-                                match wgpu_context.glyph_brush.draw_queued(
-                                    &wgpu_context.device,
-                                    &mut staging_belt,
-                                    &mut encoder,
-                                    &view,
-                                    wgpu_context.window_size.width as u32,
-                                    wgpu_context.window_size.height as u32,
-                                ) {
-                                    Ok(()) => (),
-                                    Err(message) => log::warn!("Failed to draw glyph: {message}"),
-                                }
-                                staging_belt.finish();
                                 wgpu_context.queue.submit(std::iter::once(encoder.finish()));
-                                staging_belt.recall();
                                 frame.present();
                             } else {
                                 log::warn!("timeout when acquiring next swapchain texture");
