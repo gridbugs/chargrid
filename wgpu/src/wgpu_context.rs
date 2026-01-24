@@ -10,7 +10,6 @@ use std::{
     time::{Duration, Instant},
 };
 use winit::application::ApplicationHandler;
-use zerocopy::AsBytes;
 
 fn rgb_to_srgb_channel(c: f32) -> f32 {
     c.powf(2.2)
@@ -40,7 +39,7 @@ const fn dimensions_from_logical_size(size: winit::dpi::LogicalSize<f64>) -> Dim
 
 fn populate_and_finish_buffer<T>(buffer: wgpu::Buffer, slice: &[T]) -> wgpu::Buffer
 where
-    T: AsBytes,
+    T: zerocopy::IntoBytes + zerocopy::Immutable,
 {
     {
         use std::ops::DerefMut;
@@ -50,7 +49,7 @@ where
             .iter()
             .zip(buffer_slice_view_slice.chunks_exact_mut(std::mem::size_of::<T>()))
         {
-            slot.copy_from_slice(t.as_bytes());
+            slot.copy_from_slice(&t.as_bytes());
         }
     }
     buffer.unmap();
@@ -76,7 +75,7 @@ struct WgpuState {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, zerocopy::AsBytes, zerocopy::FromZeroes, zerocopy::FromBytes)]
+#[derive(Clone, Copy, zerocopy::IntoBytes, zerocopy::FromZeros, zerocopy::Immutable)]
 struct BackgroundCellInstance {
     background_colour: [f32; 3],
     foreground_colour: [f32; 3],
@@ -94,7 +93,7 @@ impl Default for BackgroundCellInstance {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, zerocopy::AsBytes, zerocopy::FromZeroes, zerocopy::FromBytes)]
+#[derive(Debug, Clone, Copy, zerocopy::IntoBytes, zerocopy::FromZeros, zerocopy::Immutable)]
 struct GlobalUniforms {
     cell_size_relative_to_window: [f32; 2],
     offset_to_centre: [f32; 2],
