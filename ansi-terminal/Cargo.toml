@@ -20,4 +20,4 @@ chargrid_gamepad = { path = "../gamepad", version = "0.6", optional = true }
 chargrid_runtime = { path = "../runtime", version = "0.4" }
 grid_2d = "0.15"
 libc = "0.2"
-term = "0.7"
+term = "1"
