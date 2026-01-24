@@ -20,11 +20,8 @@ fn main() {
                 normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin.ttf").to_vec(),
                 bold: include_bytes!("./fonts/PxPlus_IBM_CGA.ttf").to_vec(),
             },
+            font_size_px: 32.,
             cell_dimensions_px: Dimensions {
-                width: 32.,
-                height: 32.,
-            },
-            font_scale: Dimensions {
                 width: 32.,
                 height: 32.,
             },

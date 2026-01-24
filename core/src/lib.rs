@@ -505,7 +505,7 @@ impl Tint for TintIdentity {
 
 impl<F: Fn(Rgba32) -> Rgba32> Tint for F {
     fn tint(&self, rgba32: Rgba32) -> Rgba32 {
-        self(rgba32)
+        (&self)(rgba32)
     }
 }
 

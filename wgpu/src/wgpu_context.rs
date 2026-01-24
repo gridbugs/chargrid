@@ -1,12 +1,14 @@
-use crate::{input, Config, Dimensions, FontBytes};
+use crate::{input, text_renderer::TextRenderer, Config, Dimensions, FontBytes};
 use anyhow::anyhow;
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer};
 use grid_2d::{Coord, Grid, Size};
-use std::borrow::Cow;
-use std::thread;
-use std::time::{Duration, Instant};
+use std::{
+    borrow::Cow,
+    thread,
+    time::{Duration, Instant},
+};
 use winit::window::WindowAttributes;
 use zerocopy::AsBytes;
 
@@ -19,15 +21,6 @@ fn rgb_to_srgb([r, g, b]: [f32; 3]) -> [f32; 3] {
         rgb_to_srgb_channel(r),
         rgb_to_srgb_channel(g),
         rgb_to_srgb_channel(b),
-    ]
-}
-
-fn rgba_to_srgb([r, g, b, a]: [f32; 4]) -> [f32; 4] {
-    [
-        rgb_to_srgb_channel(r),
-        rgb_to_srgb_channel(g),
-        rgb_to_srgb_channel(b),
-        a,
     ]
 }
 
@@ -66,6 +59,7 @@ where
 
 struct WgpuContext<'window> {
     device: wgpu::Device,
+    surface_configuration: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface<'window>,
     render_pipeline: wgpu::RenderPipeline,
     background_cell_instance_buffer: wgpu::Buffer,
@@ -78,6 +72,7 @@ struct WgpuContext<'window> {
     scale_factor: f64,
     modifier_state: winit::keyboard::ModifiersState,
     global_uniforms_to_sync: Option<GlobalUniforms>,
+    text_renderer: TextRenderer,
 }
 
 #[repr(C)]
@@ -215,7 +210,7 @@ impl<'window> WgpuContext<'window> {
         queue: wgpu::Queue,
         adapter: &wgpu::Adapter,
         surface: wgpu::Surface<'window>,
-        size_context: &SizeContext,
+        sizes: &Sizes,
         grid_size: Size,
         font_bytes: FontBytes,
     ) -> Result<Self, ContextBuildError> {
@@ -321,8 +316,7 @@ impl<'window> WgpuContext<'window> {
             background_cell_instance_data.raw(),
         );
         let global_uniforms_size = mem::size_of::<GlobalUniforms>() as wgpu::BufferAddress;
-        let global_uniforms =
-            size_context.global_uniforms(dimensions_from_logical_size(window_size));
+        let global_uniforms = sizes.global_uniforms(dimensions_from_logical_size(window_size));
         let global_uniforms_buffer = populate_and_finish_buffer(
             device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
@@ -403,8 +397,18 @@ impl<'window> WgpuContext<'window> {
             cache: None,
         });
         let modifier_state = winit::keyboard::ModifiersState::default();
+        let text_renderer = TextRenderer::new(
+            font_bytes,
+            &device,
+            &queue,
+            texture_format,
+            sizes.font_size_px,
+            sizes.cell_dimensions,
+            grid_size,
+        );
         Ok(Self {
             device,
+            surface_configuration,
             surface,
             render_pipeline,
             background_cell_instance_buffer,
@@ -417,6 +421,7 @@ impl<'window> WgpuContext<'window> {
             scale_factor,
             modifier_state,
             global_uniforms_to_sync: None,
+            text_renderer,
         })
     }
     fn render_background(&mut self) {
@@ -444,7 +449,7 @@ impl<'window> WgpuContext<'window> {
         );
     }
 
-    fn resize(&mut self, size_context: &SizeContext, physical_size: winit::dpi::PhysicalSize<u32>) {
+    fn resize(&mut self, sizes: &Sizes, physical_size: winit::dpi::PhysicalSize<u32>) {
         let logical_size = physical_size.to_logical(self.scale_factor);
         self.window_size = logical_size;
         self.background_cell_instance_buffer = populate_and_finish_buffer(
@@ -457,8 +462,7 @@ impl<'window> WgpuContext<'window> {
             }),
             self.background_cell_instance_data.raw(),
         );
-        let global_uniforms =
-            size_context.global_uniforms(dimensions_from_logical_size(logical_size));
+        let global_uniforms = sizes.global_uniforms(dimensions_from_logical_size(logical_size));
         self.global_uniforms_to_sync = Some(global_uniforms);
     }
 
@@ -500,14 +504,15 @@ impl Default for InputContext {
 }
 
 #[derive(Debug)]
-struct SizeContext {
+struct Sizes {
+    font_size_px: f32,
     cell_dimensions: Dimensions<f64>,
     underline_width: f64,
     underline_top_offset: f64,
     native_window_dimensions: Dimensions<f64>,
 }
 
-impl SizeContext {
+impl Sizes {
     fn grid_size(&self) -> Size {
         let width = (self.native_window_dimensions.width / self.cell_dimensions.width).floor();
         let height = (self.native_window_dimensions.height / self.cell_dimensions.height).floor();
@@ -571,9 +576,8 @@ pub struct Context<'window> {
     window: &'window Window,
     event_loop: EventLoop,
     wgpu_context: WgpuContext<'window>,
-    size_context: SizeContext,
+    sizes: Sizes,
     input_context: InputContext,
-    text_buffer: String,
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
     #[cfg(feature = "gamepad")]
@@ -622,8 +626,8 @@ impl<'window> Context<'window> {
         event_loop: EventLoop,
         Config {
             font_bytes,
+            font_size_px,
             cell_dimensions_px,
-            font_scale,
             underline_width_cell_ratio,
             underline_top_offset_cell_ratio,
             force_secondary_adapter,
@@ -636,20 +640,21 @@ impl<'window> Context<'window> {
             device,
             queue,
         } = pollster::block_on(setup(&window.winit_window, force_secondary_adapter));
-        let size_context = SizeContext {
+        let sizes = Sizes {
+            font_size_px,
             cell_dimensions: cell_dimensions_px,
             underline_width: underline_width_cell_ratio,
             underline_top_offset: underline_top_offset_cell_ratio,
             native_window_dimensions: window.dimensions_px,
         };
-        let grid_size = size_context.grid_size();
+        let grid_size = sizes.grid_size();
         let wgpu_context = WgpuContext::new(
             &window.winit_window,
             device,
             queue,
             &adapter,
             surface,
-            &size_context,
+            &sizes,
             grid_size,
             font_bytes,
         )?;
@@ -658,9 +663,8 @@ impl<'window> Context<'window> {
             window,
             event_loop,
             wgpu_context,
-            size_context,
+            sizes,
             input_context: Default::default(),
-            text_buffer: String::new(),
             instance,
             adapter,
             #[cfg(feature = "gamepad")]
@@ -669,7 +673,7 @@ impl<'window> Context<'window> {
     }
 
     pub fn grid_size(&self) -> Size {
-        self.size_context.grid_size()
+        self.sizes.grid_size()
     }
 
     /**
@@ -687,9 +691,8 @@ impl<'window> Context<'window> {
             window,
             event_loop,
             mut wgpu_context,
-            size_context,
+            sizes,
             mut input_context,
-            mut text_buffer,
             instance,
             adapter,
             #[cfg(feature = "gamepad")]
@@ -699,7 +702,7 @@ impl<'window> Context<'window> {
         let mut last_update_inst = Instant::now();
         let mut exited = false;
         log::info!("Entering main event loop");
-        let mut current_window_dimensions = size_context.native_window_dimensions;
+        let mut current_window_dimensions = sizes.native_window_dimensions;
         event_loop
             .winit_event_loop
             .run(move |event, elwt| {
@@ -793,30 +796,13 @@ impl<'window> Context<'window> {
                                         0..6,
                                         0..wgpu_context.chargrid_frame_buffer.size().count() as u32,
                                     );
-                                }
-                                let offset_to_centre = size_context
-                                    .pixel_offset_to_centre_native_window(
-                                        current_window_dimensions,
+                                    wgpu_context.text_renderer.render(
+                                        &wgpu_context.chargrid_frame_buffer,
+                                        &wgpu_context.surface_configuration,
+                                        &wgpu_context.device,
+                                        &wgpu_context.queue,
+                                        &mut render_pass,
                                     );
-                                let font_scale = 16; // TODO
-                                text_buffer.clear();
-                                for row in wgpu_context.chargrid_frame_buffer.rows() {
-                                    for cell in row {
-                                        text_buffer.push(cell.character);
-                                    }
-                                }
-                                let mut char_start = 0;
-                                for (ch, (coord, cell)) in text_buffer
-                                    .chars()
-                                    .zip(wgpu_context.chargrid_frame_buffer.enumerate())
-                                {
-                                    let char_end = char_start + ch.len_utf8();
-                                    let str_slice = &text_buffer[char_start..char_end];
-                                    char_start = char_end;
-                                    if coord.x as u32
-                                        == wgpu_context.chargrid_frame_buffer.size().width() - 1
-                                    {
-                                    }
                                 }
                                 wgpu_context.queue.submit(std::iter::once(encoder.finish()));
                                 frame.present();
@@ -828,8 +814,8 @@ impl<'window> Context<'window> {
                         other => {
                             if let Some(event) = input::convert_event(
                                 other,
-                                size_context.scaled_cell_dimensions(current_window_dimensions),
-                                size_context.pixel_offset_to_centre_native_window(
+                                sizes.scaled_cell_dimensions(current_window_dimensions),
+                                sizes.pixel_offset_to_centre_native_window(
                                     current_window_dimensions,
                                 ),
                                 &mut input_context.last_mouse_coord,
@@ -848,7 +834,7 @@ impl<'window> Context<'window> {
                                         }
                                     }
                                     input::Event::Resize(size) => {
-                                        wgpu_context.resize(&size_context, size);
+                                        wgpu_context.resize(&sizes, size);
                                         current_window_dimensions =
                                             dimensions_from_logical_size(wgpu_context.window_size);
                                     }
