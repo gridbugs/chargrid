@@ -222,9 +222,9 @@ impl Context {
                 };
                 if let Some(input) = input
                     && let Some(app::Exit) = on_input(&mut component, input, &chargrid_frame_buffer)
-                    {
-                        break 'mainloop;
-                    }
+                {
+                    break 'mainloop;
+                }
             }
             if let Some(app::Exit) =
                 on_frame(&mut component, FRAME_DURATION, &mut chargrid_frame_buffer)

@@ -94,9 +94,10 @@ impl Component for TextField {
                     },
                 ) => {
                     if let Some(coord) = ctx.bounding_box.coord_absolute_to_relative(coord)
-                        && coord.x as usize <= self.text.len() {
-                            self.cursor_position = coord.x as usize;
-                        }
+                        && coord.x as usize <= self.text.len()
+                    {
+                        self.cursor_position = coord.x as usize;
+                    }
                 }
                 Input::Keyboard(keyboard_input) => match keyboard_input {
                     keys::RETURN => return Some(self.text.iter().collect::<String>()),

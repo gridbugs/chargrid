@@ -219,26 +219,27 @@ impl FrameBuffer {
 
     pub fn set_cell(&mut self, coord: ICoord, depth: i8, render_cell: RenderCell) {
         if let Some(cell) = self.grid.get_mut(coord)
-            && (cell.foreground_depth <= depth || cell.background_depth <= depth) {
-                if let Some(character) = render_cell.character {
-                    cell.set_character(character, depth);
-                }
-                if let Some(bold) = render_cell.style.bold {
-                    cell.set_bold(bold, depth);
-                }
-                if let Some(underline) = render_cell.style.underline {
-                    cell.set_underline(underline, depth);
-                }
-                if let Some(foreground) = render_cell.style.foreground {
-                    // alpha composite the foreground colour over the existing background colour
-                    let foreground_blended = foreground.alpha_composite(cell.background);
-                    cell.set_foreground(foreground_blended, depth);
-                }
-                if let Some(background) = render_cell.style.background {
-                    let background_blended = background.alpha_composite(cell.background);
-                    cell.set_background(background_blended, depth);
-                }
+            && (cell.foreground_depth <= depth || cell.background_depth <= depth)
+        {
+            if let Some(character) = render_cell.character {
+                cell.set_character(character, depth);
             }
+            if let Some(bold) = render_cell.style.bold {
+                cell.set_bold(bold, depth);
+            }
+            if let Some(underline) = render_cell.style.underline {
+                cell.set_underline(underline, depth);
+            }
+            if let Some(foreground) = render_cell.style.foreground {
+                // alpha composite the foreground colour over the existing background colour
+                let foreground_blended = foreground.alpha_composite(cell.background);
+                cell.set_foreground(foreground_blended, depth);
+            }
+            if let Some(background) = render_cell.style.background {
+                let background_blended = background.alpha_composite(cell.background);
+                cell.set_background(background_blended, depth);
+            }
+        }
     }
 
     pub fn default_ctx<'a>(&self) -> Ctx<'a> {
@@ -651,28 +652,22 @@ impl Event {
     }
 
     pub fn is_peek(self) -> bool {
-        if let Self::Peek = self { true } else { false }
+        matches!(self, Self::Peek)
     }
 
     pub fn is_escape(self) -> bool {
-        if let Self::Input(Input::Keyboard(input::keys::ESCAPE)) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Self::Input(Input::Keyboard(input::keys::ESCAPE)))
     }
 
     #[cfg(feature = "gamepad")]
     pub fn is_start(self) -> bool {
-        if let Self::Input(Input::Gamepad(input::GamepadInput {
-            button: input::GamepadButton::Start,
-            ..
-        })) = self
-        {
-            true
-        } else {
-            false
-        }
+        matches!(
+            self,
+            Self::Input(Input::Gamepad(input::GamepadInput {
+                button: input::GamepadButton::Start,
+                ..
+            }))
+        )
     }
 
     #[cfg(feature = "gamepad")]

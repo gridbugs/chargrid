@@ -136,11 +136,11 @@ pub fn convert_event(
         WindowEvent::KeyboardInput { event, .. } => {
             if event.state == ElementState::Pressed
                 && let PhysicalKey::Code(key_code) = event.physical_key
-                    && let Some(keyboard_input) =
-                        convert_keycode_keyboard_input(key_code, modifier_state.shift_key())
-                    {
-                        return Some(Event::Input(Input::Keyboard(keyboard_input)));
-                    }
+                && let Some(keyboard_input) =
+                    convert_keycode_keyboard_input(key_code, modifier_state.shift_key())
+            {
+                return Some(Event::Input(Input::Keyboard(keyboard_input)));
+            }
             None
         }
         WindowEvent::CursorMoved {
