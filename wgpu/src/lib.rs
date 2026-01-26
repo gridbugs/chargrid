@@ -1,4 +1,4 @@
-use crate::text_renderer::TextRenderer;
+use crate::text_renderer::{TextRenderer, TextRendererArgs};
 use anyhow::anyhow;
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
@@ -213,6 +213,17 @@ async fn setup(window: Arc<winit::window::Window>, force_secondary_adapter: bool
     }
 }
 
+struct WgpuStateArgs<'a> {
+    window: Arc<winit::window::Window>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    adapter: &'a wgpu::Adapter,
+    surface: wgpu::Surface<'static>,
+    sizes: &'a Sizes,
+    grid_size: UCoord,
+    font_bytes: FontBytes,
+}
+
 impl WgpuState {
     fn spirv_slice_to_shader_module_source(spirv_slice: &[u8]) -> wgpu::ShaderSource<'_> {
         assert!(spirv_slice.len().is_multiple_of(4));
@@ -228,14 +239,16 @@ impl WgpuState {
     }
 
     fn new(
-        window: Arc<winit::window::Window>,
-        device: wgpu::Device,
-        queue: wgpu::Queue,
-        adapter: &wgpu::Adapter,
-        surface: wgpu::Surface<'static>,
-        sizes: &Sizes,
-        grid_size: UCoord,
-        font_bytes: FontBytes,
+        WgpuStateArgs {
+            window,
+            device,
+            queue,
+            adapter,
+            surface,
+            sizes,
+            grid_size,
+            font_bytes,
+        }: WgpuStateArgs,
     ) -> Self {
         use std::mem;
         let num_background_cell_instances = grid_size.count();
@@ -420,16 +433,16 @@ impl WgpuState {
             cache: None,
         });
         let modifier_state = winit::keyboard::ModifiersState::default();
-        let text_renderer = TextRenderer::new(
+        let text_renderer = TextRenderer::new(TextRendererArgs {
             font_bytes,
-            &device,
-            &queue,
+            device: &device,
+            queue: &queue,
             texture_format,
-            sizes.font_size_px,
-            sizes.cell_dimensions,
+            font_size_px: sizes.font_size_px,
+            cell_dimensions: sizes.cell_dimensions,
             grid_size,
-            scale_factor,
-        );
+            window_scale_factor: scale_factor,
+        });
         Self {
             device,
             surface_configuration,
@@ -686,16 +699,16 @@ impl Context {
             native_window_dimensions: dimensions_px,
         };
         let grid_size = sizes.grid_size();
-        let wgpu_state = WgpuState::new(
-            window.clone(),
+        let wgpu_state = WgpuState::new(WgpuStateArgs {
+            window: window.clone(),
             device,
             queue,
-            &adapter,
+            adapter: &adapter,
             surface,
-            &sizes,
+            sizes: &sizes,
             grid_size,
             font_bytes,
-        );
+        });
         log::info!("grid size: {:?}", grid_size);
         Context {
             window: window.clone(),

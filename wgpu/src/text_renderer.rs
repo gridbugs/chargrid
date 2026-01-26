@@ -42,6 +42,17 @@ fn font_bytes_to_font_system(FontBytes { normal, bold }: FontBytes) -> glyphon::
     font_system
 }
 
+pub struct TextRendererArgs<'a> {
+    pub font_bytes: FontBytes,
+    pub device: &'a wgpu::Device,
+    pub queue: &'a wgpu::Queue,
+    pub texture_format: wgpu::TextureFormat,
+    pub font_size_px: f32,
+    pub cell_dimensions: Dimensions<f64>,
+    pub grid_size: UCoord,
+    pub window_scale_factor: f64,
+}
+
 pub struct TextRenderer {
     font_system: glyphon::FontSystem,
     swash_cache: glyphon::SwashCache,
@@ -56,26 +67,24 @@ pub struct TextRenderer {
 
 impl TextRenderer {
     pub fn new(
-        font_bytes: FontBytes,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        texture_format: wgpu::TextureFormat,
-        font_size_px: f32,
-        cell_dimensions: Dimensions<f64>,
-        grid_size: UCoord,
-        window_scale_factor: f64,
+        TextRendererArgs {
+            font_bytes,
+            device,
+            queue,
+            texture_format,
+            font_size_px,
+            cell_dimensions,
+            grid_size,
+            window_scale_factor,
+        }: TextRendererArgs,
     ) -> Self {
         let mut font_system = font_bytes_to_font_system(font_bytes);
         let swash_cache = glyphon::SwashCache::new();
         let cache = glyphon::Cache::new(device);
         let viewport = glyphon::Viewport::new(device, &cache);
         let mut atlas = glyphon::TextAtlas::new(device, queue, &cache, texture_format);
-        let text_renderer = glyphon::TextRenderer::new(
-            &mut atlas,
-            device,
-            wgpu::MultisampleState::default(),
-            None,
-        );
+        let text_renderer =
+            glyphon::TextRenderer::new(&mut atlas, device, wgpu::MultisampleState::default(), None);
         let text_buffer_grid = Grid::new_fn(grid_size, |_coord| {
             let mut text_buffer = glyphon::Buffer::new(
                 &mut font_system,

@@ -53,9 +53,10 @@ impl<O, S> Component for CF<O, S> {
 
 impl<O: 'static, S: 'static> CF<O, S> {
     /// Change the expected `State` of `self` by applying a `Lens`.
-    pub fn lens_state<S_: 'static, L: 'static>(self, lens: L) -> CF<O, S_>
+    pub fn lens_state<S_, L>(self, lens: L) -> CF<O, S_>
     where
-        L: Lens<Input = S_, Output = S>,
+        S_: 'static,
+        L: 'static + Lens<Input = S_, Output = S>,
     {
         self.0.lens_state(lens).boxed()
     }
@@ -250,10 +251,10 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     /// so the menu can be re-invoked with its internal state preserved. This is only valid for
     /// components which may complete multiple times, of which `chargrid_common::menu::MenuCF` is
     /// an example.
-    pub fn and_then_persistent<U, D: 'static, F: 'static>(self, f: F) -> CF<Option<U>, S>
+    pub fn and_then_persistent<U, D, F>(self, f: F) -> CF<Option<U>, S>
     where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(Self, T) -> D,
+        D: 'static + Component<Output = Option<U>, State = S>,
+        F: 'static + FnOnce(Self, T) -> D,
     {
         self.0.and_then_persistent(|a, b| f(a.into(), b)).boxed()
     }
@@ -261,10 +262,10 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     /// Invoke a function `f` on the result of `self` when it completes. The given function returns
     /// a new component which replaces `self`. Use to sequence multiple components one after the
     /// other.
-    pub fn and_then<U, D: 'static, F: 'static>(self, f: F) -> CF<Option<U>, S>
+    pub fn and_then<U, D, F>(self, f: F) -> CF<Option<U>, S>
     where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(T) -> D,
+        D: 'static + Component<Output = Option<U>, State = S>,
+        F: 'static + FnOnce(T) -> D,
     {
         self.0.and_then(f).boxed()
     }
@@ -273,20 +274,20 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     /// a new component which replaces `self`. Use to sequence multiple components one after the
     /// other. Unlike with `and_then`, the given function is also passed a mutable reference to the
     /// state.
-    pub fn and_then_side_effect<U, D: 'static, F: 'static>(self, f: F) -> CF<Option<U>, S>
+    pub fn and_then_side_effect<U, D, F>(self, f: F) -> CF<Option<U>, S>
     where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(T, &mut S) -> D,
+        D: 'static + Component<Output = Option<U>, State = S>,
+        F: 'static + FnOnce(T, &mut S) -> D,
     {
         self.0.and_then_side_effect(f).boxed()
     }
 
     /// Invoke a function `f` after `self` completes, ignoring the result. The given function
     /// returns a new component which replaces `self`.
-    pub fn then<U, D: 'static, F: 'static>(self, f: F) -> CF<Option<U>, S>
+    pub fn then<U, D, F>(self, f: F) -> CF<Option<U>, S>
     where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce() -> D,
+        D: 'static + Component<Output = Option<U>, State = S>,
+        F: 'static + FnOnce() -> D,
     {
         self.0.then(f).boxed()
     }
@@ -294,37 +295,37 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     /// Invoke a function `f` after `self` completes, ignoring the result. The given function
     /// returns a new component which replaces `self`. Unlike with `then`, the given function is
     /// also passed a mutable reference to the state.
-    pub fn then_side_effect<U, D: 'static, F: 'static>(self, f: F) -> CF<Option<U>, S>
+    pub fn then_side_effect<U, D, F>(self, f: F) -> CF<Option<U>, S>
     where
-        D: Component<Output = Option<U>, State = S>,
-        F: FnOnce(&mut S) -> D,
+        D: 'static + Component<Output = Option<U>, State = S>,
+        F: 'static + FnOnce(&mut S) -> D,
     {
         self.0.then_side_effect(f).boxed()
     }
 
     /// Invoke a function `f` on a mutable reference to the external state, after `self` completes.
     /// The behaviour of `self` is otherwise unchanged.
-    pub fn side_effect<F: 'static>(self, f: F) -> CF<Option<T>, S>
+    pub fn side_effect<F>(self, f: F) -> CF<Option<T>, S>
     where
-        F: FnOnce(&mut S),
+        F: 'static + FnOnce(&mut S),
     {
         self.0.side_effect(f).boxed()
     }
 
     /// Creates a new `CF` which invokes a given function `f` on the result of `self`, yielding the
     /// result
-    pub fn map<U, F: 'static>(self, f: F) -> CF<Option<U>, S>
+    pub fn map<U, F>(self, f: F) -> CF<Option<U>, S>
     where
-        F: FnOnce(T) -> U,
+        F: 'static + FnOnce(T) -> U,
     {
         self.0.map(f).boxed()
     }
 
     /// Creates a new `CF` which invokes a given function `f` after `self` completes (ignoring ites
     /// result), yielding the result of `f`
-    pub fn map_val<U, F: 'static>(self, f: F) -> CF<Option<U>, S>
+    pub fn map_val<U, F>(self, f: F) -> CF<Option<U>, S>
     where
-        F: FnOnce() -> U,
+        F: 'static + FnOnce() -> U,
     {
         self.0.map_val(f).boxed()
     }
@@ -332,9 +333,9 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     /// Creates a new `CF` which invokes a given function `f` on the result of `self`, yielding the
     /// result. Unlike with `map`, the given function is also passed a mutable reference to the
     /// external state.
-    pub fn map_side_effect<U, F: 'static>(self, f: F) -> CF<Option<U>, S>
+    pub fn map_side_effect<U, F>(self, f: F) -> CF<Option<U>, S>
     where
-        F: FnOnce(T, &mut S) -> U,
+        F: 'static + FnOnce(T, &mut S) -> U,
     {
         self.0.map_side_effect(f).boxed()
     }
@@ -418,9 +419,11 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     /// invokes the component, and calls the provided function `f` on some accumulator value, and
     /// the result of the component. The provided function returns a `LoopControl` which determines
     /// whether to continue repeating.
-    pub fn repeat<A: 'static, O: 'static, F: 'static>(self, init: A, f: F) -> CF<Option<O>, S>
+    pub fn repeat<A, O, F>(self, init: A, f: F) -> CF<Option<O>, S>
     where
-        F: FnMut(A, T) -> CF<Option<LoopControl<A, O>>, S>,
+        A: 'static,
+        O: 'static,
+        F: 'static + FnMut(A, T) -> CF<Option<LoopControl<A, O>>, S>,
     {
         loop_((self, f, init), |(self_, mut f, acc)| {
             self_.and_then_persistent(|self_, entry| {
@@ -433,9 +436,10 @@ impl<T: 'static, S: 'static> CF<Option<T>, S> {
     /// invokes the component, and calls the provided function `f` on the result of the component.
     /// The provided function returns a `LoopControl` which determines whether to continue
     /// repeating.
-    pub fn repeat_unit<O: 'static, F: 'static>(self, mut f: F) -> CF<Option<O>, S>
+    pub fn repeat_unit<O, F>(self, mut f: F) -> CF<Option<O>, S>
     where
-        F: FnMut(T) -> CF<Option<LoopControl<(), O>>, S>,
+        O: 'static,
+        F: 'static + FnMut(T) -> CF<Option<LoopControl<(), O>>, S>,
     {
         self.repeat((), move |(), entry| f(entry))
     }
@@ -521,68 +525,64 @@ pub fn never<S: 'static, T: 'static>() -> CF<Option<T>, S> {
 /// by `f`'s its previous invocation. The external state of the components produced by `f` is
 /// passed in as the `state` argument, and the component returned by `loop_state` expects no
 /// external state.
-pub fn loop_state<S: 'static, Co, Br, C: 'static, F: 'static>(
-    state: S,
-    init: Co,
-    f: F,
-) -> CF<Option<Br>, ()>
+pub fn loop_state<S, Co, Br, C, F>(state: S, init: Co, f: F) -> CF<Option<Br>, ()>
 where
+    S: 'static,
     C::State: Sized,
-    C: Component<Output = Option<LoopControl<Co, Br>>, State = S>,
-    F: FnMut(Co) -> C,
+    C: 'static + Component<Output = Option<LoopControl<Co, Br>>, State = S>,
+    F: 'static + FnMut(Co) -> C,
 {
     unboxed::loop_state(state, init, f).boxed()
 }
 
 /// Repeatedly invoke the component-producing function `f` on the result of the component produced
 /// by `f`'s its previous invocation.
-pub fn loop_<Co, Br, C: 'static, F: 'static>(init: Co, f: F) -> CF<Option<Br>, C::State>
+pub fn loop_<Co, Br, C, F>(init: Co, f: F) -> CF<Option<Br>, C::State>
 where
     C::State: Sized,
-    C: Component<Output = Option<LoopControl<Co, Br>>>,
-    F: FnMut(Co) -> C,
+    C: 'static + Component<Output = Option<LoopControl<Co, Br>>>,
+    F: 'static + FnMut(Co) -> C,
 {
     unboxed::loop_(init, f).boxed()
 }
 
 /// Repeatedly invoke the component-producing function `f` until its produced component yields
 /// `LoopControl::Break`.
-pub fn loop_unit<Br, C: 'static, F: 'static>(f: F) -> CF<Option<Br>, C::State>
+pub fn loop_unit<Br, C, F>(f: F) -> CF<Option<Br>, C::State>
 where
     C::State: Sized,
-    C: Component<Output = Option<LoopControl<(), Br>>>,
-    F: FnMut() -> C,
+    C: 'static + Component<Output = Option<LoopControl<(), Br>>>,
+    F: 'static + FnMut() -> C,
 {
     unboxed::loop_unit(f).boxed()
 }
 
 /// Repeatedly invoke the component-producing function `f` until its produced component yields
 /// `LoopControl::Break`. The provided function is also passed a mutable reference to a state.
-pub fn loop_mut<Co, Br, T: 'static, C: 'static, F: 'static>(
-    init: Co,
-    value: T,
-    f: F,
-) -> CF<Option<Br>, C::State>
+pub fn loop_mut<Co, Br, T, C, F>(init: Co, value: T, f: F) -> CF<Option<Br>, C::State>
 where
+    T: 'static,
     C::State: Sized,
-    C: Component<Output = Option<LoopControl<Co, Br>>>,
-    F: FnMut(Co, &mut T) -> C,
+    C: 'static + Component<Output = Option<LoopControl<Co, Br>>>,
+    F: 'static + FnMut(Co, &mut T) -> C,
 {
     unboxed::loop_mut(init, value, f).boxed()
 }
 
-pub fn on_state<S: 'static, T: 'static, F: 'static>(f: F) -> CF<Option<T>, S>
+pub fn on_state<S, T, F>(f: F) -> CF<Option<T>, S>
 where
-    F: FnOnce(&mut S) -> T,
+    S: 'static,
+    T: 'static,
+    F: 'static + FnOnce(&mut S) -> T,
 {
     unboxed::on_state(f).boxed()
 }
 
-pub fn on_state_then<C: 'static, F: 'static>(f: F) -> CF<C::Output, C::State>
+pub fn on_state_then<C, F>(f: F) -> CF<C::Output, C::State>
 where
-    C: Component,
+    C: 'static + Component,
     C::State: Sized,
-    F: FnOnce(&mut C::State) -> C,
+    F: 'static + FnOnce(&mut C::State) -> C,
 {
     unboxed::on_state_then(f).boxed()
 }
@@ -599,9 +599,11 @@ pub fn unit<S: 'static>() -> CF<(), S> {
     unboxed::unit().boxed()
 }
 
-pub fn many<I: 'static, S: 'static, C: 'static>(iterable: I) -> CF<(), S>
+pub fn many<I, S, C>(iterable: I) -> CF<(), S>
 where
-    C: Component<State = S>,
+    I: 'static,
+    S: 'static,
+    C: 'static + Component<State = S>,
     for<'a> &'a I: IntoIterator<Item = &'a C>,
     for<'a> &'a mut I: IntoIterator<Item = &'a mut C>,
 {
@@ -612,16 +614,18 @@ pub fn styled_string<S: 'static>(string: String, style: Style) -> CF<(), S> {
     unboxed::styled_string(string, style).boxed()
 }
 
-pub fn on_input<F: 'static, T, S: 'static>(f: F) -> CF<Option<T>, S>
+pub fn on_input<F, T, S>(f: F) -> CF<Option<T>, S>
 where
-    F: FnMut(input::Input) -> Option<T>,
+    F: 'static + FnMut(input::Input) -> Option<T>,
+    S: 'static,
 {
     unboxed::on_input(f).boxed()
 }
 
-pub fn on_input_state<F: 'static, T, S: 'static>(f: F) -> CF<Option<T>, S>
+pub fn on_input_state<F, T, S>(f: F) -> CF<Option<T>, S>
 where
-    F: FnMut(input::Input, &mut S) -> Option<T>,
+    F: 'static + FnMut(input::Input, &mut S) -> Option<T>,
+    S: 'static,
 {
     unboxed::on_input_state(f).boxed()
 }
