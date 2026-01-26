@@ -23,13 +23,6 @@ fn rgb_to_srgb([r, g, b]: [f32; 3]) -> [f32; 3] {
     ]
 }
 
-#[derive(Debug)]
-pub enum ContextBuildError {
-    FailedToBuildWindow(winit::error::OsError),
-    FailedToRequestGraphicsAdapter,
-    FailedToRequestDevice(wgpu::RequestDeviceError),
-}
-
 const fn dimensions_from_logical_size(size: winit::dpi::LogicalSize<f64>) -> Dimensions<f64> {
     Dimensions {
         width: size.width,
@@ -206,7 +199,7 @@ impl WgpuState {
         sizes: &Sizes,
         grid_size: UCoord,
         font_bytes: FontBytes,
-    ) -> Result<Self, ContextBuildError> {
+    ) -> Self {
         use std::mem;
         let num_background_cell_instances = grid_size.count();
         let background_cell_instance_data = Grid::new_default(grid_size);
@@ -400,7 +393,7 @@ impl WgpuState {
             grid_size,
             scale_factor,
         );
-        Ok(Self {
+        Self {
             device,
             surface_configuration,
             surface,
@@ -416,7 +409,7 @@ impl WgpuState {
             modifier_state,
             global_uniforms_to_sync: None,
             text_renderer,
-        })
+        }
     }
     fn render_background(&mut self) {
         for (buffer_cell, background_cell_instance) in self
@@ -629,11 +622,7 @@ struct Context {
 }
 
 impl Context {
-    fn new(window: Arc<winit::window::Window>, config: Config) -> Self {
-        Self::try_new(window, config).expect("Failed to initialize context!")
-    }
-
-    fn try_new(
+    fn new(
         window: Arc<winit::window::Window>,
         Config {
             dimensions_px,
@@ -645,7 +634,7 @@ impl Context {
             force_secondary_adapter,
             ..
         }: Config,
-    ) -> Result<Self, ContextBuildError> {
+    ) -> Self {
         let Setup {
             surface,
             adapter,
@@ -669,16 +658,16 @@ impl Context {
             &sizes,
             grid_size,
             font_bytes,
-        )?;
+        );
         log::info!("grid size: {:?}", grid_size);
-        Ok(Context {
+        Context {
             window: window.clone(),
             wgpu_state,
             sizes,
             input_state: Default::default(),
             #[cfg(feature = "gamepad")]
             gamepad: GamepadContext::new(),
-        })
+        }
     }
 }
 
