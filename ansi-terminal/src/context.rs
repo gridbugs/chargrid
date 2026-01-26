@@ -2,7 +2,7 @@ use crate::error::*;
 use crate::terminal::{ColEncode, Terminal};
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
-use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer, Size};
+use chargrid_runtime::{Component, FrameBuffer, UCoord, app, on_frame, on_input};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -81,7 +81,7 @@ impl Context {
         }
     }
 
-    pub fn size(&self) -> Result<Size> {
+    pub fn size(&self) -> Result<UCoord> {
         self.terminal.size()
     }
 }

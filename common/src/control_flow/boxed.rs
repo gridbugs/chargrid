@@ -3,13 +3,13 @@ use crate::{
     align::Alignment,
     border::BorderStyle,
     control_flow::{
-        unboxed, Lens, OrClickOut, OrClose, OrEscape, OrEscapeOrClickOut, OrEscapeOrStart,
+        Lens, OrClickOut, OrClose, OrEscape, OrEscapeOrClickOut, OrEscapeOrStart, unboxed,
     },
     pad_by::Padding,
 };
 pub use chargrid_core::app;
 use chargrid_core::{
-    input, BoxedComponent, Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size, Style, Tint,
+    BoxedComponent, Component, Ctx, Event, FrameBuffer, ICoord, Rgba32, Style, Tint, UCoord, input,
 };
 use std::time::Duration;
 
@@ -46,7 +46,7 @@ impl<O, S> Component for CF<O, S> {
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.0.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -115,7 +115,7 @@ impl<O: 'static, S: 'static> CF<O, S> {
 
     /// Returns a new `CF` with identical behaviour to `self` but
     /// padded to a given size
-    pub fn pad_to(self, size: Size) -> Self {
+    pub fn pad_to(self, size: UCoord) -> Self {
         self.0.pad_to(size).boxed()
     }
 
@@ -139,7 +139,7 @@ impl<O: 'static, S: 'static> CF<O, S> {
 
     /// Returns a new `CF` with identical behaviour to `self` but
     /// with a specified offset applied when rendsering
-    pub fn add_offset(self, offset: Coord) -> Self {
+    pub fn add_offset(self, offset: ICoord) -> Self {
         self.0.add_offset(offset).boxed()
     }
 
@@ -157,7 +157,7 @@ impl<O: 'static, S: 'static> CF<O, S> {
 
     /// Returns a new `CF` with identical behaviour to `self` but
     /// whose size has been overridden to a specific value
-    pub fn set_size(self, size: Size) -> Self {
+    pub fn set_size(self, size: UCoord) -> Self {
         self.0.set_size(size).boxed()
     }
 
@@ -175,7 +175,7 @@ impl<O: 'static, S: 'static> CF<O, S> {
 
     /// Returns a new `CF` with identical behaviour to `self` but
     /// whose size is bounded by some minimum size
-    pub fn bound_size(self, size: Size) -> Self {
+    pub fn bound_size(self, size: UCoord) -> Self {
         self.0.bound_size(size).boxed()
     }
 

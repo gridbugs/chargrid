@@ -1,6 +1,6 @@
 pub use chargrid_input as input;
 use grid_2d::Grid;
-pub use grid_2d::{Coord, Size};
+pub use grid_2d::{ICoord, UCoord};
 use input::{Input, InputPolicy, KeyboardInput, MouseInput};
 pub use rgb_int;
 pub use rgb_int::Rgba32;
@@ -10,31 +10,31 @@ use std::time::Duration;
 
 #[derive(Clone, Copy, Debug)]
 pub struct BoundingBox {
-    top_left: Coord,
-    bottom_right: Coord,
+    top_left: ICoord,
+    bottom_right: ICoord,
 }
 
 impl BoundingBox {
-    pub fn default_with_size(size: Size) -> Self {
+    pub fn default_with_size(size: UCoord) -> Self {
         Self {
-            top_left: Coord::new(0, 0),
-            bottom_right: size.to_coord().unwrap(),
+            top_left: ICoord::new(0, 0),
+            bottom_right: size.to_icoord(),
         }
     }
 
-    pub fn top_left(&self) -> Coord {
+    pub fn top_left(&self) -> ICoord {
         self.top_left
     }
 
-    pub fn bottom_right(&self) -> Coord {
+    pub fn bottom_right(&self) -> ICoord {
         self.bottom_right
     }
 
-    pub fn size(&self) -> Size {
-        (self.bottom_right - self.top_left).to_size().unwrap()
+    pub fn size(&self) -> UCoord {
+        (self.bottom_right - self.top_left).to_ucoord()
     }
 
-    pub fn coord_relative_to_absolute(&self, coord: Coord) -> Option<Coord> {
+    pub fn coord_relative_to_absolute(&self, coord: ICoord) -> Option<ICoord> {
         if coord.x < 0 || coord.y < 0 {
             return None;
         }
@@ -46,7 +46,7 @@ impl BoundingBox {
         }
     }
 
-    pub fn coord_absolute_to_relative(&self, coord: Coord) -> Option<Coord> {
+    pub fn coord_absolute_to_relative(&self, coord: ICoord) -> Option<ICoord> {
         if coord.x < self.top_left.x
             || coord.y < self.top_left.y
             || coord.x >= self.bottom_right.x
@@ -59,8 +59,8 @@ impl BoundingBox {
 
     /// Move the top-left corner of the bounding box inwards by the specified offset, leaving the
     /// bottom-right corner of the bounding box in place (ie. box shrinks - it does not move).
-    pub fn add_offset(self, offset: Coord) -> Self {
-        let top_left = Coord {
+    pub fn add_offset(self, offset: ICoord) -> Self {
+        let top_left = ICoord {
             x: (self.top_left.x + offset.x).min(self.bottom_right.x),
             y: (self.top_left.y + offset.y).min(self.bottom_right.y),
         };
@@ -68,19 +68,19 @@ impl BoundingBox {
     }
 
     pub fn add_x(self, x: i32) -> Self {
-        self.add_offset(Coord { x, y: 0 })
+        self.add_offset(ICoord { x, y: 0 })
     }
 
     pub fn add_y(self, y: i32) -> Self {
-        self.add_offset(Coord { x: 0, y })
+        self.add_offset(ICoord { x: 0, y })
     }
 
     pub fn add_xy(self, x: i32, y: i32) -> Self {
-        self.add_offset(Coord { x, y })
+        self.add_offset(ICoord { x, y })
     }
 
-    pub fn constrain_size_by(self, by: Coord) -> Self {
-        let bottom_right = Coord {
+    pub fn constrain_size_by(self, by: ICoord) -> Self {
+        let bottom_right = ICoord {
             x: (self.bottom_right.x - by.x).max(self.top_left.x),
             y: (self.bottom_right.y - by.y).max(self.top_left.y),
         };
@@ -90,9 +90,9 @@ impl BoundingBox {
         }
     }
 
-    pub fn set_size(self, size: Size) -> Self {
+    pub fn set_size(self, size: UCoord) -> Self {
         Self {
-            bottom_right: self.top_left + size.to_coord().unwrap(),
+            bottom_right: self.top_left + size.to_icoord(),
             ..self
         }
     }
@@ -105,11 +105,11 @@ impl BoundingBox {
         self.set_size(self.size().set_height(height))
     }
 
-    pub fn add_size(self, size: Size) -> Self {
+    pub fn add_size(self, size: UCoord) -> Self {
         self.set_size(self.size() + size)
     }
 
-    pub fn contains_coord(&self, coord: Coord) -> bool {
+    pub fn contains_coord(&self, coord: ICoord) -> bool {
         (coord - self.top_left).is_valid(self.size())
     }
 }
@@ -176,17 +176,17 @@ pub struct FrameBuffer {
 }
 
 impl FrameBuffer {
-    pub fn new(size: Size) -> Self {
+    pub fn new(size: UCoord) -> Self {
         Self {
             grid: Grid::new_copy(size, FrameBufferCell::BLANK),
         }
     }
 
-    pub fn size(&self) -> Size {
+    pub fn size(&self) -> UCoord {
         self.grid.size()
     }
 
-    pub fn resize(&mut self, size: Size) {
+    pub fn resize(&mut self, size: UCoord) {
         self.grid = Grid::new_copy(size, FrameBufferCell::BLANK);
     }
 
@@ -217,7 +217,7 @@ impl FrameBuffer {
         self.grid.rows()
     }
 
-    pub fn set_cell(&mut self, coord: Coord, depth: i8, render_cell: RenderCell) {
+    pub fn set_cell(&mut self, coord: ICoord, depth: i8, render_cell: RenderCell) {
         if let Some(cell) = self.grid.get_mut(coord) {
             if cell.foreground_depth <= depth || cell.background_depth <= depth {
                 if let Some(character) = render_cell.character {
@@ -252,7 +252,7 @@ impl FrameBuffer {
     pub fn set_cell_relative_to_ctx<'a>(
         &mut self,
         ctx: Ctx<'a>,
-        coord: Coord,
+        coord: ICoord,
         depth: i8,
         render_cell: RenderCell,
     ) {
@@ -551,7 +551,7 @@ impl<'a> Ctx<'a> {
     pub fn with_tint(self, tint: &'a dyn Tint) -> Self {
         Self { tint, ..self }
     }
-    pub fn default_with_bounding_box_size(size: Size) -> Self {
+    pub fn default_with_bounding_box_size(size: UCoord) -> Self {
         Self {
             tint: &TintIdentity,
             depth: 0,
@@ -561,7 +561,7 @@ impl<'a> Ctx<'a> {
 
     /// Move the top-left corner of the bounding box inwards by the specified offset, leaving the
     /// bottom-right corner of the bounding box in place (ie. box shrinks - it does not move).
-    pub fn add_offset(self, offset: Coord) -> Self {
+    pub fn add_offset(self, offset: ICoord) -> Self {
         Self {
             bounding_box: self.bounding_box.add_offset(offset),
             ..self
@@ -569,15 +569,15 @@ impl<'a> Ctx<'a> {
     }
 
     pub fn add_x(self, x: i32) -> Self {
-        self.add_offset(Coord { x, y: 0 })
+        self.add_offset(ICoord { x, y: 0 })
     }
 
     pub fn add_y(self, y: i32) -> Self {
-        self.add_offset(Coord { x: 0, y })
+        self.add_offset(ICoord { x: 0, y })
     }
 
     pub fn add_xy(self, x: i32, y: i32) -> Self {
-        self.add_offset(Coord { x, y })
+        self.add_offset(ICoord { x, y })
     }
 
     pub fn add_depth(self, depth_delta: i8) -> Self {
@@ -587,14 +587,14 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    pub fn constrain_size_by(self, by: Coord) -> Self {
+    pub fn constrain_size_by(self, by: ICoord) -> Self {
         Self {
             bounding_box: self.bounding_box.constrain_size_by(by),
             ..self
         }
     }
 
-    pub fn set_size(self, size: Size) -> Self {
+    pub fn set_size(self, size: UCoord) -> Self {
         Self {
             bounding_box: self.bounding_box.set_size(size),
             ..self
@@ -615,14 +615,14 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    pub fn add_size(self, size: Size) -> Self {
+    pub fn add_size(self, size: UCoord) -> Self {
         Self {
             bounding_box: self.bounding_box.add_size(size),
             ..self
         }
     }
 
-    pub fn top_left(self) -> Coord {
+    pub fn top_left(self) -> ICoord {
         self.bounding_box.top_left
     }
 }
@@ -724,7 +724,7 @@ pub trait Component {
     /// Return the current size (in cells) of this component. This allows decorators to account for
     /// the size of the components they decorate (e.g. when drawing a border around a component, its
     /// size must be known).
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size;
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord;
 }
 
 /// A wrapper of `Component` implementation which erases its specific by placing it inside a `Box`
@@ -739,7 +739,7 @@ impl<O, S> Component for BoxedComponent<O, S> {
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.0.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -755,7 +755,7 @@ pub mod prelude {
     #[cfg(feature = "gamepad")]
     pub use super::input::{GamepadButton, GamepadInput};
     pub use super::{
-        Component, Coord, Ctx, Event, FrameBuffer, RenderCell, Rgba32, Size, Style, Tint, app,
+        Component, Ctx, Event, FrameBuffer, ICoord, RenderCell, Rgba32, Style, Tint, UCoord, app,
         ctx_tint, input, input::Input, input::KeyboardInput, input::MouseButton, input::MouseInput,
         input::ScrollDirection,
     };

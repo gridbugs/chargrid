@@ -24,11 +24,11 @@ pub struct PadBy<C: Component> {
 
 impl Padding {
     fn update_ctx<'a>(&self, ctx: Ctx<'a>) -> Ctx<'a> {
-        ctx.add_offset(Coord::new(self.left as i32, self.top as i32))
-            .add_size(Size::new(self.right, self.bottom))
+        ctx.add_offset(ICoord::new(self.left as i32, self.top as i32))
+            .add_size(UCoord::new(self.right, self.bottom))
     }
-    fn size_delta(&self) -> Size {
-        Size::new(self.left + self.right, self.top + self.bottom)
+    fn size_delta(&self) -> UCoord {
+        UCoord::new(self.left + self.right, self.top + self.bottom)
     }
 }
 
@@ -43,7 +43,7 @@ impl<C: Component> Component for PadBy<C> {
         self.component
             .update(state, self.padding.update_ctx(ctx), event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx) + self.padding.size_delta()
     }
 }

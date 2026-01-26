@@ -2,7 +2,7 @@ use chargrid_core::*;
 
 pub struct PadTo<C: Component> {
     pub component: C,
-    pub size: Size,
+    pub size: UCoord,
 }
 
 impl<C: Component> Component for PadTo<C> {
@@ -14,7 +14,7 @@ impl<C: Component> Component for PadTo<C> {
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx).pairwise_max(self.size)
     }
 }

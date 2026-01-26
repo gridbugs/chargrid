@@ -68,7 +68,7 @@ impl Component for TextField {
                 character: Some(ch),
                 style: self.text_style,
             };
-            fb.set_cell_relative_to_ctx(ctx, Coord::new(i as i32, 0), 0, render_cell);
+            fb.set_cell_relative_to_ctx(ctx, ICoord::new(i as i32, 0), 0, render_cell);
         }
         let cursor_render_cell = RenderCell {
             character: None,
@@ -76,7 +76,7 @@ impl Component for TextField {
         };
         fb.set_cell_relative_to_ctx(
             ctx,
-            Coord::new(self.cursor_position as i32, 0),
+            ICoord::new(self.cursor_position as i32, 0),
             0,
             cursor_render_cell,
         );
@@ -118,7 +118,7 @@ impl Component for TextField {
         None
     }
 
-    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
-        Size::new(self.width, 1)
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> UCoord {
+        UCoord::new(self.width, 1)
     }
 }

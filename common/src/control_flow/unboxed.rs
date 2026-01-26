@@ -15,7 +15,8 @@ use crate::{
     text::StyledString,
 };
 use chargrid_core::{
-    Component, Coord, Ctx, Event, FrameBuffer, Rgba32, Size, Style, Tint, TintIdentity, app, input,
+    Component, Ctx, Event, FrameBuffer, ICoord, Rgba32, Style, Tint, TintIdentity, UCoord, app,
+    input,
 };
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -34,7 +35,7 @@ impl<C: Component> Component for CF<C> {
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.0.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -104,7 +105,7 @@ impl<C: Component> CF<C> {
         })
     }
 
-    pub fn pad_to(self, size: Size) -> CF<PadTo<C>> {
+    pub fn pad_to(self, size: UCoord) -> CF<PadTo<C>> {
         cf(PadTo {
             component: self.0,
             size,
@@ -129,7 +130,7 @@ impl<C: Component> CF<C> {
         self.align(Alignment::centre())
     }
 
-    pub fn add_offset(self, offset: Coord) -> CF<AddOffset<C>> {
+    pub fn add_offset(self, offset: ICoord) -> CF<AddOffset<C>> {
         cf(AddOffset {
             component: self.0,
             offset,
@@ -139,18 +140,18 @@ impl<C: Component> CF<C> {
     pub fn add_x(self, x: i32) -> CF<AddOffset<C>> {
         cf(AddOffset {
             component: self.0,
-            offset: Coord { x, y: 0 },
+            offset: ICoord { x, y: 0 },
         })
     }
 
     pub fn add_y(self, y: i32) -> CF<AddOffset<C>> {
         cf(AddOffset {
             component: self.0,
-            offset: Coord { x: 0, y },
+            offset: ICoord { x: 0, y },
         })
     }
 
-    pub fn set_size(self, size: Size) -> CF<SetSize<C>> {
+    pub fn set_size(self, size: UCoord) -> CF<SetSize<C>> {
         cf(SetSize {
             component: self.0,
             size,
@@ -171,7 +172,7 @@ impl<C: Component> CF<C> {
         })
     }
 
-    pub fn bound_size(self, size: Size) -> CF<BoundSize<C>> {
+    pub fn bound_size(self, size: UCoord) -> CF<BoundSize<C>> {
         cf(BoundSize {
             component: self.0,
             size,
@@ -466,8 +467,8 @@ impl<T: Clone> Component for Val<T> {
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
         Some(self.0.clone())
     }
-    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
-        Size::new_u16(0, 0)
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> UCoord {
+        UCoord::new_u16(0, 0)
     }
 }
 
@@ -487,8 +488,8 @@ impl<T> Component for ValOnce<T> {
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
         self.0.take()
     }
-    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
-        Size::new_u16(0, 0)
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> UCoord {
+        UCoord::new_u16(0, 0)
     }
 }
 
@@ -510,8 +511,8 @@ impl<T> Component for Never<T> {
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
         None
     }
-    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
-        Size::new_u16(0, 0)
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> UCoord {
+        UCoord::new_u16(0, 0)
     }
 }
 
@@ -533,7 +534,7 @@ where
     fn update(&mut self, _state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.component.update(&mut self.state, ctx, event)
     }
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(&self.state, ctx)
     }
 }
@@ -558,7 +559,7 @@ where
             .update(state, ctx, event)
             .map(LoopControl::Continue)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -583,7 +584,7 @@ where
             .update(state, ctx, event)
             .map(LoopControl::Break)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -639,7 +640,7 @@ where
             None
         }
     }
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(&self.state, ctx)
     }
 }
@@ -691,7 +692,7 @@ where
             None
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -740,7 +741,7 @@ where
             None
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -795,7 +796,7 @@ where
             None
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -835,7 +836,7 @@ where
             state
         ))
     }
-    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> UCoord {
         panic!("nothing should be checking the size of this component")
     }
 }
@@ -877,7 +878,7 @@ where
             Self::Component(component) => component.update(state, ctx, event),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         match self {
             Self::F(_) => ctx.bounding_box.size(),
             Self::Component(component) => component.size(state, ctx),
@@ -901,7 +902,7 @@ where
         (self.f)(ctx, fb);
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         ctx.bounding_box.size()
     }
 }
@@ -926,7 +927,7 @@ where
         (self.f)(state, ctx, fb);
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         ctx.bounding_box.size()
     }
 }
@@ -949,7 +950,7 @@ where
     fn update(&mut self, _state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.component.update(&mut (), ctx, event)
     }
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(&(), ctx)
     }
 }
@@ -973,7 +974,7 @@ where
         self.component.update(state, ctx, event);
         None
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1025,7 +1026,7 @@ where
             AndThenPersistentPriv::Second { component, .. } => component.update(state, ctx, event),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         match &self.0 {
             AndThenPersistentPriv::First(first) => {
                 first.as_ref().unwrap().component.size(state, ctx)
@@ -1070,7 +1071,7 @@ where
             Self::Second(component) => component.update(state, ctx, event),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         match self {
             Self::First { component, .. } => component.size(state, ctx),
             Self::Second(component) => component.size(state, ctx),
@@ -1113,7 +1114,7 @@ where
             Self::Second(component) => component.update(state, ctx, event),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         match self {
             Self::First { component, .. } => component.size(state, ctx),
             Self::Second(component) => component.size(state, ctx),
@@ -1157,7 +1158,7 @@ where
             Self::Second(component) => component.update(state, ctx, event),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         match self {
             Self::First { component, .. } => component.size(state, ctx),
             Self::Second(component) => component.size(state, ctx),
@@ -1200,7 +1201,7 @@ where
             Self::Second(component) => component.update(state, ctx, event),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         match self {
             Self::First { component, .. } => component.size(state, ctx),
             Self::Second(component) => component.size(state, ctx),
@@ -1234,7 +1235,7 @@ where
             }
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1261,7 +1262,7 @@ where
             )),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1286,7 +1287,7 @@ where
             Some(_) => Some((self.f.take().expect("component yielded multiple times"))()),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1313,7 +1314,7 @@ where
             )),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1336,7 +1337,7 @@ where
             .update(state, ctx, event)
             .and_then(|_| self.value.take())
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1357,7 +1358,7 @@ where
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.0.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1382,7 +1383,7 @@ where
         }
         output_unless_close
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1404,7 +1405,7 @@ impl<C: Component, F: FnMut(&mut C::State)> Component for OnExitWithState<C, F> 
         }
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1428,7 +1429,7 @@ where
         }
         self.0.update(state, ctx, event).map(Ok)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1457,7 +1458,7 @@ where
             _ => self.0.update(state, ctx, event).map(Ok),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1487,7 +1488,7 @@ where
             self.0.update(state, ctx, event).map(Ok)
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1524,7 +1525,7 @@ where
             self.0.update(state, ctx, event).map(Ok)
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1562,7 +1563,7 @@ where
             _ => self.0.update(state, ctx, event).map(Ok),
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1580,7 +1581,7 @@ impl<T, C: Component<Output = Option<T>>> Component for NoPeek<C> {
         }
         self.0.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1610,7 +1611,7 @@ where
         }
         None
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1635,7 +1636,7 @@ where
             _ => None,
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1668,7 +1669,7 @@ where
         self.background.update(state, ctx, event);
         self.foreground.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.foreground.size(state, ctx)
     }
 }
@@ -1687,7 +1688,7 @@ where
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {
         None
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1702,7 +1703,7 @@ impl<C: Component> Component for Some_<C> {
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         Some(self.0.update(state, ctx, event))
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1718,7 +1719,7 @@ impl<C: Component> Component for None_<C> {
         self.0.update(state, ctx, event);
         None
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.0.size(state, ctx)
     }
 }
@@ -1734,8 +1735,8 @@ impl<S> Component for Unit<S> {
     type State = S;
     fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
-        Size::new_u16(0, 0)
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> UCoord {
+        UCoord::new_u16(0, 0)
     }
 }
 
@@ -1762,8 +1763,8 @@ where
             component.update(state, ctx, event);
         }
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
-        let mut size = Size::new_u16(0, 0);
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
+        let mut size = UCoord::new_u16(0, 0);
         for component in &self.iterable {
             size = size.pairwise_max(component.size(state, ctx));
         }
@@ -1806,7 +1807,7 @@ where
         }
         None
     }
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         ctx.bounding_box.size()
     }
 }
@@ -1839,7 +1840,7 @@ where
         }
         None
     }
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         ctx.bounding_box.size()
     }
 }
@@ -1893,13 +1894,13 @@ where
             .update(state, self.component_ctx(state, ctx), event)
     }
 
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let title_size = self.title.size(state, ctx);
         let component_size = self.component.size(state, self.component_ctx(state, ctx));
         let width = title_size.width().max(component_size.width());
         let height =
             (title_size.height() as i32 + component_size.height() as i32 + self.padding) as u32;
-        Size::new(width, height)
+        UCoord::new(width, height)
     }
 }
 
@@ -1943,13 +1944,13 @@ where
             .update(state, self.component_ctx(state, ctx), event)
     }
 
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let title_size = self.title.size(state, ctx);
         let component_size = self.component.size(state, self.component_ctx(state, ctx));
         let width =
             (title_size.width() as i32 + component_size.width() as i32 + self.padding) as u32;
         let height = title_size.height().max(component_size.height());
-        Size::new(width, height)
+        UCoord::new(width, height)
     }
 }
 
@@ -1967,7 +1968,7 @@ impl<C: Component, F: FnMut()> Component for OnEachTick<C, F> {
         (self.f)();
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }
@@ -1986,7 +1987,7 @@ impl<C: Component, F: FnMut(&mut C::State)> Component for OnEachTickWithState<C,
         (self.f)(state);
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }

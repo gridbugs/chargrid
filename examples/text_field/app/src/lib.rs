@@ -25,7 +25,7 @@ impl Component for AppComponent {
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.text_field.update(state, ctx, event);
     }
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         ctx.bounding_box.size()
     }
 }

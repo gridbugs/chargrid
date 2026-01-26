@@ -3,7 +3,7 @@ use anyhow::anyhow;
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
 use chargrid_runtime::{Component, FrameBuffer, app, on_frame, on_input};
-use grid_2d::{Coord, Grid, Size};
+use grid_2d::{Grid, ICoord, UCoord};
 use std::{
     borrow::Cow,
     sync::Arc,
@@ -204,7 +204,7 @@ impl WgpuState {
         adapter: &wgpu::Adapter,
         surface: wgpu::Surface<'static>,
         sizes: &Sizes,
-        grid_size: Size,
+        grid_size: UCoord,
         font_bytes: FontBytes,
     ) -> Result<Self, ContextBuildError> {
         use std::mem;
@@ -537,14 +537,14 @@ impl WgpuState {
 }
 
 struct InputState {
-    last_mouse_coord: Coord,
+    last_mouse_coord: ICoord,
     last_mouse_button: Option<chargrid_input::MouseButton>,
 }
 
 impl Default for InputState {
     fn default() -> Self {
         Self {
-            last_mouse_coord: Coord::new(0, 0),
+            last_mouse_coord: ICoord::new(0, 0),
             last_mouse_button: None,
         }
     }
@@ -560,10 +560,10 @@ struct Sizes {
 }
 
 impl Sizes {
-    fn grid_size(&self) -> Size {
+    fn grid_size(&self) -> UCoord {
         let width = (self.native_window_dimensions.width / self.cell_dimensions.width).floor();
         let height = (self.native_window_dimensions.height / self.cell_dimensions.height).floor();
-        Size::new(width as u32, height as u32)
+        UCoord::new(width as u32, height as u32)
     }
     fn native_ratio(&self, window_dimensions: Dimensions<f64>) -> f64 {
         let ratio_x = window_dimensions.width / self.native_window_dimensions.width;

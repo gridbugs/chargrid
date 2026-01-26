@@ -15,7 +15,7 @@ trait Target {
     fn set_cell_relative_to_ctx<'a>(
         &mut self,
         ctx: Ctx<'a>,
-        coord: Coord,
+        coord: ICoord,
         depth: i8,
         render_cell: RenderCell,
     );
@@ -25,7 +25,7 @@ impl Target for FrameBuffer {
     fn set_cell_relative_to_ctx<'a>(
         &mut self,
         ctx: Ctx<'a>,
-        coord: Coord,
+        coord: ICoord,
         depth: i8,
         render_cell: RenderCell,
     ) {
@@ -35,12 +35,12 @@ impl Target for FrameBuffer {
 
 #[derive(Default, Clone, Copy)]
 struct MeasureBounds {
-    max_coord: Coord,
+    max_coord: ICoord,
 }
 
 impl MeasureBounds {
-    fn to_size(self) -> Size {
-        (self.max_coord + Coord::new(1, 1)).to_size().unwrap()
+    fn to_size(self) -> UCoord {
+        (self.max_coord + ICoord::new(1, 1)).to_ucoord()
     }
 }
 
@@ -48,7 +48,7 @@ impl Target for MeasureBounds {
     fn set_cell_relative_to_ctx<'a>(
         &mut self,
         _ctx: Ctx<'a>,
-        coord: Coord,
+        coord: ICoord,
         _depth: i8,
         _render_cell: RenderCell,
     ) {
@@ -66,12 +66,12 @@ impl StyledString {
     }
 
     fn process_character<T: Target>(
-        mut cursor: Coord,
+        mut cursor: ICoord,
         character: char,
         style: Style,
         ctx: Ctx,
         fb: &mut T,
-    ) -> Coord {
+    ) -> ICoord {
         match character {
             '\n' => {
                 cursor.x = 0;
@@ -84,13 +84,13 @@ impl StyledString {
                     style,
                 };
                 fb.set_cell_relative_to_ctx(ctx, cursor, 0, render_cell);
-                cursor += Coord::new(1, 0);
+                cursor += ICoord::new(1, 0);
             }
         }
         cursor
     }
 
-    fn process<T: Target>(&self, mut cursor: Coord, ctx: Ctx, fb: &mut T) -> Coord {
+    fn process<T: Target>(&self, mut cursor: ICoord, ctx: Ctx, fb: &mut T) -> ICoord {
         for character in self.string.chars() {
             cursor = Self::process_character(cursor, character, self.style, ctx, fb);
         }
@@ -119,12 +119,12 @@ impl Component for StyledString {
     type Output = ();
     type State = ();
     fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        self.process(Coord::new(0, 0), ctx, fb);
+        self.process(ICoord::new(0, 0), ctx, fb);
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         let mut measure_bounds = MeasureBounds::default();
-        self.process(Coord::new(0, 0), ctx, &mut measure_bounds);
+        self.process(ICoord::new(0, 0), ctx, &mut measure_bounds);
         measure_bounds.to_size()
     }
 }
@@ -135,12 +135,12 @@ pub struct StyledStringCharWrapped {
 
 impl StyledStringCharWrapped {
     fn process_character<T: Target>(
-        mut cursor: Coord,
+        mut cursor: ICoord,
         character: char,
         style: Style,
         ctx: Ctx,
         fb: &mut T,
-    ) -> Coord {
+    ) -> ICoord {
         match character {
             '\n' => {
                 cursor.x = 0;
@@ -153,7 +153,7 @@ impl StyledStringCharWrapped {
                     style,
                 };
                 fb.set_cell_relative_to_ctx(ctx, cursor, 0, render_cell);
-                cursor += Coord::new(1, 0);
+                cursor += ICoord::new(1, 0);
                 if cursor.x >= ctx.bounding_box.size().width() as i32 {
                     cursor.x = 0;
                     cursor.y += 1;
@@ -165,10 +165,10 @@ impl StyledStringCharWrapped {
 
     fn process_styled_string<T: Target>(
         styled_string: &StyledString,
-        mut cursor: Coord,
+        mut cursor: ICoord,
         ctx: Ctx,
         fb: &mut T,
-    ) -> Coord {
+    ) -> ICoord {
         for character in styled_string.string.chars() {
             cursor = Self::process_character(cursor, character, styled_string.style, ctx, fb);
         }
@@ -184,14 +184,14 @@ impl Component for StyledStringCharWrapped {
     type Output = ();
     type State = ();
     fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        Self::process_styled_string(&self.styled_string, Coord::new(0, 0), ctx, fb);
+        Self::process_styled_string(&self.styled_string, ICoord::new(0, 0), ctx, fb);
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         let mut measure_bounds = MeasureBounds::default();
         Self::process_styled_string(
             &self.styled_string,
-            Coord::new(0, 0),
+            ICoord::new(0, 0),
             ctx,
             &mut measure_bounds,
         );
@@ -220,7 +220,7 @@ impl Component for StyledStringWordWrapped {
         state.flush(ctx, fb);
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         let mut measure_bounds = MeasureBounds::default();
         let mut state = self.state.borrow_mut();
         state.clear();
@@ -232,13 +232,13 @@ impl Component for StyledStringWordWrapped {
 
 #[derive(Default)]
 struct WordWrapState {
-    cursor: Coord,
+    cursor: ICoord,
     current_word_buffer: Vec<RenderCell>,
 }
 
 impl WordWrapState {
     fn clear(&mut self) {
-        self.cursor = Coord::new(0, 0);
+        self.cursor = ICoord::new(0, 0);
         self.current_word_buffer.clear();
     }
 
@@ -359,15 +359,15 @@ impl Component for Text {
     type Output = ();
     type State = ();
     fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        let mut cursor = Coord::new(0, 0);
+        let mut cursor = ICoord::new(0, 0);
         for part in self.parts.iter() {
             cursor = part.process(cursor, ctx, fb);
         }
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         let mut measure_bounds = MeasureBounds::default();
-        let mut cursor = Coord::new(0, 0);
+        let mut cursor = ICoord::new(0, 0);
         for part in self.parts.iter() {
             cursor = part.process(cursor, ctx, &mut measure_bounds);
         }
@@ -389,15 +389,15 @@ impl Component for TextCharWrapped {
     type Output = ();
     type State = ();
     fn render(&self, _state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        let mut cursor = Coord::new(0, 0);
+        let mut cursor = ICoord::new(0, 0);
         for part in self.text.parts.iter() {
             cursor = StyledStringCharWrapped::process_styled_string(part, cursor, ctx, fb);
         }
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         let mut measure_bounds = MeasureBounds::default();
-        let mut cursor = Coord::new(0, 0);
+        let mut cursor = ICoord::new(0, 0);
         for part in self.text.parts.iter() {
             cursor = StyledStringCharWrapped::process_styled_string(
                 part,
@@ -433,7 +433,7 @@ impl Component for TextWordWrapped {
         state.flush(ctx, fb);
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         let mut measure_bounds = MeasureBounds::default();
         let mut state = self.state.borrow_mut();
         state.clear();

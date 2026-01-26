@@ -12,7 +12,7 @@ impl<C: Component> Component for Fill<C> {
         let size = self.component.size(state, ctx);
         for y in 0..(size.height() as i32) {
             for x in 0..(size.width() as i32) {
-                let coord = Coord::new(x, y);
+                let coord = ICoord::new(x, y);
                 fb.set_cell_relative_to_ctx(
                     ctx,
                     coord,
@@ -32,7 +32,7 @@ impl<C: Component> Component for Fill<C> {
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, ctx)
     }
 }

@@ -2,7 +2,7 @@ use chargrid_core::*;
 
 pub struct SetSize<C: Component> {
     pub component: C,
-    pub size: Size,
+    pub size: UCoord,
 }
 
 impl<C: Component> Component for SetSize<C> {
@@ -16,7 +16,7 @@ impl<C: Component> Component for SetSize<C> {
         let ctx = ctx.set_size(self.size);
         self.component.update(state, ctx, event)
     }
-    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> UCoord {
         self.size
     }
 }
@@ -37,7 +37,7 @@ impl<C: Component> Component for SetWidth<C> {
         let ctx = ctx.set_width(self.width);
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let ctx = ctx.set_width(self.width);
         self.component.size(state, ctx)
     }
@@ -59,7 +59,7 @@ impl<C: Component> Component for SetHeight<C> {
         let ctx = ctx.set_height(self.height);
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let ctx = ctx.set_height(self.height);
         self.component.size(state, ctx)
     }

@@ -2,7 +2,7 @@ use chargrid_core::*;
 
 pub struct AddOffset<C: Component> {
     pub component: C,
-    pub offset: Coord,
+    pub offset: ICoord,
 }
 
 impl<C: Component> Component for AddOffset<C> {
@@ -16,7 +16,7 @@ impl<C: Component> Component for AddOffset<C> {
         let ctx = ctx.add_offset(self.offset);
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let ctx = ctx.add_offset(self.offset);
         self.component.size(state, ctx)
     }

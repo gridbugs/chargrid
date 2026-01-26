@@ -128,15 +128,15 @@ impl Default for BorderStyle {
 }
 
 impl BorderStyle {
-    fn child_offset_top_left(&self) -> Coord {
-        Coord {
+    fn child_offset_top_left(&self) -> ICoord {
+        ICoord {
             x: (self.padding.left + 1) as i32,
             y: (self.padding.top + 1) as i32,
         }
     }
 
-    fn child_offset_bottom_right(&self) -> Coord {
-        Coord {
+    fn child_offset_bottom_right(&self) -> ICoord {
+        ICoord {
             x: (self.padding.left + 1) as i32,
             y: (self.padding.top + 1) as i32,
         }
@@ -154,43 +154,43 @@ impl BorderStyle {
         }
     }
 
-    fn draw_border(&self, size: Size, ctx: Ctx, fb: &mut FrameBuffer) {
+    fn draw_border(&self, size: UCoord, ctx: Ctx, fb: &mut FrameBuffer) {
         // span is 1 less than the size of the bordered component in the x and y directions
-        let span = Coord {
+        let span = ICoord {
             x: (self.padding.left + self.padding.right + 1) as i32,
             y: (self.padding.top + self.padding.bottom + 1) as i32,
         } + size;
         fb.set_cell_relative_to_ctx(
             ctx,
-            Coord::new(0, 0),
+            ICoord::new(0, 0),
             0,
             self.render_cell(self.chars.top_left),
         );
         fb.set_cell_relative_to_ctx(
             ctx,
-            Coord::new(span.x, 0),
+            ICoord::new(span.x, 0),
             0,
             self.render_cell(self.chars.top_right),
         );
         fb.set_cell_relative_to_ctx(
             ctx,
-            Coord::new(0, span.y),
+            ICoord::new(0, span.y),
             0,
             self.render_cell(self.chars.bottom_left),
         );
         fb.set_cell_relative_to_ctx(
             ctx,
-            Coord::new(span.x, span.y),
+            ICoord::new(span.x, span.y),
             0,
             self.render_cell(self.chars.bottom_right),
         );
         let title_offset = if let Some(title) = self.title.as_ref() {
-            let before = Coord::new(1, 0);
-            let after = Coord::new(title.len() as i32 + 2, 0);
+            let before = ICoord::new(1, 0);
+            let after = ICoord::new(title.len() as i32 + 2, 0);
             fb.set_cell_relative_to_ctx(ctx, before, 0, self.render_cell(self.chars.before_title));
             fb.set_cell_relative_to_ctx(ctx, after, 0, self.render_cell(self.chars.after_title));
             for (index, ch) in title.chars().enumerate() {
-                let coord = Coord::new(index as i32 + 2, 0);
+                let coord = ICoord::new(index as i32 + 2, 0);
                 fb.set_cell_relative_to_ctx(
                     ctx,
                     coord,
@@ -206,12 +206,17 @@ impl BorderStyle {
             0
         };
         for i in (1 + title_offset)..span.x {
-            fb.set_cell_relative_to_ctx(ctx, Coord::new(i, 0), 0, self.render_cell(self.chars.top));
+            fb.set_cell_relative_to_ctx(
+                ctx,
+                ICoord::new(i, 0),
+                0,
+                self.render_cell(self.chars.top),
+            );
         }
         for i in 1..span.x {
             fb.set_cell_relative_to_ctx(
                 ctx,
-                Coord::new(i, span.y),
+                ICoord::new(i, span.y),
                 0,
                 self.render_cell(self.chars.bottom),
             );
@@ -219,13 +224,13 @@ impl BorderStyle {
         for i in 1..span.y {
             fb.set_cell_relative_to_ctx(
                 ctx,
-                Coord::new(0, i),
+                ICoord::new(0, i),
                 0,
                 self.render_cell(self.chars.left),
             );
             fb.set_cell_relative_to_ctx(
                 ctx,
-                Coord::new(span.x, i),
+                ICoord::new(span.x, i),
                 0,
                 self.render_cell(self.chars.right),
             );
@@ -256,9 +261,9 @@ impl<C: Component> Component for Border<C> {
         self.component
             .update(state, self.style.inner_ctx(ctx), event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, self.style.inner_ctx(ctx))
-            + self.style.child_offset_top_left().to_size().unwrap()
-            + self.style.child_offset_bottom_right().to_size().unwrap()
+            + self.style.child_offset_top_left().to_ucoord()
+            + self.style.child_offset_bottom_right().to_ucoord()
     }
 }

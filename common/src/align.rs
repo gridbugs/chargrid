@@ -46,15 +46,15 @@ impl<C: Component> Align<C> {
         let ctx_size = ctx.bounding_box.size();
         let x_offset = match self.alignment.x {
             AlignmentX::Left => 0,
-            AlignmentX::Centre => (ctx_size.x() as i32 - size.x() as i32) / 2,
-            AlignmentX::Right => ctx_size.x() as i32 - size.x() as i32,
+            AlignmentX::Centre => (ctx_size.width() as i32 - size.width() as i32) / 2,
+            AlignmentX::Right => ctx_size.width() as i32 - size.width() as i32,
         };
         let y_offset = match self.alignment.y {
             AlignmentY::Top => 0,
-            AlignmentY::Centre => (ctx_size.y() as i32 - size.y() as i32) / 2,
-            AlignmentY::Bottom => ctx_size.y() as i32 - size.y() as i32,
+            AlignmentY::Centre => (ctx_size.height() as i32 - size.height() as i32) / 2,
+            AlignmentY::Bottom => ctx_size.height() as i32 - size.height() as i32,
         };
-        ctx.add_offset(Coord::new(x_offset, y_offset))
+        ctx.add_offset(ICoord::new(x_offset, y_offset))
     }
 }
 
@@ -68,7 +68,7 @@ impl<C: Component> Component for Align<C> {
         self.component
             .update(state, self.child_ctx(state, ctx), event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(state, self.child_ctx(state, ctx))
     }
 }

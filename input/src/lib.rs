@@ -1,4 +1,4 @@
-pub use coord_2d::Coord;
+pub use coord_2d::ICoord;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
@@ -86,8 +86,8 @@ impl serde::Serialize for KeyboardInput {
     where
         S: serde::Serializer,
     {
-        use key_names::*;
         use KeyboardInput::*;
+        use key_names::*;
         match self {
             Char(c) => serializer.serialize_char(*c),
             Function(n) => serializer.serialize_str(&format!("f{}", n)),
@@ -135,25 +135,25 @@ impl<'de> serde::Deserialize<'de> for KeyboardInput {
 pub enum MouseInput {
     MouseMove {
         button: Option<MouseButton>,
-        coord: Coord,
+        coord: ICoord,
     },
     MousePress {
         button: MouseButton,
-        coord: Coord,
+        coord: ICoord,
     },
     MouseRelease {
         // some platforms (e.g. ansi terminal) don't report the button that was released
         button: Result<MouseButton, NotSupported>,
-        coord: Coord,
+        coord: ICoord,
     },
     MouseScroll {
         direction: ScrollDirection,
-        coord: Coord,
+        coord: ICoord,
     },
 }
 
 impl MouseInput {
-    pub fn coord(&self) -> Coord {
+    pub fn coord(&self) -> ICoord {
         match self {
             Self::MouseMove { coord, .. }
             | Self::MousePress { coord, .. }
@@ -162,7 +162,7 @@ impl MouseInput {
         }
     }
 
-    fn coord_mut(&mut self) -> &mut Coord {
+    fn coord_mut(&mut self) -> &mut ICoord {
         match self {
             Self::MouseMove { coord, .. }
             | Self::MousePress { coord, .. }
@@ -171,7 +171,7 @@ impl MouseInput {
         }
     }
 
-    pub fn relative_to_coord(&self, coord: Coord) -> Self {
+    pub fn relative_to_coord(&self, coord: ICoord) -> Self {
         let mut ret = *self;
         *ret.coord_mut() -= coord;
         ret

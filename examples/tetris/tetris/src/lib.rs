@@ -1,4 +1,4 @@
-use coord_2d::{Coord, Size};
+use coord_2d::{ICoord, UCoord};
 use rand::Rng;
 use std::mem;
 use std::time::Duration;
@@ -21,7 +21,7 @@ pub enum PieceType {
 
 #[derive(Clone)]
 pub struct Piece {
-    pub coords: [Coord; PIECE_SIZE],
+    pub coords: [ICoord; PIECE_SIZE],
     pub typ: PieceType,
 }
 
@@ -36,7 +36,7 @@ impl Piece {
         Self { coords, typ }
     }
 
-    fn translate(&self, offset: Coord) -> Self {
+    fn translate(&self, offset: ICoord) -> Self {
         Self {
             coords: [
                 self.coords[0] + offset,
@@ -67,9 +67,9 @@ impl Piece {
         }
     }
 
-    fn rotate_about(coord: Coord, offset: Coord) -> Coord {
+    fn rotate_about(coord: ICoord, offset: ICoord) -> ICoord {
         let relative = coord - offset;
-        let relative = Coord {
+        let relative = ICoord {
             x: relative.y,
             y: 0 - relative.x,
         };
@@ -134,7 +134,7 @@ impl Row {
 }
 
 pub struct Board {
-    pub size: Size,
+    pub size: UCoord,
     pub rows: Vec<Row>,
     rows_swap: Vec<Row>,
     empty_swap: Vec<Row>,
@@ -148,14 +148,14 @@ impl Board {
         }
 
         Self {
-            size: Size::new(width, height),
+            size: UCoord::new(width, height),
             rows,
             rows_swap: Vec::new(),
             empty_swap: Vec::new(),
         }
     }
 
-    pub fn get(&self, c: Coord) -> Option<&Cell> {
+    pub fn get(&self, c: ICoord) -> Option<&Cell> {
         if c.x < 0 || c.y < 0 {
             return None;
         }
@@ -164,7 +164,7 @@ impl Board {
             .and_then(|r| r.cells.get(c.x as usize))
     }
 
-    fn get_mut(&mut self, c: Coord) -> Option<&mut Cell> {
+    fn get_mut(&mut self, c: ICoord) -> Option<&mut Cell> {
         if c.x < 0 || c.y < 0 {
             return None;
         }
@@ -175,10 +175,10 @@ impl Board {
 
     fn connects(&self, piece: &Piece) -> bool {
         piece.coords.iter().any(|c| {
-            if c.y == self.size.y() as i32 - 1 {
+            if c.y == self.size.height() as i32 - 1 {
                 return true;
             }
-            self.get(c + Coord::new(0, 1))
+            self.get(c + ICoord::new(0, 1))
                 .map(|c| c.typ.is_some())
                 .unwrap_or(false)
         })
@@ -187,8 +187,8 @@ impl Board {
     fn collides(&self, piece: &Piece) -> bool {
         piece.coords.iter().any(|c| {
             c.x < 0
-                || c.x >= self.size.x() as i32
-                || c.y >= self.size.y() as i32
+                || c.x >= self.size.width() as i32
+                || c.y >= self.size.height() as i32
                 || self.get(*c).map(|c| c.typ.is_some()).unwrap_or(false)
         })
     }
@@ -219,7 +219,7 @@ impl Board {
     }
 
     fn move_to_top(&self, piece: Piece) -> Piece {
-        piece.translate(Coord::new(self.size.x() as i32 / 2 - 1, 0))
+        piece.translate(ICoord::new(self.size.width() as i32 / 2 - 1, 0))
     }
 }
 
@@ -252,20 +252,20 @@ impl GameState {
             let mut game_over = false;
             while self.board.collides(&self.piece) {
                 game_over = true;
-                self.piece = self.piece.translate(Coord::new(0, -1));
+                self.piece = self.piece.translate(ICoord::new(0, -1));
             }
 
             if game_over {
                 return StepResolution::GameOver;
             }
         } else {
-            self.piece = self.piece.translate(Coord::new(0, 1));
+            self.piece = self.piece.translate(ICoord::new(0, 1));
         }
 
         StepResolution::Continue
     }
 
-    fn try_move(&mut self, v: Coord) {
+    fn try_move(&mut self, v: ICoord) {
         let new_piece = self.piece.translate(v);
         if !self.board.collides(&new_piece) {
             self.piece = new_piece;
@@ -335,10 +335,10 @@ impl Tetris {
 
     pub fn input(&mut self, input: Input) {
         match input {
-            Input::Left => self.game_state.try_move(Coord::new(-1, 0)),
-            Input::Right => self.game_state.try_move(Coord::new(1, 0)),
+            Input::Left => self.game_state.try_move(ICoord::new(-1, 0)),
+            Input::Right => self.game_state.try_move(ICoord::new(1, 0)),
             Input::Up => self.game_state.try_rotate(),
-            Input::Down => self.game_state.try_move(Coord::new(0, 1)),
+            Input::Down => self.game_state.try_move(ICoord::new(0, 1)),
         }
     }
 

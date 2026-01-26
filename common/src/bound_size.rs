@@ -2,7 +2,7 @@ use chargrid_core::*;
 
 pub struct BoundSize<C: Component> {
     pub component: C,
-    pub size: Size,
+    pub size: UCoord,
 }
 
 impl<C: Component> Component for BoundSize<C> {
@@ -16,7 +16,7 @@ impl<C: Component> Component for BoundSize<C> {
         let ctx = ctx.set_size(self.size);
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let child_size = self.component.size(state, ctx.set_size(self.size));
         child_size.pairwise_min(self.size)
     }
@@ -38,7 +38,7 @@ impl<C: Component> Component for BoundWidth<C> {
         let ctx = ctx.set_width(self.width);
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let child_size = self.component.size(state, ctx.set_width(self.width));
         child_size.set_width(child_size.width().min(self.width))
     }
@@ -60,7 +60,7 @@ impl<C: Component> Component for BoundHeight<C> {
         let ctx = ctx.set_height(self.height);
         self.component.update(state, ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let child_size = self.component.size(state, ctx.set_height(self.height));
         child_size.set_height(child_size.height().min(self.height))
     }

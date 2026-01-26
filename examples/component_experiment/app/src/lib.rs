@@ -151,7 +151,7 @@ impl HelloWorld {
                 border::Border {
                     component: pad_to::PadTo {
                         component: menu,
-                        size: Size::new(16, 0),
+                        size: UCoord::new(16, 0),
                     },
                     style: border::BorderStyle {
                         title: Some("omg a border".to_string()),
@@ -168,11 +168,12 @@ impl HelloWorld {
 }
 
 fn title_ctx<'a>(ctx: Ctx<'a>) -> Ctx<'a> {
-    ctx.add_offset(Coord::new(2, 1)).set_size(Size::new(8, 2))
+    ctx.add_offset(ICoord::new(2, 1))
+        .set_size(UCoord::new(8, 2))
 }
 
 fn menu_ctx<'a>(ctx: Ctx<'a>) -> Ctx<'a> {
-    ctx.add_offset(Coord::new(1, 4))
+    ctx.add_offset(ICoord::new(1, 4))
 }
 
 impl Component for HelloWorld {
@@ -204,7 +205,7 @@ impl Component for HelloWorld {
         }
     }
 
-    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
         ctx.bounding_box.size()
     }
 }

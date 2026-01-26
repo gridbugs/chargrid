@@ -1,4 +1,4 @@
-use chargrid_core::{Component, Ctx, Event, FrameBuffer, Size};
+use chargrid_core::{Component, Ctx, Event, FrameBuffer, UCoord};
 use std::marker::PhantomData;
 
 mod boxed;
@@ -70,7 +70,7 @@ where
     fn update(&mut self, state: &mut Self::State, ctx: Ctx, event: Event) -> Self::Output {
         self.component.update(self.lens.get_mut(state), ctx, event)
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         self.component.size(self.lens.get(state), ctx)
     }
 }

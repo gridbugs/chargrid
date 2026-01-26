@@ -5,7 +5,7 @@ pub fn app() -> App {
         let size = ctx.bounding_box.size();
         for y in 0..size.height() {
             for x in 0..size.width() {
-                let coord = Coord::new(x as i32, y as i32);
+                let coord = ICoord::new(x as i32, y as i32);
                 let r = 255 - ((x * 255) / size.width());
                 let g = (x * 510) / size.width();
                 let g = if g > 255 { 510 - g } else { g };

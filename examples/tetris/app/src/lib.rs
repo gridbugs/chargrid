@@ -90,7 +90,7 @@ impl Component for TetrisComponent {
         self.board_view.render(&state.tetris.game_state, ctx, fb);
         self.next_piece_view.render(
             &state.tetris.game_state.next_piece,
-            ctx.add_offset(Coord::new(
+            ctx.add_offset(ICoord::new(
                 self.board_view.size(&state.tetris.game_state, ctx).width() as i32,
                 0,
             )),
@@ -134,7 +134,7 @@ impl Component for TetrisComponent {
         }
         None
     }
-    fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
         let board_size = TetrisBoardView.size(&state.tetris.game_state, ctx);
         let next_piece_size = TetrisNextPieceView.size(&state.tetris.game_state.next_piece, ctx);
         board_size.set_width(board_size.width() + next_piece_size.width())
@@ -160,7 +160,7 @@ impl Component for TetrisBoardView {
                     cell_info.style.foreground = Some(BLANK_FOREGROUND_COLOUR);
                     cell_info.style.background = Some(BACKGROUND_COLOUR);
                 }
-                fb.set_cell_relative_to_ctx(ctx, Coord::new(j as i32, i as i32), 0, cell_info);
+                fb.set_cell_relative_to_ctx(ctx, ICoord::new(j as i32, i as i32), 0, cell_info);
             }
         }
         for coord in state.piece.coords.iter().cloned() {
@@ -177,7 +177,7 @@ impl Component for TetrisBoardView {
         }
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, state: &Self::State, _ctx: Ctx) -> Size {
+    fn size(&self, state: &Self::State, _ctx: Ctx) -> UCoord {
         state.board.size
     }
 }
@@ -186,7 +186,7 @@ impl Component for TetrisNextPieceView {
     type Output = ();
     type State = Piece;
     fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
-        let offset = Coord::new(1, 0);
+        let offset = ICoord::new(1, 0);
         for coord in state.coords.iter().cloned() {
             let cell_info = RenderCell {
                 character: Some(BLOCK_CHAR),
@@ -201,7 +201,7 @@ impl Component for TetrisNextPieceView {
         }
     }
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-    fn size(&self, _state: &Self::State, _ctx: Ctx) -> Size {
+    fn size(&self, _state: &Self::State, _ctx: Ctx) -> UCoord {
         NEXT_PIECE_SIZE.into()
     }
 }

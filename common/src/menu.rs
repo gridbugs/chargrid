@@ -61,7 +61,7 @@ impl<T: Clone, S> Menu<T, S> {
         &self.items[self.selected_index].value
     }
 
-    fn menu_index_from_screen_coord(&self, ctx: Ctx, coord: Coord) -> Option<usize> {
+    fn menu_index_from_screen_coord(&self, ctx: Ctx, coord: ICoord) -> Option<usize> {
         if let Some(relative_coord) = ctx.bounding_box.coord_absolute_to_relative(coord) {
             let index = relative_coord.y as usize;
             if let Some(&Some(item_index)) = self.offset_to_item_index.get(index) {
@@ -123,7 +123,7 @@ impl<T: Clone, S> Menu<T, S> {
                 GamepadButton::DPadDown => self.down(),
                 GamepadButton::DPadUp => self.up(),
                 GamepadButton::Start | GamepadButton::South => {
-                    return Some(self.selected().clone())
+                    return Some(self.selected().clone());
                 }
                 _ => (),
             },
@@ -141,8 +141,8 @@ impl<T: Clone, S> Component for Menu<T, S> {
             if let Some(item_index) = item_index {
                 self.items[item_index].identifier.render(
                     state,
-                    ctx.add_offset(Coord::new(0, offset as i32))
-                        .set_size(Size::new(ctx.bounding_box.size().width(), 1)),
+                    ctx.add_offset(ICoord::new(0, offset as i32))
+                        .set_size(UCoord::new(ctx.bounding_box.size().width(), 1)),
                     fb,
                 );
             }
@@ -162,22 +162,22 @@ impl<T: Clone, S> Component for Menu<T, S> {
         }
     }
 
-    fn size(&self, state: &S, ctx: Ctx) -> Size {
-        let mut max_coord = Coord::new(0, 0);
+    fn size(&self, state: &S, ctx: Ctx) -> UCoord {
+        let mut max_coord = ICoord::new(0, 0);
         for (offset, &item_index) in self.offset_to_item_index.iter().enumerate() {
             if let Some(item_index) = item_index {
-                let offset = Coord::new(0, offset as i32);
+                let offset = ICoord::new(0, offset as i32);
                 let identifier_size = self.items[item_index].identifier.size(
                     state,
                     ctx.add_offset(offset)
-                        .set_size(Size::new(ctx.bounding_box.size().width(), 1)),
+                        .set_size(UCoord::new(ctx.bounding_box.size().width(), 1)),
                 );
-                let bottom_right = offset + identifier_size.to_coord().unwrap();
+                let bottom_right = offset + identifier_size.to_icoord();
                 max_coord.x = max_coord.x.max(bottom_right.x);
                 max_coord.y = max_coord.y.max(bottom_right.y);
             }
         }
-        max_coord.to_size().unwrap()
+        max_coord.to_ucoord()
     }
 }
 
@@ -202,7 +202,7 @@ pub mod identifier {
             }
         }
         fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, _event: Event) -> Self::Output {}
-        fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
             if self.is_selected {
                 self.selected.size(state, ctx)
             } else {
@@ -276,7 +276,7 @@ pub mod identifier {
                 });
             }
         }
-        fn size(&self, state: &Self::State, ctx: Ctx) -> Size {
+        fn size(&self, state: &Self::State, ctx: Ctx) -> UCoord {
             self.component.size(state, ctx)
         }
     }

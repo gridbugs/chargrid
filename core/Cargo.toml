@@ -17,5 +17,5 @@ gamepad = ["chargrid_input/gamepad"]
 [dependencies]
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
 rgb_int = "0.1"
-grid_2d = "0.15"
+grid_2d = "0.16"
 chargrid_input = { path = "../input", version = "0.6" }

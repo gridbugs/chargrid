@@ -1,7 +1,7 @@
 use crate::Dimensions;
 use chargrid_input::{
-    keys, Coord, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput,
-    ScrollDirection,
+    ICoord, Input, KeyboardInput, MouseButton as ChargridMouseButton, MouseButton, MouseInput,
+    ScrollDirection, keys,
 };
 use winit::{
     dpi::{LogicalPosition, PhysicalSize},
@@ -125,7 +125,7 @@ pub fn convert_event(
     event: WindowEvent,
     cell_dimensions: Dimensions<f64>,
     top_left_position: Dimensions<f64>,
-    last_mouse_coord: &mut Coord,
+    last_mouse_coord: &mut ICoord,
     last_mouse_button: &mut Option<MouseButton>,
     scale_factor: &mut f64,
     modifier_state: ModifiersState,
@@ -153,7 +153,7 @@ pub fn convert_event(
                 physical_position.to_logical(*scale_factor);
             let x = ((x - top_left_position.width) / cell_dimensions.width) as i32;
             let y = ((y - top_left_position.height) / cell_dimensions.height) as i32;
-            let coord = Coord::new(x, y);
+            let coord = ICoord::new(x, y);
             *last_mouse_coord = coord;
             Some(Event::Input(Input::Mouse(MouseInput::MouseMove {
                 coord,

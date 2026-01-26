@@ -1,7 +1,7 @@
 use crate::{Dimensions, FontBytes};
 use chargrid_runtime::{FrameBuffer, Rgba32};
 use glyphon::fontdb;
-use grid_2d::{Grid, Size};
+use grid_2d::{Grid, UCoord};
 use std::sync::Arc;
 
 const FONT_NAME_NORMAL: &'static str = "user-normal";
@@ -62,7 +62,7 @@ impl TextRenderer {
         texture_format: wgpu::TextureFormat,
         font_size_px: f32,
         cell_dimensions: Dimensions<f64>,
-        grid_size: Size,
+        grid_size: UCoord,
         window_scale_factor: f64,
     ) -> Self {
         let mut font_system = font_bytes_to_font_system(font_bytes);

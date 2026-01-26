@@ -5,15 +5,15 @@ use chargrid_gamepad::GamepadContext;
 pub use chargrid_input;
 pub use chargrid_input::{Input, MouseInput};
 use chargrid_input::{MouseButton, ScrollDirection};
-use chargrid_runtime::{app, on_frame, on_input, Component, FrameBuffer, Rgba32};
-use grid_2d::Coord;
-pub use grid_2d::Size;
+use chargrid_runtime::{Component, FrameBuffer, Rgba32, app, on_frame, on_input};
+use grid_2d::ICoord;
+pub use grid_2d::UCoord;
 use js_sys::Function;
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use std::time::Duration;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use web_sys::{Element, HtmlElement, KeyboardEvent, MouseEvent, Node, WheelEvent};
 
 fn rgba32_to_web_colour(Rgba32 { r, g, b, a }: Rgba32) -> String {
@@ -59,10 +59,10 @@ struct ElementDisplayInfo {
 }
 
 impl ElementDisplayInfo {
-    fn mouse_coord(&self, x: i32, y: i32) -> Coord {
+    fn mouse_coord(&self, x: i32, y: i32) -> ICoord {
         let x = (x - self.container_x as i32) / self.cell_width as i32;
         let y = (y - self.container_y as i32) / self.cell_height as i32;
-        Coord::new(x, y)
+        ICoord::new(x, y)
     }
 }
 
@@ -98,9 +98,9 @@ impl Context {
             cell_height,
         }
     }
-    pub fn new(size: Size, container: &str) -> Self {
+    pub fn new(size: UCoord, container: &str) -> Self {
         if size.width() == 0 || size.height() == 0 {
-            panic!("Size must not be zero");
+            panic!("UCoord must not be zero");
         }
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
@@ -122,7 +122,7 @@ impl Context {
                 container_node
                     .append_child(
                         &element_grid
-                            .get_checked(Coord::new(x as i32, y as i32))
+                            .get_checked(ICoord::new(x as i32, y as i32))
                             .element,
                     )
                     .unwrap();

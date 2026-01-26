@@ -23,6 +23,6 @@ winit = { version = "0.30", features = ["rwh_06"] }
 glyphon = "0.10"
 zerocopy = { version = "0.8", features = ["derive"] }
 log = "0.4"
-grid_2d = "0.15"
+grid_2d = "0.16"
 pollster = "0.4"
 anyhow = "1"

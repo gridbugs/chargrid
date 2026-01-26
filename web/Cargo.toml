@@ -20,7 +20,7 @@ chargrid_input = { path = "../input", version = "0.6" }
 chargrid_gamepad = { path = "../gamepad", version = "0.6", optional = true }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
-grid_2d = "0.15"
+grid_2d = "0.16"
 log = "0.4"
 
 [dependencies.web-sys]

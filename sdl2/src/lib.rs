@@ -1,7 +1,7 @@
 #[cfg(feature = "gamepad")]
 use chargrid_gamepad::GamepadContext;
-use chargrid_input::{keys, Input, MouseButton, MouseInput, ScrollDirection};
-use chargrid_runtime::{app, on_frame, on_input, Component, Coord, FrameBuffer, Rgba32, Size};
+use chargrid_input::{Input, MouseButton, MouseInput, ScrollDirection, keys};
+use chargrid_runtime::{Component, FrameBuffer, ICoord, Rgba32, UCoord, app, on_frame, on_input};
 use sdl2::{event::Event, pixels::Color, rect::Rect, rwops::RWops, surface::Surface, ttf};
 use std::{
     thread,
@@ -112,15 +112,15 @@ impl Context {
             default_pixel_format,
         )
         .expect("failed to create surface");
-        let grid_size = Size::new(
+        let grid_size = UCoord::new(
             (config.window_dimensions_px.width / config.cell_dimensions_px.width) as u32,
             (config.window_dimensions_px.height / config.cell_dimensions_px.height) as u32,
         );
-        let px_to_coord = |x: i32, y: i32| Coord {
+        let px_to_coord = |x: i32, y: i32| ICoord {
             x: (x as f64 / config.cell_dimensions_px.width) as i32,
             y: (y as f64 / config.cell_dimensions_px.height) as i32,
         };
-        let mut current_mouse_position = Coord::new(0, 0);
+        let mut current_mouse_position = ICoord::new(0, 0);
         let mut chargrid_frame_buffer = FrameBuffer::new(grid_size);
         'mainloop: loop {
             let frame_start = Instant::now();

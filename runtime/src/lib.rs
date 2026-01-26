@@ -1,7 +1,7 @@
 pub use chargrid_core::{
-    app, rgb_int, Component, Coord, FrameBuffer, FrameBufferCell, Rgba32, Size,
+    Component, FrameBuffer, FrameBufferCell, ICoord, Rgba32, UCoord, app, rgb_int,
 };
-use chargrid_core::{input::Input, Event};
+use chargrid_core::{Event, input::Input};
 use std::time::Duration;
 
 pub fn on_input<C>(component: &mut C, input: Input, frame_buffer: &FrameBuffer) -> app::Output

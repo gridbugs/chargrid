@@ -3,8 +3,8 @@ use super::low_level::LowLevel;
 use super::term_info_cache::{MousePrefix, TermInfoCache, TerminalInput};
 use crate::error::Result;
 use chargrid_input::{Input, KeyboardInput, MouseInput, NotSupported};
-use chargrid_runtime::{rgb_int::Rgb24, Coord, Size};
-use std::collections::{vec_deque, VecDeque};
+use chargrid_runtime::{ICoord, UCoord, rgb_int::Rgb24};
+use std::collections::{VecDeque, vec_deque};
 use term::terminfo::parm::{self, Param};
 
 const OUTPUT_BUFFER_INITIAL_CAPACITY: usize = 32 * 1024;
@@ -151,11 +151,11 @@ impl AnsiTerminal {
         self.flush_buffer()
     }
 
-    pub fn size(&self) -> Result<Size> {
+    pub fn size(&self) -> Result<UCoord> {
         self.low_level.size()
     }
 
-    pub fn set_cursor(&mut self, coord: Coord) -> Result<()> {
+    pub fn set_cursor(&mut self, coord: ICoord) -> Result<()> {
         let params = &[Param::Number(coord.y), Param::Number(coord.x)];
         let command = parm::expand(
             self.ti_cache.set_cursor.as_bytes(),
@@ -254,7 +254,7 @@ impl AnsiTerminal {
                             const COORD_OFFSET: i32 = 33;
                             let x = rest[0] as i32 - COORD_OFFSET;
                             let y = rest[1] as i32 - COORD_OFFSET;
-                            let coord = Coord::new(x, y);
+                            let coord = ICoord::new(x, y);
                             let input = match prefix {
                                 MousePrefix::Move(button) => {
                                     Input::Mouse(MouseInput::MouseMove { button, coord })

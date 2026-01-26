@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use chargrid_runtime::Size;
+use chargrid_runtime::UCoord;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::mem::MaybeUninit;
@@ -60,7 +60,7 @@ impl LowLevel {
         })
     }
 
-    pub fn size(&self) -> Result<Size> {
+    pub fn size(&self) -> Result<UCoord> {
         let mut win_size = WinSize {
             ws_row: 0,
             ws_col: 0,
@@ -74,7 +74,7 @@ impl LowLevel {
         if win_size.ws_row == 0 || win_size.ws_col == 0 {
             Err(Error::last_os_error())
         } else {
-            Ok(Size::new(win_size.ws_col as u32, win_size.ws_row as u32))
+            Ok(UCoord::new_u16(win_size.ws_col, win_size.ws_row))
         }
     }
 

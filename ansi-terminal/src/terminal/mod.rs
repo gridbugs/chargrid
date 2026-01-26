@@ -1,6 +1,6 @@
 use crate::error::Result;
 use chargrid_input::*;
-use chargrid_runtime::{FrameBuffer, FrameBufferCell, Rgba32, Size};
+use chargrid_runtime::{FrameBuffer, FrameBufferCell, Rgba32, UCoord};
 
 mod ansi_colour_codes;
 mod ansi_terminal;
@@ -13,7 +13,7 @@ mod low_level;
 #[cfg(not(unix))]
 mod low_level {
     use crate::error::{Error, Result};
-    use chargrid_runtime::Size;
+    use chargrid_runtime::UCoord;
     use std::io;
 
     pub struct LowLevel {}
@@ -31,13 +31,13 @@ mod low_level {
             panic!("Unimplemented on non-unix OS")
         }
 
-        pub fn size(&self) -> Result<Size> {
+        pub fn size(&self) -> Result<UCoord> {
             panic!("Unimplemented on non-unix OS")
         }
     }
 }
 
-pub use self::ansi_terminal::{col_encode, AnsiTerminal, ColEncode, DrainInput};
+pub use self::ansi_terminal::{AnsiTerminal, ColEncode, DrainInput, col_encode};
 
 #[derive(Debug, Clone)]
 struct OutputCell {
@@ -91,7 +91,7 @@ impl Terminal {
         Ok(Self { ansi, output_frame })
     }
 
-    pub fn resize_if_necessary(&mut self) -> Result<Size> {
+    pub fn resize_if_necessary(&mut self) -> Result<UCoord> {
         let size = self.ansi.size()?;
         if size != self.output_frame.size() {
             self.output_frame = grid_2d::Grid::new_fn(size, |_| OutputCell::new());
@@ -99,7 +99,7 @@ impl Terminal {
         Ok(size)
     }
 
-    pub fn size(&self) -> Result<Size> {
+    pub fn size(&self) -> Result<UCoord> {
         self.ansi.size()
     }
 
@@ -107,7 +107,7 @@ impl Terminal {
     where
         E: ColEncode,
     {
-        self.ansi.set_cursor(Coord::new(0, 0))?;
+        self.ansi.set_cursor(ICoord::new(0, 0))?;
         let mut bold = false;
         let mut underline = false;
         let mut fg = Rgba32::new_grey(0);
