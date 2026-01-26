@@ -1,4 +1,4 @@
-use chargrid_input::{keys, KeyboardInput};
+use chargrid_input::{KeyboardInput, keys};
 use sdl2::keyboard::{Keycode, Mod};
 
 macro_rules! convert_char_shift {

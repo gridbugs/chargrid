@@ -1800,11 +1800,10 @@ where
     type State = S;
     fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
     fn update(&mut self, _state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
-        if let Event::Input(input) = event {
-            if let Some(output) = (self.f)(input) {
+        if let Event::Input(input) = event
+            && let Some(output) = (self.f)(input) {
                 return Some(output);
             }
-        }
         None
     }
     fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {
@@ -1833,11 +1832,10 @@ where
     type State = S;
     fn render(&self, _state: &Self::State, _ctx: Ctx, _fb: &mut FrameBuffer) {}
     fn update(&mut self, state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
-        if let Event::Input(input) = event {
-            if let Some(output) = (self.f)(input, state) {
+        if let Event::Input(input) = event
+            && let Some(output) = (self.f)(input, state) {
                 return Some(output);
             }
-        }
         None
     }
     fn size(&self, _state: &Self::State, ctx: Ctx) -> UCoord {

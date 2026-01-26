@@ -1,8 +1,8 @@
 use super::byte_prefix_tree::BytePrefixTree;
 use crate::error::{Error, Result};
 use chargrid_input::{Input, KeyboardInput, MouseButton, ScrollDirection};
-use term::terminfo::parm::{self, Param, Variables};
 use term::terminfo::TermInfo;
+use term::terminfo::parm::{self, Param, Variables};
 
 // XXX this might not be portable
 const ESCAPE: &[u8] = &[27];

@@ -49,7 +49,7 @@ where
             .iter()
             .zip(buffer_slice_view_slice.chunks_exact_mut(std::mem::size_of::<T>()))
         {
-            slot.copy_from_slice(&t.as_bytes());
+            slot.copy_from_slice(t.as_bytes());
         }
     }
     buffer.unmap();

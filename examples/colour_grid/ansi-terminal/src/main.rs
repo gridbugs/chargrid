@@ -1,4 +1,4 @@
-use chargrid_ansi_terminal::{col_encode, Context};
+use chargrid_ansi_terminal::{Context, col_encode};
 use colour_grid_app::app;
 
 enum ColEncodeChoice {

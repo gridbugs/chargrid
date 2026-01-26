@@ -1,4 +1,4 @@
-use chargrid_ansi_terminal::{col_encode, Context};
+use chargrid_ansi_terminal::{Context, col_encode};
 use component_experiment_app::app;
 
 fn main() {

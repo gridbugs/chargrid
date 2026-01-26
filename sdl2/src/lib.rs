@@ -220,12 +220,11 @@ impl Context {
                     Event::Quit { .. } => Some(Input::Keyboard(keys::ETX)),
                     _ => None,
                 };
-                if let Some(input) = input {
-                    if let Some(app::Exit) = on_input(&mut component, input, &chargrid_frame_buffer)
+                if let Some(input) = input
+                    && let Some(app::Exit) = on_input(&mut component, input, &chargrid_frame_buffer)
                     {
                         break 'mainloop;
                     }
-                }
             }
             if let Some(app::Exit) =
                 on_frame(&mut component, FRAME_DURATION, &mut chargrid_frame_buffer)

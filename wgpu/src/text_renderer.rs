@@ -4,8 +4,8 @@ use glyphon::fontdb;
 use grid_2d::{Grid, UCoord};
 use std::sync::Arc;
 
-const FONT_NAME_NORMAL: &'static str = "user-normal";
-const FONT_NAME_BOLD: &'static str = "user-bold";
+const FONT_NAME_NORMAL: &str = "user-normal";
+const FONT_NAME_BOLD: &str = "user-bold";
 
 fn font_data_to_font_source(data: Arc<Vec<u8>>) -> fontdb::Source {
     fontdb::Source::Binary(data)
@@ -67,12 +67,12 @@ impl TextRenderer {
     ) -> Self {
         let mut font_system = font_bytes_to_font_system(font_bytes);
         let swash_cache = glyphon::SwashCache::new();
-        let cache = glyphon::Cache::new(&device);
-        let viewport = glyphon::Viewport::new(&device, &cache);
-        let mut atlas = glyphon::TextAtlas::new(&device, &queue, &cache, texture_format);
+        let cache = glyphon::Cache::new(device);
+        let viewport = glyphon::Viewport::new(device, &cache);
+        let mut atlas = glyphon::TextAtlas::new(device, queue, &cache, texture_format);
         let text_renderer = glyphon::TextRenderer::new(
             &mut atlas,
-            &device,
+            device,
             wgpu::MultisampleState::default(),
             None,
         );
@@ -113,7 +113,7 @@ impl TextRenderer {
         render_pass: &mut wgpu::RenderPass<'_>,
     ) -> anyhow::Result<()> {
         self.viewport.update(
-            &queue,
+            queue,
             glyphon::Resolution {
                 width: surface_configuration.width,
                 height: surface_configuration.height,
@@ -168,8 +168,8 @@ impl TextRenderer {
             });
         }
         self.text_renderer.prepare(
-            &device,
-            &queue,
+            device,
+            queue,
             &mut self.font_system,
             &mut self.atlas,
             &self.viewport,

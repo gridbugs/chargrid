@@ -218,8 +218,8 @@ impl FrameBuffer {
     }
 
     pub fn set_cell(&mut self, coord: ICoord, depth: i8, render_cell: RenderCell) {
-        if let Some(cell) = self.grid.get_mut(coord) {
-            if cell.foreground_depth <= depth || cell.background_depth <= depth {
+        if let Some(cell) = self.grid.get_mut(coord)
+            && (cell.foreground_depth <= depth || cell.background_depth <= depth) {
                 if let Some(character) = render_cell.character {
                     cell.set_character(character, depth);
                 }
@@ -239,7 +239,6 @@ impl FrameBuffer {
                     cell.set_background(background_blended, depth);
                 }
             }
-        }
     }
 
     pub fn default_ctx<'a>(&self) -> Ctx<'a> {
@@ -505,7 +504,7 @@ impl Tint for TintIdentity {
 
 impl<F: Fn(Rgba32) -> Rgba32> Tint for F {
     fn tint(&self, rgba32: Rgba32) -> Rgba32 {
-        (&self)(rgba32)
+        self(rgba32)
     }
 }
 
