@@ -398,6 +398,7 @@ impl WgpuState {
             sizes.font_size_px,
             sizes.cell_dimensions,
             grid_size,
+            scale_factor,
         );
         Ok(Self {
             device,

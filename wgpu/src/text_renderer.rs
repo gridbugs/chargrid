@@ -51,6 +51,7 @@ pub struct TextRenderer {
     text_buffer_grid: Grid<glyphon::Buffer>,
     string_buffer: String,
     cell_dimensions: Dimensions<f64>,
+    window_scale_factor: f64,
 }
 
 impl TextRenderer {
@@ -62,6 +63,7 @@ impl TextRenderer {
         font_size_px: f32,
         cell_dimensions: Dimensions<f64>,
         grid_size: Size,
+        window_scale_factor: f64,
     ) -> Self {
         let mut font_system = font_bytes_to_font_system(font_bytes);
         let swash_cache = glyphon::SwashCache::new();
@@ -78,8 +80,8 @@ impl TextRenderer {
             let mut text_buffer = glyphon::Buffer::new(
                 &mut font_system,
                 glyphon::Metrics {
-                    font_size: font_size_px,
-                    line_height: cell_dimensions.height as f32,
+                    font_size: font_size_px * window_scale_factor as f32,
+                    line_height: (cell_dimensions.height * window_scale_factor) as f32,
                 },
             );
             text_buffer.set_size(
@@ -98,6 +100,7 @@ impl TextRenderer {
             text_buffer_grid,
             string_buffer: String::new(),
             cell_dimensions,
+            window_scale_factor,
         }
     }
 
@@ -144,8 +147,12 @@ impl TextRenderer {
         {
             text_areas.push(glyphon::TextArea {
                 buffer: text_buffer,
-                left: coord.x as f32 * self.cell_dimensions.width as f32,
-                top: coord.y as f32 * self.cell_dimensions.height as f32,
+                left: coord.x as f32
+                    * self.cell_dimensions.width as f32
+                    * self.window_scale_factor as f32,
+                top: coord.y as f32
+                    * self.cell_dimensions.height as f32
+                    * self.window_scale_factor as f32,
                 scale: 1.,
                 bounds: glyphon::TextBounds {
                     left: 0,
