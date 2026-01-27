@@ -15,7 +15,7 @@ serialize = ["chargrid_input/serialize"]
 gamepad = ["chargrid_gamepad", "chargrid_input/gamepad", "chargrid_runtime/gamepad"]
 
 [dependencies]
-chargrid_runtime = { path = "../runtime", version = "0.5" }
+chargrid_runtime = { path = "../runtime", version = "0.6" }
 chargrid_input = { path = "../input", version = "0.7" }
 chargrid_gamepad = { path = "../gamepad", version = "0.7", optional = true }
 wasm-bindgen = "0.2"

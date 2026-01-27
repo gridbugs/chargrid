@@ -15,4 +15,4 @@ serialize = ["chargrid_core/serialize"]
 gamepad = ["chargrid_core/gamepad"]
 
 [dependencies]
-chargrid_core = { path = "../core", version = "0.5" }
+chargrid_core = { path = "../core", version = "0.6" }
