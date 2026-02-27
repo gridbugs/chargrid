@@ -49,6 +49,7 @@ pub struct TextRendererArgs<'a> {
     pub texture_format: wgpu::TextureFormat,
     pub font_size_px: f32,
     pub cell_dimensions: Dimensions<f64>,
+    pub character_cell_offset_px: Dimensions<f64>,
     pub grid_size: UCoord,
     pub window_scale_factor: f64,
 }
@@ -62,6 +63,7 @@ pub struct TextRenderer {
     text_buffer_grid: Grid<glyphon::Buffer>,
     string_buffer: String,
     cell_dimensions: Dimensions<f64>,
+    character_cell_offset_px: Dimensions<f64>,
     window_scale_factor: f64,
 }
 
@@ -74,6 +76,7 @@ impl TextRenderer {
             texture_format,
             font_size_px,
             cell_dimensions,
+            character_cell_offset_px,
             grid_size,
             window_scale_factor,
         }: TextRendererArgs,
@@ -109,6 +112,7 @@ impl TextRenderer {
             text_buffer_grid,
             string_buffer: String::new(),
             cell_dimensions,
+            character_cell_offset_px,
             window_scale_factor,
         }
     }
@@ -156,11 +160,11 @@ impl TextRenderer {
         {
             text_areas.push(glyphon::TextArea {
                 buffer: text_buffer,
-                left: coord.x as f32
-                    * self.cell_dimensions.width as f32
+                left: (coord.x as f32 * self.cell_dimensions.width as f32
+                    + self.character_cell_offset_px.width as f32)
                     * self.window_scale_factor as f32,
-                top: coord.y as f32
-                    * self.cell_dimensions.height as f32
+                top: (coord.y as f32 * self.cell_dimensions.height as f32
+                    + self.character_cell_offset_px.height as f32)
                     * self.window_scale_factor as f32,
                 scale: 1.,
                 bounds: glyphon::TextBounds {

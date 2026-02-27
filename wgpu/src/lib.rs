@@ -43,6 +43,7 @@ pub struct Config {
     pub font_bytes: FontBytes,
     pub font_size_px: f32,
     pub cell_dimensions_px: Dimensions<f64>,
+    pub character_cell_offset_px: Dimensions<f64>,
     pub underline_width_cell_ratio: f64,
     pub underline_top_offset_cell_ratio: f64,
     pub force_secondary_adapter: bool,
@@ -440,6 +441,7 @@ impl WgpuState {
             texture_format,
             font_size_px: sizes.font_size_px,
             cell_dimensions: sizes.cell_dimensions,
+            character_cell_offset_px: sizes.character_cell_offset_px,
             grid_size,
             window_scale_factor: scale_factor,
         });
@@ -597,6 +599,7 @@ impl Default for InputState {
 struct Sizes {
     font_size_px: f32,
     cell_dimensions: Dimensions<f64>,
+    pub character_cell_offset_px: Dimensions<f64>,
     underline_width: f64,
     underline_top_offset: f64,
     native_window_dimensions: Dimensions<f64>,
@@ -679,6 +682,7 @@ impl Context {
             font_bytes,
             font_size_px,
             cell_dimensions_px,
+            character_cell_offset_px,
             underline_width_cell_ratio,
             underline_top_offset_cell_ratio,
             force_secondary_adapter,
@@ -694,6 +698,7 @@ impl Context {
         let sizes = Sizes {
             font_size_px,
             cell_dimensions: cell_dimensions_px,
+            character_cell_offset_px: character_cell_offset_px,
             underline_width: underline_width_cell_ratio,
             underline_top_offset: underline_top_offset_cell_ratio,
             native_window_dimensions: dimensions_px,

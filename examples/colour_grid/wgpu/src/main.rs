@@ -20,6 +20,10 @@ fn main() {
                 width: 14.,
                 height: 14.,
             },
+            character_cell_offset_px: Dimensions {
+                width: 0.,
+                height: 0.,
+            },
             underline_width_cell_ratio: 0.1,
             underline_top_offset_cell_ratio: 0.8,
             force_secondary_adapter: false,
