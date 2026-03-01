@@ -841,7 +841,6 @@ where
                         &mut context.wgpu_state.chargrid_frame_buffer,
                     ) {
                         self.state.exited = true;
-                        return;
                     }
                 }
                 context.wgpu_state.render();
